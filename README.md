@@ -31,7 +31,7 @@
 
 ```
 light-homepage/
-├─ frontend/     Next.js 15 + TypeScript + Tailwind   ← FE 단독 소유
+├─ frontend/     Next.js 16 + TypeScript + Tailwind v4  ← FE 단독 소유
 ├─ backend/      Spring Boot 3 + Java 21              ← BE 단독 소유
 ├─ infra/        Jenkins 등 인프라 구성                  ← server_develop 소유
 ├─ docs/         기획·설계 문서                          ← 공동
@@ -86,6 +86,14 @@ feat/* 에서 작업 → push (몇 번이든) → CI 실행 → ✅ 통과하면
 
 ## 실행
 
+**필요 버전** — 전원 동일하게 맞춥니다 ([TOOLCHAIN.md](docs/TOOLCHAIN.md))
+
+| | 버전 | |
+|---|---|---|
+| Node.js | **22 LTS** | 프론트엔드 |
+| Java (Temurin) | **21** | 백엔드 |
+| PostgreSQL | **16** | 로컬·CI·운영 동일 |
+
 ```bash
 # 백엔드 (터미널 1)
 cd backend && ./gradlew bootRun          # → localhost:8080
@@ -106,6 +114,8 @@ cd frontend && npm run dev               # → localhost:3000
 | 문서 | 대상 | 내용 |
 |---|---|---|
 | [**INTEGRATION.md**](docs/INTEGRATION.md) | **양쪽 필독** | 협업·병합 규칙, API 계약, 통합 체크포인트 |
+| [**TOOLCHAIN.md**](docs/TOOLCHAIN.md) | **양쪽 필독** | 도구 버전 고정 — Node 22 · Java 21 · Postgres 16 · 포트 |
+| [**ONBOARDING_BACKEND.md**](docs/ONBOARDING_BACKEND.md) | **백엔드 첫날** | 어떤 파일을 어떤 순서로 읽을지 |
 | [**BACKEND_TASKS.md**](docs/BACKEND_TASKS.md) | **백엔드** | 작업 지시서 (이것만 읽어도 작업 가능) |
 
 **배경 문서**
