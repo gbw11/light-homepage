@@ -1,0 +1,149 @@
+#!/bin/sh
+#
+# pre-push — push를 실제로 차단하는 유일한 지점
+#
+# 검사 순서 (하나라도 실패하면 push 중단):
+#   1. 보호 브랜치 직접 push 차단
+#   2. 시크릿 포함 여부
+#   3. 빠른 테스트 (변경된 영역만)
+#
+# 설치:  git config core.hooksPath .githooks
+# 우회:  git push --no-verify   (보호 브랜치에는 사용 금지)
+#
+# 문서: docs/CICD.md §2
+
+set -u
+
+RED='\033[0;31m'; YEL='\033[0;33m'; GRN='\033[0;32m'; DIM='\033[2m'; NC='\033[0m'
+
+fail() {
+  printf "\n${RED}✗ push 중단${NC} — %s\n\n" "$1"
+  exit 1
+}
+info() { printf "${DIM}  %s${NC}\n" "$1"; }
+ok()   { printf "${GRN}  ✓${NC} %s\n" "$1"; }
+warn() { printf "${YEL}  !${NC} %s\n" "$1"; }
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT" || exit 1
+
+printf "\n${DIM}── pre-push 검사 ──────────────────────────${NC}\n"
+
+# ════════════════════════════════════════════════════════
+# 1. 보호 브랜치 직접 push 차단
+#    무료 Private 저장소는 GitHub 브랜치 보호를 쓸 수 없으므로
+#    (INTEGRATION.md §6.11) 이 훅이 그 역할을 대신한다.
+# ════════════════════════════════════════════════════════
+PROTECTED="main develop frontend_develop backend_develop server_develop"
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  [ -z "${remote_ref:-}" ] && continue
+  target=${remote_ref#refs/heads/}
+  for p in $PROTECTED; do
+    if [ "$target" = "$p" ]; then
+      printf "\n${RED}✗ '%s' 브랜치에 직접 push할 수 없습니다.${NC}\n" "$target"
+      printf "\n  이 프로젝트는 4단 브랜치 계층을 씁니다 (INTEGRATION.md §6).\n"
+      printf "  작업은 하위 브랜치에서 하고 PR로 올려주세요.\n\n"
+      printf "  ${DIM}git checkout -b feat/be-my-work${NC}\n"
+      printf "  ${DIM}git push -u origin feat/be-my-work${NC}\n"
+      printf "  ${DIM}→ GitHub에서 PR: feat/be-my-work → %s${NC}\n\n" "$target"
+      printf "  브랜치 통합(*_develop → develop 등)은 PR로만 진행합니다.\n\n"
+      exit 1
+    fi
+  done
+done
+
+ok "브랜치 확인"
+
+# ════════════════════════════════════════════════════════
+# 2. 시크릿 검사
+#    CI로는 늦다. GitHub에 한 번 올라가면 히스토리에서 지우기 어렵고
+#    키를 재발급해야 한다. push 전이 유일하게 의미 있는 시점.
+# ════════════════════════════════════════════════════════
+UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || echo "")
+if [ -n "$UPSTREAM" ]; then
+  RANGE="$UPSTREAM..HEAD"
+else
+  # 새 브랜치: develop 이후의 커밋만 검사
+  BASE=$(git merge-base HEAD origin/develop 2>/dev/null || echo "")
+  if [ -n "$BASE" ]; then RANGE="$BASE..HEAD"; else RANGE="HEAD"; fi
+fi
+
+CHANGED=$(git diff --name-only --diff-filter=ACMR "$RANGE" 2>/dev/null || echo "")
+
+# 2-1. 커밋되면 안 되는 파일
+BANNED=$(printf '%s\n' "$CHANGED" | grep -E \
+  '(^|/)\.env($|\.)|application-local\.yml|application-secret\.yml|application-prod\.yml|\.pem$|\.p12$|id_rsa' \
+  || true)
+if [ -n "$BANNED" ]; then
+  printf "\n${RED}✗ 커밋하면 안 되는 파일이 포함돼 있습니다:${NC}\n"
+  printf '%s\n' "$BANNED" | sed 's/^/    /'
+  fail "위 파일을 커밋에서 제거하세요 (.gitignore 확인)"
+fi
+
+# 2-2. 시크릿 값 패턴
+if [ -n "$CHANGED" ]; then
+  HITS=$(git diff "$RANGE" -- $CHANGED 2>/dev/null | grep -nE \
+    "^\+.*(JWT_SECRET[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9+/_-]{16,}|\
+R2_SECRET_ACCESS_KEY[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9+/_-]{16,}|\
+KAKAO_CLIENT_SECRET[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9]{16,}|\
+gh[pousr]_[A-Za-z0-9]{16,}|\
+-----BEGIN [A-Z ]*PRIVATE KEY-----|\
+postgres(ql)?://[^:]+:[^@[:space:]]+@)" \
+    | head -10 || true)
+  if [ -n "$HITS" ]; then
+    printf "\n${RED}✗ 시크릿으로 보이는 값이 포함돼 있습니다:${NC}\n"
+    printf '%s\n' "$HITS" | cut -c1-120 | sed 's/^/    /'
+    printf "\n  ${YEL}이미 커밋했다면 값을 즉시 재발급하세요.${NC}\n"
+    printf "  ${DIM}커밋을 되돌려도 로컬 히스토리에는 남습니다.${NC}\n"
+    fail "시크릿을 제거하고 환경변수로 옮기세요"
+  fi
+fi
+
+ok "시크릿 검사"
+
+# ════════════════════════════════════════════════════════
+# 3. 빠른 테스트 (변경된 영역만) — 목표 90초 이내
+#    전체 테스트는 Jenkins가 담당한다.
+# ════════════════════════════════════════════════════════
+FE_CHANGED=$(printf '%s\n' "$CHANGED" | grep -c '^frontend/' || true)
+BE_CHANGED=$(printf '%s\n' "$CHANGED" | grep -c '^backend/'  || true)
+
+# ── 프론트엔드: lint + 타입 체크
+if [ "$FE_CHANGED" -gt 0 ] && [ -f frontend/package.json ]; then
+  printf "\n${DIM}프론트엔드 검사 (%s개 파일)${NC}\n" "$FE_CHANGED"
+  if [ ! -d frontend/node_modules ]; then
+    warn "node_modules 없음 → 건너뜀 (npm ci 후 다시 시도)"
+  else
+    ( cd frontend && npm run lint --silent ) \
+      || fail "ESLint 실패 — 수정 후 다시 push하세요"
+    ok "ESLint"
+    ( cd frontend && npx tsc --noEmit ) \
+      || fail "타입 체크 실패 — 수정 후 다시 push하세요"
+    ok "타입 체크"
+  fi
+fi
+
+# ── 백엔드: 인가 매트릭스 테스트
+#    RLS가 없는 이 프로젝트에서 권한 회귀는 되돌릴 수 없는 사고다.
+#    (ARCHITECTURE.md §5.3)
+if [ "$BE_CHANGED" -gt 0 ] && [ -f backend/gradlew ]; then
+  printf "\n${DIM}백엔드 검사 (%s개 파일)${NC}\n" "$BE_CHANGED"
+  if ! (nc -z localhost 5432 >/dev/null 2>&1 || \
+        (command -v pg_isready >/dev/null 2>&1 && pg_isready -q -h localhost -p 5432)); then
+    warn "로컬 Postgres(5432) 미실행 → 테스트 건너뜀"
+    info "docker start light-db  로 띄운 뒤 push하면 검사됩니다"
+    info "Jenkins가 최종 검증합니다"
+  else
+    ( cd backend && ./gradlew test --tests '*Authorization*' --quiet ) \
+      || fail "인가 테스트 실패 — 권한 설정을 확인하세요 (ARCHITECTURE.md §5.3)"
+    ok "인가 매트릭스"
+  fi
+fi
+
+if [ "$FE_CHANGED" -eq 0 ] && [ "$BE_CHANGED" -eq 0 ]; then
+  info "코드 변경 없음 (문서·설정만)"
+fi
+
+printf "\n${GRN}✓ pre-push 통과${NC} ${DIM}— Jenkins가 전체 검증을 진행합니다${NC}\n\n"
+exit 0
