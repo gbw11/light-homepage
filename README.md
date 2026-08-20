@@ -111,6 +111,14 @@ cd frontend && npm run dev               # → localhost:3000
 | [WORKPLAN.md](docs/WORKPLAN.md) | 일정·시간 산정·역할 분담 |
 | [CICD.md](docs/CICD.md) | Jenkins CI/CD 설계 · pre-push 훅 |
 
+**명세서**
+
+| 문서 | 내용 |
+|---|---|
+| [SPEC_FUNCTIONAL.md](docs/SPEC_FUNCTIONAL.md) | 기능 명세 — 63개 기능, 역할·마일스톤·수용 기준 |
+| [SPEC_NONFUNCTIONAL.md](docs/SPEC_NONFUNCTIONAL.md) | 비기능 명세 — 성능·가용성·보안·개인정보·비용 목표 |
+| [SPEC_API.md](docs/SPEC_API.md) | **API 명세 — FE·BE 계약서** |
+
 ---
 
 ## 마일스톤

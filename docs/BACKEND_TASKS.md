@@ -405,6 +405,9 @@ POST /api/uploads:commit ─────────▶ 5. status=COMMITTED, siz
 
 ## 9. API 명세
 
+> 📋 **요청/응답 JSON까지 포함한 전체 명세는 [`SPEC_API.md`](SPEC_API.md)에 있습니다.**
+> 이 절은 요약이며, 구현 시에는 SPEC_API.md를 기준으로 하세요.
+
 계약서는 **Swagger UI**입니다 (`springdoc-openapi`를 M1 초반에 붙여주세요 → `localhost:8080/swagger-ui.html`).
 
 ### 9.1 공통 응답 규약 (FE와 합의됨 — 반드시 지킬 것)
@@ -633,3 +636,7 @@ FE가 공개 사이트를 만드는 동안 기반을 깝니다. **접점이 거�
 | `PLAN.md` | 서비스 기획 (왜 이런 요구인지) |
 | `WIREFRAME.md` | 화면 설계 (FE가 무엇을 만드는지) |
 | `WORKPLAN.md` | 전체 일정·시간 산정 |
+| **`SPEC_API.md`** | **API 명세 — 요청/응답 JSON 포함** |
+| `SPEC_FUNCTIONAL.md` | 기능 명세 — 수용 기준 |
+| `SPEC_NONFUNCTIONAL.md` | 비기능 명세 — 성능·보안 목표 |
+| `CICD.md` | Jenkins CI/CD · pre-push 훅 |
