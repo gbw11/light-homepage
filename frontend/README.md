@@ -137,7 +137,7 @@ npm run dev                    # localhost:3000
 CI와 동일한 검사를 로컬에서 돌리려면:
 ```bash
 npm run lint
-npm run type-check             # tsc --noEmit
+npm run type-check             # next typegen + tsc --noEmit
 npm run build
 ```
 
