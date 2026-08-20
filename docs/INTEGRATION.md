@@ -252,9 +252,17 @@ git checkout frontend_develop
 | **`backend_develop`** | BE | API·엔티티·인증·인가·비즈니스 로직·테스트 | `backend/src/**` |
 | **`server_develop`** | BE(주) | Docker·Render·Neon·R2 설정·CI·환경변수·배포 스크립트·운영 문서 | `.github/**`, `backend/Dockerfile`, 인프라 설정 |
 
-> ❓ **`server_develop`의 범위를 팀에서 확정하세요.** 이 문서는 "인프라·배포·운영"으로 정의했습니다.
-> 2인 팀이므로 실제로는 BE 담당자가 `backend_develop`과 `server_develop`을 함께 쓰게 됩니다.
+> ✅ **`server_develop` = 서버 배포·인프라 담당** (2026-08-20 확정)
+> 2인 팀이므로 실제로는 BE 담당자가 `backend_develop`과 `server_develop`을 함께 씁니다.
 > **애플리케이션 코드와 인프라 설정을 분리하는 것이 목적**입니다 — 배포 설정을 고치다 API 코드를 깨뜨리는 일을 막습니다.
+>
+> `server_develop`이 다루는 범위:
+> - **호스팅**: Render 서비스 설정 · Dockerfile · JVM 옵션 · 헬스체크 핑(cron-job.org)
+> - **데이터베이스**: Neon 프로젝트 · 연결 문자열 · 백업·복원 절차
+> - **스토리지**: Cloudflare R2 버킷 · CORS · 수명주기 정책
+> - **배포 파이프라인**: CI 워크플로 · Vercel 프로젝트 설정
+> - **환경변수 관리**: 목록 문서화 · 로테이션 절차 (값 자체는 커밋 금지)
+> - **운영 문서**: 계정 소유권 · 장애 대응 · 교회 명의 이관 절차
 
 **어디에 속하는지 애매할 때**
 | 예 | 어디로 |

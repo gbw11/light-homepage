@@ -389,6 +389,9 @@ R2로 PUT 직접 전송               │ uploads:commit — COMMITTED + 용량 
 | 2026-08-20 | 월례회 변환: 원본 Word → **업로더가 PDF로 저장** → 서버 PDFBox 변환. **LibreOffice 미사용** |
 | 2026-08-20 | 월례회 분량 **10페이지 내외** → 동기 변환 확정 (비동기 폴링 불필요) |
 | 2026-08-20 | **기획 확정. 남은 것은 시작 날짜와 W0 실행** |
+| 2026-08-20 | 저장소 생성: github.com/gbw11/light-homepage (Private, 기본 브랜치 `develop`) |
+| 2026-08-20 | **4단 브랜치 계층** — `develop` 하위에 `frontend_develop`·`backend_develop`·`server_develop`, 작업은 그 하위 `feat/*`에서 |
+| 2026-08-20 | `server_develop` = **서버 배포·인프라 담당** (호스팅·DB·스토리지·CI·환경변수·운영문서) |
 | | |
 
 ---
