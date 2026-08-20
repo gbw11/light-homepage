@@ -7,9 +7,11 @@ on:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
   push:
-    branches: [develop, main, backend_develop, server_develop]
+    # feat/* 에서도 돌려야 머지 전에 결과를 알 수 있다 (docs/CICD.md §1.1)
+    branches: [develop, main, backend_develop, server_develop, 'feat/**']
     paths:
       - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
 
 jobs:
   build:
