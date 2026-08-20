@@ -55,7 +55,7 @@ light-homepage/
 
 ### 2.3 초기 세팅 체크리스트
 - [ ] GitHub 저장소 생성 (private)
-- [ ] `main` 브랜치 보호 설정 (직접 push 금지)
+- [x] ~~`main` 브랜치 보호 설정~~ → ⚠️ **무료 Private 저장소에서는 불가** (GitHub Pro 필요). §6.5 규칙으로 대체
 - [ ] `develop` 브랜치 생성
 - [ ] 루트 `.gitignore` 작성 (§2.4)
 - [ ] `README.md` — 실행 방법 2줄 (FE/BE 각각)
@@ -206,8 +206,8 @@ export const api = process.env.NEXT_PUBLIC_USE_MOCK === '1' ? mockApi : realApi;
 
 ### 6.1 브랜치
 ```
-main         배포 (보호 · 직접 push 금지)
-develop      통합 브랜치 — 평소 작업의 기준
+main         배포 (직접 push 금지 — ⚠️ 기술적 강제 불가, §6.5)
+develop      통합 브랜치 — 평소 작업의 기준 · GitHub 기본 브랜치
 feat/fe-*    FE 기능        예: feat/fe-welcome-page
 feat/be-*    BE 기능        예: feat/be-jwt-auth
 fix/fe-*  fix/be-*   버그 수정
@@ -257,7 +257,19 @@ docs: API 계약 에러코드 STORAGE_LIMIT 추가
 - `develop` → `main`: **Merge commit** (마일스톤 배포 시점 보존)
 - 머지 전 `develop`을 rebase 또는 merge로 최신화
 
----
+### 6.5 ⚠️ `main` 보호는 규칙으로만 지킨다
+무료 플랜의 **Private 저장소에서는 브랜치 보호를 걸 수 없습니다** (GitHub Pro 필요).
+따라서 아래는 **기술적 강제 없이 두 사람이 지켜야 하는 약속**입니다.
+
+- ❌ `main`에 직접 push하지 않는다. **반드시 `develop`을 경유**한다
+- ❌ `main`에 force push하지 않는다
+- ✅ `main`으로 가는 것은 **마일스톤 배포 시점의 `develop` 머지**뿐이다
+- GitHub 기본 브랜치를 `develop`으로 설정해 두었다 → `git clone` 시 `develop`이 체크아웃되고,
+  PR 생성 시 기본 대상도 `develop`이 된다. **실수로 `main`에 올리는 경로를 줄이는 장치다**
+
+실수로 `main`에 직접 push했다면 즉시 상대에게 알립니다. 되돌리기(`git revert`)는 협의 후에 합니다.
+
+> 저장소를 Public으로 바꾸면 브랜치 보호를 무료로 쓸 수 있습니다. 다만 문서에 교회 내부 정보가 있어 권장하지 않습니다.
 
 ## 7. ★ 통합 체크포인트
 
