@@ -118,7 +118,8 @@ pipeline {
               steps { dir('frontend') { sh 'npm run lint' } }
             }
             stage('Type Check') {
-              steps { dir('frontend') { sh 'npx tsc --noEmit' } }
+              // next typegen이 라우트 타입을 먼저 만들어야 tsc가 통과한다 (Next 16)
+              steps { dir('frontend') { sh 'npm run type-check' } }
             }
             stage('Build') {
               steps {

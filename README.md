@@ -31,7 +31,7 @@
 
 ```
 light-homepage/
-├─ frontend/     Next.js 15 + TypeScript + Tailwind   ← FE 단독 소유
+├─ frontend/     Next.js 16 + TypeScript + Tailwind v4  ← FE 단독 소유
 ├─ backend/      Spring Boot 3 + Java 21              ← BE 단독 소유
 ├─ infra/        Jenkins 등 인프라 구성                  ← server_develop 소유
 ├─ docs/         기획·설계 문서                          ← 공동
