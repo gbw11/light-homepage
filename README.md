@@ -42,6 +42,29 @@ light-homepage/
 
 ---
 
+## 브랜치 전략
+
+```
+main                    배포 (마일스톤 릴리스만)
+└─ develop              전체 통합
+   ├─ frontend_develop  ← feat/fe-*      프론트엔드
+   ├─ backend_develop   ← feat/be-*      백엔드 (Spring 애플리케이션)
+   └─ server_develop    ← feat/infra-*   서버·인프라·배포
+```
+
+> ⚠️ **`*_develop`에서 직접 작업하지 않습니다.** 반드시 하위 브랜치(`feat/*`)를 한 번 더 만들어
+> 작업하고 PR로 올립니다. 자세한 규칙은 [`docs/INTEGRATION.md §6`](docs/INTEGRATION.md)
+
+```bash
+git checkout backend_develop
+git pull origin backend_develop
+git checkout -b feat/be-jwt-auth     # ← 여기서 작업
+```
+
+머지 흐름: `feat/*` → `*_develop` → `develop` → `main`
+
+---
+
 ## 실행
 
 ```bash

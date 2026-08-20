@@ -56,7 +56,9 @@ light-homepage/
 ### 2.3 초기 세팅 체크리스트
 - [ ] GitHub 저장소 생성 (private)
 - [x] ~~`main` 브랜치 보호 설정~~ → ⚠️ **무료 Private 저장소에서는 불가** (GitHub Pro 필요). §6.5 규칙으로 대체
-- [ ] `develop` 브랜치 생성
+- [x] `develop` 브랜치 생성
+- [x] 통합 브랜치 3개 생성: `frontend_develop` · `backend_develop` · `server_develop`
+- [ ] GitHub 설정에서 **PR 머지 시 브랜치 자동 삭제** 켜기 (Settings → General → Automatically delete head branches)
 - [ ] 루트 `.gitignore` 작성 (§2.4)
 - [ ] `README.md` — 실행 방법 2줄 (FE/BE 각각)
 - [ ] PR 템플릿 추가 (§6.3)
@@ -204,38 +206,147 @@ export const api = process.env.NEXT_PUBLIC_USE_MOCK === '1' ? mockApi : realApi;
 
 ## 6. Git 규칙
 
-### 6.1 브랜치
+### 6.1 브랜치 구조 — 4단 계층
+
 ```
-main         배포 (직접 push 금지 — ⚠️ 기술적 강제 불가, §6.5)
-develop      통합 브랜치 — 평소 작업의 기준 · GitHub 기본 브랜치
-feat/fe-*    FE 기능        예: feat/fe-welcome-page
-feat/be-*    BE 기능        예: feat/be-jwt-auth
-fix/fe-*  fix/be-*   버그 수정
-docs/*       문서
+main                    배포 (마일스톤 릴리스만)
+└─ develop              전체 통합 — 3개 영역이 합쳐지는 지점
+   ├─ frontend_develop  프론트엔드 통합
+   │   └─ feat/fe-*         ← 실제 작업은 여기서
+   ├─ backend_develop   백엔드(Spring 애플리케이션) 통합
+   │   └─ feat/be-*         ← 실제 작업은 여기서
+   └─ server_develop    서버·인프라·배포 통합
+       └─ feat/infra-*      ← 실제 작업은 여기서
 ```
 
-### 6.2 커밋 메시지
+### 6.2 ★ 작업 규칙 — 통합 브랜치에서 직접 작업하지 않는다
+
+> **`frontend_develop` · `backend_develop` · `server_develop`에 직접 커밋하지 않습니다.**
+> 반드시 **하위 브랜치를 한 번 더 만들어서** 작업하고, PR로 올립니다.
+
+```bash
+# ✅ 올바른 절차 (프론트엔드 예시)
+git checkout frontend_develop
+git pull origin frontend_develop          # 최신화 먼저
+git checkout -b feat/fe-welcome-page      # 하위 브랜치 생성
+# ... 작업 ...
+git push -u origin feat/fe-welcome-page
+# → GitHub에서 PR: feat/fe-welcome-page → frontend_develop
+
+# ❌ 하지 않는 것
+git checkout frontend_develop
+# ... 여기서 바로 작업 후 커밋 ...   ← 금지
+```
+
+**왜 한 단계를 더 두는가**
+- 작업 단위가 PR로 남아 **나중에 "이 기능이 왜 이렇게 됐는지" 추적**할 수 있다
+- 작업 중간 상태가 통합 브랜치를 오염시키지 않는다 → 언제든 통합 브랜치는 동작하는 상태
+- 되돌리기가 쉽다. 기능 하나를 revert할 때 PR 하나만 되돌리면 된다
+- 셀프 머지를 허용하더라도(§6.5) **PR 단위 기록은 남는다**
+
+### 6.3 영역 구분 — 무엇이 어디로 가는가
+
+| 통합 브랜치 | 담당 | 다루는 것 | 주 경로 |
+|---|---|---|---|
+| **`frontend_develop`** | FE | 화면·컴포넌트·라우팅·PWA·SEO·mock 계층 | `frontend/**` |
+| **`backend_develop`** | BE | API·엔티티·인증·인가·비즈니스 로직·테스트 | `backend/src/**` |
+| **`server_develop`** | BE(주) | Docker·Render·Neon·R2 설정·CI·환경변수·배포 스크립트·운영 문서 | `.github/**`, `backend/Dockerfile`, 인프라 설정 |
+
+> ❓ **`server_develop`의 범위를 팀에서 확정하세요.** 이 문서는 "인프라·배포·운영"으로 정의했습니다.
+> 2인 팀이므로 실제로는 BE 담당자가 `backend_develop`과 `server_develop`을 함께 쓰게 됩니다.
+> **애플리케이션 코드와 인프라 설정을 분리하는 것이 목적**입니다 — 배포 설정을 고치다 API 코드를 깨뜨리는 일을 막습니다.
+
+**어디에 속하는지 애매할 때**
+| 예 | 어디로 |
+|---|---|
+| `application.yml`의 HikariCP 풀 사이즈 | `backend_develop` (앱 설정) |
+| Render 환경변수 목록 문서화 | `server_develop` |
+| Dockerfile JVM 옵션 (`-Xmx400m`) | `server_develop` |
+| CI 워크플로 수정 | `server_develop` |
+| `next.config.ts` 프록시 설정 | `frontend_develop` |
+| Vercel 환경변수 | `server_develop` (배포 설정) |
+
+### 6.4 브랜치 이름 규칙
+
+```
+feat/fe-<기능>        프론트엔드 기능      예: feat/fe-photo-lightbox
+feat/be-<기능>        백엔드 기능          예: feat/be-jwt-auth
+feat/infra-<기능>     인프라·배포          예: feat/infra-render-deploy
+
+fix/fe-*  fix/be-*  fix/infra-*     버그 수정
+docs/<주제>                          문서 (develop에서 직접 분기 가능)
+```
+- 소문자 + 하이픈. 한글·공백·대문자 사용하지 않음
+- 기능 이름은 **무엇을 하는지** 알 수 있게. `feat/be-work` ❌ / `feat/be-photo-upload-issue` ✅
+
+### 6.5 머지 흐름
+
+```
+feat/fe-*  ──PR──▶  frontend_develop  ──PR──▶  develop  ──PR──▶  main
+feat/be-*  ──PR──▶  backend_develop   ──PR──▶  develop  ──PR──▶  main
+feat/infra-* ─PR──▶  server_develop    ──PR──▶  develop  ──PR──▶  main
+```
+
+| 단계 | 방식 | 승인 | 시점 |
+|---|---|---|---|
+| `feat/*` → `*_develop` | **Squash merge** | 셀프 머지 허용 | 작업 완료 시 |
+| `*_develop` → `develop` | **Merge commit** | 상대에게 알림 | **통합 체크포인트(§7)** |
+| `develop` → `main` | **Merge commit** | 공동 확인 | **마일스톤 배포 시** |
+
+- `*_develop` → `develop` 은 **아무 때나 하지 않습니다.** §7의 통합 체크포인트에 맞춰 올립니다.
+  자기 영역이 동작하는 상태로 정리된 뒤에 합칩니다
+- ⚠️ **`[CONTRACT]` PR(API 계약 변경)은 상대 승인 필수** — 어느 단계든 예외 없음
+
+### 6.6 ⚠️ 브랜치 드리프트 방지 — 정기 동기화
+
+계층이 4단이라 **오래 두면 `*_develop`이 `develop`에서 멀어집니다.** 나중에 합칠 때 충돌이 커집니다.
+
+```bash
+# 주 2회 동기화 때 각자 실행 (자기 통합 브랜치에서)
+git checkout backend_develop
+git pull origin develop        # develop의 변경을 가져옴
+git push origin backend_develop
+```
+
+**규칙**
+- **주 2회 정기 동기화 때 `develop` → 자기 `*_develop`을 반드시 pull** 합니다
+- `feat/*` 브랜치는 **수명을 짧게** 유지합니다. 3일 이상 열려 있으면 쪼개는 것을 고려하세요
+- `docs/**` 변경은 `develop`에 먼저 반영되므로, 문서를 참조하려면 동기화가 필요합니다
+
+> 실제로 이 구조에서 문제가 생기는 지점은 충돌이 아니라 **"내 브랜치에는 있는데 상대 브랜치에는 없는 문서·설정"** 입니다. 동기화를 건너뛰지 마세요.
+
+### 6.7 정리 규칙
+- 머지된 `feat/*` 브랜치는 **삭제**합니다 (GitHub PR 머지 시 자동 삭제 옵션 켜두기)
+- `main` · `develop` · `*_develop` 5개는 **영구 브랜치**입니다. 삭제하지 않습니다
+
+### 6.8 커밋 메시지
 ```
 <type>(<scope>): <내용>
 
 type   feat · fix · refactor · docs · test · chore
-scope  fe · be · docs
+scope  fe · be · infra · docs
 ```
 ```
 feat(fe): 사진 그리드 무한 스크롤
 feat(be): 카카오 OAuth 콜백 처리
+feat(infra): Render 배포 파이프라인 구성
 fix(be): 예산안 조회 시 인가 검사 누락
 test(be): 인가 매트릭스 posts 항목 추가
 docs: API 계약 에러코드 STORAGE_LIMIT 추가
 ```
 
-### 6.3 PR 규칙
-| 상황 | 규칙 |
+### 6.9 PR 규칙
+| PR 방향 | 규칙 |
 |---|---|
-| 자기 디렉터리만 변경 (`frontend/**` 또는 `backend/**`) | **셀프 머지 허용** (2인 팀 속도 확보) |
+| `feat/*` → 자기 `*_develop` | **셀프 머지 허용** (2인 팀 속도 확보) |
+| `*_develop` → `develop` | 상대에게 알림. 통합 체크포인트(§7)에 맞춰 |
+| `develop` → `main` | 공동 확인 후 (마일스톤 배포) |
+| **`[CONTRACT]` 태그 (API 계약 변경)** | **상대 승인 필수** — 단계 무관 |
 | `docs/**` 변경 | 머지 후 상대에게 알림 |
-| **`[CONTRACT]` 태그 (API 계약 변경)** | **상대 승인 필수** |
-| 루트 설정·CI 변경 | 상대 승인 필수 |
+| 루트 설정·CI 변경 (`server_develop`) | 상대 승인 필수 |
+
+⚠️ **PR 대상 브랜치를 확인하세요.** GitHub 기본 대상이 `develop`으로 되어 있어,
+`feat/*`를 올릴 때 자기 `*_develop`으로 바꿔주지 않으면 단계를 건너뛰게 됩니다.
 
 **PR 템플릿** (`.github/pull_request_template.md`)
 ```markdown
@@ -252,12 +363,16 @@ docs: API 계약 에러코드 STORAGE_LIMIT 추가
 <!-- BE: 권한별 접근 테스트(허용/거부), 마이그레이션 재현 -->
 ```
 
-### 6.4 머지 방식
-- `feat/*` → `develop`: **Squash merge** (히스토리 깔끔하게)
-- `develop` → `main`: **Merge commit** (마일스톤 배포 시점 보존)
-- 머지 전 `develop`을 rebase 또는 merge로 최신화
+### 6.10 머지 방식 요약
+| 단계 | 방식 | 이유 |
+|---|---|---|
+| `feat/*` → `*_develop` | Squash merge | 작업 단위 1커밋 → 히스토리 깔끔 |
+| `*_develop` → `develop` | Merge commit | 영역별 통합 시점 보존 |
+| `develop` → `main` | Merge commit | 마일스톤 배포 시점 보존 |
 
-### 6.5 ⚠️ `main` 보호는 규칙으로만 지킨다
+머지 전 상위 브랜치를 pull해 최신화합니다 (§6.6).
+
+### 6.11 ⚠️ `main` 보호는 규칙으로만 지킨다
 무료 플랜의 **Private 저장소에서는 브랜치 보호를 걸 수 없습니다** (GitHub Pro 필요).
 따라서 아래는 **기술적 강제 없이 두 사람이 지켜야 하는 약속**입니다.
 
@@ -471,7 +586,11 @@ BE를 먼저 올려야 FE가 없는 필드를 호출하는 상황을 피할 수 
 ```
 [ 소유권 ]  frontend/ = FE 단독   backend/ = BE 단독   docs/ = 공동
 
-[ 브랜치 ]  main(보호) ← develop ← feat/fe-*  feat/be-*
+[ 브랜치 ]  main ← develop ← frontend_develop ← feat/fe-*
+                            ← backend_develop  ← feat/be-*
+                            ← server_develop   ← feat/infra-*
+            ★ *_develop 에서 직접 작업하지 않는다. 하위 브랜치를 한 번 더 판다
+            ★ 주 2회 develop → 자기 *_develop 동기화 (드리프트 방지)
 
 [ 계약 ]    응답  { "data": ... }  /  { "error": { code, message, field } }
             ID는 문자열 · 날짜는 ISO-8601 · 파일은 presigned URL
