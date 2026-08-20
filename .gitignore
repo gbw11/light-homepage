@@ -1,0 +1,51 @@
+# ─────────── 공통 ───────────
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+
+# 환경 변수 / 시크릿  ★ 절대 커밋 금지
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ─────────── frontend (Next.js) ───────────
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel/
+frontend/next-env.d.ts
+frontend/*.tsbuildinfo
+frontend/coverage/
+
+# ─────────── backend (Spring Boot / Gradle) ───────────
+backend/build/
+backend/.gradle/
+backend/bin/
+backend/out/
+backend/!**/src/main/**/build/
+backend/!**/src/test/**/build/
+
+# 시크릿 설정  ★ 절대 커밋 금지
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-secret.yml
+backend/src/main/resources/application-prod.yml
+
+# ─────────── IDE ───────────
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+!.vscode/extensions.json
+.settings/
+.project
+.classpath
+
+# ─────────── OS / 기타 ───────────
+node_modules/
+*.swp
+*~
