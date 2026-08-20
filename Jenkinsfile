@@ -21,8 +21,8 @@ pipeline {
     DB_NAME     = 'light_test'
     DB_USERNAME = 'postgres'
     DB_PASSWORD = 'postgres'
-    // 테스트 전용 더미 시크릿 (운영 값 아님)
-    JWT_SECRET  = 'jenkins-ci-test-secret-at-least-256-bits-long-for-hmac-sha256!!'
+    // 테스트 전용 더미 시크릿 (운영 값 아님) — allowlist-secret
+    JWT_SECRET  = 'jenkins-ci-test-secret-at-least-256-bits-long-for-hmac-sha256!!'  // allowlist-secret
   }
 
   stages {

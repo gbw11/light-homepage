@@ -63,6 +63,16 @@ docker run -d --name light-db -p 5432:5432 \
 ```
 `cd frontend && npm ci` 후 다시 push하세요.
 
+### 시크릿 검사가 오탐할 때
+CI용 더미 값처럼 **의도적으로 커밋해야 하는 값**은 해당 줄에 `allowlist-secret` 주석을 붙입니다.
+
+```groovy
+JWT_SECRET = 'jenkins-ci-test-secret-...'  // allowlist-secret
+```
+
+⚠️ **실제 시크릿에 이 표시를 붙이지 마세요.** 검사를 무력화하는 것이 아니라,
+"이 값은 공개돼도 무해하다"고 명시적으로 선언하는 용도입니다.
+
 ### 훅을 우회해야 할 때
 ```bash
 git push --no-verify
