@@ -7,9 +7,11 @@ on:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
   push:
-    branches: [develop, main, backend_develop, server_develop]
+    # feat/* 에서도 돌려야 머지 전에 결과를 알 수 있다 (docs/CICD.md §1.1)
+    branches: [develop, main, backend_develop, server_develop, 'feat/**']
     paths:
       - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
 
 jobs:
   build:
@@ -34,32 +36,49 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      # backend/는 아직 Gradle 프로젝트가 없다 (W0 초기화 전).
+      # 워크플로 파일만 바뀐 커밋에서 빨간 X가 뜨면 머지 게이트가 무의미해지므로
+      # 프로젝트가 생기기 전까지는 건너뛴다. (docs/CICD.md §4)
+      - name: Check if Gradle project exists
+        id: guard
+        working-directory: .
+        run: |
+          if [ -f backend/gradlew ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::backend/gradlew 없음 → 백엔드 검증 건너뜀 (프로젝트 초기화 전)"
+          fi
+
+      - uses: actions/setup-java@v5
+        if: steps.guard.outputs.skip != 'true'
         with:
           java-version: '21'
           distribution: temurin
           cache: gradle
 
       - name: Grant execute permission for gradlew
+        if: steps.guard.outputs.skip != 'true'
         run: chmod +x ./gradlew
 
       # ★ 인가 테스트 매트릭스가 여기서 돌아야 한다.
       #   권한 회귀를 사람의 기억으로 막을 수는 없다.
       - name: Build & Test
+        if: steps.guard.outputs.skip != 'true'
         run: ./gradlew build
         env:
           SPRING_PROFILES_ACTIVE: test
           DATABASE_URL: jdbc:postgresql://localhost:5432/light_test
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
-          # 테스트 전용 더밍 시킬릿 (운원 값 아님) — allowlist-secret
+          # 테스트 전용 더미 시크릿 (운영 값 아님) — allowlist-secret
           JWT_SECRET: ci-test-secret-key-at-least-256-bits-long-for-hmac-sha256!!  # allowlist-secret
 
       - name: Upload test report on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
+        if: failure() && steps.guard.outputs.skip != 'true'
+        uses: actions/upload-artifact@v5
         with:
           name: test-report
           path: backend/build/reports/tests/
