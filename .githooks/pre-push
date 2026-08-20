@@ -4,7 +4,7 @@
 #
 # 검사 순서 (하나라도 실패하면 push 중단):
 #   1. 보호 브랜치 직접 push 차단
-#   2. 시크릿 포함 여부
+#   2. 시크릿 포함 여부  (허용이 필요한 줄에는 allowlist-secret 주석)
 #   3. 빠른 테스트 (변경된 영역만)
 #
 # 설치:  git config core.hooksPath .githooks
@@ -90,6 +90,7 @@ KAKAO_CLIENT_SECRET[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9]{16,}|\
 gh[pousr]_[A-Za-z0-9]{16,}|\
 -----BEGIN [A-Z ]*PRIVATE KEY-----|\
 postgres(ql)?://[^:]+:[^@[:space:]]+@)" \
+    | grep -v 'allowlist-secret' \
     | head -10 || true)
   if [ -n "$HITS" ]; then
     printf "\n${RED}✗ 시크릿으로 보이는 값이 포함돼 있습니다:${NC}\n"
