@@ -392,6 +392,11 @@ docs: API 계약 에러코드 STORAGE_LIMIT 추가
 
 실수로 `main`에 직접 push했다면 즉시 상대에게 알립니다. 되돌리기(`git revert`)는 협의 후에 합니다.
 
+> ✅ **보완 장치: pre-push 훅이 보호 브랜치 직접 push를 차단합니다** (`.githooks/pre-push`).
+> GitHub이 못 막는 부분을 로컬에서 막는 구조입니다. `--no-verify`로 우회는 가능하지만
+> **실수로 올리는 것은 막힙니다.** clone 직후 `git config core.hooksPath .githooks` 필수 —
+> 설계는 [`CICD.md`](CICD.md) §2
+
 > 저장소를 Public으로 바꾸면 브랜치 보호를 무료로 쓸 수 있습니다. 다만 문서에 교회 내부 정보가 있어 권장하지 않습니다.
 
 ## 7. ★ 통합 체크포인트
@@ -533,6 +538,17 @@ cd frontend && npm run dev
 경로 필터(`on.pull_request.paths`)로 분리했으므로 **바뀐 쪽만 실행**됩니다.
 실제 파일은 저장소의 `.github/workflows/` 참조.
 
+### 10.1 Jenkins와의 역할 분담
+CI/CD를 Jenkins로도 구축합니다 (학습 + 배포 자동화). 같은 일을 두 곳에서 하지 않도록 역할을 나눕니다.
+
+| | GitHub Actions | Jenkins |
+|---|---|---|
+| 역할 | **PR 검증** (항상 동작) | **CI 상세 + CD(배포)** |
+| 장점 | 운영 부담 0, PC 꺼져도 동작 | 배포 제어, 파이프라인 시각화 |
+
+⚠️ **Jenkins도 GitHub Actions도 push를 막을 수 없습니다.** push가 먼저 일어나고 CI는 그 뒤에 실행됩니다.
+실제 차단은 `.githooks/pre-push`가 담당합니다 → [`CICD.md`](CICD.md)
+
 ⚠️ **BE의 인가 테스트가 CI에서 돌아야 합니다.** 권한 회귀를 사람이 기억으로 막을 수는 없습니다.
 
 ---
@@ -599,6 +615,9 @@ BE를 먼저 올려야 FE가 없는 필드를 호출하는 상황을 피할 수 
                             ← server_develop   ← feat/infra-*
             ★ *_develop 에서 직접 작업하지 않는다. 하위 브랜치를 한 번 더 판다
             ★ 주 2회 develop → 자기 *_develop 동기화 (드리프트 방지)
+
+[ 훅 ]      clone 후 필수:  git config core.hooksPath .githooks
+            pre-push가 차단: 보호브랜치 push · 시크릿 · 테스트 실패
 
 [ 계약 ]    응답  { "data": ... }  /  { "error": { code, message, field } }
             ID는 문자열 · 날짜는 ISO-8601 · 파일은 presigned URL

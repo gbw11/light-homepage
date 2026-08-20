@@ -1,0 +1,39 @@
+# Jenkins 로컬 실행 — LIGHT 홈페이지 CI/CD
+#
+# 기동:  cd infra/jenkins && docker compose up -d
+# 접속:  http://localhost:8090
+# 초기 비밀번호:
+#   docker exec light-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+#
+# 설정 안내: docs/CICD.md §3.3
+#
+# ⚠️ 포트 8090을 쓰는 이유: Spring Boot가 8080을 사용하므로 충돌을 피한다.
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts-jdk21
+    container_name: light-jenkins
+    restart: unless-stopped
+    user: root                      # docker.sock 접근을 위해 (아래 주의사항 참조)
+    ports:
+      - "8090:8080"                 # Jenkins UI
+      - "50000:50000"               # 에이전트 연결 (현재는 미사용)
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      # ⚠️ Docker-out-of-Docker: 파이프라인에서 테스트용 Postgres 컨테이너를
+      #    띄우기 위해 호스트의 docker를 그대로 사용한다.
+      #    편리하지만 Jenkins가 호스트 Docker를 완전히 제어하게 되므로,
+      #    공개 서버에 올릴 때는 반드시 접근을 제한할 것.
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # 초기 설정 마법사 유지 (플러그인을 UI에서 설치)
+      JAVA_OPTS: >-
+        -Djenkins.install.runSetupWizard=true
+        -Dhudson.model.DownloadService.noSignatureCheck=true
+        -Duser.timezone=Asia/Seoul
+      # 로컬 개발 PC 기준 메모리 제한
+      JENKINS_OPTS: --prefix=/
+
+volumes:
+  jenkins_home:
+    name: light_jenkins_home

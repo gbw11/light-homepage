@@ -65,6 +65,18 @@ git checkout -b feat/be-jwt-auth     # ← 여기서 작업
 
 ---
 
+## ⚠️ clone 직후 반드시 실행
+
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-push
+```
+
+pre-push 훅이 **보호 브랜치 직접 push · 시크릿 커밋 · 테스트 실패**를 막습니다.
+이 설정을 안 하면 훅이 동작하지 않습니다. → [`.githooks/README.md`](.githooks/README.md)
+
+---
+
 ## 실행
 
 ```bash
@@ -97,6 +109,7 @@ cd frontend && npm run dev               # → localhost:3000
 | [WIREFRAME.md](docs/WIREFRAME.md) | 화면 설계 21개 (모바일 우선) |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 시스템 설계 — 스택·데이터·API·보안 |
 | [WORKPLAN.md](docs/WORKPLAN.md) | 일정·시간 산정·역할 분담 |
+| [CICD.md](docs/CICD.md) | Jenkins CI/CD 설계 · pre-push 훅 |
 
 ---
 
@@ -119,7 +132,8 @@ cd frontend && npm run dev               # → localhost:3000
 2. **인가 테스트 매트릭스**([ARCHITECTURE.md §5.3](docs/ARCHITECTURE.md))가 통과해야 배포한다 — RLS가 없으므로 이것이 마지막 방어선
 3. **API 계약을 조용히 바꾸지 않는다** — 비호환 변경은 `[CONTRACT]` PR + 상대 승인
 4. **비용 $0을 넘기지 않는다** — R2 95% 도달 시 업로드 차단
-5. **시크릿을 커밋하지 않는다** — `JWT_SECRET`, R2 키, DB 비밀번호
+5. **시크릿을 커밋하지 않는다** — `JWT_SECRET`, R2 키, DB 비밀번호 (pre-push 훅이 1차 차단)
+6. **`*_develop`에서 직접 작업하지 않는다** — 하위 `feat/*` 브랜치를 한 번 더 만든다
 
 ---
 
