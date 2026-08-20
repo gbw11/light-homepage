@@ -392,10 +392,9 @@ docs: API 계약 에러코드 STORAGE_LIMIT 추가
 
 실수로 `main`에 직접 push했다면 즉시 상대에게 알립니다. 되돌리기(`git revert`)는 협의 후에 합니다.
 
-> ✅ **보완 장치: pre-push 훅이 보호 브랜치 직접 push를 차단합니다** (`.githooks/pre-push`).
-> GitHub이 못 막는 부분을 로컬에서 막는 구조입니다. `--no-verify`로 우회는 가능하지만
-> **실수로 올리는 것은 막힙니다.** clone 직후 `git config core.hooksPath .githooks` 필수 —
-> 설계는 [`CICD.md`](CICD.md) §2
+> ⚠️ **기술적 차단 장치는 없습니다.** 로컬 pre-push 훅은 `--no-verify`로 우회되고 설치가 각자
+> 손에 달려 있어 폐기했습니다(근거: [`CICD.md`](CICD.md) §1). 대신 **CI 상태를 보고 머지를
+> 통제**합니다 — 통합 브랜치로 넘어가는 지점에서 막는 구조입니다. → [`CICD.md`](CICD.md) §4
 
 > 저장소를 Public으로 바꾸면 브랜치 보호를 무료로 쓸 수 있습니다. 다만 문서에 교회 내부 정보가 있어 권장하지 않습니다.
 
@@ -547,7 +546,8 @@ CI/CD를 Jenkins로도 구축합니다 (학습 + 배포 자동화). 같은 일�
 | 장점 | 운영 부담 0, PC 꺼져도 동작 | 배포 제어, 파이프라인 시각화 |
 
 ⚠️ **Jenkins도 GitHub Actions도 push를 막을 수 없습니다.** push가 먼저 일어나고 CI는 그 뒤에 실행됩니다.
-실제 차단은 `.githooks/pre-push`가 담당합니다 → [`CICD.md`](CICD.md)
+그래서 **push는 막지 않고 머지를 막습니다** — `feat/*`에 깨진 커밋은 허용, CI가 ❌면 머지 금지.
+→ [`CICD.md`](CICD.md) §1·§4
 
 ⚠️ **BE의 인가 테스트가 CI에서 돌아야 합니다.** 권한 회귀를 사람이 기억으로 막을 수는 없습니다.
 
@@ -616,8 +616,9 @@ BE를 먼저 올려야 FE가 없는 필드를 호출하는 상황을 피할 수 
             ★ *_develop 에서 직접 작업하지 않는다. 하위 브랜치를 한 번 더 판다
             ★ 주 2회 develop → 자기 *_develop 동기화 (드리프트 방지)
 
-[ 훅 ]      clone 후 필수:  git config core.hooksPath .githooks
-            pre-push가 차단: 보호브랜치 push · 시크릿 · 테스트 실패
+[ CI ]      push는 자유 → CI 실행 → ✅면 머지 / ❌면 수정 후 재push
+            ★ PR에 ❌가 있으면 머지하지 않는다 (기술적 강제 없음 = 팀 규칙)
+            시크릿은 .gitignore + CI 스캔. 올라갔으면 키 재발급
 
 [ 계약 ]    응답  { "data": ... }  /  { "error": { code, message, field } }
             ID는 문자열 · 날짜는 ISO-8601 · 파일은 presigned URL
