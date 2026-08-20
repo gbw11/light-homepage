@@ -54,7 +54,8 @@ jobs:
           DATABASE_URL: jdbc:postgresql://localhost:5432/light_test
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
-          JWT_SECRET: ci-test-secret-key-at-least-256-bits-long-for-hmac-sha256!!
+          # 테스트 전용 더밍 시킬릿 (운원 값 아님) — allowlist-secret
+          JWT_SECRET: ci-test-secret-key-at-least-256-bits-long-for-hmac-sha256!!  # allowlist-secret
 
       - name: Upload test report on failure
         if: failure()

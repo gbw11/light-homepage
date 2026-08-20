@@ -639,4 +639,4 @@ FE가 공개 사이트를 만드는 동안 기반을 깝니다. **접점이 거�
 | **`SPEC_API.md`** | **API 명세 — 요청/응답 JSON 포함** |
 | `SPEC_FUNCTIONAL.md` | 기능 명세 — 수용 기준 |
 | `SPEC_NONFUNCTIONAL.md` | 비기능 명세 — 성능·보안 목표 |
-| `CICD.md` | Jenkins CI/CD · pre-push 훅 |
+| `CICD.md` | Jenkins CI/CD · 머지 게이트 |

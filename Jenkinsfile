@@ -4,7 +4,7 @@
 // 변경된 영역(frontend/ backend/)만 빌드하므로 불필요한 실행이 없다.
 //
 // 설정: docs/CICD.md §3
-// ⚠️ Jenkins는 push를 막지 못한다. push 차단은 .githooks/pre-push 담당 (§1)
+// ⚠️ CI는 push를 막지 못한다. 통제 지점은 "머지"다 — CI가 ❌면 머지하지 않는다 (§1·§4)
 
 pipeline {
   agent any
@@ -56,6 +56,44 @@ pipeline {
 
           currentBuild.description = "FE:${env.FE_CHANGED} BE:${env.BE_CHANGED}"
         }
+      }
+    }
+
+    // ────────────────────────────────────────────────
+    // 시크릿 스캔 — pre-push 훅을 폐기한 대체 장치 (docs/CICD.md §1.3)
+    // ⚠️ 여기서 걸리면 이미 push된 상태다. 해당 키는 즉시 재발급해야 한다.
+    //    허용이 필요한 줄에는 allowlist-secret 주석을 붙인다.
+    // ────────────────────────────────────────────────
+    stage('Secret Scan') {
+      steps {
+        sh '''
+          set -u
+          fail=0
+
+          # 1. 커밋되면 안 되는 파일
+          banned=$(git ls-files | grep -E \\
+            '(^|/)\\.env($|\\.)|application-local\\.yml|application-secret\\.yml|application-prod\\.yml|\\.pem$|\\.p12$|id_rsa' \\
+            || true)
+          if [ -n "$banned" ]; then
+            echo "✗ 커밋되면 안 되는 파일:"
+            printf '%s\\n' "$banned" | sed 's/^/    /'
+            fail=1
+          fi
+
+          # 2. 시크릿 값 패턴 (allowlist-secret 주석이 있는 줄은 예외)
+          hits=$(git grep -nE \\
+            "(JWT_SECRET[[:space:]]*[:=][[:space:]]*[\\"']?[A-Za-z0-9+/_-]{16,}|R2_SECRET_ACCESS_KEY[[:space:]]*[:=][[:space:]]*[\\"']?[A-Za-z0-9+/_-]{16,}|KAKAO_CLIENT_SECRET[[:space:]]*[:=][[:space:]]*[\\"']?[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9]{16,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|postgres(ql)?://[^:]+:[^@[:space:]]+@)" \\
+            -- . ':(exclude)docs/*' 2>/dev/null | grep -v 'allowlist-secret' | head -20 || true)
+          if [ -n "$hits" ]; then
+            echo "✗ 시크릿으로 보이는 값:"
+            printf '%s\\n' "$hits" | cut -c1-140 | sed 's/^/    /'
+            echo "  → 값을 즉시 재발급하고 환경변수로 옮기세요"
+            fail=1
+          fi
+
+          [ "$fail" -eq 0 ] || exit 1
+          echo "✓ 시크릿 검사 통과"
+        '''
       }
     }
 

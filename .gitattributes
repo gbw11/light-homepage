@@ -4,7 +4,6 @@
 # ── 셸 스크립트는 반드시 LF ──────────────────────────
 # CRLF로 체크아웃되면 `sh: bad interpreter: No such file or directory`로
 # 실행이 실패한다. Windows(Git Bash)와 Linux(Jenkins) 양쪽에서 동작해야 한다.
-.githooks/*     text eol=lf
 *.sh            text eol=lf
 gradlew         text eol=lf
 Jenkinsfile     text eol=lf
