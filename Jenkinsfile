@@ -109,7 +109,9 @@ pipeline {
               expression { fileExists('frontend/package.json') }
             }
           }
-          tools { nodejs 'node20' }   // Jenkins → Global Tool Configuration에 등록
+          // ⚠️ GitHub Actions(setup-node 22)와 반드시 같은 메이저를 쓴다 (docs/TOOLCHAIN.md §1)
+          //    한쪽만 다르면 로컬·Actions는 통과하고 Jenkins에서만 깨져 원인 추적에 시간이 든다.
+          tools { nodejs 'node22' }   // Jenkins → Global Tool Configuration에 등록
           stages {
             stage('Install') {
               steps { dir('frontend') { sh 'npm ci' } }
