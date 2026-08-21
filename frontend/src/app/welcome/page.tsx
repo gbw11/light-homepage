@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { Button } from "@/components/ui/Button";
 import { Accordion } from "@/components/ui/Accordion";
@@ -106,7 +107,12 @@ export default function WelcomePage() {
       </Section>
 
       <Section title="미리 알려주시면 맞이하겠습니다">
-        <Button>새가족 등록하기</Button>
+        <Link
+          href="/welcome/register"
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+        >
+          새가족 등록하기
+        </Link>
         <p className="mt-4 text-sm text-[var(--color-gray-400)]">
           ▸ 카카오톡으로 문의 (❓ 확인 필요)
         </p>
