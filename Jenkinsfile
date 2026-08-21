@@ -70,9 +70,10 @@ pipeline {
           set -u
           fail=0
 
-          # 1. 커밋되면 안 되는 파일
+          # 1. 커밋되면 안 되는 파일 (.env.example 등 템플릿 파일은 의도적으로 커밋되므로 예외)
           banned=$(git ls-files | grep -E \\
             '(^|/)\\.env($|\\.)|application-local\\.yml|application-secret\\.yml|application-prod\\.yml|\\.pem$|\\.p12$|id_rsa' \\
+            | grep -vE '\\.env\\.(example|sample|template)$' \\
             || true)
           if [ -n "$banned" ]; then
             echo "✗ 커밋되면 안 되는 파일:"
