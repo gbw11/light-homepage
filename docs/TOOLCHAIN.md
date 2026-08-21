@@ -46,18 +46,20 @@ FE와 BE는 **다른 언어·다른 프로세스·다른 배포**입니다. 서�
 
 ### ① Node 버전이 3곳에서 서로 다르다 ★
 
-| 위치 | 현재 | 근거 |
+| 위치 | 발견 시점 | 근거 |
 |---|---|---|
 | FE 개발 PC | **24.18.0** | `node -v` |
-| GitHub Actions | **22** | `.github/workflows/frontend-ci.yml` |
-| Jenkins | **node20** | `Jenkinsfile` — `tools { nodejs 'node20' }` |
+| GitHub Actions | **22** (`develop`에는 아직 20 — `frontend_develop`에 상향분이 있고 통합 #1에 들어옵니다) | `.github/workflows/frontend-ci.yml` |
+| Jenkins | **node20** → ✅ **node22로 수정됨** (`feat/infra-node22`) | `Jenkinsfile` — `tools { nodejs 'node22' }` |
 
 Next 16의 요구는 Node 20.9+ 이므로 셋 다 "동작은" 합니다. 문제는 **로컬에서 통과한 것이 Jenkins에서 깨져도 원인을 찾는 데 시간이 든다**는 점입니다. Node 24에만 있는 API를 무심코 쓰면 Jenkins에서만 실패합니다.
 
 **조치 — 22 LTS로 통일**
 - [ ] FE 개발 PC: Node **22 LTS** 설치 (`nvm-windows` 권장 → `nvm install 22 && nvm use 22`)
-- [ ] Jenkins: Global Tool Configuration에 **`node22`** 등록 → `Jenkinsfile`의 `tools { nodejs 'node20' }` 를 `'node22'` 로 (인프라 담당)
-- [ ] GitHub Actions는 이미 22 → 변경 없음
+- [x] `Jenkinsfile`: `nodejs 'node20'` → `'node22'` · `infra/jenkins/README.md` 갱신
+- [ ] **Jenkins UI**: Global Tool Configuration에 NodeJS 22를 **`node22`** 이름으로 등록
+      ⚠️ 이걸 안 하면 파이프라인이 `Tool type "nodejs" does not have an install of "node22"` 로 실패합니다
+- [ ] GitHub Actions: `frontend_develop`의 상향분(20 → 22)이 통합 #1에 `develop`으로 들어옴 → 그때 확인
 - [ ] `frontend/package.json`에 `engines` 명시로 못 박기
 
 ```json
