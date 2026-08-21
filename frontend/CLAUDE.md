@@ -19,3 +19,5 @@
 | [`../docs/WIREFRAME.md`](../docs/WIREFRAME.md) | 화면 구현 시 — 와이어프레임 |
 | [`../docs/SPEC_API.md`](../docs/SPEC_API.md) | API 연동 시 — 백엔드 계약 |
 | [`../docs/INTEGRATION.md`](../docs/INTEGRATION.md) | PR 올리기 전 — 브랜치/협업 규칙 |
+| [`../docs/DECISIONS.md`](../docs/DECISIONS.md) | **PM이 새 결정을 말할 때마다 자동 기록** — 요청받지 않아도 항상 (`HARNESS.md` §1.1) |
+| [`../docs/BACKEND_HANDOFF.md`](../docs/BACKEND_HANDOFF.md) | **백엔드가 알아야 할 내용이 생길 때마다 자동 기록** — 요청받지 않아도 항상 (`WORKFLOW.md` §7) |
