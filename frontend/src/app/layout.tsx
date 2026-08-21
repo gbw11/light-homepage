@@ -27,10 +27,35 @@ export const metadata: Metadata = {
   },
 };
 
+/** 검색엔진용 구조화 데이터 (SPEC_FUNCTIONAL.md FR-PUB-10) */
+const CHURCH_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Church",
+  name: "LIGHT — 김해교회 청년교회",
+  url: SITE_URL,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "가락로 117",
+    addressLocality: "김해시",
+    addressRegion: "경남",
+    addressCountry: "KR",
+  },
+  openingHoursSpecification: {
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: "Sunday",
+    opens: "14:00",
+    description: "청년예배 · 드림센터 4층",
+  },
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ko" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(CHURCH_JSON_LD) }}
+        />
         <QueryProvider>
           <Header />
           {children}
