@@ -2,8 +2,10 @@
 
 **소유: 백엔드 담당자** (프론트엔드는 이 디렉터리를 수정하지 않습니다)
 
+> 👋 **처음 오셨다면 → [`../docs/ONBOARDING_BACKEND.md`](../docs/ONBOARDING_BACKEND.md)** (어떤 파일을 어떤 순서로 읽을지)
 > 📋 **작업 지시서: [`../docs/BACKEND_TASKS.md`](../docs/BACKEND_TASKS.md)**
 > 이 문서만 읽어도 작업할 수 있게 정리돼 있습니다. 먼저 [`../docs/INTEGRATION.md`](../docs/INTEGRATION.md)를 읽어주세요.
+> ⚙️ 설치할 도구와 버전은 [`../docs/TOOLCHAIN.md`](../docs/TOOLCHAIN.md) — **Java 21 Temurin · Postgres 16 · 포트 8080 고정**
 
 ---
 
@@ -161,6 +163,8 @@ Controller가 받은 `category`를 그대로 신뢰하지 마세요. 상세 조�
 ---
 
 ## 참고
+- **첫날 읽기 순서**: [`../docs/ONBOARDING_BACKEND.md`](../docs/ONBOARDING_BACKEND.md)
 - **작업 지시서**: [`../docs/BACKEND_TASKS.md`](../docs/BACKEND_TASKS.md)
 - **협업 규칙**: [`../docs/INTEGRATION.md`](../docs/INTEGRATION.md)
+- **도구 버전**: [`../docs/TOOLCHAIN.md`](../docs/TOOLCHAIN.md)
 - 상세 설계: [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
