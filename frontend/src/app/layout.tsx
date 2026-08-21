@@ -35,7 +35,7 @@ const CHURCH_JSON_LD = {
   url: SITE_URL,
   address: {
     "@type": "PostalAddress",
-    streetAddress: "가락로 117",
+    streetAddress: "분성로317번길 31",
     addressLocality: "김해시",
     addressRegion: "경남",
     addressCountry: "KR",
