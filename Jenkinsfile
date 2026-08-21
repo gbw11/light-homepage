@@ -70,9 +70,10 @@ pipeline {
           set -u
           fail=0
 
-          # 1. 커밋되면 안 되는 파일
+          # 1. 커밋되면 안 되는 파일 (.env.example 등 템플릿 파일은 의도적으로 커밋되므로 예외)
           banned=$(git ls-files | grep -E \\
             '(^|/)\\.env($|\\.)|application-local\\.yml|application-secret\\.yml|application-prod\\.yml|\\.pem$|\\.p12$|id_rsa' \\
+            | grep -vE '\\.env\\.(example|sample|template)$' \\
             || true)
           if [ -n "$banned" ]; then
             echo "✗ 커밋되면 안 되는 파일:"
@@ -109,7 +110,9 @@ pipeline {
               expression { fileExists('frontend/package.json') }
             }
           }
-          tools { nodejs 'node20' }   // Jenkins → Global Tool Configuration에 등록
+          // ⚠️ GitHub Actions(setup-node 22)와 반드시 같은 메이저를 쓴다 (docs/TOOLCHAIN.md §1)
+          //    한쪽만 다르면 로컬·Actions는 통과하고 Jenkins에서만 깨져 원인 추적에 시간이 든다.
+          tools { nodejs 'node22' }   // Jenkins → Global Tool Configuration에 등록
           stages {
             stage('Install') {
               steps { dir('frontend') { sh 'npm ci' } }
