@@ -1,4 +1,10 @@
-import type { Page, PostCategory, PostDetail, PostSummary } from "@/types/api";
+import type {
+  NewcomerSubmission,
+  Page,
+  PostCategory,
+  PostDetail,
+  PostSummary,
+} from "@/types/api";
 
 /**
  * mock과 real이 동시에 만족해야 하는 인터페이스.
@@ -14,5 +20,8 @@ export type Api = {
       size?: number;
     }): Promise<Page<PostSummary>>;
     get(idOrSlug: string): Promise<PostDetail>;
+  };
+  newcomers: {
+    submit(input: NewcomerSubmission): Promise<{ id: string }>;
   };
 };
