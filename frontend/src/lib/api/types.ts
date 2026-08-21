@@ -2,6 +2,7 @@ import type {
   NewcomerSubmission,
   Page,
   PostCategory,
+  PostDetail,
   PostSummary,
 } from "@/types/api";
 
@@ -18,6 +19,7 @@ export type Api = {
       page?: number;
       size?: number;
     }): Promise<Page<PostSummary>>;
+    get(idOrSlug: string): Promise<PostDetail>;
   };
   newcomers: {
     submit(input: NewcomerSubmission): Promise<{ id: string }>;
