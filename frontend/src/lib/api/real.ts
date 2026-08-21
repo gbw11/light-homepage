@@ -1,4 +1,4 @@
-import type { ApiEnvelope } from "@/types/api";
+import type { ApiEnvelope, NewcomerSubmission } from "@/types/api";
 import { ApiError } from "./error";
 import type { Api } from "./types";
 
@@ -49,5 +49,9 @@ export const realApi: Api = {
   posts: {
     list: ({ category, page = 0, size = 20 }) =>
       request("/posts", { query: { category, page, size } }),
+  },
+  newcomers: {
+    submit: (input: NewcomerSubmission) =>
+      request("/newcomers", { method: "POST", body: JSON.stringify(input) }),
   },
 };

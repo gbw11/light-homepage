@@ -71,3 +71,20 @@ export type PostSummary = {
   publishedAt: string;
   attachmentCount: number;
 };
+
+// ── 새가족 등록 (SPEC_API §9.1) ────────────────────────────
+export type Gender = "MALE" | "FEMALE";
+export type AgeGroup = "EARLY_20S" | "LATE_20S" | "EARLY_30S" | "LATE_30S";
+export type Referrer = "FRIEND" | "SEARCH" | "SNS" | "ETC";
+
+export type NewcomerSubmission = {
+  name: string;
+  phone: string;
+  gender?: Gender;
+  ageGroup?: AgeGroup;
+  referrer?: Referrer;
+  message?: string;
+  agreed: boolean;
+  /** 스팸 방지용 hidden 필드 — 값이 있으면 봇으로 간주 */
+  honeypot?: string;
+};
