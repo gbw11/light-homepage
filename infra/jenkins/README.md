@@ -41,8 +41,11 @@ docker compose down -v           # 볼륨까지 삭제 → Jenkins 설정 전부
 | Credentials Binding | 시크릿 주입 |
 | Blue Ocean *(선택)* | 파이프라인 시각화 |
 
-**Global Tool Configuration**에 NodeJS를 `node20` 이름으로 등록해야 합니다
-(`Jenkinsfile`이 `tools { nodejs 'node20' }`로 참조합니다).
+**Global Tool Configuration**에 NodeJS **22.x LTS**를 `node22` 이름으로 등록해야 합니다
+(`Jenkinsfile`이 `tools { nodejs 'node22' }`로 참조합니다).
+
+> ⚠️ 버전 22는 GitHub Actions·개발 PC와 맞춘 값입니다 — [`../../docs/TOOLCHAIN.md`](../../docs/TOOLCHAIN.md) §1.
+> 여기만 다른 버전으로 등록하면 **Jenkins에서만 깨지는** 빌드가 생깁니다.
 
 ---
 
