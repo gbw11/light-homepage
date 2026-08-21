@@ -1,13 +1,39 @@
 @import "tailwindcss";
 
+/* 디자인 토큰 — docs/ARCHITECTURE.md §11 */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  --color-navy-900: #0b1220;
+  --color-navy-800: #131c2e;
+  --color-navy-100: #e8ecf3;
+  --color-yellow: #ffc940;
+  --color-gray-400: #8b94a6;
+  --color-red-500: #e5484d;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-navy-900: var(--color-navy-900);
+  --color-navy-800: var(--color-navy-800);
+  --color-navy-100: var(--color-navy-100);
+  --color-yellow: var(--color-yellow);
+  --color-gray-400: var(--color-gray-400);
+  --color-red-500: var(--color-red-500);
+
+  /* 간격 4px 배수 · 섹션 여백 64/96 (모바일/데스크톱) */
+  --spacing-section-mobile: 64px;
+  --spacing-section-desktop: 96px;
+
+  /* 라운드 — 카드 8px / 버튼 999px */
+  --radius-card: 8px;
+  --radius-button: 999px;
+
+  /* 컨테이너 */
+  --container-max: 1200px;
 }
 
 @media (prefers-color-scheme: dark) {
