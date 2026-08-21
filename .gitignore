@@ -4,6 +4,9 @@ Thumbs.db
 *.log
 *.tmp
 
+# Claude Code 에이전트 워크트리/세션 상태 (git worktree 병렬 작업용)
+.claude/
+
 # 환경 변수 / 시크릿  ★ 절대 커밋 금지
 .env
 .env.local

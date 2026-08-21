@@ -49,6 +49,7 @@ export const realApi: Api = {
   posts: {
     list: ({ category, page = 0, size = 20 }) =>
       request("/posts", { query: { category, page, size } }),
+    get: (idOrSlug) => request(`/posts/${encodeURIComponent(idOrSlug)}`),
   },
   newcomers: {
     submit: (input: NewcomerSubmission) =>
