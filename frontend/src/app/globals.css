@@ -1,16 +1,27 @@
 @import "tailwindcss";
 
-/* 디자인 토큰 — docs/ARCHITECTURE.md §11 */
+/*
+ * 디자인 토큰 — docs/ARCHITECTURE.md §11
+ *
+ * 톤: 베이지(배경) + 그린(강조) — 로고가 나뭇잎이라 그린을 브랜드 강조색으로
+ * 쓴다 (PM 결정, docs/DECISIONS.md 2026-08-21 "디자인 톤: 베이지 + 그린").
+ *
+ * ⚠️ 변수 이름은 이전 팔레트(네이비/옐로우) 그대로 유지한다 — 이미 여러
+ * 페이지·컴포넌트가 이 이름들을 참조하므로, 값만 바꾸는 것이 그 파일들을
+ * 전부 건드리지 않고 톤을 바꾸는 유일한 방법이다. 이름과 실제 색이 안
+ * 맞는 것은 알고 있는 기술 부채다 — 다음에 컴포넌트를 손댈 일이 생기면
+ * 그때 같이 정리한다.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f1e4; /* 베이지 배경 */
+  --foreground: #262420; /* 베이지 위 기본 텍스트 (다크 웜톤) */
 
-  --color-navy-900: #0b1220;
-  --color-navy-800: #131c2e;
-  --color-navy-100: #e8ecf3;
-  --color-yellow: #ffc940;
-  --color-gray-400: #8b94a6;
-  --color-red-500: #e5484d;
+  --color-navy-900: #16281d; /* 구 다크네이비 → 다크 그린 (Hero 배경 등) */
+  --color-navy-800: #1f3a29; /* 다크 그린, 한 단계 밝은 톤 */
+  --color-navy-100: #e8dfc8; /* 구 라이트네이비 → 라이트 베이지 (placeholder·보조 버튼) */
+  --color-yellow: #3e8e5b; /* 구 옐로우 → 그린 (주요 강조·CTA) */
+  --color-gray-400: #8a8370; /* 구 쿨그레이 → 웜그레이(베이지와 어울림) */
+  --color-red-500: #e5484d; /* 경고/에러 — 톤 변경 대상 아님 */
 }
 
 @theme inline {
@@ -38,8 +49,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #1c1a15; /* 다크 웜톤 배경 */
+    --foreground: #ede6d3; /* 베이지 계열 텍스트 */
   }
 }
 
