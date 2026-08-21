@@ -71,3 +71,33 @@ export type PostSummary = {
   publishedAt: string;
   attachmentCount: number;
 };
+
+/** 첨부파일 (SPEC_API §3.3) */
+export type PostAttachment = {
+  id: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+};
+
+/** 리치텍스트 본문 — 이번 단위는 문단(`paragraph`)만 렌더한다 */
+export type PostBody = {
+  type: "doc";
+  content: unknown[];
+};
+
+/** 상세 조회 (SPEC_API §3.3) */
+export type PostDetail = {
+  id: string;
+  category: PostCategory;
+  title: string;
+  slug: string;
+  body: PostBody;
+  pinned: boolean;
+  authorName: string;
+  /** ISO-8601 UTC */
+  publishedAt: string;
+  /** ISO-8601 UTC */
+  updatedAt: string;
+  attachments: PostAttachment[];
+};
