@@ -5,10 +5,10 @@ import { Section } from "@/components/ui/Section";
 export const metadata: Metadata = {
   title: "오시는 길 | LIGHT",
   description:
-    "경남 김해시 가락로 117, 드림센터 4층. 카카오맵·네이버지도로 길찾기.",
+    "경남 김해시 분성로317번길 31, 드림센터 4층. 카카오맵·네이버지도로 길찾기.",
 };
 
-const ADDRESS = "경남 김해시 가락로 117";
+const ADDRESS = "경남 김해시 분성로317번길 31";
 const KAKAO_MAP_URL = `https://map.kakao.com/link/search/${encodeURIComponent(ADDRESS)}`;
 const NAVER_MAP_URL = `https://map.naver.com/p/search/${encodeURIComponent(ADDRESS)}`;
 
@@ -28,8 +28,9 @@ export default function LocationPage() {
       </Section>
 
       <Section className="pt-0">
-        <figure className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
-          지도 이미지 (드림센터 핀 표시)
+        <figure className="flex aspect-video flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-4 text-center text-sm text-[var(--color-gray-400)]">
+          <span>지도 미리보기는 준비 중입니다.</span>
+          <span>아래 버튼으로 카카오맵·네이버지도에서 바로 확인하세요.</span>
         </figure>
 
         <div className="mt-4 flex flex-wrap gap-3">
