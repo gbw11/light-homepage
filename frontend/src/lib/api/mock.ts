@@ -1,4 +1,4 @@
-import type { Page, PostSummary } from "@/types/api";
+import type { NewcomerSubmission, Page, PostSummary } from "@/types/api";
 import { ApiError } from "./error";
 import type { Api } from "./types";
 
@@ -81,6 +81,23 @@ export const mockApi: Api = {
       const items = scenario() === "empty" ? [] : NOTICES.filter((p) => p.category === category);
 
       return { items, page, size, hasNext: false };
+    },
+  },
+  newcomers: {
+    async submit(input: NewcomerSubmission): Promise<{ id: string }> {
+      await delay();
+      throwIfScenario();
+
+      if (input.agreed !== true) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "개인정보 동의가 필요합니다.",
+          status: 400,
+          field: "agreed",
+        });
+      }
+
+      return { id: `${Date.now()}` };
     },
   },
 };
