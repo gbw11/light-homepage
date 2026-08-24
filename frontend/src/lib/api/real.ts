@@ -1,4 +1,5 @@
 import type {
+  AlbumInput,
   ApiEnvelope,
   CompleteProfileInput,
   LoginInput,
@@ -48,6 +49,28 @@ function refreshOnce(): Promise<void> {
   return refreshInFlight;
 }
 
+/**
+ * 요청 URL을 만든다.
+ *
+ * 브라우저에서는 상대 경로(`/api/...`)면 충분하다 — `next.config.ts`의
+ * rewrites가 동일 출처로 프록시하므로 CORS도, 쿠키 설정도 필요 없다.
+ *
+ * ⚠️ **서버(SSR·정적 생성)에서는 상대 URL이 아예 동작하지 않는다.**
+ *    Node의 `fetch`는 base가 없으면 `TypeError: Failed to parse URL`을 던진다.
+ *    그래서 서버에서는 `API_ORIGIN`(서버 전용 환경변수 — `NEXT_PUBLIC_` 접두사를
+ *    붙이지 않는다, NFR-SEC-22)으로 절대 URL을 만든다.
+ *
+ *    `API_ORIGIN`이 없으면 상대 경로를 그대로 두어 기존과 같은 에러를 낸다 —
+ *    조용히 빈 값을 반환해 "데이터가 없는 것"처럼 보이게 하지 않는다.
+ */
+function buildUrl(path: string, qs: string): string {
+  const rel = `/api${path}${qs ? `?${qs}` : ""}`;
+  if (typeof window !== "undefined") return rel;
+
+  const origin = process.env.API_ORIGIN;
+  return origin ? `${origin.replace(/\/$/, "")}${rel}` : rel;
+}
+
 /** 리프레시 재시도가 없는 순수 fetch 1회 */
 async function rawRequest<T>(
   path: string,
@@ -61,7 +84,7 @@ async function rawRequest<T>(
   }
   const qs = search.toString();
 
-  const res = await fetch(`/api${path}${qs ? `?${qs}` : ""}`, {
+  const res = await fetch(buildUrl(path, qs), {
     ...rest,
     headers: { "Content-Type": "application/json", ...rest.headers },
   });
@@ -134,6 +157,33 @@ export const realApi: Api = {
   newcomers: {
     submit: (input: NewcomerSubmission) =>
       request("/newcomers", { method: "POST", body: JSON.stringify(input) }),
+  },
+  albums: {
+    list: ({ page = 0, size = 20 } = {}) => request("/albums", { query: { page, size } }),
+    create: (input: AlbumInput) =>
+      request("/albums", { method: "POST", body: JSON.stringify(input) }),
+    photos: (albumId, { cursor, size = 20 } = {}) =>
+      request(`/albums/${encodeURIComponent(albumId)}/photos`, { query: { cursor, size } }),
+    // ZIP 스트리밍 — fetch가 아니라 브라우저가 직접 이동한다 (SPEC_API §6.8)
+    downloadUrl: (albumId, photoIds) =>
+      `/api/albums/${encodeURIComponent(albumId)}/download?ids=${photoIds.join(",")}`,
+  },
+  photos: {
+    report: (photoId, input) =>
+      request(`/photos/${encodeURIComponent(photoId)}/report`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    // 302 → presigned(attachment) — 브라우저가 따라가야 한다 (SPEC_API §6.7)
+    downloadUrl: (photoId) => `/api/photos/${encodeURIComponent(photoId)}/download`,
+  },
+  bulletins: {
+    latest: () => request("/bulletins/latest"),
+    list: ({ page = 0, size = 20 } = {}) => request("/bulletins", { query: { page, size } }),
+    get: (id) => request(`/bulletins/${encodeURIComponent(id)}`),
+  },
+  capabilities: {
+    zipDownload: true,
   },
   auth: {
     signup: (input: SignupInput) =>
