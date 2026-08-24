@@ -165,7 +165,7 @@ export function CompleteProfileForm() {
       </div>
 
       <div>
-        <label className="flex items-start gap-2 text-sm">
+        <label className="flex min-h-11 items-start gap-2 py-2 text-sm">
           <input type="checkbox" className="mt-1 h-4 w-4" {...register("agreed")} />
           <span>개인정보 수집·이용 동의 *</span>
         </label>
