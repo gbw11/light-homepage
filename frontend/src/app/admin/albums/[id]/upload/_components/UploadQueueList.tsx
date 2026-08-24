@@ -93,7 +93,8 @@ export function UploadQueueList({
                 // 같은 이름의 버튼이 여러 개 나열되므로 어떤 파일인지 이름에 넣는다
                 aria-label={`${item.fileName} 다시 시도`}
                 onClick={() => onRetry([item.clientId])}
-                className="shrink-0 rounded-[var(--radius-button)] border border-[var(--color-navy-100)] px-3 py-1 text-sm font-bold transition hover:brightness-95 disabled:opacity-50"
+                // 터치 타겟 44px (ARCHITECTURE §11) — 목록 안 버튼도 예외가 아니다
+                className="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-button)] border border-[var(--color-navy-100)] px-3 text-sm font-bold transition hover:brightness-95 disabled:opacity-50"
               >
                 재시도
               </button>
