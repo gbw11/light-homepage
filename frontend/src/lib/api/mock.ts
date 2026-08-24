@@ -1,6 +1,7 @@
 import type {
   AlbumInput,
   AlbumSummary,
+  AttachmentUpload,
   AuthUser,
   Bulletin,
   BulletinSummary,
@@ -11,7 +12,9 @@ import type {
   LoginResult,
   NewcomerSubmission,
   Page,
+  PostAttachment,
   PostDetail,
+  PostInput,
   PostSummary,
   SignupInput,
 } from "@/types/api";
@@ -136,6 +139,47 @@ const NOTICES: PostSummary[] = [
     publishedAt: "2026-08-12T01:00:00Z",
     attachmentCount: 0,
   },
+  // ── 문서 게시판 (FR-DOC) — 임원(`L`) 이상만 열람 가능한 분류 ──
+  {
+    id: "31",
+    category: "MINUTES",
+    title: "8월 정기 임원회의록",
+    slug: "minutes-2026-08",
+    pinned: false,
+    authorName: "박OO",
+    publishedAt: "2026-08-21T01:00:00Z",
+    attachmentCount: 1,
+  },
+  {
+    id: "30",
+    category: "MINUTES",
+    title: "7월 정기 임원회의록",
+    slug: "minutes-2026-07",
+    pinned: false,
+    authorName: "박OO",
+    publishedAt: "2026-07-17T01:00:00Z",
+    attachmentCount: 0,
+  },
+  {
+    id: "33",
+    category: "BUDGET",
+    title: "2026년 하반기 예산안",
+    slug: "budget-2026-h2",
+    pinned: true,
+    authorName: "최OO",
+    publishedAt: "2026-08-19T01:00:00Z",
+    attachmentCount: 1,
+  },
+  {
+    id: "32",
+    category: "BUDGET",
+    title: "2026년 상반기 결산 보고",
+    slug: "budget-2026-h1-report",
+    pinned: false,
+    authorName: "최OO",
+    publishedAt: "2026-07-10T01:00:00Z",
+    attachmentCount: 0,
+  },
 ];
 
 /** `PostSummary`에 상세 조회용 `body`/`attachments`만 덧붙인 것 — 목록과 동일 소스를 공유한다 */
@@ -185,17 +229,106 @@ const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "at
     updatedAt: "2026-08-10T01:00:00Z",
     attachments: [],
   },
+  /**
+   * ★ 이 글은 **에디터가 만들 수 있는 모든 노드/마크를 한 번씩 쓴다**
+   *   (`POST_BODY_NODES`/`POST_BODY_MARKS`). 읽기 화면(`PostBodyView`)이
+   *   에디터를 따라오는지 눈으로 확인하는 기준 데이터다 — 툴바를 늘리면
+   *   여기에도 추가해서 렌더가 빠지는 걸 바로 보이게 한다.
+   */
   "16": {
     body: {
       type: "doc",
       content: [
         {
           type: "paragraph",
-          content: [{ type: "text", text: "지난주 여름 성경학교가 은혜롭게 마무리되었습니다." }],
+          content: [
+            { type: "text", text: "지난주 여름 성경학교가 " },
+            { type: "text", marks: [{ type: "bold" }], text: "은혜롭게" },
+            { type: "text", text: " 마무리되었습니다." },
+          ],
         },
         {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [{ type: "text", text: "함께한 순서" }],
+        },
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                { type: "paragraph", content: [{ type: "text", text: "말씀 나눔" }] },
+              ],
+            },
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    { type: "text", marks: [{ type: "italic" }], text: "찬양과 기도" },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "heading",
+          attrs: { level: 3 },
+          content: [{ type: "text", text: "다음 일정" }],
+        },
+        {
+          type: "orderedList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    { type: "text", marks: [{ type: "underline" }], text: "9월 마을모임" },
+                  ],
+                },
+              ],
+            },
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    { type: "text", marks: [{ type: "strike" }], text: "8월 수련회(종료)" },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "blockquote",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "함께해주신 모든 분들께 감사드립니다." }],
+            },
+          ],
+        },
+        { type: "horizontalRule" },
+        {
           type: "paragraph",
-          content: [{ type: "text", text: "함께해주신 모든 분들께 감사드립니다." }],
+          content: [
+            { type: "text", text: "사진은 " },
+            {
+              type: "text",
+              marks: [{ type: "link", attrs: { href: "/my/photos" } }],
+              text: "사진첩",
+            },
+            { type: "text", text: "에서 보실 수 있습니다." },
+            { type: "hardBreak" },
+            { type: "text", text: "문의는 임원에게 주세요." },
+          ],
         },
       ],
     },
@@ -275,6 +408,96 @@ const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "at
       ],
     },
     updatedAt: "2026-08-12T01:00:00Z",
+    attachments: [],
+  },
+  "31": {
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "일시: 2026년 8월 21일 20:00 · 장소: 청년부실 · 참석 7명" }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "1. 여름 수련회 결산 보고 — 참가비 잔액은 가을 전도축제 예산으로 이월하기로 결의했습니다." }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "2. 마을 재편성 — 9월 첫 주에 새가족 3명을 각 마을에 배정합니다." }],
+        },
+      ],
+    },
+    updatedAt: "2026-08-22T05:00:00Z",
+    attachments: [
+      {
+        id: "31",
+        filename: "2026-08_임원회의록.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 189440,
+      },
+    ],
+  },
+  "30": {
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "일시: 2026년 7월 17일 20:00 · 장소: 청년부실 · 참석 6명" }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "1. 수련회 준비 상황 점검 — 숙소 계약 완료, 차량 2대 확보." }],
+        },
+      ],
+    },
+    updatedAt: "2026-07-17T13:00:00Z",
+    attachments: [],
+  },
+  "33": {
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "2026년 하반기(7~12월) 청년교회 예산안입니다." }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "총 수입 8,400,000원 · 총 지출 8,150,000원 · 예비비 250,000원." }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "세부 항목은 첨부된 파일을 확인해 주세요. 문의는 회계 담당 임원에게 부탁드립니다." }],
+        },
+      ],
+    },
+    updatedAt: "2026-08-19T02:00:00Z",
+    attachments: [
+      {
+        id: "33",
+        filename: "예산안_2026_하반기.xlsx",
+        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        sizeBytes: 43008,
+      },
+    ],
+  },
+  "32": {
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "2026년 상반기(1~6월) 결산 보고입니다." }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "집행률 96% · 잔액 320,000원은 하반기 예비비로 이월했습니다." }],
+        },
+      ],
+    },
+    updatedAt: "2026-07-10T02:00:00Z",
     attachments: [],
   },
 };
@@ -434,6 +657,16 @@ const MOCK_USERS: Record<string, AuthUser> = {
     profileComplete: true,
     approvedAt: "2026-01-05T02:11:00Z",
   },
+  "pastor@example.com": {
+    id: "1",
+    name: "최OO",
+    email: "pastor@example.com",
+    phone: "010-7777-8888",
+    village: "1",
+    role: "PASTOR",
+    profileComplete: true,
+    approvedAt: "2025-03-02T02:11:00Z",
+  },
 };
 
 /** 이번 세션 중 가입한 계정 — 새로고침하면 사라진다 (실제 DB 아님) */
@@ -449,6 +682,97 @@ function toLoginResult(user: AuthUser): LoginResult {
   };
 }
 
+// ── 게시물 작성·첨부 mock (SPEC_API §3.4 · §3.5 · §4) ──────
+/**
+ * 이번 세션 중 작성·수정한 글. 새로고침하면 사라진다 (dynamicAlbums와 같은 원칙 —
+ * mock에는 서버가 없다).
+ *
+ * ⚠️ **모듈 메모리라서 브라우저와 서버가 각각 따로 가진다.** 브라우저에서 쓴 글은
+ *    서버 컴포넌트(`/news/[slug]` 등)에서 보이지 않는다. mock의 한계이므로
+ *    작성 화면은 저장 후 본문을 **렌더러와 같은 컴포넌트**로 다시 보여준다
+ *    (`PostBodyView`) — 저장 결과를 화면에서 확인할 수 있게.
+ */
+type MockPost = {
+  summary: PostSummary;
+  detail: Pick<PostDetail, "body" | "updatedAt" | "attachments">;
+};
+const dynamicPosts: MockPost[] = [];
+/** 삭제된 글 id — 정적 mock 데이터는 지울 수 없으니 가려서 흉내낸다 */
+const removedPostIds = new Set<string>();
+/** 업로드됐지만 아직 게시물에 연결되지 않은 첨부 (실서비스는 24시간 후 정리) */
+const uploadedAttachments = new Map<string, PostAttachment>();
+
+/** 정적 + 동적 mock 글을 하나로 합친다. 같은 id는 **동적 쪽이 이긴다**(수정 반영) */
+function mockPostSummaries(): PostSummary[] {
+  const overridden = new Set(dynamicPosts.map((p) => p.summary.id));
+  return [
+    ...dynamicPosts.map((p) => p.summary),
+    ...NOTICES.filter((n) => !overridden.has(n.id)),
+  ].filter((p) => !removedPostIds.has(p.id));
+}
+
+/** SPEC_API §3.1 — 작성은 전부 권한 `L`. 서버가 실제로 막지만 mock도 흉내낸다 */
+function requireLeader(message: string): AuthUser {
+  const user = requireSession();
+  if (user.role !== "LEADER" && user.role !== "PASTOR") {
+    throw new ApiError({ code: "FORBIDDEN", message, status: 403 });
+  }
+  return user;
+}
+
+function validatePostInput(input: PostInput) {
+  if (!input.title.trim()) {
+    throw new ApiError({
+      code: "VALIDATION_ERROR",
+      message: "제목을 입력해주세요.",
+      status: 400,
+      field: "title",
+    });
+  }
+  if (input.body.content.length === 0) {
+    throw new ApiError({
+      code: "VALIDATION_ERROR",
+      message: "본문을 입력해주세요.",
+      status: 400,
+      field: "body",
+    });
+  }
+  const unknownId = input.attachmentIds.find((id) => !uploadedAttachments.has(id));
+  if (unknownId) {
+    throw new ApiError({
+      code: "VALIDATION_ERROR",
+      message: "업로드되지 않은 첨부가 있습니다.",
+      status: 400,
+      field: "attachmentIds",
+    });
+  }
+}
+
+function buildMockPost(id: string, input: PostInput, authorName: string): MockPost {
+  const now = new Date().toISOString();
+  return {
+    summary: {
+      id,
+      category: input.category,
+      title: input.title.trim(),
+      // 실제 slug는 서버가 만든다 (한글 제목 → 음역/랜덤). mock은 id로 대체한다
+      slug: `post-${id}`,
+      pinned: input.pinned,
+      authorName,
+      // 임시저장이면 null (SPEC_API §3.4)
+      publishedAt: input.publish ? now : null,
+      attachmentCount: input.attachmentIds.length,
+    },
+    detail: {
+      body: input.body,
+      updatedAt: now,
+      attachments: input.attachmentIds.map(
+        (aid) => uploadedAttachments.get(aid) as PostAttachment,
+      ),
+    },
+  };
+}
+
 export const mockApi: Api = {
   posts: {
     async list({ category, page = 0, size = 20 }): Promise<Page<PostSummary>> {
@@ -456,7 +780,10 @@ export const mockApi: Api = {
       throwIfScenario();
 
       // 빈 목록도 반드시 확인해야 하는 상태다
-      const items = scenario() === "empty" ? [] : NOTICES.filter((p) => p.category === category);
+      const items =
+        scenario() === "empty"
+          ? []
+          : mockPostSummaries().filter((p) => p.category === category);
 
       return { items, page, size, hasNext: false };
     },
@@ -465,10 +792,15 @@ export const mockApi: Api = {
       await delay();
       throwIfScenario();
 
-      const summary = NOTICES.find((p) => p.id === idOrSlug || p.slug === idOrSlug);
-      const detail = summary ? NOTICE_DETAILS[summary.id] : undefined;
+      const dynamic = dynamicPosts.find(
+        (p) => p.summary.id === idOrSlug || p.summary.slug === idOrSlug,
+      );
+      const summary = dynamic
+        ? dynamic.summary
+        : mockPostSummaries().find((p) => p.id === idOrSlug || p.slug === idOrSlug);
+      const detail = dynamic ? dynamic.detail : summary ? NOTICE_DETAILS[summary.id] : undefined;
 
-      if (!summary || !detail) {
+      if (!summary || !detail || removedPostIds.has(summary.id)) {
         throw new ApiError({
           code: "NOT_FOUND",
           message: "글을 찾을 수 없습니다.",
@@ -488,6 +820,91 @@ export const mockApi: Api = {
         updatedAt: detail.updatedAt,
         attachments: detail.attachments,
       };
+    },
+
+    async create(input: PostInput): Promise<{ id: string }> {
+      await delay();
+      throwIfScenario();
+      const user = requireLeader("글 작성 권한이 없습니다.");
+      validatePostInput(input);
+
+      const id = `${Date.now()}`;
+      dynamicPosts.unshift(buildMockPost(id, input, user.name));
+      return { id };
+    },
+
+    async update(id: string, input: PostInput): Promise<void> {
+      await delay();
+      throwIfScenario();
+      const user = requireLeader("글 수정 권한이 없습니다.");
+      validatePostInput(input);
+
+      const existing = mockPostSummaries().find((p) => p.id === id);
+      if (!existing) {
+        throw new ApiError({ code: "NOT_FOUND", message: "글을 찾을 수 없습니다.", status: 404 });
+      }
+
+      const next = buildMockPost(id, input, existing.authorName || user.name);
+      // 정적 mock 글을 수정하면 동적 쪽에 덮어쓰기 항목이 생긴다 (mockPostSummaries가 우선)
+      next.summary.slug = existing.slug;
+      next.summary.publishedAt = input.publish ? (existing.publishedAt ?? next.summary.publishedAt) : null;
+
+      const at = dynamicPosts.findIndex((p) => p.summary.id === id);
+      if (at >= 0) dynamicPosts[at] = next;
+      else dynamicPosts.unshift(next);
+    },
+
+    async remove(id: string): Promise<void> {
+      await delay();
+      throwIfScenario();
+      requireLeader("글 삭제 권한이 없습니다.");
+
+      if (!mockPostSummaries().some((p) => p.id === id)) {
+        throw new ApiError({ code: "NOT_FOUND", message: "글을 찾을 수 없습니다.", status: 404 });
+      }
+      removedPostIds.add(id);
+    },
+  },
+  attachments: {
+    async upload(file: File): Promise<AttachmentUpload> {
+      // 업로드는 목록 조회보다 오래 걸린다 — 진행 표시가 실제로 보여야 한다
+      await delay(700);
+      throwIfScenario();
+      requireLeader("첨부 업로드 권한이 없습니다.");
+
+      // 성공 경로만 만들면 통합 때 무너진다: 파일명에 `fail`이 들어가면 실패시킨다
+      if (/fail/i.test(file.name)) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "파일을 업로드할 수 없습니다.",
+          status: 400,
+          field: "file",
+        });
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        throw new ApiError({
+          code: "STORAGE_LIMIT",
+          message: "20MB 이하 파일만 올릴 수 있습니다.",
+          status: 409,
+        });
+      }
+
+      const id = `a${Date.now()}${Math.floor(Math.random() * 1000)}`;
+      const attachment: PostAttachment = {
+        id,
+        filename: file.name,
+        contentType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+      };
+      uploadedAttachments.set(id, attachment);
+
+      // §4.1 응답은 contentType을 주지 않는다 — 화면이 없는 필드를 기대하지 않게 그대로 맞춘다
+      return { id, filename: attachment.filename, sizeBytes: attachment.sizeBytes };
+    },
+
+    downloadUrl(attachmentId: string): string {
+      // 실제로는 302 → presigned. mock에는 파일이 없으므로 눌러도 열리지 않는다
+      return `/api/files/${encodeURIComponent(attachmentId)}`;
     },
   },
   newcomers: {

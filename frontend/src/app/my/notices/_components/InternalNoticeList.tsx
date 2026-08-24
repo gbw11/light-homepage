@@ -6,7 +6,9 @@ import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import type { PostSummary } from "@/types/api";
 
-function formatDate(iso: string): string {
+/** 임시저장(`publish: false`) 글은 `publishedAt`이 null이다 (SPEC_API §3.4) */
+function formatDate(iso: string | null): string {
+  if (!iso) return "임시저장";
   const d = new Date(iso);
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
@@ -50,10 +52,11 @@ export function InternalNoticeList() {
     );
   }
 
+  // 임시저장(publishedAt null)은 날짜가 없으니 목록 맨 뒤로 보낸다
   const items: PostSummary[] = [
     ...(publicQuery.data?.items ?? []),
     ...(memberQuery.data?.items ?? []),
-  ].sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
+  ].sort((a, b) => ((a.publishedAt ?? "") < (b.publishedAt ?? "") ? 1 : -1));
 
   if (items.length === 0) {
     return (

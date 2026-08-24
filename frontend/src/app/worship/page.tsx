@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 
 export const metadata: Metadata = {
-  title: "예배와 모임 | LIGHT",
+  title: "예배와 모임",
   description:
     "청년예배(주일 14:00 · 드림센터 4층), 마을모임(예배 후 15:30~16:00), 그 외 모임 안내.",
 };
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
  */
 export default function WorshipPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section className="pb-8 md:pb-8">
         <h1 className="text-2xl font-bold md:text-3xl">예배와 모임</h1>
       </Section>

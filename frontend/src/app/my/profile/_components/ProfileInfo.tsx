@@ -30,7 +30,7 @@ const VILLAGE_LABELS: Record<string, string> = {
 const PHONE_REGEX = /^010-\d{4}-\d{4}$/;
 
 const inputClass =
-  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base outline-none focus:border-[var(--color-yellow)]";
+  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]";
 
 interface ProfileInfoProps {
   user: AuthUser;
@@ -123,14 +123,14 @@ export function ProfileInfo({ user, onUpdated }: ProfileInfoProps) {
               <span className="text-base">{user.phone}</span>
               <button
                 type="button"
-                className="text-sm font-bold text-[var(--color-yellow)] underline-offset-2 hover:underline"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center text-sm font-bold underline underline-offset-2"
                 onClick={() => setIsEditing(true)}
               >
                 수정
               </button>
             </div>
           )}
-          {error && <p className="text-sm text-[var(--color-red-500)]">{error}</p>}
+          {error && <p role="alert" className="text-sm text-[var(--color-red-500)]">{error}</p>}
         </dd>
       </div>
 

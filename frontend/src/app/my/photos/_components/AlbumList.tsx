@@ -78,9 +78,12 @@ function AlbumCard({ album }: { album: AlbumSummary }) {
  */
 function AlbumCover({ album }: { album: AlbumSummary }) {
   if (!album.coverThumbUrl) {
+    // 빈 커버는 불투명 `navy-100`을 쓴다. `/40`이면 반투명이라 배경색에 따라
+    // 합성 결과가 달라져서(다크 스킴에서 #6e695d) 글자 대비를 보장할 수 없다.
+    // navy-100 + navy-900은 두 값 모두 스킴과 무관하게 고정이라 어느 쪽에서도 11.7:1이다.
     return (
-      <div className="flex aspect-[4/3] items-center justify-center bg-[var(--color-navy-100)]/40">
-        <span className="text-sm text-[var(--color-gray-400)]">사진 없음</span>
+      <div className="flex aspect-[4/3] items-center justify-center bg-[var(--color-navy-100)]">
+        <span className="text-sm text-[var(--color-navy-900)]">사진 없음</span>
       </div>
     );
   }

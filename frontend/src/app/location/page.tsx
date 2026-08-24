@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 
 export const metadata: Metadata = {
-  title: "오시는 길 | LIGHT",
+  title: "오시는 길",
   description:
     "경남 김해시 분성로317번길 31, 드림센터 4층. 카카오맵·네이버지도로 길찾기.",
 };
@@ -22,13 +22,13 @@ const linkButtonClass =
  */
 export default function LocationPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section className="pb-8 md:pb-8">
         <h1 className="text-2xl font-bold md:text-3xl">오시는 길</h1>
       </Section>
 
       <Section className="pt-0">
-        <figure className="flex aspect-video flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-4 text-center text-sm text-[var(--color-gray-400)]">
+        <figure className="flex aspect-video flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-4 text-center text-sm text-[var(--color-navy-900)]">
           <span>지도 미리보기는 준비 중입니다.</span>
           <span>아래 버튼으로 카카오맵·네이버지도에서 바로 확인하세요.</span>
         </figure>
@@ -58,7 +58,7 @@ export default function LocationPage() {
           ⚠️ 청년예배는 <strong>드림센터 4층</strong>입니다.
         </div>
 
-        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
+        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
           드림센터 외관 사진 (❓ 확인 필요)
         </figure>
       </Section>
@@ -72,7 +72,7 @@ export default function LocationPage() {
       </Section>
 
       <Section className="pt-0">
-        <Link href="/welcome" className="font-bold underline">
+        <Link href="/welcome" className="inline-flex min-h-11 items-center font-bold underline">
           ▸ 처음 오시는 분 (상세 동선)
         </Link>
       </Section>
