@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import type { PostBody } from "@/types/api";
 
 /**
@@ -81,7 +81,7 @@ function renderInline(nodes: PmNode[] | undefined): ReactNode {
     if (node.type === "hardBreak") return <br key={i} />;
     if (node.type !== "text" || node.text === undefined) {
       // text/hardBreak 외의 인라인 노드는 아직 없다 — 안전망으로 자식만 흘린다
-      return <span key={i}>{renderInline(node.content)}</span>;
+      return <Fragment key={i}>{renderInline(node.content)}</Fragment>;
     }
 
     // 마크는 안쪽부터 감싼다. 순서는 결과에 영향이 없다 (전부 인라인 래퍼)
@@ -123,7 +123,9 @@ function renderInline(nodes: PmNode[] | undefined): ReactNode {
           break;
       }
     }
-    return <span key={i}>{out}</span>;
+    // key만을 위한 <span>을 남기지 않는다 — 본문 HTML이 span으로 뒤덮이면
+    // 스타일·선택 동작이 미묘하게 달라진다
+    return <Fragment key={i}>{out}</Fragment>;
   });
 }
 
