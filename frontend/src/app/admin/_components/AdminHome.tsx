@@ -29,7 +29,7 @@ type AdminLink = {
  */
 const CONTENT_LINKS: AdminLink[] = [
   { label: "공지 작성", href: "/admin/posts/new" },
-  { label: "주보 업로드" },
+  { label: "주보 업로드", href: "/admin/bulletin/upload" },
   /*
     업로드는 앨범에 매달린 화면이라(`/admin/albums/[id]/upload`) 앨범을 고르지
     않고 바로 갈 수 없다. 그래서 사진첩으로 보낸다 — 거기서 앨범을 만들거나

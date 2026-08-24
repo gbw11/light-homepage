@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
+import { BulletinAdminBar } from "./BulletinAdminBar";
 import { BulletinViewer } from "./BulletinViewer";
 import { PastBulletinList } from "./PastBulletinList";
 
@@ -53,13 +54,25 @@ export function BulletinScreen() {
 
   // SPEC_API §5.1 — 주보가 아직 없으면 `data: null`이 온다. 빈 뷰어를 그리지 않는다.
   if (!latest) {
-    return <p className="text-[var(--color-gray-400)]">아직 등록된 주보가 없습니다.</p>;
+    return (
+      <div>
+        {/* 주보가 없을 때야말로 임원에게 업로드 경로가 필요하다 */}
+        <BulletinAdminBar bulletin={null} onDeleted={() => setSelectedId(null)} />
+        <p className="text-[var(--color-gray-400)]">아직 등록된 주보가 없습니다.</p>
+      </div>
+    );
   }
 
   const shown = selectedId === null ? latest : selectedQuery.data;
 
   return (
     <div>
+      <BulletinAdminBar
+        bulletin={shown ? { id: shown.id, serviceDate: shown.serviceDate } : null}
+        // 지금 보던 주보가 사라졌으므로 최신 주보로 돌아간다
+        onDeleted={() => setSelectedId(null)}
+      />
+
       {shown ? (
         // 주보가 바뀌면 뷰어 상태(현재 장)를 처음부터 시작해야 한다
         <BulletinViewer key={shown.id} bulletin={shown} />
