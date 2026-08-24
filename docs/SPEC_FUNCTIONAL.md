@@ -82,7 +82,7 @@ FE는 `SPEC_API.md §2` 계약대로 mock/real 양쪽을 구현했다 (`frontend
 | FR-AUTH-02 | 카카오 로그인 | G | M2 | 🟡 부분 | 카카오 OAuth. 신규 계정은 `PENDING` 생성 후 추가정보 화면으로 — **FE는 `/api/auth/kakao/authorize`로 이동하는 버튼만 구현.** 302 왕복은 BE 구현 후에야 동작한다 |
 | FR-AUTH-03 | 카카오 추가정보 입력 | P | M2 | 🟡 부분 | 실명·연락처·소속마을 필수 입력 (승인 대조용) — `/signup/complete`. **"카카오 닉네임" 표시는 임시로 `me()`의 `name`을 씀** (실제 닉네임 소스 미정, `BACKEND_HANDOFF.md` 참고) |
 | FR-AUTH-04 | 로그인 | G | M2 | 🟡 | 이메일+비밀번호. JWT를 httpOnly 쿠키로 발급 — `/login` |
-| FR-AUTH-05 | 자동 토큰 갱신 | M | M2 | ⬜ | 액세스 토큰(30분) 만료 시 리프레시 토큰(14일)으로 자동 재발급 — **미구현.** `api.auth.refresh()` 함수는 있으나 401 감지 후 자동 재시도하는 인터셉터가 없다 (`SPEC_API.md §12.2`) |
+| FR-AUTH-05 | 자동 토큰 갱신 | M | M2 | 🟡 | 액세스 토큰(30분) 만료 시 리프레시 토큰(14일)으로 자동 재발급 — `frontend/src/lib/api/real.ts`의 `request()`가 401 → `/auth/refresh` 1회 → 원래 요청 재시도. 리프레시 토큰 회전 때문에 동시 401은 single-flight로 묶는다. 실패 시 `session.ts`로 알려 `/login`으로 (`SPEC_API.md §12.2`). ⚠️ **실제 401 왕복은 BE 인증 구현 후에야 검증 가능** |
 | FR-AUTH-06 | 로그아웃 | M | M2 | 🟡 | 쿠키 삭제 + 리프레시 토큰 DB에서 폐기 — Header · `/my/profile` |
 | FR-AUTH-07 | 승인 대기 안내 | P | M2 | 🟡 | `PENDING` 상태로 회원 경로 접근 시 대기 화면 고정 — `/pending` + `RequireMember` (⚠️ UI 편의, 실제 차단은 BE 책임) |
 | FR-AUTH-08 | 비밀번호 재설정 | G | M2 | 🟡 | 이메일로 1회용·만료 토큰 발송 → 새 비밀번호 설정 — `/password/reset-request` · `/password/reset` |
@@ -326,7 +326,7 @@ FE는 `SPEC_API.md §2` 계약대로 mock/real 양쪽을 구현했다 (`frontend
 | 영역 | FE 대상 | FE 완료 | 비고 |
 |---|---|---|---|
 | 공개 (PUB) | 10 | **10** 🟡 | 전부 mock 기준 완료. BE 연동 대기 |
-| 인증·회원 (AUTH) | 11 | **10** 🟡 | FR-AUTH-05(401 자동 재시도) 미구현. 02·03은 부분(카카오 왕복은 BE 필요) |
+| 인증·회원 (AUTH) | 11 | **11** 🟡 | 02·03은 부분 (카카오 302 왕복은 BE 필요) |
 | 회원 영역 (MEM) | 2 (M2분) | **2** 🟡 | FR-MEM-01은 부분 — 주보·앨범·알림 블록은 M3/M4로 이연 |
 | 관리 (ADM) | 5 (M2 태그) | **0** ⬜ | M2는 BE 기준. **FE 관리 화면은 M4** (`WORKPLAN.md §11.1` #38) |
 
