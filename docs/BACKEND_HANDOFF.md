@@ -30,6 +30,47 @@
 
 ---
 
+## 2026-08-24 — M2 인증 기반(auth-core) mock API — 백엔드가 그대로 구현하면 되는 계약
+
+**상태**: 계약 변경 없음. 아래 엔드포인트는 이미 `docs/SPEC_API.md §2`에
+정의된 계약 그대로 프론트 mock(`frontend/src/lib/api/mock.ts`)과
+real(`frontend/src/lib/api/real.ts`)에 구현해뒀다. 백엔드가 이 그대로
+만들면 `NEXT_PUBLIC_USE_MOCK=0`으로 바꾸는 것만으로 연동된다.
+
+| 엔드포인트 | 프론트 사용처 | 스펙 |
+|---|---|---|
+| `POST /api/auth/signup` | `/signup` | `SPEC_API.md §2.1` |
+| `POST /api/auth/login` | `/login` | `SPEC_API.md §2.2` |
+| `POST /api/auth/refresh` | `lib/api` 내부(401 재시도용, 아직 화면에서 직접 호출 안 함) | `SPEC_API.md §2.3` |
+| `POST /api/auth/logout` | Header 로그아웃, `/my/profile` 로그아웃 | `SPEC_API.md §2.4` |
+| `GET /api/auth/me` | `AuthProvider` 전역 세션 소스 | `SPEC_API.md §2.5` |
+| `POST /api/auth/complete-profile` | `/signup/complete` | `SPEC_API.md §2.8` |
+| `POST /api/auth/password/reset-request` | `/password/reset-request` | `SPEC_API.md §2.9` |
+| `POST /api/auth/password/reset` | `/password/reset` | `SPEC_API.md §2.10` |
+| `PATCH /api/auth/me` | `/my/profile` 연락처 인라인 수정 | `SPEC_API.md §2.11` |
+| `POST /api/auth/password/change` | `/my/profile` 비밀번호 변경 | `SPEC_API.md §2.12` |
+| `DELETE /api/auth/me` | `/my/profile` 회원 탈퇴 | `SPEC_API.md §2.13` |
+
+- **왜 필요한지**: M2(인증·회원) 마일스톤 전체가 이 계약에 의존한다
+  (`docs/WORKPLAN.md` §6 M2).
+- **아직 안 붙인 것**: `GET /api/auth/kakao/authorize`·`kakao/callback`
+  (302 리다이렉트 엔드포인트)은 실제 백엔드 라우트로 직접 이동하는
+  `<a href="/api/auth/kakao/authorize">` 링크만 걸어뒀다 — `Api` 타입에
+  포함하지 않았다(fetch로 부르는 게 아니라 브라우저 이동이라서). 백엔드가
+  이 라우트를 만들면 버튼은 그대로 동작해야 한다.
+- **미확정 사항 — PM 확인 필요**: `/signup/complete`(카카오 가입 후 추가정보
+  화면, `WIREFRAME.md §10-2b`)는 "카카오 닉네임: ___"을 보여줘야 하는데,
+  카카오 OAuth 왕복이 아직 없어서 실제 닉네임 소스가 없다. 지금은 임시로
+  `GET /api/auth/me`의 `name` 필드를 대신 표시한다. 카카오 연동이 실제로
+  구현될 때 다음 중 하나가 필요해 보인다: ① 콜백 리다이렉트에 닉네임을
+  쿼리파라미터로 실어보내거나 ② 프로필 미완료 상태의 카카오 세션에 대해
+  `AuthUser`와 다른 응답 모양(실명 없이 닉네임만 있는 부분 세션)을 반환하는
+  것. 계약을 확정할 때 다시 논의 필요.
+- **관련 PR**: `feat/fe-auth-core`, `feat/fe-signup-followup`,
+  `feat/fe-password-reset` 브랜치 (M2 인증·회원)
+
+---
+
 ## 2026-08-24 — `/my/profile` 내 정보 화면 — 백엔드가 그대로 구현하면 되는 계약
 
 **상태**: 계약 변경 없음. 아래 3개는 이미 `docs/SPEC_API.md`에 있는 계약과
@@ -48,25 +89,6 @@
   요청 필드로 `phone`만 받는 것으로 가정했다(스펙 예시와 동일) — 다른 필드도
   받게 확장할 계획이 있다면 FE `updateProfile` 시그니처도 같이 넓혀야 한다.
 - **관련 PR**: `feat/fe-my-profile` 브랜치 (아직 미머지)
-
----
-
-## 2026-08-21 — M1 공개 영역 mock API — 백엔드가 그대로 구현하면 되는 계약
-
-**상태**: 계약 변경 없음. 아래 3개는 이미 `docs/SPEC_API.md`에 있는 계약과
-동일하게 프론트 mock(`frontend/src/lib/api/mock.ts`)을 구현해뒀다. 백엔드가
-이 그대로 만들면 `NEXT_PUBLIC_USE_MOCK=0`으로 바꾸는 것만으로 연동된다.
-
-| 엔드포인트 | 프론트 사용처 | 스펙 |
-|---|---|---|
-| `GET /api/posts?category=NOTICE_PUBLIC` | `/news` 목록 | `SPEC_API.md §3.2` |
-| `GET /api/posts/{idOrSlug}` | `/news/[slug]` 상세 | `SPEC_API.md §3.3` |
-| `POST /api/newcomers` | `/welcome/register` 새가족 등록 | `SPEC_API.md §9.1` |
-
-- **왜 필요한지**: M1 공개 사이트의 공지·새가족 등록 기능이 이 3개
-  엔드포인트에 의존한다 (`SPEC_API.md §10` M1 범위와 일치)
-- **미확정 사항**: 없음 — 계약 그대로 구현했다
-- **관련 PR**: #19(`posts.get`), #20(`newcomers.submit`)
 
 ---
 
@@ -93,6 +115,25 @@
 - **미확정 사항**: 없음 — 계약 그대로 사용했다. 다만 위 인가 검사가 실제
   구현에도 반영됐는지는 백엔드 쪽 확인이 필요하다.
 - **관련 PR**: `feat/fe-internal-notices` 브랜치 (M2 인증·회원)
+
+---
+
+## 2026-08-21 — M1 공개 영역 mock API — 백엔드가 그대로 구현하면 되는 계약
+
+**상태**: 계약 변경 없음. 아래 3개는 이미 `docs/SPEC_API.md`에 있는 계약과
+동일하게 프론트 mock(`frontend/src/lib/api/mock.ts`)을 구현해뒀다. 백엔드가
+이 그대로 만들면 `NEXT_PUBLIC_USE_MOCK=0`으로 바꾸는 것만으로 연동된다.
+
+| 엔드포인트 | 프론트 사용처 | 스펙 |
+|---|---|---|
+| `GET /api/posts?category=NOTICE_PUBLIC` | `/news` 목록 | `SPEC_API.md §3.2` |
+| `GET /api/posts/{idOrSlug}` | `/news/[slug]` 상세 | `SPEC_API.md §3.3` |
+| `POST /api/newcomers` | `/welcome/register` 새가족 등록 | `SPEC_API.md §9.1` |
+
+- **왜 필요한지**: M1 공개 사이트의 공지·새가족 등록 기능이 이 3개
+  엔드포인트에 의존한다 (`SPEC_API.md §10` M1 범위와 일치)
+- **미확정 사항**: 없음 — 계약 그대로 구현했다
+- **관련 PR**: #19(`posts.get`), #20(`newcomers.submit`)
 
 ---
 
