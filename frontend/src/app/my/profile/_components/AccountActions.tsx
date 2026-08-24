@@ -65,7 +65,7 @@ export function AccountActions() {
         {!isWithdrawOpen ? (
           <button
             type="button"
-            className="text-base font-bold text-[var(--color-red-500)] hover:underline"
+            className="inline-flex min-h-11 items-center text-base font-bold text-[var(--color-red-500)] hover:underline"
             onClick={() => setIsWithdrawOpen(true)}
           >
             ▸ 회원 탈퇴
@@ -74,7 +74,7 @@ export function AccountActions() {
           <div className="space-y-3">
             <button
               type="button"
-              className="text-base font-bold text-[var(--color-red-500)] hover:underline"
+              className="inline-flex min-h-11 items-center text-base font-bold text-[var(--color-red-500)] hover:underline"
               onClick={() => {
                 setIsWithdrawOpen(false);
                 setPassword("");

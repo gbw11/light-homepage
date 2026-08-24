@@ -72,7 +72,7 @@ export default function LocationPage() {
       </Section>
 
       <Section className="pt-0">
-        <Link href="/welcome" className="font-bold underline">
+        <Link href="/welcome" className="inline-flex min-h-11 items-center font-bold underline">
           ▸ 처음 오시는 분 (상세 동선)
         </Link>
       </Section>

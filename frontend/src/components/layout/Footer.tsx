@@ -10,17 +10,33 @@ export function Footer() {
         <p>055-333-6321</p>
       </div>
 
-      <div className="mt-4 flex gap-4">
-        <a href="https://instagram.com" target="_blank" rel="noreferrer">
+      {/* 링크 한 줄 — 본문 속 링크가 아니라 개별 타겟이므로 44px를 맞춘다 (NFR-A11Y-05) */}
+      <nav aria-label="관련 링크" className="mt-4 flex flex-wrap gap-x-4">
+        <a
+          href="https://instagram.com"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-11 items-center"
+        >
           ▸ Instagram
         </a>
-        <a href="https://youtube.com" target="_blank" rel="noreferrer">
+        <a
+          href="https://youtube.com"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-11 items-center"
+        >
           ▸ YouTube
         </a>
-        <a href="https://gimhae.church" target="_blank" rel="noreferrer">
+        <a
+          href="https://gimhae.church"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-11 items-center"
+        >
           ▸ 김해교회 홈페이지
         </a>
-      </div>
+      </nav>
 
       <p className="mt-6 border-t border-[var(--color-navy-100)] pt-4">
         © 김해교회 청년교회 LIGHT
