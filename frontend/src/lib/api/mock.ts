@@ -294,8 +294,8 @@ const RETREAT_PHOTO_COUNT = 47;
 const WIDE_SLUGS = new Set(
   Array.from({ length: 12 }, (_, i) => `p${String(i + 36).padStart(3, "0")}`),
 );
-/** 유일한 세로 사진 */
-const PORTRAIT_SLUG = "p032";
+/** 유일한 세로 사진 — `public/photos/retreat-2026/manifest.json` 실측값 기준 */
+const PORTRAIT_SLUG = "p035";
 
 function retreatPhoto(index: number): Photo {
   const slug = `p${String(index + 1).padStart(3, "0")}`;
