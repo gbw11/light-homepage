@@ -30,6 +30,56 @@
 
 ---
 
+## 2026-08-24 — M3 사진첩 FE 구현 — 백엔드에 요청·확인할 것
+
+**상태**: 대부분 계약 그대로 구현. **개선 제안 1건 + 응답 규약 확인 3건**이 있다.
+`SPEC_API.md §6`의 `albums.list`·`albums.create`·`albums.photos`·`photos.report`를
+mock/real 양쪽에 구현했다. 업로드(`§6.5`~`§6.6`)는 R2 presigned URL이 필요해
+이번 범위 밖이다.
+
+### 개선 제안 — `§6.4` 응답에 앨범 메타 추가
+`GET /api/albums/{id}/photos` 응답에 앨범 제목·전체 장수가 없어서, 앨범 상세
+화면이 제목과 "47장"을 표시하려고 **`GET /api/albums`(§6.1) 목록을 한 번 더
+호출**한다. 목록을 거쳐 들어오면 캐시가 있어 괜찮지만, URL로 직접 진입하면
+낭비 호출이다.
+
+- 해결안 ①: `§6.4` 응답에 `album: { title, photoCount }` 추가
+- 해결안 ②: `GET /api/albums/{id}` 단건 조회 신설
+- 어느 쪽이든 FE 호출이 하나 줄어든다. **BE가 편한 쪽으로 정해주면 맞춘다**
+
+### 응답 규약 확인 필요
+| # | 요구사항 | 이유 |
+|---|---|---|
+| 1 | `§6.10` 신고 API의 `VALIDATION_ERROR`는 **반드시 `field: "reason"`** 포함 | FE가 그 필드 아래에 메시지를 붙인다. 빈 `reason`은 FE에서도 먼저 막지만 서버 검증이 최종 기준 |
+| 2 | 없는 앨범은 `§6.4`에서 **`NOT_FOUND`(404)** | FE가 이 코드로 "앨범을 찾을 수 없습니다" 화면을 띄운다 |
+| 3 | `§6.2` 앨범 생성은 **권한 `L` 미만에 `FORBIDDEN`** | FE는 버튼을 숨기지만 그건 편의일 뿐이다 (`WORKPLAN §5.1`) |
+
+### ⚠️ 배포 설정 — `API_ORIGIN`이 실제로 필요해졌다
+FE의 `real.ts`는 브라우저에서는 상대 경로(`/api/...`)를 쓰지만, **서버 렌더링
+중에는 절대 URL이 필요하다** (Node의 `fetch`는 base가 없으면
+`TypeError: Failed to parse URL`을 던진다). `.env.example`에 있던 서버 전용
+`API_ORIGIN`을 이제 실제로 읽는다.
+
+- **배포 환경(Vercel)에 `API_ORIGIN`을 설정해야** 공개 페이지 SSR이 동작한다.
+  없으면 공개 공지가 초기 HTML에 안 들어가 검색 유입에 불리하다 (M1의 핵심 가치)
+- ⚠️ **서버 렌더링 시 쿠키 전달은 아직 구현하지 않았다** — 공개 데이터 SSR만
+  해결된 상태다. 회원 데이터를 서버에서 읽어야 할 일이 생기면 쿠키 forwarding이
+  별도로 필요하다
+
+### R2 URL 형태 확정 시 함께 정해야 할 것
+`next/image`로 R2 presigned URL을 쓰려면 `next.config.ts`에
+`images.remotePatterns`로 호스트를 등록해야 한다. 더 중요한 문제는 **presigned
+URL의 쿼리스트링이 매번 바뀌어서 Next 이미지 옵티마이저가 항상 캐시 미스**가
+난다는 점이다. 그래서 사진 목록은 `next/image`를 쓰지 않고 `<img>`로 처리했다
+(thumb이 이미 640px WebP다). 앨범 커버만 `next/image`를 쓰므로, **R2 호스트가
+정해지면 `remotePatterns` 등록 또는 `unoptimized` 여부를 함께 결정해야 한다.**
+
+- **미확정 사항**: 위 개선 제안의 선택지(① vs ②), R2 호스트 주소
+- **관련 PR**: `feat/fe-photo-assets`, `feat/fe-album-list`, `feat/fe-photo-grid`,
+  `fix/fe-prod-build`
+
+---
+
 ## 2026-08-24 — 401 자동 재시도 구현 — 백엔드 응답에 대한 요구사항
 
 **상태**: 계약 변경 없음. `SPEC_API.md §12.2`의 401 처리 흐름을 FE에 구현했다
