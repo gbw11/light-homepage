@@ -1,4 +1,10 @@
-import type { ApiEnvelope, NewcomerSubmission } from "@/types/api";
+import type {
+  ApiEnvelope,
+  CompleteProfileInput,
+  LoginInput,
+  NewcomerSubmission,
+  SignupInput,
+} from "@/types/api";
 import { ApiError } from "./error";
 import type { Api } from "./types";
 
@@ -27,6 +33,11 @@ async function request<T>(
     headers: { "Content-Type": "application/json", ...rest.headers },
   });
 
+  // 204는 본문이 없다 (logout·reset-request 등, SPEC_API §2) — json() 파싱을 시도하지 않는다
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
   let body: ApiEnvelope<T>;
   try {
     body = (await res.json()) as ApiEnvelope<T>;
@@ -54,5 +65,24 @@ export const realApi: Api = {
   newcomers: {
     submit: (input: NewcomerSubmission) =>
       request("/newcomers", { method: "POST", body: JSON.stringify(input) }),
+  },
+  auth: {
+    signup: (input: SignupInput) =>
+      request("/auth/signup", { method: "POST", body: JSON.stringify(input) }),
+    login: (input: LoginInput) =>
+      request("/auth/login", { method: "POST", body: JSON.stringify(input) }),
+    logout: () => request("/auth/logout", { method: "POST" }),
+    refresh: () => request("/auth/refresh", { method: "POST" }),
+    me: () => request("/auth/me"),
+    completeProfile: (input: CompleteProfileInput) =>
+      request("/auth/complete-profile", { method: "POST", body: JSON.stringify(input) }),
+    passwordResetRequest: (input) =>
+      request("/auth/password/reset-request", { method: "POST", body: JSON.stringify(input) }),
+    passwordResetConfirm: (input) =>
+      request("/auth/password/reset", { method: "POST", body: JSON.stringify(input) }),
+    updateProfile: (input) => request("/auth/me", { method: "PATCH", body: JSON.stringify(input) }),
+    changePassword: (input) =>
+      request("/auth/password/change", { method: "POST", body: JSON.stringify(input) }),
+    deleteAccount: (input) => request("/auth/me", { method: "DELETE", body: JSON.stringify(input) }),
   },
 };

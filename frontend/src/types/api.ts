@@ -102,6 +102,47 @@ export type PostDetail = {
   attachments: PostAttachment[];
 };
 
+// ── 인증·회원 (SPEC_API §2) ─────────────────────────────────
+export type Village = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "newcomer";
+
+/** GET /api/auth/me 전체 프로필 (SPEC_API §2.5) */
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string;
+  village: Village;
+  role: Role;
+  profileComplete: boolean;
+  /** 승인 이전이면 null */
+  approvedAt: string | null;
+};
+
+/** POST /api/auth/login 응답 — me()의 부분집합 (SPEC_API §2.2) */
+export type LoginResult = Pick<AuthUser, "id" | "name" | "village" | "role" | "profileComplete">;
+
+export type SignupInput = {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  village: Village;
+  agreed: boolean;
+};
+
+export type LoginInput = {
+  email: string;
+  password: string;
+};
+
+/** 카카오 가입자 추가정보 (SPEC_API §2.8) */
+export type CompleteProfileInput = {
+  name: string;
+  phone: string;
+  village: Village;
+  agreed: boolean;
+};
+
 // ── 새가족 등록 (SPEC_API §9.1) ────────────────────────────
 export type Gender = "MALE" | "FEMALE";
 export type AgeGroup = "EARLY_20S" | "LATE_20S" | "EARLY_30S" | "LATE_30S";
