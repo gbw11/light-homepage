@@ -99,6 +99,36 @@ const NOTICES: PostSummary[] = [
     publishedAt: "2026-07-28T01:00:00Z",
     attachmentCount: 0,
   },
+  {
+    id: "21",
+    category: "NOTICE_MEMBER",
+    title: "마을모임 장소 변경 안내",
+    slug: "village-meeting-location-change",
+    pinned: false,
+    authorName: "김OO",
+    publishedAt: "2026-08-22T01:00:00Z",
+    attachmentCount: 0,
+  },
+  {
+    id: "20",
+    category: "NOTICE_MEMBER",
+    title: "회비 납부 안내",
+    slug: "membership-fee-guide",
+    pinned: false,
+    authorName: "박OO",
+    publishedAt: "2026-08-18T01:00:00Z",
+    attachmentCount: 1,
+  },
+  {
+    id: "19",
+    category: "NOTICE_MEMBER",
+    title: "리더 모임 일정 공유",
+    slug: "leader-meeting-schedule",
+    pinned: false,
+    authorName: "이OO",
+    publishedAt: "2026-08-12T01:00:00Z",
+    attachmentCount: 0,
+  },
 ];
 
 /** `PostSummary`에 상세 조회용 `body`/`attachments`만 덧붙인 것 — 목록과 동일 소스를 공유한다 */
@@ -180,6 +210,64 @@ const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "at
       ],
     },
     updatedAt: "2026-07-28T01:00:00Z",
+    attachments: [],
+  },
+  "21": {
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "이번 주 마을모임 장소가 변경되었습니다." }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "자세한 위치는 마을장에게 개별 안내드렸습니다." }],
+        },
+      ],
+    },
+    updatedAt: "2026-08-22T01:00:00Z",
+    attachments: [],
+  },
+  "20": {
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "8월 회비 납부 기간은 8월 18일부터 25일까지입니다." }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "납부 방법은 첨부된 안내문을 참고해 주세요." }],
+        },
+      ],
+    },
+    updatedAt: "2026-08-18T01:00:00Z",
+    attachments: [
+      {
+        id: "9",
+        filename: "회비납부안내.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 51200,
+      },
+    ],
+  },
+  "19": {
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "8월 리더 모임 일정을 공유드립니다." }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "참석이 어려운 리더는 미리 말씀해 주세요." }],
+        },
+      ],
+    },
+    updatedAt: "2026-08-12T01:00:00Z",
     attachments: [],
   },
 };
