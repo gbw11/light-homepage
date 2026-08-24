@@ -188,17 +188,106 @@ const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "at
     updatedAt: "2026-08-10T01:00:00Z",
     attachments: [],
   },
+  /**
+   * ★ 이 글은 **에디터가 만들 수 있는 모든 노드/마크를 한 번씩 쓴다**
+   *   (`POST_BODY_NODES`/`POST_BODY_MARKS`). 읽기 화면(`PostBodyView`)이
+   *   에디터를 따라오는지 눈으로 확인하는 기준 데이터다 — 툴바를 늘리면
+   *   여기에도 추가해서 렌더가 빠지는 걸 바로 보이게 한다.
+   */
   "16": {
     body: {
       type: "doc",
       content: [
         {
           type: "paragraph",
-          content: [{ type: "text", text: "지난주 여름 성경학교가 은혜롭게 마무리되었습니다." }],
+          content: [
+            { type: "text", text: "지난주 여름 성경학교가 " },
+            { type: "text", marks: [{ type: "bold" }], text: "은혜롭게" },
+            { type: "text", text: " 마무리되었습니다." },
+          ],
         },
         {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [{ type: "text", text: "함께한 순서" }],
+        },
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                { type: "paragraph", content: [{ type: "text", text: "말씀 나눔" }] },
+              ],
+            },
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    { type: "text", marks: [{ type: "italic" }], text: "찬양과 기도" },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "heading",
+          attrs: { level: 3 },
+          content: [{ type: "text", text: "다음 일정" }],
+        },
+        {
+          type: "orderedList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    { type: "text", marks: [{ type: "underline" }], text: "9월 마을모임" },
+                  ],
+                },
+              ],
+            },
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    { type: "text", marks: [{ type: "strike" }], text: "8월 수련회(종료)" },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "blockquote",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "함께해주신 모든 분들께 감사드립니다." }],
+            },
+          ],
+        },
+        { type: "horizontalRule" },
+        {
           type: "paragraph",
-          content: [{ type: "text", text: "함께해주신 모든 분들께 감사드립니다." }],
+          content: [
+            { type: "text", text: "사진은 " },
+            {
+              type: "text",
+              marks: [{ type: "link", attrs: { href: "/my/photos" } }],
+              text: "사진첩",
+            },
+            { type: "text", text: "에서 보실 수 있습니다." },
+            { type: "hardBreak" },
+            { type: "text", text: "문의는 임원에게 주세요." },
+          ],
         },
       ],
     },
