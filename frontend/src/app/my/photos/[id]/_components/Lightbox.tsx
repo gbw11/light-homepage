@@ -1,11 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { api } from "@/lib/api";
 import type { Photo } from "@/types/api";
 import { PhotoReportForm } from "./PhotoReportForm";
 
 /** 스와이프로 인정할 최소 가로 이동량(px) */
 const SWIPE_THRESHOLD = 50;
+
+/**
+ * SPEC_FUNCTIONAL §5.1 (FR-PHO-04) — 보관되는 최대 화질은 **장변 2560px**이고
+ * 촬영 원본은 보관하지 않는다. 스펙의 경계값이므로 여기서만 정의하고 문구를
+ * 여기서 만든다 — mock 자산은 git에 커밋된 데모 데이터라 1600px이지만, 그건
+ * 데모의 사정이고 회원에게 약속하는 경계는 실서비스 기준(2560px)이다.
+ * 그래서 이 사진의 실제 크기는 `Photo.width/height`로 따로 보여준다.
+ */
+const MAX_STORED_LONG_EDGE = 2560;
 
 type LightboxProps = {
   /** 현재까지 로드된 사진들 — 인덱스 기준은 이 배열이다 */
@@ -178,20 +188,42 @@ export function Lightbox({
           ✕
         </button>
 
-        {/*
-          WIREFRAME §13-4의 `⋮`. 지금 이 메뉴의 항목은 신고·요청 하나뿐이므로
-          중간 단계 메뉴를 두지 않고 바로 요청 패널을 연다 (`⬇ 원본 다운로드`는
-          별도 단위 — SPEC_API §6.7).
-        */}
-        <button
-          type="button"
-          onClick={() => setReportOpen(true)}
-          aria-label="사진 신고 · 삭제 요청"
-          aria-expanded={reportOpen}
-          className="flex h-11 w-11 items-center justify-center rounded-full text-2xl text-white hover:bg-white/10"
-        >
-          ⋮
-        </button>
+        <div className="flex items-center gap-1">
+          {/*
+            `⬇` 개별 다운로드 (WIREFRAME §13-4 — "회원의 가장 중요한 동작",
+            FR-PHO-04). `api.photos.downloadUrl`은 fetch가 아니라 URL 빌더다:
+            실서비스는 302 → presigned(`Content-Disposition: attachment`)이므로
+            **브라우저가 직접 이동**해야 한다. 그래서 앵커를 쓴다 — fetch로
+            받으면 리다이렉트를 따라가 파일 전체를 메모리에 담게 된다.
+
+            `download`에 파일명을 지정하지 않는다: 실서비스 응답은 R2(다른
+            오리진)로 넘어가므로 `download` 속성값이 무시되고 서버의
+            `Content-Disposition`이 파일명을 정한다. 여기서 확장자를 추측해
+            붙이면 mock에서만 맞고 실서비스에서는 틀린 이름이 된다.
+          */}
+          <a
+            href={api.photos.downloadUrl(photo.id)}
+            download
+            aria-label={`사진 ${index + 1} 다운로드`}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-2xl text-white hover:bg-white/10"
+          >
+            ⬇
+          </a>
+
+          {/*
+            WIREFRAME §13-4의 `⋮`. 지금 이 메뉴의 항목은 신고·요청 하나뿐이므로
+            중간 단계 메뉴를 두지 않고 바로 요청 패널을 연다.
+          */}
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            aria-label="사진 신고 · 삭제 요청"
+            aria-expanded={reportOpen}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-2xl text-white hover:bg-white/10"
+          >
+            ⋮
+          </button>
+        </div>
       </div>
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-2">
@@ -226,12 +258,19 @@ export function Lightbox({
         </button>
       </div>
 
-      <p
-        aria-live="polite"
-        className="shrink-0 py-5 text-center text-sm font-bold text-white"
-      >
-        {index + 1} / {total}
-      </p>
+      <div className="shrink-0 px-5 py-5 text-center">
+        <p aria-live="polite" className="text-sm font-bold text-white">
+          {index + 1} / {total}
+        </p>
+        {/*
+          FR-PHO-04 수용 기준 — "이 경계를 화면에 안내한다".
+          안내하지 않으면 회원은 인쇄·보정용 촬영 원본을 기대한다.
+        */}
+        <p className="mt-1 text-xs leading-relaxed text-white/60">
+          {photo.width} × {photo.height}px · 보관 화질은 장변 최대{" "}
+          {MAX_STORED_LONG_EDGE}px입니다 (촬영 원본은 보관하지 않습니다)
+        </p>
+      </div>
 
       {reportOpen && (
         <PhotoReportForm photoId={photo.id} onClose={() => setReportOpen(false)} />
