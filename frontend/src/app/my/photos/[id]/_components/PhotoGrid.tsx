@@ -120,7 +120,12 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
           <p className="text-[var(--color-gray-400)]">아직 등록된 사진이 없습니다.</p>
         ) : (
           <>
-            <ul className="grid grid-cols-3 gap-1 md:gap-2">
+            {/*
+              모바일 3열이 기준이다 (WIREFRAME §13-2). 데스크톱에서 3열을 유지하면
+              썸네일 한 칸이 370px가 넘어 640px 썸네일이 흐릿하게 늘어나고 한 화면에
+              6장밖에 안 들어간다 — 폭이 넓어지면 열을 늘린다 (COMPONENTS §5 반응형).
+            */}
+            <ul className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 md:gap-2 lg:grid-cols-6">
               {photos.map((photo, i) => (
                 <li key={photo.id}>
                   <button
