@@ -94,7 +94,7 @@
 | 데이터 페칭 | TanStack Query (회원 영역) / 빌드 시 fetch (공개 영역) |
 | 폼 | React Hook Form + Zod |
 | 폰트 | Pretendard (self-host) |
-| PWA | manifest + Serwist |
+| PWA | manifest + **자체 서비스워커** (Serwist 미사용 — 캐싱 정책이 보안 요구사항이라 라이브러리 설정 뒤에 두지 않았다. `DECISIONS.md` 2026-08-24) |
 | 배포 | Vercel |
 
 ### 2.2 백엔드
