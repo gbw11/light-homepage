@@ -111,6 +111,7 @@ export const api = process.env.NEXT_PUBLIC_USE_MOCK === '1' ? mockApi : realApi;
 ?mock=pending        403 PENDING_APPROVAL
 ?mock=storage        409 STORAGE_LIMIT
 ?mock=empty          빈 목록
+?mock=upload-fail    R2 전송 실패 (photoId 4의 배수만 — 부분 실패 재시도 확인용)
 ```
 
 - 새 엔드포인트는 `src/lib/api/types.ts`의 `Api` 타입에 **먼저 선언**합니다
