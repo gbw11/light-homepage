@@ -30,6 +30,90 @@
 
 ---
 
+## 2026-08-24 — 글 작성·수정·삭제 + 첨부 업로드 FE 구현 (M4 FR-DOC-01)
+
+**상태**: 계약 변경 1건 필요(`publishedAt` 타입) · 나머지는 `SPEC_API.md
+§3.4`·`§3.5`·`§4.1`·`§4.2` 그대로 구현
+
+### 그대로 구현한 것 (백엔드가 스펙대로 만들면 `NEXT_PUBLIC_USE_MOCK=0`으로 연동됨)
+
+| 엔드포인트 | FE 사용처 | 스펙 |
+|---|---|---|
+| `POST /api/posts` | `/admin/posts/new` 저장 (임시저장·게시) | `§3.4` |
+| `PUT /api/posts/{id}` | (계약만 — 수정 화면은 다음 단위) | `§3.5` |
+| `DELETE /api/posts/{id}` | (계약만) | `§3.5` |
+| `POST /api/attachments` | 첨부 업로드 | `§4.1` |
+| `GET /api/files/{id}` | 첨부 다운로드 (`/news/[slug]`·`/my/notices/[slug]`) | `§4.2` |
+
+### ⚠️ 1. `publishedAt`은 nullable이어야 한다 — 응답 스키마 확인 필요
+
+`§3.4`가 `publish: false` → `publishedAt = null`이라고 정해뒀는데,
+`§3.2`(목록)·`§3.3`(상세) 예시에는 `publishedAt`이 항상 문자열로 나온다.
+FE 타입을 `string | null`로 **정정했다**(`frontend/src/types/api.ts`).
+
+- 백엔드 확인 필요: 임시저장 글을 `§3.2`/`§3.3`으로 조회할 때
+  **필드를 생략하지 말고 `null`을 명시**해야 한다 (`§1.3` null 규칙)
+- 함께 정해야 할 것: **임시저장 글이 `GET /api/posts` 목록에 나오는가?**
+  스펙에 없다. FE는 지금 "나온다면 날짜 자리에 `임시저장`으로 표시"하도록
+  만들어뒀고, 작성자 본인/임원에게만 보이는 게 맞다고 본다 — PM·백엔드 확인 필요
+
+### 2. 첨부 업로드 — multipart 요청 형태
+
+- `multipart/form-data`, 필드명 `file`, 파일 1개당 요청 1개 (여러 파일은 FE가
+  순차 호출하며 파일별로 진행/실패를 표시한다)
+- FE는 `Content-Type` 헤더를 **직접 넣지 않는다** (boundary는 브라우저가 생성).
+  서버가 `Content-Type`을 엄격히 매칭한다면 boundary 포함 값을 받아들여야 한다
+- 401 후 리프레시 재시도 시 FE가 **FormData를 새로 만들어 재전송**한다 —
+  같은 파일이 두 번 도착할 수 있으니 서버는 이를 별개 업로드로 처리하면 된다
+  (미연결 첨부는 24시간 후 정리되므로 문제되지 않는다)
+- 응답은 `§4.1`대로 `{ id, filename, sizeBytes }`만 쓴다 — `contentType`은
+  기대하지 않는다 (상세 조회 `§3.3`의 첨부에는 있다)
+- **용량·확장자 제한 값이 스펙에 없다.** mock은 20MB로 막아뒀다. 서버 한도를
+  알려주면 FE 안내 문구를 맞춘다. 초과는 `STORAGE_LIMIT`(409)로 가정했다
+
+### 3. 첨부 다운로드 (`§4.2`) — 앵커 이동으로 호출된다
+
+`§6.7`·`§6.8`과 같은 구조다. FE는 fetch가 아니라 `<a href>`로 이동한다
+(302 → presigned를 따라가야 하므로).
+
+- ⚠️ **top-level GET에서 쿠키 인증이 동작해야 한다**
+- `Content-Disposition: attachment; filename=…` 필요 — cross-origin
+  리다이렉트라 `<a download>` 값은 무시된다 (위 2026-08-24 #5와 같은 이유)
+- 실패 시 브라우저에 날 응답이 그대로 노출된다 — 더 친절한 처리를 원하면
+  방식을 별도로 정해야 한다
+
+### 4. 인가 — `ARCHITECTURE.md §5.3` 인가 매트릭스에 추가될 행
+
+| 경로 | 메서드 | 최소 권한 |
+|---|---|---|
+| `/api/posts` | POST | `L` |
+| `/api/posts/{id}` | PUT · DELETE | `L` |
+| `/api/attachments` | POST | `L` |
+| `/api/files/{id}` | GET | **게시물 권한 상속** (로그아웃 → `UNAUTHORIZED`) |
+
+FE는 `RequireLeader`로 화면 진입을 막지만 **UI 편의일 뿐이다.** 특히
+`category`는 폼에서 오는 값이므로, `§3.1` 경고대로 **서비스 계층 단일 관문에서
+작성 권한을 검사**해야 한다 (공개 분류를 골라 예산안을 공개하는 실수/우회 방지).
+
+### 5. 본문 `body` — FE가 실제로 만들고 표시하는 노드 집합
+
+`§3.3`은 "리치텍스트 JSON"까지만 정해뒀다. FE는 Tiptap(ProseMirror) JSON을
+쓰며, **에디터가 만드는 것과 읽기 화면이 렌더하는 것이 정확히 같다**:
+
+- 블록: `paragraph` `heading`(level 2·3) `bulletList` `orderedList` `listItem`
+  `blockquote` `horizontalRule` `hardBreak`
+- 마크: `bold` `italic` `underline` `strike` `link`(`href`)
+- 코드 블록·이미지는 **의도적으로 제외** (본문 이미지용 계약이 없다)
+
+서버는 이 JSON을 그대로 저장/반환하면 된다. 다만 **`href`는 서버에서도
+검증하는 게 안전하다** (`javascript:` 등) — FE 렌더러는 허용 스킴만 통과시킨다.
+
+- **미확정 사항**: 임시저장 글의 목록 노출 여부(#1), 첨부 용량·확장자 한도(#2),
+  `body` JSON에 대한 서버측 스키마 검증 범위(#5)
+- **관련 PR**: `feat/fe-rich-editor` 브랜치
+
+---
+
 ## 2026-08-24 — 주보·다운로드 FE 구현 — 응답 규약 확인 7건
 
 **상태**: 계약 변경 없음 (`SPEC_API.md §5`·`§6.7`·`§6.8` 그대로 구현). 다만 화면이
