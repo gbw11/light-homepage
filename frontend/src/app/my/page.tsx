@@ -27,6 +27,10 @@ function villageLabel(village: Village): string {
  * docs/WORKPLAN.md §5.1). M4에서 두 타일 모두 활성화됐다 — 회의록은 문서
  * 게시판(`/my/documents` — 회의록·예산안 탭), 콘텐츠 작성은 글 작성 화면
  * (`/admin/posts/new` — WIREFRAME.md §16).
+ *
+ * 관리 홈(`/admin` — WIREFRAME.md §15)도 M4에서 생겨 타일을 추가했다. 이
+ * 타일이 임원 이상에게만 보이는 것과 별개로, 관리 홈 안의 회원 관리는
+ * **전도사 전용**이다 (SPEC_API §8 — 항목마다 권한이 다르다).
  */
 export default function MyHomePage() {
   return (
@@ -69,6 +73,12 @@ function MyHomeContent() {
             <div className="grid grid-cols-2 gap-4">
               <HomeTile icon="✏️" label="콘텐츠 작성" href="/admin/posts/new" />
               <HomeTile icon="📋" label="회의록" href="/my/documents" />
+              <HomeTile
+                icon="🛠"
+                label="관리 홈"
+                href="/admin"
+                className="col-span-2"
+              />
             </div>
           </div>
         )}
