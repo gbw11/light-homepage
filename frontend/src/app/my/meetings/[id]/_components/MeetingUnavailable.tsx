@@ -39,9 +39,14 @@ export function MeetingUnavailable({
         {scheduled ? "🕓" : "⏰"}
       </p>
 
-      <h2 className="mt-6 text-xl font-bold md:text-2xl">
+      {/*
+        이 화면이 이 페이지의 전부이므로 `h1`이다 — 페이지마다 h1이 정확히
+        하나 있어야 한다 (SPEC_NONFUNCTIONAL.md §6, `Section`의 `titleAs`와
+        같은 이유). 뷰어 쪽 `h1`은 자료 제목이다.
+      */}
+      <h1 className="mt-6 text-xl font-bold md:text-2xl">
         {scheduled ? "아직 열람 기간이 아닙니다" : "열람 기간이 종료되었습니다"}
-      </h2>
+      </h1>
 
       {title && <p className="mt-2 font-bold">{title}</p>}
 

@@ -127,7 +127,7 @@ function MeetingCard({ item, isLeader }: { item: MeetingSummary; isLeader: boole
         )}
       </p>
 
-      <h3 className="mt-2 text-lg font-bold">{item.title}</h3>
+      <h2 className="mt-2 text-lg font-bold">{item.title}</h2>
 
       <p className="mt-1 text-sm text-[var(--color-gray-400)]">
         {formatMeetingDate(item.meetingDate)} · {item.pageCount}페이지
