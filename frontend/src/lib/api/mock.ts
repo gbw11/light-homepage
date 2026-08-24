@@ -1,6 +1,10 @@
 import type {
+  AlbumInput,
+  AlbumSummary,
   AuthUser,
   CompleteProfileInput,
+  Cursor,
+  Photo,
   LoginInput,
   LoginResult,
   NewcomerSubmission,
@@ -273,6 +277,69 @@ const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "at
   },
 };
 
+// ── 사진첩 mock (SPEC_API §6) ──────────────────────────────
+/**
+ * 실제 수련회 사진 47장을 `public/photos/retreat-2026/`에 최적화해 넣어뒀다
+ * (원본 277MB → 7.3MB, WebP, **EXIF 제거**).
+ *
+ * ⚠️ 실서비스에서 이 URL은 **R2 presigned URL**이 된다 (SPEC_API §6.4).
+ *    mock은 정적 경로를 쓰므로 만료·서명이 없다 — 통합 시 URL 형태가 바뀌는 것을
+ *    전제로 화면을 만든다 (경로를 조립하지 말고 응답의 URL을 그대로 쓴다).
+ *
+ * 세로/가로가 섞여 있어야 그리드·라이트박스가 실제 조건에서 검증된다.
+ * 아래 크기는 manifest.json의 실측값이다.
+ */
+const RETREAT_PHOTO_COUNT = 47;
+/** 16:9 전경 사진 슬러그 (p036~p047) — 나머지는 4:3 */
+const WIDE_SLUGS = new Set(
+  Array.from({ length: 12 }, (_, i) => `p${String(i + 36).padStart(3, "0")}`),
+);
+/** 유일한 세로 사진 */
+const PORTRAIT_SLUG = "p032";
+
+function retreatPhoto(index: number): Photo {
+  const slug = `p${String(index + 1).padStart(3, "0")}`;
+  const [width, height] =
+    slug === PORTRAIT_SLUG ? [1200, 1600] : WIDE_SLUGS.has(slug) ? [1600, 900] : [1600, 1200];
+
+  // 수련회 기간(2026-08-19) 안에서 순서대로 촬영된 것처럼 시각을 흩뿌린다
+  const takenAt = new Date(Date.UTC(2026, 7, 19, 8, 0, 0) + index * 7 * 60_000).toISOString();
+
+  return {
+    id: `${901 + index}`,
+    thumbUrl: `/photos/retreat-2026/thumb/${slug}.webp`,
+    viewUrl: `/photos/retreat-2026/view/${slug}.webp`,
+    width,
+    height,
+    takenAt,
+  };
+}
+
+const RETREAT_PHOTOS: Photo[] = Array.from({ length: RETREAT_PHOTO_COUNT }, (_, i) =>
+  retreatPhoto(i),
+);
+
+const ALBUMS: AlbumSummary[] = [
+  {
+    id: "5",
+    title: "2026 여름 수련회",
+    eventDate: "2026-08-19",
+    photoCount: RETREAT_PHOTOS.length,
+    coverThumbUrl: RETREAT_PHOTOS[0].thumbUrl,
+  },
+  {
+    id: "4",
+    title: "2026 전도축제",
+    eventDate: "2026-05-18",
+    photoCount: 0,
+    // 사진이 없는 앨범 — 커버가 null인 상태를 화면이 처리해야 한다
+    coverThumbUrl: null,
+  },
+];
+
+/** 이번 세션 중 만든 앨범 (새로고침하면 사라진다) */
+const dynamicAlbums: AlbumSummary[] = [];
+
 // ── 인증 mock 세션 ────────────────────────────────────────
 // 실제 백엔드는 httpOnly 쿠키로 세션을 유지한다 (SPEC_API §1.4). mock에는
 // 서버가 없으므로 브라우저 localStorage로 흉내낸다 — 새로고침해도 로그인
@@ -408,6 +475,94 @@ export const mockApi: Api = {
       }
 
       return { id: `${Date.now()}` };
+    },
+  },
+  albums: {
+    async list({ page = 0, size = 20 } = {}): Promise<Page<AlbumSummary>> {
+      await delay();
+      throwIfScenario();
+      requireSession();
+
+      const all = scenario() === "empty" ? [] : [...dynamicAlbums, ...ALBUMS];
+      return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
+    },
+
+    async create(input: AlbumInput): Promise<{ id: string }> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+
+      // SPEC_API §6.2 — 권한 `L`(임원) 이상. 서버가 실제로 막지만 mock도 흉내낸다
+      if (user.role !== "LEADER" && user.role !== "PASTOR") {
+        throw new ApiError({
+          code: "FORBIDDEN",
+          message: "앨범 생성 권한이 없습니다.",
+          status: 403,
+        });
+      }
+      if (!input.title.trim()) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "앨범 제목을 입력해주세요.",
+          status: 400,
+          field: "title",
+        });
+      }
+
+      const id = `${Date.now()}`;
+      dynamicAlbums.unshift({
+        id,
+        title: input.title.trim(),
+        eventDate: input.eventDate,
+        photoCount: 0,
+        coverThumbUrl: null,
+      });
+      return { id };
+    },
+
+    async photos(
+      albumId: string,
+      { cursor, size = 20 } = {},
+    ): Promise<Cursor<Photo>> {
+      await delay();
+      throwIfScenario();
+      requireSession();
+
+      const known = [...dynamicAlbums, ...ALBUMS].find((a) => a.id === albumId);
+      if (!known) {
+        throw new ApiError({ code: "NOT_FOUND", message: "앨범을 찾을 수 없습니다.", status: 404 });
+      }
+
+      // 사진이 있는 앨범은 5번뿐 — 나머지는 빈 목록(화면이 처리해야 하는 상태)
+      const source = albumId === "5" && scenario() !== "empty" ? RETREAT_PHOTOS : [];
+
+      // 커서는 불투명한 문자열이어야 한다 (SPEC_API §1.6). 오프셋을 감싸 흉내낸다
+      const offset = cursor ? Number(atob(cursor)) || 0 : 0;
+      const items = source.slice(offset, offset + size);
+      const next = offset + items.length;
+      const hasNext = next < source.length;
+
+      return { items, nextCursor: hasNext ? btoa(String(next)) : null, hasNext };
+    },
+  },
+  photos: {
+    async report(photoId: string, input: { reason: string }): Promise<void> {
+      await delay();
+      throwIfScenario();
+      requireSession();
+
+      if (!input.reason.trim()) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "요청 내용을 입력해주세요.",
+          status: 400,
+          field: "reason",
+        });
+      }
+      if (!RETREAT_PHOTOS.some((p) => p.id === photoId)) {
+        throw new ApiError({ code: "NOT_FOUND", message: "사진을 찾을 수 없습니다.", status: 404 });
+      }
+      // 실제로는 임원에게 알림이 간다 (SPEC_API §6.10)
     },
   },
   auth: {
