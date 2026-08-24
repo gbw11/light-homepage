@@ -4,6 +4,7 @@ import { RequireMember } from "@/components/auth/RequireMember";
 import { Section } from "@/components/ui/Section";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { ProfileInfo } from "./_components/ProfileInfo";
+import { PasswordChangeForm } from "./_components/PasswordChangeForm";
 
 /** WIREFRAME.md §14 우측 — 내 정보 `/my/profile` */
 export default function ProfilePage() {
@@ -26,6 +27,10 @@ function ProfileContent() {
       <Section title="내 정보">
         <div className="mx-auto w-full max-w-md space-y-10">
           <ProfileInfo user={user} onUpdated={refetch} />
+
+          <hr className="border-[var(--color-navy-100)]" />
+
+          <PasswordChangeForm />
         </div>
       </Section>
     </main>
