@@ -143,6 +143,36 @@ export type CompleteProfileInput = {
   agreed: boolean;
 };
 
+// ── 주보 (SPEC_API §5) ─────────────────────────────────────
+/**
+ * 주보 한 페이지.
+ *
+ * ⚠️ 사진첩과 **로딩 전략이 반대다** — 주보는 글자가 작아서 썸네일이 아니라
+ *    큰 이미지(장변 2048px)를 바로 제공한다 (SPEC_API §5.1, FR-BUL-03).
+ */
+export type BulletinPage = {
+  pageNo: number;
+  url: string;
+  width: number;
+  height: number;
+};
+
+/** 주보 상세 (SPEC_API §5.1 · §5.3) */
+export type Bulletin = {
+  id: string;
+  /** LocalDate — `YYYY-MM-DD` (주일 날짜) */
+  serviceDate: string;
+  pages: BulletinPage[];
+};
+
+/** 지난 주보 목록 항목 (SPEC_API §5.2) — 여기서는 썸네일을 쓴다 */
+export type BulletinSummary = {
+  id: string;
+  serviceDate: string;
+  pageCount: number;
+  thumbUrl: string;
+};
+
 // ── 사진첩 (SPEC_API §6) ───────────────────────────────────
 /** 앨범 목록 항목 (SPEC_API §6.1) */
 export type AlbumSummary = {
