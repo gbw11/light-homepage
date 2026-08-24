@@ -5,7 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 
-function formatDate(iso: string): string {
+/** 임시저장(`publish: false`) 글은 `publishedAt`이 null이다 (SPEC_API §3.4) */
+function formatDate(iso: string | null): string {
+  if (!iso) return "임시저장";
   const d = new Date(iso);
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
