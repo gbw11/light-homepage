@@ -131,7 +131,7 @@ function RegisterFormInner() {
         </label>
         <input id="name" className={inputClass} {...register("name")} />
         {errors.name && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.name.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.name.message}</p>
         )}
       </div>
 
@@ -147,7 +147,7 @@ function RegisterFormInner() {
           {...register("phone")}
         />
         {errors.phone && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.phone.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.phone.message}</p>
         )}
       </div>
 
@@ -218,12 +218,12 @@ function RegisterFormInner() {
           </span>
         </label>
         {errors.agreed && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.agreed.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.agreed.message}</p>
         )}
       </div>
 
       {errors.root && (
-        <p className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
+        <p role="alert" className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
       )}
 
       <Button type="submit" className="w-full" disabled={!agreed || mutation.isPending}>

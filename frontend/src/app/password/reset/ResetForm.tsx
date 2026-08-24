@@ -131,7 +131,7 @@ export function ResetForm() {
           {...register("password")}
         />
         {errors.password && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.password.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.password.message}</p>
         )}
       </div>
 
@@ -147,14 +147,14 @@ export function ResetForm() {
           {...register("passwordConfirm")}
         />
         {errors.passwordConfirm && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">
             {errors.passwordConfirm.message}
           </p>
         )}
       </div>
 
       {errors.root && (
-        <p className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
+        <p role="alert" className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
       )}
 
       <Button type="submit" className="w-full" disabled={mutation.isPending}>

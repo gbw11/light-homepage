@@ -130,7 +130,7 @@ export function ProfileInfo({ user, onUpdated }: ProfileInfoProps) {
               </button>
             </div>
           )}
-          {error && <p className="text-sm text-[var(--color-red-500)]">{error}</p>}
+          {error && <p role="alert" className="text-sm text-[var(--color-red-500)]">{error}</p>}
         </dd>
       </div>
 

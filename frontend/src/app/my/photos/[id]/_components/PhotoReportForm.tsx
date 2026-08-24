@@ -112,10 +112,10 @@ export function PhotoReportForm({
             }}
           />
           {errors.reason && (
-            <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.reason.message}</p>
+            <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.reason.message}</p>
           )}
           {errors.root && (
-            <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
+            <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
           )}
 
           <div className="mt-4 flex gap-2">

@@ -125,7 +125,7 @@ export function CompleteProfileForm() {
         </label>
         <input id="name" className={inputClass} {...register("name")} />
         {errors.name && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.name.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.name.message}</p>
         )}
       </div>
 
@@ -141,7 +141,7 @@ export function CompleteProfileForm() {
           {...register("phone")}
         />
         {errors.phone && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.phone.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.phone.message}</p>
         )}
       </div>
 
@@ -160,7 +160,7 @@ export function CompleteProfileForm() {
           ))}
         </select>
         {errors.village && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.village.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.village.message}</p>
         )}
       </div>
 
@@ -170,12 +170,12 @@ export function CompleteProfileForm() {
           <span>개인정보 수집·이용 동의 *</span>
         </label>
         {errors.agreed && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.agreed.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.agreed.message}</p>
         )}
       </div>
 
       {errors.root && (
-        <p className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
+        <p role="alert" className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
       )}
 
       <Button type="submit" className="w-full" disabled={mutation.isPending || submitted}>

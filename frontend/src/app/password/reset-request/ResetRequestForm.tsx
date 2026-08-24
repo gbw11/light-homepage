@@ -82,12 +82,12 @@ export function ResetRequestForm() {
           {...register("email")}
         />
         {errors.email && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.email.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.email.message}</p>
         )}
       </div>
 
       {errors.root && (
-        <p className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
+        <p role="alert" className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
       )}
 
       <Button type="submit" className="w-full" disabled={mutation.isPending}>
