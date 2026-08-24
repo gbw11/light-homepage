@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
 
 /**
  * ⚠️ 폰트: Pretendard를 `public/fonts/`에 self-host하고 `next/font/local`로
@@ -70,6 +71,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
         <QueryProvider>
           <AuthProvider>
+            <ServiceWorkerRegistrar />
             <Header />
             {children}
             <Footer />
