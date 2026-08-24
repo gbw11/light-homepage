@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Photo } from "@/types/api";
+import { PhotoReportForm } from "./PhotoReportForm";
 
 /** 스와이프로 인정할 최소 가로 이동량(px) */
 const SWIPE_THRESHOLD = 50;
@@ -46,18 +47,25 @@ export function Lightbox({
 }: LightboxProps) {
   const photo = photos[index];
   const total = totalCount ?? photos.length;
+  /** `⋮` → 신고·요청 패널 (WIREFRAME §13-4, SPEC_API §6.10) */
+  const [reportOpen, setReportOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const hasPrev = index > 0;
   const hasNext = index < photos.length - 1;
 
+  /** 사진을 넘길 때 열려 있던 신고 패널은 닫는다 (다른 사진에 요청이 붙지 않게) */
   const goPrev = useCallback(() => {
-    if (index > 0) onIndexChange(index - 1);
+    if (index === 0) return;
+    setReportOpen(false);
+    onIndexChange(index - 1);
   }, [index, onIndexChange]);
 
   const goNext = useCallback(() => {
-    if (index < photos.length - 1) onIndexChange(index + 1);
+    if (index >= photos.length - 1) return;
+    setReportOpen(false);
+    onIndexChange(index + 1);
   }, [index, photos.length, onIndexChange]);
 
   /** 끝에 가까워지면 다음 페이지를 미리 받아둔다 (그리드 sentinel과 같은 역할) */
@@ -86,6 +94,9 @@ export function Lightbox({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      // 신고 패널이 열려 있으면 사진 이동·닫기 키는 패널이 우선한다
+      if (reportOpen && e.key !== "Tab") return;
+
       if (e.key === "Escape") {
         e.preventDefault();
         onClose();
@@ -123,7 +134,7 @@ export function Lightbox({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose, goPrev, goNext]);
+  }, [onClose, goPrev, goNext, reportOpen]);
 
   if (!photo) return null;
 
@@ -137,7 +148,7 @@ export function Lightbox({
       className="fixed inset-0 z-50 flex flex-col bg-black/95 outline-none"
       onTouchStart={(e) => {
         // 손가락 2개 이상 = 핀치 → 브라우저 기본 동작에 맡기고 스와이프 판정을 포기한다
-        if (e.touches.length !== 1) {
+        if (reportOpen || e.touches.length !== 1) {
           touchStart.current = null;
           return;
         }
@@ -165,6 +176,21 @@ export function Lightbox({
           className="flex h-11 w-11 items-center justify-center rounded-full text-2xl text-white hover:bg-white/10"
         >
           ✕
+        </button>
+
+        {/*
+          WIREFRAME §13-4의 `⋮`. 지금 이 메뉴의 항목은 신고·요청 하나뿐이므로
+          중간 단계 메뉴를 두지 않고 바로 요청 패널을 연다 (`⬇ 원본 다운로드`는
+          별도 단위 — SPEC_API §6.7).
+        */}
+        <button
+          type="button"
+          onClick={() => setReportOpen(true)}
+          aria-label="사진 신고 · 삭제 요청"
+          aria-expanded={reportOpen}
+          className="flex h-11 w-11 items-center justify-center rounded-full text-2xl text-white hover:bg-white/10"
+        >
+          ⋮
         </button>
       </div>
 
@@ -206,6 +232,10 @@ export function Lightbox({
       >
         {index + 1} / {total}
       </p>
+
+      {reportOpen && (
+        <PhotoReportForm photoId={photo.id} onClose={() => setReportOpen(false)} />
+      )}
     </div>
   );
 }
