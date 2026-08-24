@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, isApiError } from "@/lib/api";
+import { api, isApiError, onSessionExpired } from "@/lib/api";
 import type { AuthUser } from "@/types/api";
 
 export const AUTH_ME_QUERY_KEY = ["auth", "me"] as const;
@@ -41,6 +41,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     staleTime: 60_000,
   });
+
+  /**
+   * API 계층이 "리프레시까지 실패했다"고 알리면 세션 상태를 비운다.
+   * 그러면 `RequireMember`가 이미 갖고 있는 로직이 `/login`으로 보낸다
+   * (SPEC_API §12.2의 "실패 → 로그인 화면으로 이동").
+   */
+  useEffect(() => onSessionExpired(() => {
+    queryClient.setQueryData(AUTH_ME_QUERY_KEY, null);
+  }), [queryClient]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
