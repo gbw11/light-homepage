@@ -2,6 +2,8 @@ import type {
   AlbumInput,
   AlbumSummary,
   AuthUser,
+  Bulletin,
+  BulletinSummary,
   CompleteProfileInput,
   Cursor,
   Photo,
@@ -340,6 +342,34 @@ const ALBUMS: AlbumSummary[] = [
 /** 이번 세션 중 만든 앨범 (새로고침하면 사라진다) */
 const dynamicAlbums: AlbumSummary[] = [];
 
+// ── 주보 mock (SPEC_API §5) ────────────────────────────────
+/**
+ * ⚠️ **실제 주보 이미지가 아니다.** `public/bulletins/`의 이미지는 "PLACEHOLDER"
+ *    문구가 찍힌 생성물이다. 남의 주보를 가져다 쓰지 않았고, 실제 주보처럼
+ *    보이는 가짜를 만들지도 않았다 — 실물이 준비되면 교체한다.
+ *
+ * 크기는 스펙대로 1448×2048(장변 2048px)이다. 주보는 글자가 작아 큰 이미지를
+ * 바로 로드해야 하므로(FR-BUL-03), 뷰어가 실제 크기에서 검증되어야 한다.
+ */
+const BULLETIN_DATES: { id: string; date: string; pages: number }[] = [
+  { id: "12", date: "2026-08-24", pages: 2 },
+  { id: "11", date: "2026-08-17", pages: 2 },
+  { id: "10", date: "2026-08-10", pages: 1 },
+];
+
+function bulletinOf(entry: (typeof BULLETIN_DATES)[number]): Bulletin {
+  return {
+    id: entry.id,
+    serviceDate: entry.date,
+    pages: Array.from({ length: entry.pages }, (_, i) => ({
+      pageNo: i + 1,
+      url: `/bulletins/${entry.date}-p${i + 1}.webp`,
+      width: 1448,
+      height: 2048,
+    })),
+  };
+}
+
 // ── 인증 mock 세션 ────────────────────────────────────────
 // 실제 백엔드는 httpOnly 쿠키로 세션을 유지한다 (SPEC_API §1.4). mock에는
 // 서버가 없으므로 브라우저 localStorage로 흉내낸다 — 새로고침해도 로그인
@@ -544,6 +574,13 @@ export const mockApi: Api = {
 
       return { items, nextCursor: hasNext ? btoa(String(next)) : null, hasNext };
     },
+
+    downloadUrl(albumId: string, photoIds: string[]): string {
+      // 실제로는 ZIP 스트리밍 엔드포인트다. mock은 ZIP을 만들 수 없으므로
+      // `capabilities.zipDownload = false`로 화면이 안내를 띄우게 한다.
+      const ids = photoIds.join(",");
+      return `/api/albums/${encodeURIComponent(albumId)}/download?ids=${ids}`;
+    },
   },
   photos: {
     async report(photoId: string, input: { reason: string }): Promise<void> {
@@ -564,6 +601,60 @@ export const mockApi: Api = {
       }
       // 실제로는 임원에게 알림이 간다 (SPEC_API §6.10)
     },
+
+    downloadUrl(photoId: string): string {
+      // 실제 서버는 302 → presigned URL(attachment)로 보낸다.
+      // mock은 정적 view 이미지를 그대로 가리킨다 — 브라우저가 저장하면 된다.
+      const index = RETREAT_PHOTOS.findIndex((p) => p.id === photoId);
+      return index >= 0
+        ? RETREAT_PHOTOS[index].viewUrl
+        : `/api/photos/${encodeURIComponent(photoId)}/download`;
+    },
+  },
+  bulletins: {
+    async latest(): Promise<Bulletin | null> {
+      await delay();
+      throwIfScenario();
+      requireSession();
+
+      // 주보가 아직 없는 상태도 화면이 처리해야 한다 (SPEC_API §5.1: data null)
+      if (scenario() === "empty") return null;
+      return bulletinOf(BULLETIN_DATES[0]);
+    },
+
+    async list({ page = 0, size = 20 } = {}): Promise<Page<BulletinSummary>> {
+      await delay();
+      throwIfScenario();
+      requireSession();
+
+      const all: BulletinSummary[] =
+        scenario() === "empty"
+          ? []
+          : BULLETIN_DATES.map((b) => ({
+              id: b.id,
+              serviceDate: b.date,
+              pageCount: b.pages,
+              thumbUrl: `/bulletins/${b.date}-thumb.webp`,
+            }));
+
+      return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
+    },
+
+    async get(id: string): Promise<Bulletin> {
+      await delay();
+      throwIfScenario();
+      requireSession();
+
+      const entry = BULLETIN_DATES.find((b) => b.id === id);
+      if (!entry) {
+        throw new ApiError({ code: "NOT_FOUND", message: "주보를 찾을 수 없습니다.", status: 404 });
+      }
+      return bulletinOf(entry);
+    },
+  },
+  capabilities: {
+    // mock은 ZIP을 만들 수 없다 — 화면이 "다운로드했습니다"라고 속이지 않도록
+    zipDownload: false,
   },
   auth: {
     async signup(input: SignupInput): Promise<{ id: string; role: AuthUser["role"] }> {

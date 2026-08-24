@@ -164,6 +164,9 @@ export const realApi: Api = {
       request("/albums", { method: "POST", body: JSON.stringify(input) }),
     photos: (albumId, { cursor, size = 20 } = {}) =>
       request(`/albums/${encodeURIComponent(albumId)}/photos`, { query: { cursor, size } }),
+    // ZIP 스트리밍 — fetch가 아니라 브라우저가 직접 이동한다 (SPEC_API §6.8)
+    downloadUrl: (albumId, photoIds) =>
+      `/api/albums/${encodeURIComponent(albumId)}/download?ids=${photoIds.join(",")}`,
   },
   photos: {
     report: (photoId, input) =>
@@ -171,6 +174,16 @@ export const realApi: Api = {
         method: "POST",
         body: JSON.stringify(input),
       }),
+    // 302 → presigned(attachment) — 브라우저가 따라가야 한다 (SPEC_API §6.7)
+    downloadUrl: (photoId) => `/api/photos/${encodeURIComponent(photoId)}/download`,
+  },
+  bulletins: {
+    latest: () => request("/bulletins/latest"),
+    list: ({ page = 0, size = 20 } = {}) => request("/bulletins", { query: { page, size } }),
+    get: (id) => request(`/bulletins/${encodeURIComponent(id)}`),
+  },
+  capabilities: {
+    zipDownload: true,
   },
   auth: {
     signup: (input: SignupInput) =>
