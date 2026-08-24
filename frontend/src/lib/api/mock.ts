@@ -1063,6 +1063,30 @@ export const mockApi: Api = {
       return { items, nextCursor: hasNext ? btoa(String(next)) : null, hasNext };
     },
 
+    async remove(albumId: string): Promise<void> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+
+      // SPEC_API §6.3 — 권한 `L`. 되돌릴 수 없는 동작이라 서버가 반드시 막는다
+      if (user.role !== "LEADER" && user.role !== "PASTOR") {
+        throw new ApiError({
+          code: "FORBIDDEN",
+          message: "앨범을 삭제할 권한이 없습니다.",
+          status: 403,
+        });
+      }
+      const idx = dynamicAlbums.findIndex((a) => a.id === albumId);
+      if (idx >= 0) {
+        dynamicAlbums.splice(idx, 1);
+        return;
+      }
+      if (!ALBUMS.some((a) => a.id === albumId)) {
+        throw new ApiError({ code: "NOT_FOUND", message: "앨범을 찾을 수 없습니다.", status: 404 });
+      }
+      // 고정 mock 앨범은 실제로 지우지 않는다 (새로고침 시 되살아나 혼란을 준다)
+    },
+
     downloadUrl(albumId: string, photoIds: string[]): string {
       // 실제로는 ZIP 스트리밍 엔드포인트다. mock은 ZIP을 만들 수 없으므로
       // `capabilities.zipDownload = false`로 화면이 안내를 띄우게 한다.
@@ -1088,6 +1112,26 @@ export const mockApi: Api = {
         throw new ApiError({ code: "NOT_FOUND", message: "사진을 찾을 수 없습니다.", status: 404 });
       }
       // 실제로는 임원에게 알림이 간다 (SPEC_API §6.10)
+    },
+
+    async remove(photoId: string): Promise<void> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+
+      // SPEC_API §6.9 — 권한 `L`
+      if (user.role !== "LEADER" && user.role !== "PASTOR") {
+        throw new ApiError({
+          code: "FORBIDDEN",
+          message: "사진을 삭제할 권한이 없습니다.",
+          status: 403,
+        });
+      }
+      if (!RETREAT_PHOTOS.some((p) => p.id === photoId)) {
+        throw new ApiError({ code: "NOT_FOUND", message: "사진을 찾을 수 없습니다.", status: 404 });
+      }
+      // mock은 정적 자산이라 실제로 지우지 않는다 — 화면은 성공으로 처리하고
+      // 목록을 다시 불러오면 사진이 그대로 있다. 통합 시 실제 삭제로 검증해야 한다
     },
 
     downloadUrl(photoId: string): string {
@@ -1301,6 +1345,18 @@ export const mockApi: Api = {
             }));
 
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
+    },
+
+    downloadUrl(id: string, pageNo: number): string {
+      /*
+       * 실제 서버는 302 → presigned(attachment)로 보낸다. mock은 정적
+       * 이미지를 그대로 가리켜서 브라우저가 저장할 수 있게 한다 — 파일명은
+       * 실서비스에서 서버의 Content-Disposition이 정한다.
+       */
+      const entry = BULLETIN_DATES.find((b) => b.id === id);
+      return entry
+        ? `/bulletins/${entry.date}-p${pageNo}.webp`
+        : `/api/bulletins/${encodeURIComponent(id)}/pages/${pageNo}/download`;
     },
 
     async get(id: string): Promise<Bulletin> {
