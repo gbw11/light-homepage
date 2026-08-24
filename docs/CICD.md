@@ -255,6 +255,18 @@ GitHub 브랜치 보호에서 **CI 상태 체크를 필수(required status check
 
 ## 5. CD — 배포 자동화
 
+### 5.0 ⚠️ 첫 공개 배포 전 필수 확인
+
+| # | 항목 | 왜 |
+|---|---|---|
+| 1 | **`frontend/public/photos/`·`public/bulletins/` mock 자산을 운영 번들에서 제외** | `public/`은 **인증 없이 정적 서빙**된다. 얼굴이 식별되는 실제 인물 사진 47장이 `/photos/retreat-2026/...`로 누구나 접근 가능해진다. `robots.txt`·`X-Robots-Tag`는 색인만 막고 직접 접근은 막지 못한다. 실서비스는 R2 presigned URL을 쓰므로 이 자산이 운영에 필요하지 않다 — `docs/DECISIONS.md` 2026-08-24 항목의 3가지 해결안 중 택일 |
+| 2 | **Vercel에 `API_ORIGIN` 환경변수 설정** | 없으면 서버 렌더링 시 백엔드 호출이 실패해 공개 공지가 초기 HTML에 안 들어간다 → 검색 유입 손실 (M1의 핵심 가치). ⚠️ `NEXT_PUBLIC_` 접두사를 붙이지 않는다 (NFR-SEC-22) |
+| 3 | **`NEXT_PUBLIC_USE_MOCK=0` 확인** | mock으로 배포되면 가짜 데이터가 그대로 공개된다 |
+| 4 | **`NEXT_PUBLIC_SITE_URL`을 실제 도메인으로** | OG 태그·sitemap의 절대 URL이 localhost로 나간다 |
+
+> 1번은 **개인정보 문제**라 다른 항목보다 우선순위가 높다. 배포 후에 발견하면
+> 이미 크롤링·캐싱됐을 수 있다.
+
 ### 5.1 배포 대상
 
 | 대상 | 트리거 | 방식 |
