@@ -30,6 +30,27 @@
 
 ---
 
+## 2026-08-24 — `/my/profile` 내 정보 화면 — 백엔드가 그대로 구현하면 되는 계약
+
+**상태**: 계약 변경 없음. 아래 3개는 이미 `docs/SPEC_API.md`에 있는 계약과
+동일하게 프론트 mock(`frontend/src/lib/api/mock.ts`)을 구현해뒀다. 백엔드가
+이 그대로 만들면 `NEXT_PUBLIC_USE_MOCK=0`으로 바꾸는 것만으로 연동된다.
+
+| 엔드포인트 | 프론트 사용처 | 스펙 |
+|---|---|---|
+| `PATCH /api/auth/me` | `/my/profile` 연락처 인라인 수정 | `SPEC_API.md §2.11` |
+| `POST /api/auth/password/change` | `/my/profile` 비밀번호 변경 | `SPEC_API.md §2.12` |
+| `DELETE /api/auth/me` | `/my/profile` 회원 탈퇴 | `SPEC_API.md §2.13` |
+
+- **왜 필요한지**: M2(인증·회원) 마일스톤의 `/my/profile` 내 정보 화면
+  (`WIREFRAME.md §14` 우측)이 이 3개 엔드포인트에 의존한다.
+- **미확정 사항**: 없음 — 계약 그대로 구현했다. 다만 `PATCH /api/auth/me`가
+  요청 필드로 `phone`만 받는 것으로 가정했다(스펙 예시와 동일) — 다른 필드도
+  받게 확장할 계획이 있다면 FE `updateProfile` 시그니처도 같이 넓혀야 한다.
+- **관련 PR**: `feat/fe-my-profile` 브랜치 (아직 미머지)
+
+---
+
 ## 2026-08-21 — M1 공개 영역 mock API — 백엔드가 그대로 구현하면 되는 계약
 
 **상태**: 계약 변경 없음. 아래 3개는 이미 `docs/SPEC_API.md`에 있는 계약과
