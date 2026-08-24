@@ -30,37 +30,48 @@ export function isLeaderOrAbove(role: Role): boolean {
  * 서버는 권한 없는 사용자에게 목록은 `FORBIDDEN`, 상세는 존재 자체를 숨기려
  * `NOT_FOUND`를 돌려준다 (SPEC_API §3.2 · §3.3).
  */
-export function RequireLeader({ children }: { children: ReactNode }) {
+export function RequireLeader({
+  children,
+  /**
+   * 권한이 없을 때 보여줄 한 줄 설명. 화면마다 "무엇이" 임원 전용인지가
+   * 달라서(열람 vs 작성) 기본값만 두고 필요한 화면이 바꿔 쓴다.
+   */
+  description = "회의록·예산안은 임원 이상만 열람할 수 있습니다. 자료가 필요하시면 임원에게 문의해 주세요.",
+}: {
+  children: ReactNode;
+  description?: string;
+}) {
   return (
     <RequireMember>
-      <LeaderOnly>{children}</LeaderOnly>
+      <LeaderOnly description={description}>{children}</LeaderOnly>
     </RequireMember>
   );
 }
 
-function LeaderOnly({ children }: { children: ReactNode }) {
+function LeaderOnly({
+  children,
+  description,
+}: {
+  children: ReactNode;
+  description: string;
+}) {
   const { user } = useAuth();
 
   // RequireMember가 비로그인/승인대기를 이미 걸러내므로 여기 도달하면 user는
   // 항상 존재한다. 타입은 여전히 nullable이라 방어적으로 처리한다.
   if (!user) return null;
 
-  if (!isLeaderOrAbove(user.role)) return <ForbiddenState />;
+  if (!isLeaderOrAbove(user.role)) return <ForbiddenState description={description} />;
 
   return <>{children}</>;
 }
 
-function ForbiddenState() {
+function ForbiddenState({ description }: { description: string }) {
   return (
     <Section>
       <div className="rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-8 text-center">
         <p className="text-lg font-bold">권한이 없습니다</p>
-        <p className="mt-2 text-sm text-[var(--color-gray-400)]">
-          회의록·예산안은 임원 이상만 열람할 수 있습니다.
-        </p>
-        <p className="mt-1 text-sm text-[var(--color-gray-400)]">
-          자료가 필요하시면 임원에게 문의해 주세요.
-        </p>
+        <p className="mt-2 text-sm text-[var(--color-gray-400)]">{description}</p>
         <Link
           href="/my"
           className="mt-6 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold transition hover:brightness-95"

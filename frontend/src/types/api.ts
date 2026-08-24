@@ -67,8 +67,8 @@ export type PostSummary = {
   slug: string;
   pinned: boolean;
   authorName: string;
-  /** ISO-8601 UTC */
-  publishedAt: string;
+  /** ISO-8601 UTC. **임시저장(`publish: false`)이면 null** (SPEC_API §3.4) */
+  publishedAt: string | null;
   attachmentCount: number;
 };
 
@@ -80,10 +80,58 @@ export type PostAttachment = {
   sizeBytes: number;
 };
 
-/** 리치텍스트 본문 — 이번 단위는 문단(`paragraph`)만 렌더한다 */
+/**
+ * 리치텍스트 본문 (Tiptap/ProseMirror JSON, SPEC_API §3.3).
+ *
+ * 노드 스키마를 여기서 좁히지 않는 이유: 에디터가 쓰는 확장 집합은
+ * 바뀔 수 있고, 렌더러(`components/post/PostBodyView.tsx`)가 **모르는 노드는
+ * 건너뛰는** 방식으로 이미 방어한다. 대신 화면이 실제로 다룰 수 있는
+ * 노드/마크 집합은 `POST_BODY_NODES`/`POST_BODY_MARKS`로 한 곳에 고정해두고,
+ * 에디터 툴바와 렌더러가 **같은 목록**을 참조한다.
+ */
 export type PostBody = {
   type: "doc";
   content: unknown[];
+};
+
+/**
+ * ★ 에디터가 만들 수 있고 렌더러가 표시할 수 있는 블록 노드.
+ *
+ * ⚠️ 이 목록을 늘릴 때는 **에디터 툴바와 렌더러를 같이** 늘린다. 한쪽만
+ *    늘리면 작성자가 쓴 내용이 화면에서 조용히 사라진다 (렌더러가 모르는
+ *    노드를 버리기 때문).
+ */
+export const POST_BODY_NODES = [
+  "paragraph",
+  "heading",
+  "bulletList",
+  "orderedList",
+  "listItem",
+  "blockquote",
+  "horizontalRule",
+  "hardBreak",
+] as const;
+
+/** ★ 위와 같은 이유로 마크(인라인 서식)도 한 곳에 고정한다 */
+export const POST_BODY_MARKS = ["bold", "italic", "underline", "strike", "link"] as const;
+
+/** 글 작성·수정 요청 본문 (SPEC_API §3.4 · §3.5) — 권한 `L` */
+export type PostInput = {
+  category: PostCategory;
+  title: string;
+  body: PostBody;
+  pinned: boolean;
+  /** `attachments.upload`로 먼저 올린 뒤 받은 id 목록 */
+  attachmentIds: string[];
+  /** `false`면 임시저장 (`publishedAt = null`) */
+  publish: boolean;
+};
+
+/** 첨부 업로드 응답 (SPEC_API §4.1) */
+export type AttachmentUpload = {
+  id: string;
+  filename: string;
+  sizeBytes: number;
 };
 
 /** 상세 조회 (SPEC_API §3.3) */
@@ -95,8 +143,8 @@ export type PostDetail = {
   body: PostBody;
   pinned: boolean;
   authorName: string;
-  /** ISO-8601 UTC */
-  publishedAt: string;
+  /** ISO-8601 UTC. **임시저장(`publish: false`)이면 null** (SPEC_API §3.4) */
+  publishedAt: string | null;
   /** ISO-8601 UTC */
   updatedAt: string;
   attachments: PostAttachment[];
