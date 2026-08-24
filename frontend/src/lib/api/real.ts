@@ -201,6 +201,8 @@ export const realApi: Api = {
     // ZIP 스트리밍 — fetch가 아니라 브라우저가 직접 이동한다 (SPEC_API §6.8)
     downloadUrl: (albumId, photoIds) =>
       `/api/albums/${encodeURIComponent(albumId)}/download?ids=${photoIds.join(",")}`,
+    remove: (albumId) =>
+      request(`/albums/${encodeURIComponent(albumId)}`, { method: "DELETE" }),
   },
   photos: {
     report: (photoId, input) =>
@@ -210,11 +212,41 @@ export const realApi: Api = {
       }),
     // 302 → presigned(attachment) — 브라우저가 따라가야 한다 (SPEC_API §6.7)
     downloadUrl: (photoId) => `/api/photos/${encodeURIComponent(photoId)}/download`,
+    remove: (photoId) => request(`/photos/${encodeURIComponent(photoId)}`, { method: "DELETE" }),
+  },
+  meetings: {
+    list: ({ page = 0, size = 20 } = {}) => request("/meetings", { query: { page, size } }),
+    get: (id) => request(`/meetings/${encodeURIComponent(id)}`),
+    // 서버가 워터마크를 합성해 스트리밍한다 — presigned URL이 아니다 (SPEC_API §7.3)
+    pageUrl: (id, pageNo) =>
+      `/api/meetings/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}`,
+  },
+  admin: {
+    members: ({ status, q, page = 0, size = 20 } = {}) =>
+      request("/admin/members", { query: { status, q, page, size } }),
+    approveMember: (id) =>
+      request(`/admin/members/${encodeURIComponent(id)}/approve`, { method: "POST" }),
+    rejectMember: (id, input) =>
+      request(`/admin/members/${encodeURIComponent(id)}/reject`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    changeRole: (id, input) =>
+      request(`/admin/members/${encodeURIComponent(id)}/role`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    storage: () => request("/admin/storage"),
+    newcomers: ({ page = 0, size = 20 } = {}) =>
+      request("/admin/newcomers", { query: { page, size } }),
   },
   bulletins: {
     latest: () => request("/bulletins/latest"),
     list: ({ page = 0, size = 20 } = {}) => request("/bulletins", { query: { page, size } }),
     get: (id) => request(`/bulletins/${encodeURIComponent(id)}`),
+    // [CONTRACT] 신규 제안 경로 — 백엔드가 다르게 정하면 여기만 바꾼다
+    downloadUrl: (id, pageNo) =>
+      `/api/bulletins/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}/download`,
   },
   capabilities: {
     zipDownload: true,

@@ -1,4 +1,5 @@
 import type {
+  AdminMember,
   AlbumInput,
   AlbumSummary,
   AttachmentUpload,
@@ -7,7 +8,12 @@ import type {
   BulletinSummary,
   CompleteProfileInput,
   Cursor,
+  MeetingDetail,
+  MeetingSummary,
+  NewcomerRecord,
   Photo,
+  Role,
+  StorageUsage,
   LoginInput,
   LoginResult,
   NewcomerSubmission,
@@ -82,6 +88,11 @@ export type Api = {
      * 먼저 막아야 헛된 요청이 안 나간다.
      */
     downloadUrl(albumId: string, photoIds: string[]): string;
+    /**
+     * SPEC_API §6.3 — 권한 `L`.
+     * ⚠️ **사진과 R2 객체를 모두 삭제한다.** 되돌릴 수 없다 (고아 객체 방지 목적).
+     */
+    remove(albumId: string): Promise<void>;
   };
   photos: {
     /** SPEC_API §6.10 — 초상권 대응 신고·삭제 요청. 권한 `M` */
@@ -94,6 +105,46 @@ export type Api = {
      *    이동해야 한다. fetch로 받으면 리다이렉트를 따라가 메모리에 담게 된다.
      */
     downloadUrl(photoId: string): string;
+    /** SPEC_API §6.9 — 권한 `L`. ⚠️ R2 객체까지 삭제한다. 되돌릴 수 없다 */
+    remove(photoId: string): Promise<void>;
+  };
+  meetings: {
+    /** SPEC_API §7.1 — 권한 `M`. 종료된 자료도 목록에는 남는다 */
+    list(params?: { page?: number; size?: number }): Promise<Page<MeetingSummary>>;
+    /** SPEC_API §7.2 — 권한 `M`. 기간 외면 `FORBIDDEN` + `viewReason` */
+    get(id: string): Promise<MeetingDetail>;
+    /**
+     * SPEC_API §7.3 — 페이지 이미지 **URL을 만든다** (fetch가 아니다).
+     *
+     * ⚠️ 응답이 이미지 바이너리이고 **워터마크를 서버가 합성**한다.
+     *    presigned URL이 아니라 이 엔드포인트를 `<img src>`로 직접 가리켜야 한다 —
+     *    URL을 저장·공유할 수 없게 하는 것이 이 설계의 목적이다.
+     *    `Cache-Control: no-store`이므로 캐시에도 남지 않는다.
+     */
+    pageUrl(id: string, pageNo: number): string;
+  };
+  admin: {
+    /** SPEC_API §8.1 — 권한 **`T`** */
+    members(params?: {
+      status?: "PENDING" | "ALL";
+      q?: string;
+      page?: number;
+      size?: number;
+    }): Promise<Page<AdminMember>>;
+    /** SPEC_API §8.2 — 권한 **`T`** */
+    approveMember(id: string): Promise<void>;
+    /** SPEC_API §8.3 — 권한 **`T`** */
+    rejectMember(id: string, input: { reason: string }): Promise<void>;
+    /**
+     * SPEC_API §8.4 — 권한 **`T`**.
+     * ⚠️ 마지막 `PASTOR`를 강등하면 아무도 회원을 승인할 수 없게 되므로
+     *    서버가 `VALIDATION_ERROR`로 거부한다 (FR-ADM-05 자기 잠금 방지).
+     */
+    changeRole(id: string, input: { role: Role }): Promise<void>;
+    /** SPEC_API §8.5 — 권한 `L`. 95% 도달 시 업로드 차단 */
+    storage(): Promise<StorageUsage>;
+    /** SPEC_API §8.6 — 권한 `L`. ⚠️ 개인정보, 보유기간 1년 */
+    newcomers(params?: { page?: number; size?: number }): Promise<Page<NewcomerRecord>>;
   };
   bulletins: {
     /** SPEC_API §5.1 — 최신 주보. **없으면 null** */
@@ -102,6 +153,22 @@ export type Api = {
     list(params?: { page?: number; size?: number }): Promise<Page<BulletinSummary>>;
     /** SPEC_API §5.3 — 단건 조회 (§5.1과 동일 형태) */
     get(id: string): Promise<Bulletin>;
+    /**
+     * ⚠️ **[CONTRACT] 스펙에 없는 신규 엔드포인트다** — 백엔드 합의 필요.
+     *
+     * `FR-BUL-04`는 "장별 개별 다운로드"를 요구하지만 `SPEC_API §5`에 다운로드
+     * 엔드포인트가 없다. `§5.1`의 `pages[].url`은 **열람용**이라
+     * `Content-Disposition: attachment`가 없어서, 그걸로 받으면 브라우저가
+     * 탭에서 열어버린다.
+     *
+     * 그래서 사진(`§6.7`)·첨부(`§4.2`)와 같은 형태를 제안한다:
+     *   `GET /api/bulletins/{id}/pages/{pageNo}/download`
+     *   권한 `M` · **302** → presigned URL (`Content-Disposition: attachment`)
+     *
+     * 합의 전까지 FE는 이 경로를 가리키기만 하므로, 백엔드가 다른 경로를
+     * 택하면 이 함수 한 곳만 바꾸면 된다.
+     */
+    downloadUrl(id: string, pageNo: number): string;
   };
   /**
    * mock이 흉내낼 수 없는 기능을 화면이 알 수 있게 한다.
