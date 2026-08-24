@@ -92,29 +92,32 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
    */
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  /** 30장 제한에 걸렸을 때 하단 바에 띄우는 안내 (조용히 무시하지 않는다) */
-  const [limitNotice, setLimitNotice] = useState<string | null>(null);
+  /**
+   * 하단 바 안내 문구 — 30장 제한, mock ZIP 미지원 안내가 같은 자리를 쓴다.
+   * 두 곳에서 따로 관리하면 어느 문구가 최신인지 알 수 없어 한 곳에 모았다.
+   */
+  const [notice, setNotice] = useState<string | null>(null);
 
   const exitSelectMode = useCallback(() => {
     setSelectMode(false);
     // 선택 모드를 나가면 선택은 비운다 — 남겨두면 다시 들어왔을 때
     // 사용자가 기억하지 못하는 선택으로 ZIP을 만들게 된다.
     setSelectedIds([]);
-    setLimitNotice(null);
+    setNotice(null);
   }, []);
 
   const toggleSelected = useCallback((photoId: string) => {
     setSelectedIds((prev) => {
       if (prev.includes(photoId)) {
-        setLimitNotice(null);
+        setNotice(null);
         return prev.filter((id) => id !== photoId);
       }
       if (prev.length >= MAX_ZIP_PHOTOS) {
         // 서버(§6.8)도 막지만 요청을 보내기 전에 화면에서 끊는다
-        setLimitNotice(`한 번에 최대 ${MAX_ZIP_PHOTOS}장까지 선택할 수 있습니다.`);
+        setNotice(`한 번에 최대 ${MAX_ZIP_PHOTOS}장까지 선택할 수 있습니다.`);
         return prev;
       }
-      setLimitNotice(null);
+      setNotice(null);
       return [...prev, photoId];
     });
   }, []);
@@ -244,10 +247,20 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
         )}
       </Section>
 
-      {/* 하단 고정 바가 마지막 줄을 덮지 않도록 여백을 준다 */}
-      {selectMode && <div aria-hidden className="h-28" />}
+      {/*
+        하단 고정 바가 마지막 줄을 덮지 않도록 여백을 준다. 안내 문구가
+        두세 줄로 늘어날 수 있어(제한·mock 안내) 바 최대 높이 기준으로 잡는다.
+      */}
+      {selectMode && <div aria-hidden className="h-40" />}
 
-      {selectMode && <SelectionBar count={selectedIds.length} notice={limitNotice} />}
+      {selectMode && (
+        <SelectionBar
+          albumId={albumId}
+          selectedIds={selectedIds}
+          notice={notice}
+          onNotice={setNotice}
+        />
+      )}
 
       {openIndex !== null && (
         <Lightbox
