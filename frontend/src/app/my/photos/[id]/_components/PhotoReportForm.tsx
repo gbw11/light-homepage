@@ -104,7 +104,7 @@ export function PhotoReportForm({
             id="reason"
             rows={3}
             placeholder="예) 본인 사진 삭제 요청합니다"
-            className="w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent p-3 text-base outline-none focus:border-[var(--color-yellow)]"
+            className="w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent p-3 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]"
             {...reasonField}
             ref={(node) => {
               reasonRef(node);
