@@ -22,7 +22,7 @@ const linkButtonClass =
  */
 export default function LocationPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section className="pb-8 md:pb-8">
         <h1 className="text-2xl font-bold md:text-3xl">오시는 길</h1>
       </Section>

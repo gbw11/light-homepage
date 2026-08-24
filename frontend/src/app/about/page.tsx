@@ -30,7 +30,7 @@ const YEAR_FLOW = [
  */
 export default function AboutPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section className="pb-8 md:pb-8">
         <p className="text-sm font-bold text-[var(--color-gray-400)]">LIGHT</p>
         <h1 className="mt-2 text-2xl font-bold md:text-3xl">

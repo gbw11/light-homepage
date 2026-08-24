@@ -14,7 +14,7 @@ export const metadata: Metadata = {
  */
 export default function PendingPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section className="text-center">
         <div className="mx-auto max-w-sm space-y-6">
           <p className="text-5xl" aria-hidden="true">

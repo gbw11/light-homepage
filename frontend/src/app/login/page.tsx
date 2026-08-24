@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 /** WIREFRAME.md §10-1 */
 export default function LoginPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section title="로그인" titleAs="h1">
         <LoginForm />
       </Section>

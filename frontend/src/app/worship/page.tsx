@@ -16,7 +16,7 @@ export const metadata: Metadata = {
  */
 export default function WorshipPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section className="pb-8 md:pb-8">
         <h1 className="text-2xl font-bold md:text-3xl">예배와 모임</h1>
       </Section>
