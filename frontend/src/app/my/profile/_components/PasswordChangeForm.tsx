@@ -23,7 +23,7 @@ const schema = z
 type FormValues = z.infer<typeof schema>;
 
 const inputClass =
-  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base outline-none focus:border-[var(--color-yellow)]";
+  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]";
 
 /** WIREFRAME.md §14 — ▸ 비밀번호 변경 */
 export function PasswordChangeForm() {
@@ -65,7 +65,7 @@ export function PasswordChangeForm() {
     return (
       <button
         type="button"
-        className="text-base font-bold text-[var(--color-navy-900)] hover:underline"
+        className="inline-flex min-h-11 items-center text-base font-bold text-[var(--color-navy-900)] hover:underline"
         onClick={() => {
           setIsOpen(true);
           setDone(false);
@@ -80,7 +80,7 @@ export function PasswordChangeForm() {
     <div>
       <button
         type="button"
-        className="mb-3 text-base font-bold text-[var(--color-navy-900)] hover:underline"
+        className="mb-3 inline-flex min-h-11 items-center text-base font-bold text-[var(--color-navy-900)] hover:underline"
         onClick={() => setIsOpen(false)}
       >
         ▾ 비밀번호 변경
@@ -107,7 +107,7 @@ export function PasswordChangeForm() {
               {...register("currentPassword")}
             />
             {errors.currentPassword && (
-              <p className="mt-1 text-sm text-[var(--color-red-500)]">
+              <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">
                 {errors.currentPassword.message}
               </p>
             )}
@@ -125,7 +125,7 @@ export function PasswordChangeForm() {
               {...register("newPassword")}
             />
             {errors.newPassword && (
-              <p className="mt-1 text-sm text-[var(--color-red-500)]">
+              <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">
                 {errors.newPassword.message}
               </p>
             )}
@@ -143,14 +143,14 @@ export function PasswordChangeForm() {
               {...register("newPasswordConfirm")}
             />
             {errors.newPasswordConfirm && (
-              <p className="mt-1 text-sm text-[var(--color-red-500)]">
+              <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">
                 {errors.newPasswordConfirm.message}
               </p>
             )}
           </div>
 
           {errors.root && (
-            <p className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
+            <p role="alert" className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
           )}
 
           <Button type="submit" variant="secondary" disabled={mutation.isPending}>

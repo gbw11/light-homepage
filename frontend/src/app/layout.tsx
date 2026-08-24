@@ -70,6 +70,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(CHURCH_JSON_LD) }}
         />
+        {/*
+          건너뛰기 링크 — 키보드 사용자가 헤더를 매 페이지마다 훑지 않게 한다
+          (SPEC_NONFUNCTIONAL.md §6 NFR-A11Y-06). 각 페이지의 `<main>`이
+          `id="main"`을 갖는다. 평소엔 sr-only, 포커스를 받으면 좌상단에 뜬다.
+        */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-[var(--radius-button)] focus:bg-[var(--color-navy-900)] focus:px-4 focus:text-base focus:font-bold focus:text-white"
+        >
+          본문으로 바로가기
+        </a>
         <QueryProvider>
           <AuthProvider>
             <ServiceWorkerRegistrar />

@@ -8,7 +8,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 
 const inputClass =
-  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base outline-none focus:border-[var(--color-yellow)]";
+  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]";
 
 /** WIREFRAME.md §14 — ▸ 로그아웃 · ▸ 회원 탈퇴 */
 export function AccountActions() {
@@ -65,7 +65,7 @@ export function AccountActions() {
         {!isWithdrawOpen ? (
           <button
             type="button"
-            className="text-base font-bold text-[var(--color-red-500)] hover:underline"
+            className="inline-flex min-h-11 items-center text-base font-bold text-[var(--color-red-500)] hover:underline"
             onClick={() => setIsWithdrawOpen(true)}
           >
             ▸ 회원 탈퇴
@@ -74,7 +74,7 @@ export function AccountActions() {
           <div className="space-y-3">
             <button
               type="button"
-              className="text-base font-bold text-[var(--color-red-500)] hover:underline"
+              className="inline-flex min-h-11 items-center text-base font-bold text-[var(--color-red-500)] hover:underline"
               onClick={() => {
                 setIsWithdrawOpen(false);
                 setPassword("");
@@ -98,7 +98,7 @@ export function AccountActions() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            {error && <p className="text-sm text-[var(--color-red-500)]">{error}</p>}
+            {error && <p role="alert" className="text-sm text-[var(--color-red-500)]">{error}</p>}
             <button
               type="button"
               className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-red-500)] px-6 text-base font-bold text-white transition hover:brightness-95 disabled:opacity-60"

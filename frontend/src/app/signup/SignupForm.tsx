@@ -60,7 +60,7 @@ function toSignupInput(values: FormValues): SignupInput {
 }
 
 const inputClass =
-  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base outline-none focus:border-[var(--color-yellow)]";
+  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]";
 
 export function SignupForm() {
   const [submitted, setSubmitted] = useState(false);
@@ -125,7 +125,7 @@ export function SignupForm() {
         </label>
         <input id="name" className={inputClass} {...register("name")} />
         {errors.name && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.name.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.name.message}</p>
         )}
       </div>
 
@@ -135,7 +135,7 @@ export function SignupForm() {
         </label>
         <input id="email" type="email" className={inputClass} {...register("email")} />
         {errors.email && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.email.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.email.message}</p>
         )}
       </div>
 
@@ -151,7 +151,7 @@ export function SignupForm() {
           {...register("password")}
         />
         {errors.password && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.password.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.password.message}</p>
         )}
       </div>
 
@@ -167,7 +167,7 @@ export function SignupForm() {
           {...register("passwordConfirm")}
         />
         {errors.passwordConfirm && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">
             {errors.passwordConfirm.message}
           </p>
         )}
@@ -185,7 +185,7 @@ export function SignupForm() {
           {...register("phone")}
         />
         {errors.phone && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.phone.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.phone.message}</p>
         )}
       </div>
 
@@ -204,17 +204,17 @@ export function SignupForm() {
           ))}
         </select>
         {errors.village && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.village.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.village.message}</p>
         )}
       </div>
 
       <div>
-        <label className="flex items-start gap-2 text-sm">
+        <label className="flex min-h-11 items-start gap-2 py-2 text-sm">
           <input type="checkbox" className="mt-1 h-4 w-4" {...register("agreed")} />
           <span>개인정보 수집·이용 동의 *</span>
         </label>
         {errors.agreed && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.agreed.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.agreed.message}</p>
         )}
       </div>
 
@@ -223,7 +223,7 @@ export function SignupForm() {
       </p>
 
       {errors.root && (
-        <p className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
+        <p role="alert" className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
       )}
 
       <Button type="submit" className="w-full" disabled={mutation.isPending}>

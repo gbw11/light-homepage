@@ -61,7 +61,7 @@ export default async function MyNoticeDetailPage({
   if (!notice) {
     return (
       <RequireMember>
-        <main>
+        <main id="main" tabIndex={-1}>
           <Section>
             <p className="text-[var(--color-red-500)]">찾을 수 없는 글입니다.</p>
           </Section>
@@ -72,7 +72,7 @@ export default async function MyNoticeDetailPage({
 
   return (
     <RequireMember>
-      <main>
+      <main id="main" tabIndex={-1}>
         <Section>
           <p className="text-sm font-bold text-[var(--color-gray-400)]">
             {notice.category === "NOTICE_MEMBER" && "🔒 "}

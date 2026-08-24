@@ -28,7 +28,7 @@ export const metadata: Metadata = {
  */
 export default function MyNoticesPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pt-16 md:px-10 md:pt-24">
         <h1 className="text-2xl font-bold md:text-3xl">내부 공지</h1>
       </section>
