@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import type { Photo } from "@/types/api";
+import { Lightbox } from "./Lightbox";
 
 /** SPEC_API §6.4 — 커서 페이징 기본 크기 (mock도 20장) */
 const PAGE_SIZE = 20;
@@ -78,6 +79,9 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
     return () => observer.disconnect();
   }, [hasNextPage, loadMore]);
 
+  /** 라이트박스로 열린 사진의 인덱스 — 닫혀 있으면 null (WIREFRAME §13-4) */
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
   const photos: Photo[] = photosQuery.data?.pages.flatMap((p) => p.items) ?? [];
   const notFound =
     photosQuery.isError && isApiError(photosQuery.error) && photosQuery.error.code === "NOT_FOUND";
@@ -117,18 +121,25 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
         ) : (
           <>
             <ul className="grid grid-cols-3 gap-1 md:gap-2">
-              {photos.map((photo) => (
-                <li key={photo.id} className="aspect-square overflow-hidden rounded-[4px] bg-[var(--color-navy-100)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- 실서비스 URL은 R2 presigned(만료·서명 포함)라 next/image 최적화 대상이 아니다 (SPEC_API §6.4) */}
-                  <img
-                    src={photo.thumbUrl}
-                    alt=""
-                    width={photo.width}
-                    height={photo.height}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover"
-                  />
+              {photos.map((photo, i) => (
+                <li key={photo.id}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenIndex(i)}
+                    aria-label={`사진 ${i + 1} 확대 보기`}
+                    className="block aspect-square w-full overflow-hidden rounded-[4px] bg-[var(--color-navy-100)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- 실서비스 URL은 R2 presigned(만료·서명 포함)라 next/image 최적화 대상이 아니다 (SPEC_API §6.4) */}
+                    <img
+                      src={photo.thumbUrl}
+                      alt=""
+                      width={photo.width}
+                      height={photo.height}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -149,6 +160,17 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
           </>
         )}
       </Section>
+
+      {openIndex !== null && (
+        <Lightbox
+          photos={photos}
+          totalCount={album?.photoCount}
+          index={openIndex}
+          onIndexChange={setOpenIndex}
+          onClose={() => setOpenIndex(null)}
+          onReachEnd={loadMore}
+        />
+      )}
     </>
   );
 }
