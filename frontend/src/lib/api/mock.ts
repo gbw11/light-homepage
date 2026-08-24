@@ -5,6 +5,7 @@ import type {
   AttachmentUpload,
   AuthUser,
   Bulletin,
+  BulletinInput,
   BulletinSummary,
   CompleteProfileInput,
   Cursor,
@@ -877,6 +878,40 @@ let mockPhotoIdSeq = 900;
 /** `mock://uploads/{photoId}/{view|thumb}` */
 const MOCK_PUT_URL_RE = /^mock:\/\/uploads\/(\d+)\/(view|thumb)$/;
 
+// ── 주보 업로드 mock (SPEC_API §5.4 · §5.5) ─────────────────
+/**
+ * 이번 세션에 업로드한 주보. 페이지 URL은 업로드한 blob의 objectURL이라
+ * **새로고침하면 사라진다** (`dynamicAlbums`·`mockUploadedPhotos`와 같은 한계).
+ *
+ * 이렇게까지 하는 이유: 업로드 후 뷰어에 실제로 뜨는지 봐야 순서(페이지 번호)가
+ * 제대로 갔는지 확인할 수 있다. FR-BUL-05의 핵심이 순서다.
+ */
+type MockBulletin = {
+  id: string;
+  serviceDate: string;
+  pages: Bulletin["pages"];
+  thumbUrl: string;
+};
+
+const dynamicBulletins: MockBulletin[] = [];
+/** 삭제된 고정 mock 주보 id — 정적 파일은 지울 수 없으니 가려서 흉내낸다 */
+const removedMockBulletinIds = new Set<string>();
+let mockBulletinIdSeq = 12;
+
+/** 동적 + 정적 주보를 **주일 날짜 최신순**으로 합친다 (`latest`가 이 순서에 의존한다) */
+function allMockBulletins(): MockBulletin[] {
+  const seeded: MockBulletin[] = BULLETIN_DATES.map((entry) => ({
+    id: entry.id,
+    serviceDate: entry.date,
+    pages: bulletinOf(entry).pages,
+    thumbUrl: `/bulletins/${entry.date}-thumb.webp`,
+  }));
+
+  return [...dynamicBulletins, ...seeded]
+    .filter((b) => !removedMockBulletinIds.has(b.id))
+    .sort((a, b) => b.serviceDate.localeCompare(a.serviceDate));
+}
+
 export const mockApi: Api = {
   posts: {
     async list({ category, page = 0, size = 20 }): Promise<Page<PostSummary>> {
@@ -1484,7 +1519,8 @@ export const mockApi: Api = {
 
       // 주보가 아직 없는 상태도 화면이 처리해야 한다 (SPEC_API §5.1: data null)
       if (scenario() === "empty") return null;
-      return bulletinOf(BULLETIN_DATES[0]);
+      const [newest] = allMockBulletins();
+      return newest ? { id: newest.id, serviceDate: newest.serviceDate, pages: newest.pages } : null;
     },
 
     async list({ page = 0, size = 20 } = {}): Promise<Page<BulletinSummary>> {
@@ -1495,26 +1531,14 @@ export const mockApi: Api = {
       const all: BulletinSummary[] =
         scenario() === "empty"
           ? []
-          : BULLETIN_DATES.map((b) => ({
+          : allMockBulletins().map((b) => ({
               id: b.id,
-              serviceDate: b.date,
-              pageCount: b.pages,
-              thumbUrl: `/bulletins/${b.date}-thumb.webp`,
+              serviceDate: b.serviceDate,
+              pageCount: b.pages.length,
+              thumbUrl: b.thumbUrl,
             }));
 
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
-    },
-
-    downloadUrl(id: string, pageNo: number): string {
-      /*
-       * 실제 서버는 302 → presigned(attachment)로 보낸다. mock은 정적
-       * 이미지를 그대로 가리켜서 브라우저가 저장할 수 있게 한다 — 파일명은
-       * 실서비스에서 서버의 Content-Disposition이 정한다.
-       */
-      const entry = BULLETIN_DATES.find((b) => b.id === id);
-      return entry
-        ? `/bulletins/${entry.date}-p${pageNo}.webp`
-        : `/api/bulletins/${encodeURIComponent(id)}/pages/${pageNo}/download`;
     },
 
     async get(id: string): Promise<Bulletin> {
@@ -1522,11 +1546,103 @@ export const mockApi: Api = {
       throwIfScenario();
       requireSession();
 
-      const entry = BULLETIN_DATES.find((b) => b.id === id);
-      if (!entry) {
+      const found = allMockBulletins().find((b) => b.id === id);
+      if (!found) {
         throw new ApiError({ code: "NOT_FOUND", message: "주보를 찾을 수 없습니다.", status: 404 });
       }
-      return bulletinOf(entry);
+      return { id: found.id, serviceDate: found.serviceDate, pages: found.pages };
+    },
+
+    async create(input: BulletinInput): Promise<{ id: string; pageCount: number }> {
+      await delay();
+      throwIfScenario();
+      requireLeader("주보를 올릴 권한이 없습니다.");
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(input.serviceDate)) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "주일 날짜를 선택해주세요.",
+          status: 400,
+          field: "serviceDate",
+        });
+      }
+      if (input.pages.length === 0) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "주보 이미지를 1장 이상 선택해주세요.",
+          status: 400,
+          field: "pages",
+        });
+      }
+
+      /*
+        ★ 실패 케이스 — 같은 날짜가 이미 있으면 `DUPLICATE`다 (SPEC_API §5.4).
+        화면이 "교체할까요?"를 물어본 뒤 삭제→재업로드로 처리하는 경로를
+        여기서 실제로 밟을 수 있어야 한다.
+      */
+      if (allMockBulletins().some((b) => b.serviceDate === input.serviceDate)) {
+        throw new ApiError({
+          code: "DUPLICATE",
+          message: "같은 날짜의 주보가 이미 있습니다.",
+          status: 409,
+        });
+      }
+
+      mockBulletinIdSeq += 1;
+      const id = `${mockBulletinIdSeq}`;
+      // 업로드한 blob을 그대로 붙잡아 뷰어에서 실제로 보이게 한다
+      // (`uploads.put`의 objectURL과 같은 원리 — 새로고침하면 사라진다)
+      const pages = input.pages.map((blob, index) => ({
+        pageNo: index + 1,
+        url: typeof URL.createObjectURL === "function" ? URL.createObjectURL(blob) : "",
+        width: 1448,
+        height: 2048,
+      }));
+
+      dynamicBulletins.unshift({
+        id,
+        serviceDate: input.serviceDate,
+        pages,
+        // 실서비스는 서버가 썸네일을 만든다. mock은 1장을 그대로 쓴다
+        thumbUrl: pages[0].url,
+      });
+
+      return { id, pageCount: pages.length };
+    },
+
+    async remove(id: string): Promise<void> {
+      await delay();
+      throwIfScenario();
+      requireLeader("주보를 삭제할 권한이 없습니다.");
+
+      const index = dynamicBulletins.findIndex((b) => b.id === id);
+      if (index >= 0) {
+        for (const page of dynamicBulletins[index].pages) {
+          if (page.url.startsWith("blob:")) URL.revokeObjectURL(page.url);
+        }
+        dynamicBulletins.splice(index, 1);
+        return;
+      }
+
+      if (!BULLETIN_DATES.some((b) => b.id === id)) {
+        throw new ApiError({ code: "NOT_FOUND", message: "주보를 찾을 수 없습니다.", status: 404 });
+      }
+      // 고정 mock 주보는 파일이라 실제로 지울 수 없다 — 가려서 흉내낸다
+      removedMockBulletinIds.add(id);
+    },
+
+    downloadUrl(id: string, pageNo: number): string {
+      /*
+       * 실제 서버는 302 → presigned(attachment)로 보낸다. mock은 이미지를
+       * 그대로 가리켜서 브라우저가 저장할 수 있게 한다 — 파일명은 실서비스에서
+       * 서버의 Content-Disposition이 정한다.
+       */
+      const found = allMockBulletins().find((b) => b.id === id);
+      const page = found?.pages.find((p) => p.pageNo === pageNo);
+      return (
+        page?.url ??
+        `/api/bulletins/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}/download`
+      );
     },
   },
   capabilities: {

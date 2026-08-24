@@ -304,6 +304,19 @@ export type BulletinSummary = {
   thumbUrl: string;
 };
 
+/**
+ * 주보 업로드 (SPEC_API §5.4) — `multipart/form-data`.
+ *
+ * ⚠️ **배열 순서가 페이지 번호다.** 정렬 기준이 따로 없으므로 서버는 받은
+ * 순서를 그대로 `pageNo`로 쓴다.
+ */
+export type BulletinInput = {
+  /** `YYYY-MM-DD` (주일 날짜) */
+  serviceDate: string;
+  /** 2048px WebP로 변환된 페이지 이미지. **1장 이상** */
+  pages: Blob[];
+};
+
 // ── 사진첩 (SPEC_API §6) ───────────────────────────────────
 /** 앨범 목록 항목 (SPEC_API §6.1) */
 export type AlbumSummary = {

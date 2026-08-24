@@ -1,5 +1,6 @@
 import type {
   AlbumInput,
+  BulletinInput,
   ApiEnvelope,
   CompleteProfileInput,
   LoginInput,
@@ -322,6 +323,25 @@ export const realApi: Api = {
     latest: () => request("/bulletins/latest"),
     list: ({ page = 0, size = 20 } = {}) => request("/bulletins", { query: { page, size } }),
     get: (id) => request(`/bulletins/${encodeURIComponent(id)}`),
+    create: (input: BulletinInput) =>
+      request("/bulletins", {
+        method: "POST",
+        /*
+          시도마다 새 FormData — 401 후 리프레시 재시도가 이미 소비된 body를
+          보내지 않게 한다 (`attachments.upload`와 같은 이유).
+          ⚠️ append 순서가 곧 페이지 순서다 (SPEC_API §5.4).
+        */
+        form: () => {
+          const fd = new FormData();
+          fd.append("serviceDate", input.serviceDate);
+          input.pages.forEach((page, index) => {
+            // 파일명이 없으면 서버가 파트를 파일로 인식하지 못하는 구현이 있다
+            fd.append("pages", page, `page-${index + 1}.webp`);
+          });
+          return fd;
+        },
+      }),
+    remove: (id) => request(`/bulletins/${encodeURIComponent(id)}`, { method: "DELETE" }),
     // [CONTRACT] 신규 제안 경로 — 백엔드가 다르게 정하면 여기만 바꾼다
     downloadUrl: (id, pageNo) =>
       `/api/bulletins/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}/download`,
