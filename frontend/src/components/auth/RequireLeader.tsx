@@ -36,7 +36,7 @@ export function RequireLeader({
    * 권한이 없을 때 보여줄 한 줄 설명. 화면마다 "무엇이" 임원 전용인지가
    * 달라서(열람 vs 작성) 기본값만 두고 필요한 화면이 바꿔 쓴다.
    */
-  description = "회의록·예산안은 임원 이상만 열람할 수 있습니다.",
+  description = "회의록·예산안은 임원 이상만 열람할 수 있습니다. 자료가 필요하시면 임원에게 문의해 주세요.",
 }: {
   children: ReactNode;
   description?: string;
@@ -72,9 +72,6 @@ function ForbiddenState({ description }: { description: string }) {
       <div className="rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-8 text-center">
         <p className="text-lg font-bold">권한이 없습니다</p>
         <p className="mt-2 text-sm text-[var(--color-gray-400)]">{description}</p>
-        <p className="mt-1 text-sm text-[var(--color-gray-400)]">
-          자료가 필요하시면 임원에게 문의해 주세요.
-        </p>
         <Link
           href="/my"
           className="mt-6 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold transition hover:brightness-95"
