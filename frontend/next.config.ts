@@ -25,10 +25,22 @@ const nextConfig: NextConfig = {
 
   // 회원·운영 영역은 검색엔진에 노출되지 않아야 한다 (NFR-SEC-29)
   async headers() {
+    const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
     return [
       {
         source: "/(my|admin)/:path*",
-        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+        headers: noindex,
+      },
+      {
+        /**
+         * mock 개발용 사진·주보 자산. `public/`은 인증 없이 서빙되므로
+         * 최소한 색인은 막는다.
+         *
+         * ⚠️ 헤더로는 **직접 접근을 막을 수 없다.** 실제 방어는 이 자산을
+         *    운영 배포에 포함하지 않는 것이다 — `docs/DECISIONS.md` 참고.
+         */
+        source: "/(photos|bulletins)/:path*",
+        headers: noindex,
       },
     ];
   },

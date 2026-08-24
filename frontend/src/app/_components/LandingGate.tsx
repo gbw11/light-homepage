@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { MouseEvent } from "react";
 
@@ -18,6 +19,11 @@ const CTA_PRIMARY =
  * 첫 화면 클릭 게이트 (PM 결정: docs/DECISIONS.md "첫 화면 클릭 게이트: 신규/기존 방문자 분기").
  * - 전체 영역 클릭 → /login (기존 방문자로 가정, 보너스 동작)
  * - "처음 오시는 분이신가요?" 버튼 → /welcome (주 진입점, 접근성 보장을 위해 실제 button)
+ *
+ * 배경 사진은 순수 장식이므로 alt=""로 두고, 워드마크·CTA는 실제 DOM 텍스트로 유지한다.
+ * 스크림(--color-navy-900 / 70%)은 사진을 넣기 전 단색 배경과 거의 같은 명도라서
+ * 기존 텍스트 대비가 그대로 유지된다.
+ * 사진 선정 근거: docs/DECISIONS.md "수련회 실사진 공개 페이지 적용 범위" (초상권).
  */
 export function LandingGate() {
   const router = useRouter();
@@ -34,9 +40,21 @@ export function LandingGate() {
   return (
     <section
       onClick={handleAreaClick}
-      className="flex min-h-[calc(100dvh-3.5rem)] items-center justify-center bg-[var(--color-navy-900)] px-5 text-center text-white"
+      className="relative flex min-h-[calc(100dvh-3.5rem)] items-center justify-center overflow-hidden bg-[var(--color-navy-900)] px-5 text-center text-white"
     >
-      <div className="flex flex-col items-center gap-8 md:gap-10">
+      <Image
+        src="/images/worship-hero.webp"
+        alt=""
+        aria-hidden
+        fill
+        loading="eager"
+        fetchPriority="high"
+        sizes="100vw"
+        className="object-cover"
+      />
+      <div aria-hidden className="absolute inset-0 bg-[var(--color-navy-900)]/70" />
+
+      <div className="relative flex flex-col items-center gap-8 md:gap-10">
         <p aria-hidden className="select-none text-lg font-bold leading-tight md:text-2xl">
           {ACROSTIC.map(({ letter, rest }) => (
             <span key={letter} className="block">
