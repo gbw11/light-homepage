@@ -24,7 +24,7 @@ export default async function AlbumDetailPage({
 
   return (
     <RequireMember>
-      <main>
+      <main id="main" tabIndex={-1}>
         <PhotoGrid albumId={id} />
       </main>
     </RequireMember>

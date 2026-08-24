@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 /** WIREFRAME.md §10-2b */
 export default function CompleteProfilePage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section>
         <CompleteProfileForm />
       </Section>

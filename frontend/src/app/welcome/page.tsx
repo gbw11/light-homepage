@@ -36,7 +36,7 @@ const FAQ_ITEMS = [
  */
 export default function WelcomePage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section className="pb-8 md:pb-8">
         <p className="text-sm font-bold text-[var(--color-gray-400)]">
           처음 오시는 분께

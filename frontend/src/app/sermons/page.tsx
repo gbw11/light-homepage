@@ -66,7 +66,7 @@ const SERMONS: Sermon[] = [
  */
 export default function SermonsPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section className="pb-8 md:pb-8">
         <h1 className="text-2xl font-bold md:text-3xl">말씀</h1>
       </Section>

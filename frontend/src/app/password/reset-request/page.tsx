@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 /** SPEC_API.md §2.9 */
 export default function PasswordResetRequestPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section title="비밀번호 재설정" titleAs="h1">
         <ResetRequestForm />
       </Section>

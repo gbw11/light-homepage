@@ -50,7 +50,7 @@ export default async function NoticeDetailPage({
 
   if (!notice) {
     return (
-      <main>
+      <main id="main" tabIndex={-1}>
         <Section>
           <p className="text-[var(--color-red-500)]">찾을 수 없는 글입니다.</p>
         </Section>
@@ -59,7 +59,7 @@ export default async function NoticeDetailPage({
   }
 
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section>
         <p className="text-sm font-bold text-[var(--color-gray-400)]">
           {notice.pinned && "📌 "}

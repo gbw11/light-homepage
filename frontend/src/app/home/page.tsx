@@ -62,7 +62,7 @@ const GALLERY = [
  */
 export default function Home() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       {/* Hero */}
       <section className="flex min-h-[calc(100dvh-3.5rem)] items-center bg-[var(--color-navy-900)] text-white">
         <div className="mx-auto grid w-full max-w-[var(--container-max)] gap-8 px-5 py-10 md:grid-cols-2 md:items-center md:px-10">

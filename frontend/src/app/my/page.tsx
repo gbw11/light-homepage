@@ -44,7 +44,7 @@ function MyHomeContent() {
   const isAdmin = user.role === "LEADER" || user.role === "PASTOR";
 
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section>
         <h1 className="text-2xl font-bold md:text-3xl">
           안녕하세요, {user.name}님

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
  */
 export default function WelcomeRegisterPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section className="pb-8 md:pb-8">
         <h1 className="text-2xl font-bold md:text-3xl">새가족 등록</h1>
         <p className="mt-2 text-base text-[var(--color-gray-400)]">
