@@ -6,6 +6,7 @@ import type {
   NewcomerSubmission,
   PostInput,
   SignupInput,
+  UploadIssueInput,
 } from "@/types/api";
 import { ApiError } from "./error";
 import { notifySessionExpired } from "./session";
@@ -160,6 +161,76 @@ async function request<T>(path: string, init?: RequestOptions): Promise<T> {
   }
 }
 
+/**
+ * presigned URL로 객체 하나를 PUT한다 (SPEC_API §6.5 · ARCHITECTURE.md §7.3).
+ *
+ * ⚠️ **우리 서버가 아니라 R2로 직접 간다.** `request()`를 쓰지 않는 이유가 여럿이다:
+ *   · 경로가 `/api/**`가 아니라 절대 URL이다 (프록시·쿠키·리프레시가 무관하다)
+ *   · 응답이 우리 규약(`{data}`/`{error}`)이 아니다 — R2는 XML을 준다
+ *   · **진행률이 필요하다.** `fetch`는 업로드 진행률을 알려주지 않아서 XHR을 쓴다.
+ *     243장 업로드에서 진행률은 선택 사항이 아니다 (FR-PHO-08)
+ *
+ * 실패는 `ApiError`가 아니라 일반 `Error`다 — 규약 에러 코드(§1.2)에 전송 실패가
+ * 없고, 화면은 이걸 "재시도 가능한 실패"로만 다룬다.
+ */
+function putToPresignedUrl(
+  url: string,
+  body: Blob,
+  options?: { onProgress?: (percent: number) => void; signal?: AbortSignal },
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (options?.signal?.aborted) {
+      reject(new Error("업로드가 취소되었습니다."));
+      return;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url, true);
+
+    /*
+      Content-Type을 반드시 우리가 지정한다 — presigned 서명에 포함된 값과
+      다르면 R2가 403을 준다. 리사이즈 결과는 항상 image/webp다.
+      쿠키는 보내지 않는다(withCredentials 기본 false): 다른 출처이고, 인증은
+      URL 서명에 이미 들어있다.
+    */
+    xhr.setRequestHeader("Content-Type", body.type || "application/octet-stream");
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        options?.onProgress?.(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+
+    const onAbort = () => xhr.abort();
+    options?.signal?.addEventListener("abort", onAbort, { once: true });
+    const cleanup = () => options?.signal?.removeEventListener("abort", onAbort);
+
+    xhr.onload = () => {
+      cleanup();
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+        return;
+      }
+      // 403은 대개 서명 만료(15분)다 — 재시도 시 URL을 재발급해야 한다
+      reject(new Error(`전송에 실패했습니다 (${xhr.status}).`));
+    };
+    xhr.onerror = () => {
+      cleanup();
+      reject(new Error("네트워크 오류로 전송하지 못했습니다."));
+    };
+    xhr.ontimeout = () => {
+      cleanup();
+      reject(new Error("전송 시간이 초과되었습니다."));
+    };
+    xhr.onabort = () => {
+      cleanup();
+      reject(new Error("업로드가 취소되었습니다."));
+    };
+
+    xhr.send(body);
+  });
+}
+
 export const realApi: Api = {
   posts: {
     list: ({ category, page = 0, size = 20 }) =>
@@ -203,6 +274,13 @@ export const realApi: Api = {
       `/api/albums/${encodeURIComponent(albumId)}/download?ids=${photoIds.join(",")}`,
     remove: (albumId) =>
       request(`/albums/${encodeURIComponent(albumId)}`, { method: "DELETE" }),
+  },
+  uploads: {
+    issue: (input: UploadIssueInput) =>
+      request("/uploads:issue", { method: "POST", body: JSON.stringify(input) }),
+    put: putToPresignedUrl,
+    commit: (photoIds) =>
+      request("/uploads:commit", { method: "POST", body: JSON.stringify({ photoIds }) }),
   },
   photos: {
     report: (photoId, input) =>
