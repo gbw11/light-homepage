@@ -85,6 +85,14 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   /**
+   * 사진 삭제 결과 안내 (FR-PHO-09). 라이트박스가 닫히면서 사라지므로
+   * 결과는 목록 화면이 들고 있어야 한다 — 안 그러면 삭제 후 아무 일도 없었던
+   * 것처럼 보인다. mock의 no-op 안내도 이 문구에 실려 온다
+   * (`PhotoDeletePanel` 상단 주석).
+   */
+  const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
+
+  /**
    * 선택 모드 (WIREFRAME §13-3, FR-PHO-05).
    *
    * 선택은 **사진 id**로 들고 있다 — 인덱스로 들고 있으면 무한 스크롤로
@@ -165,6 +173,29 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
           )}
         </div>
       </section>
+
+      {/*
+        `role="status"`(암시적 aria-live) — 삭제 결과는 스크린리더에도 전달돼야
+        한다. 되돌릴 수 없는 동작의 결과를 조용히 넘기지 않는다.
+      */}
+      {deleteNotice && (
+        <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pt-6 md:px-10">
+          <div
+            role="status"
+            className="flex items-start justify-between gap-3 rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-4"
+          >
+            <p className="text-sm leading-relaxed">{deleteNotice}</p>
+            <button
+              type="button"
+              onClick={() => setDeleteNotice(null)}
+              aria-label="삭제 결과 안내 닫기"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl hover:bg-[var(--color-navy-100)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]"
+            >
+              ✕
+            </button>
+          </div>
+        </section>
+      )}
 
       <Section className="pt-8">
         {photosQuery.isLoading ? (
@@ -279,12 +310,14 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
 
       {openIndex !== null && (
         <Lightbox
+          albumId={albumId}
           photos={photos}
           totalCount={album?.photoCount}
           index={openIndex}
           onIndexChange={setOpenIndex}
           onClose={() => setOpenIndex(null)}
           onReachEnd={loadMore}
+          onPhotoDeleted={setDeleteNotice}
         />
       )}
     </>
