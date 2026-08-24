@@ -26,7 +26,7 @@ export const metadata: Metadata = {
  */
 export default function MyDocumentsPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pt-16 md:px-10 md:pt-24">
         <h1 className="text-2xl font-bold md:text-3xl">문서</h1>
         <p className="mt-1 text-sm text-[var(--color-gray-400)]">

@@ -69,8 +69,16 @@ function LeaderOnly({
 function ForbiddenState({ description }: { description: string }) {
   return (
     <Section>
-      <div className="rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-8 text-center">
-        <p className="text-lg font-bold">권한이 없습니다</p>
+      {/*
+        스크린리더가 이 상태를 알아채야 한다 — 클라이언트에서 판정하므로
+        페이지 로드 후에 나타난다. 제목은 h2다: 이 컴포넌트는 각 페이지의
+        h1 아래에 렌더되므로 h1을 또 만들면 계층이 깨진다.
+      */}
+      <div
+        role="alert"
+        className="rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-8 text-center"
+      >
+        <h2 className="text-lg font-bold">권한이 없습니다</h2>
         <p className="mt-2 text-sm text-[var(--color-gray-400)]">{description}</p>
         <Link
           href="/my"

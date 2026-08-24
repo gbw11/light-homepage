@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default function NewPostPage() {
   return (
     <RequireLeader description="글 작성은 임원 이상만 할 수 있습니다.">
-      <main>
+      <main id="main" tabIndex={-1}>
         <Section>
           <Link
             href="/my"
