@@ -123,7 +123,7 @@ export function ProfileInfo({ user, onUpdated }: ProfileInfoProps) {
               <span className="text-base">{user.phone}</span>
               <button
                 type="button"
-                className="text-sm font-bold text-[var(--color-yellow)] underline-offset-2 hover:underline"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center text-sm font-bold underline underline-offset-2"
                 onClick={() => setIsEditing(true)}
               >
                 수정

@@ -94,7 +94,7 @@ export function ResetRequestForm() {
         {mutation.isPending ? "전송 중..." : "재설정 링크 보내기"}
       </Button>
 
-      <Link href="/login" className="block text-center text-sm text-[var(--color-gray-400)]">
+      <Link href="/login" className="flex min-h-11 items-center justify-center text-center text-sm text-[var(--color-gray-400)]">
         ▸ 로그인으로 돌아가기
       </Link>
     </form>

@@ -101,7 +101,7 @@ export default function SermonsPage() {
             href={YOUTUBE_CHANNEL_URL}
             target="_blank"
             rel="noreferrer"
-            className="text-sm font-bold text-[var(--color-navy-900)] underline"
+            className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--color-navy-900)] underline"
           >
             ▸ YouTube 채널 전체 보기
           </a>

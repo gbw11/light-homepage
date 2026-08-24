@@ -65,7 +65,7 @@ export function PasswordChangeForm() {
     return (
       <button
         type="button"
-        className="text-base font-bold text-[var(--color-navy-900)] hover:underline"
+        className="inline-flex min-h-11 items-center text-base font-bold text-[var(--color-navy-900)] hover:underline"
         onClick={() => {
           setIsOpen(true);
           setDone(false);
@@ -80,7 +80,7 @@ export function PasswordChangeForm() {
     <div>
       <button
         type="button"
-        className="mb-3 text-base font-bold text-[var(--color-navy-900)] hover:underline"
+        className="mb-3 inline-flex min-h-11 items-center text-base font-bold text-[var(--color-navy-900)] hover:underline"
         onClick={() => setIsOpen(false)}
       >
         ▾ 비밀번호 변경

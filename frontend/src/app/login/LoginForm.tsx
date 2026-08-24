@@ -117,13 +117,13 @@ export function LoginForm() {
       </form>
 
       <div className="mt-6 space-y-2 text-sm">
-        <Link href="/password/reset-request" className="block text-[var(--color-gray-400)]">
+        <Link href="/password/reset-request" className="flex min-h-11 items-center text-[var(--color-gray-400)]">
           ▸ 비밀번호를 잊으셨나요?
         </Link>
-        <Link href="/signup" className="block font-bold">
+        <Link href="/signup" className="flex min-h-11 items-center font-bold">
           ▸ 처음이신가요? 회원가입
         </Link>
-        <Link href="/welcome" className="block text-[var(--color-gray-400)]">
+        <Link href="/welcome" className="flex min-h-11 items-center text-[var(--color-gray-400)]">
           ▸ 처음 오시는 분이신가요?
         </Link>
       </div>
