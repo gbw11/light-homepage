@@ -18,9 +18,9 @@ function villageLabel(village: Village): string {
  * 의미가 있어 생략했다 — WORKFLOW.md 분해 원칙(눈에 보이는 최소 단위)에 맞춰
  * 데이터가 준비되면 별도 단위로 추가한다.
  *
- * 주보/사진첩/월례회 자료는 M3~M4 범위라 아직 라우트가 없다 — news 페이지
- * 갤러리 탭과 같은 패턴(비활성 타일 + "준비 중")으로 표시한다
- * (`frontend/src/app/news/page.tsx`).
+ * 사진첩은 M3에서 `/my/photos`로 구현돼 타일이 활성화됐다. 주보/월례회
+ * 자료는 아직 라우트가 없어 news 페이지 갤러리 탭과 같은 패턴(비활성 타일 +
+ * "준비 중")으로 남겨둔다 (`frontend/src/app/news/page.tsx`).
  *
  * 관리 타일(콘텐츠 작성/회의록)은 LEADER·PASTOR에게만 보이는 UI 편의
  * 기능이다 — 실제 인가는 서버가 한다 (RequireMember와 동일 원칙,
@@ -53,7 +53,7 @@ function MyHomeContent() {
 
         <div className="mt-8 grid grid-cols-2 gap-4">
           <HomeTile icon="📄" label="주보" />
-          <HomeTile icon="📷" label="사진첩" />
+          <HomeTile icon="📷" label="사진첩" href="/my/photos" />
           <HomeTile icon="📢" label="공지사항" href="/my/notices" />
           <HomeTile icon="⚙️" label="내 정보" href="/my/profile" />
           <HomeTile icon="🗂" label="월례회 자료" className="col-span-2" />
