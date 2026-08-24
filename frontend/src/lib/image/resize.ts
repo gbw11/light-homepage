@@ -13,6 +13,13 @@ import { readTakenAt } from "./exif";
 export const VIEW_MAX_EDGE = 2560;
 /** 그리드 열람용 장변 — 200장 열람 전송량을 16MB 안에 두는 근거 (§6.4) */
 export const THUMB_MAX_EDGE = 640;
+/**
+ * 주보 장변 (ARCHITECTURE.md §4.2 · FR-BUL-03).
+ *
+ * 사진첩보다 작은데도 썸네일을 쓰지 않는다 — **주보는 글자가 작아서** 이 크기를
+ * 바로 로드해야 읽힌다. 사진첩(thumb→view)과 로딩 전략이 반대다.
+ */
+export const BULLETIN_MAX_EDGE = 2048;
 
 const VIEW_QUALITY = 0.82;
 const THUMB_QUALITY = 0.75;
@@ -89,22 +96,21 @@ async function drawToBlob(
 }
 
 /**
- * 파일 하나를 업로드용 2종(2560/640)으로 만든다.
+ * 파일을 디코딩한다.
  *
  * ⚠️ **회전은 EXIF 파서가 아니라 `imageOrientation: "from-image"`가 처리한다.**
  * 이걸 빼면 세로로 찍은 사진이 눕는다 — canvas에 그리는 순간 EXIF 회전
  * 정보가 사라지기 때문이다.
  *
- * @throws {ResizeError} 디코딩 불가(HEIC 등)·변환 실패
+ * @throws {ResizeError} 이미지가 아니거나 브라우저가 디코딩하지 못하는 형식
  */
-export async function resizeForUpload(file: File): Promise<ResizedPhoto> {
+async function decode(file: File): Promise<ImageBitmap> {
   if (!file.type.startsWith("image/")) {
     throw new ResizeError("이미지 파일이 아닙니다.", file.name);
   }
 
-  let bitmap: ImageBitmap;
   try {
-    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    return await createImageBitmap(file, { imageOrientation: "from-image" });
   } catch {
     // HEIC/HEIF가 대표적이다 — Safari 외 브라우저는 디코딩하지 못한다
     throw new ResizeError(
@@ -112,6 +118,42 @@ export async function resizeForUpload(file: File): Promise<ResizedPhoto> {
       file.name,
     );
   }
+}
+
+/**
+ * 장변을 `maxEdge`로 맞춘 WebP 하나를 만든다 (주보 업로드 등 1종만 필요할 때).
+ *
+ * 사진첩은 2종이 필요하므로 `resizeForUpload`를 쓴다 — 디코딩을 두 번 하지
+ * 않기 위해 함수가 나뉘어 있다.
+ *
+ * @throws {ResizeError} 디코딩 불가·변환 실패
+ */
+export async function resizeToWebp(
+  file: File,
+  maxEdge: number,
+  quality = VIEW_QUALITY,
+): Promise<{ blob: Blob; width: number; height: number }> {
+  const bitmap = await decode(file);
+  try {
+    const size = fit(bitmap.width, bitmap.height, maxEdge);
+    return { blob: await drawToBlob(bitmap, size, quality), ...size };
+  } catch (error) {
+    throw new ResizeError(
+      error instanceof Error ? error.message : "이미지를 변환하지 못했습니다.",
+      file.name,
+    );
+  } finally {
+    bitmap.close();
+  }
+}
+
+/**
+ * 파일 하나를 사진 업로드용 2종(2560/640)으로 만든다.
+ *
+ * @throws {ResizeError} 디코딩 불가(HEIC 등)·변환 실패
+ */
+export async function resizeForUpload(file: File): Promise<ResizedPhoto> {
+  const bitmap = await decode(file);
 
   try {
     const viewSize = fit(bitmap.width, bitmap.height, VIEW_MAX_EDGE);
