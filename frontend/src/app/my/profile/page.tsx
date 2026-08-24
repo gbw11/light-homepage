@@ -25,7 +25,7 @@ function ProfileContent() {
 
   return (
     <main>
-      <Section title="내 정보">
+      <Section title="내 정보" titleAs="h1">
         <div className="mx-auto w-full max-w-md space-y-10">
           <ProfileInfo user={user} onUpdated={refetch} />
 

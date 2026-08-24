@@ -20,7 +20,7 @@ export default function PendingPage() {
           <p className="text-5xl" aria-hidden="true">
             ⏳
           </p>
-          <p className="text-xl font-bold">가입 신청이 접수되었습니다</p>
+          <h1 className="text-xl font-bold">가입 신청이 접수되었습니다</h1>
           <p className="leading-relaxed text-[var(--color-gray-400)]">
             관리자 확인 후 이용하실 수 있습니다. 보통 하루 안에 처리됩니다.
           </p>

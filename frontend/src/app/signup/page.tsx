@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function SignupPage() {
   return (
     <main>
-      <Section title="회원가입">
+      <Section title="회원가입" titleAs="h1">
         <SignupForm />
       </Section>
     </main>

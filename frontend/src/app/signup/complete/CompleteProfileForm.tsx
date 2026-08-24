@@ -109,7 +109,7 @@ export function CompleteProfileForm() {
       onSubmit={handleSubmit((values) => mutation.mutate(toCompleteProfileInput(values)))}
     >
       <div>
-        <p className="text-xl font-bold">거의 다 됐어요</p>
+        <h1 className="text-xl font-bold">거의 다 됐어요</h1>
         <p className="mt-2 text-base text-[var(--color-gray-400)]">
           승인을 위해 아래 정보가 필요합니다
         </p>

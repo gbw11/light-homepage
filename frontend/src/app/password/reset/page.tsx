@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function PasswordResetPage() {
   return (
     <main>
-      <Section title="새 비밀번호 설정">
+      <Section title="새 비밀번호 설정" titleAs="h1">
         <Suspense fallback={null}>
           <ResetForm />
         </Suspense>
