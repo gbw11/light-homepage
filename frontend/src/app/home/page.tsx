@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 
@@ -33,8 +34,30 @@ const CTA_SECONDARY =
   "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-white/10 px-6 text-base font-bold text-white ring-1 ring-inset ring-white/40 transition hover:bg-white/20";
 
 /**
+ * 공개 페이지에 쓸 수 있는 실사진 3장.
+ * `public/photos/retreat-2026/`의 47장은 얼굴이 식별되므로 회원 전용이고,
+ * 공개 페이지에는 얼굴 비식별(실루엣·뒷모습·군중) 사진 3장만 쓴다.
+ * 근거: docs/DECISIONS.md "수련회 실사진 공개 페이지 적용 범위", docs/PLAN.md §4.7.
+ * 원본이 모두 16:9라서 컨테이너도 16:9로 맞춘다 — 크롭으로 특정 인물이
+ * 확대되는 일을 막기 위한 의도적 선택이다.
+ */
+const GALLERY = [
+  {
+    src: "/images/worship-wide.webp",
+    alt: "불이 켜진 스크린을 향해 두 손을 들고 찬양하는 청년들",
+  },
+  {
+    src: "/images/gathering.webp",
+    alt: "드림센터 4층 예배실에 함께 모여 있는 청년교회 공동체",
+  },
+  {
+    src: "/images/worship-hero.webp",
+    alt: "어두운 예배 공간에서 손을 들어 찬양하는 청년들의 실루엣",
+  },
+];
+
+/**
  * WIREFRAME.md §1 — HOME.
- * 실사진 확보 전까지 Hero는 딥네이비 단색 + 워드마크로 대체 (기획 문서 명시).
  * Hero 원칙: 모바일에서 스크롤 없이 예배 시간 + 장소 + CTA 2개가 모두 보여야 한다.
  */
 export default function Home() {
@@ -68,11 +91,19 @@ export default function Home() {
             </div>
           </div>
 
-          <figure
-            aria-hidden
-            className="flex aspect-[4/3] items-center justify-center rounded-[var(--radius-card)] bg-white/5 text-sm text-white/40 md:aspect-auto md:h-full"
-          >
-            청년부 사진 (준비 중)
+          {/* Hero 이미지: above the fold(LCP 대상)이므로 즉시 로드.
+              Next 16에서 `priority`는 deprecated → loading="eager" + fetchPriority="high"
+              (node_modules/next/dist/docs .../components/image.md 참고) */}
+          <figure className="relative aspect-video overflow-hidden rounded-[var(--radius-card)] bg-white/5">
+            <Image
+              src="/images/worship-wide.webp"
+              alt="불이 켜진 스크린을 향해 두 손을 들고 찬양하는 청년들"
+              fill
+              loading="eager"
+              fetchPriority="high"
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="object-cover"
+            />
           </figure>
         </div>
       </section>
@@ -104,17 +135,17 @@ export default function Home() {
           이웃을 돕는 청년 공동체
         </p>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <figure
-              key={index}
-              aria-hidden
-              className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]"
-            >
-              사진
-            </figure>
-          ))}
-        </div>
+        {/* 기존 4칸 정사각 placeholder → 공개 가능한 사진이 3장뿐이라
+            같은 사진을 반복하지 않고 공동체 사진 1장(16:9)으로 대체했다. */}
+        <figure className="relative mt-6 aspect-video overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-navy-100)]">
+          <Image
+            src="/images/gathering.webp"
+            alt="드림센터 4층 예배실에 함께 모여 있는 청년교회 공동체"
+            fill
+            sizes="(min-width: 768px) 720px, 100vw"
+            className="object-cover"
+          />
+        </figure>
 
         <Link href="/about" className="mt-6 inline-block text-sm font-bold">
           ▸ 더 알아보기
@@ -161,14 +192,22 @@ export default function Home() {
 
       {/* 함께한 순간들 */}
       <Section title="함께한 순간들">
-        <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, index) => (
+        {/* 갤러리 미리보기. 기존 6칸 placeholder → 공개 가능한 3장으로 축소.
+            모바일에서도 3열 썸네일 스트립을 유지한다 — 세로로 쌓으면 섹션이
+            과도하게 길어지고, 작게 노출되는 편이 초상권 측면에서도 안전하다. */}
+        <div className="grid grid-cols-3 gap-3">
+          {GALLERY.map((photo) => (
             <figure
-              key={index}
-              aria-hidden
-              className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-xs text-[var(--color-gray-400)]"
+              key={photo.src}
+              className="relative aspect-video overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-navy-100)]"
             >
-              사진
+              <Image
+                src={photo.src}
+                alt={photo.alt}
+                fill
+                sizes="33vw"
+                className="object-cover"
+              />
             </figure>
           ))}
         </div>
