@@ -44,7 +44,10 @@ export function MeetingScreen({ meetingId }: { meetingId: string }) {
     if (isApiError(error) && error.code === "NOT_FOUND") {
       return (
         <div className="py-8 text-center">
-          <p className="text-[var(--color-red-500)]">찾을 수 없는 자료입니다.</p>
+          {/* 계속 유지되는 상태이므로 페이지 제목(h1)을 갖는다 */}
+          <h1 className="font-bold text-[var(--color-red-500)]">
+            찾을 수 없는 자료입니다.
+          </h1>
           <p className="mt-4">
             <Link href="/my/meetings" className="font-bold underline">
               목록으로
