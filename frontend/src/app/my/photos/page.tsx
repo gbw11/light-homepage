@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { RequireMember } from "@/components/auth/RequireMember";
 import { Section } from "@/components/ui/Section";
 import { AlbumList } from "./_components/AlbumList";
+import { CreateAlbumSection } from "./_components/CreateAlbumSection";
 
 export const metadata: Metadata = {
   title: "사진첩",
@@ -24,6 +25,9 @@ export default function MyPhotosPage() {
         <h1 className="text-2xl font-bold md:text-3xl">사진첩</h1>
         <div className="mt-8">
           <RequireMember>
+            <div className="mb-8">
+              <CreateAlbumSection />
+            </div>
             <AlbumList />
           </RequireMember>
         </div>
