@@ -36,7 +36,7 @@ const FAQ_ITEMS = [
  */
 export default function WelcomePage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section className="pb-8 md:pb-8">
         <p className="text-sm font-bold text-[var(--color-gray-400)]">
           처음 오시는 분께
@@ -52,14 +52,14 @@ export default function WelcomePage() {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
+          <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
             본당 ↔ 드림센터 약도
           </figure>
-          <figure className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
+          <figure className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
             <span>드림센터 외관 사진</span>
             <span>&quot;이 건물입니다&quot;</span>
           </figure>
-          <figure className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
+          <figure className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
             <span>입구 사진</span>
             <span>&quot;여기로 들어와 4층으로&quot;</span>
           </figure>

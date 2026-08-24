@@ -1,6 +1,7 @@
 import type {
   AlbumInput,
   AlbumSummary,
+  AttachmentUpload,
   AuthUser,
   Bulletin,
   BulletinSummary,
@@ -13,6 +14,7 @@ import type {
   Page,
   PostCategory,
   PostDetail,
+  PostInput,
   PostSummary,
   SignupInput,
 } from "@/types/api";
@@ -31,6 +33,33 @@ export type Api = {
       size?: number;
     }): Promise<Page<PostSummary>>;
     get(idOrSlug: string): Promise<PostDetail>;
+    /** SPEC_API §3.4 — 권한 `L`. `publish: false`면 임시저장 */
+    create(input: PostInput): Promise<{ id: string }>;
+    /** SPEC_API §3.5 — 권한 `L` · 요청 형태는 §3.4와 동일 */
+    update(id: string, input: PostInput): Promise<void>;
+    /** SPEC_API §3.5 — 권한 `L` · 204 (첨부 R2 객체까지 제거) */
+    remove(id: string): Promise<void>;
+  };
+  attachments: {
+    /**
+     * SPEC_API §4.1 — 권한 `L` · `multipart/form-data` (필드명 `file`).
+     *
+     * ⚠️ `Content-Type`을 직접 지정하면 안 된다 — boundary는 브라우저가 붙인다.
+     *    (`real.ts`의 `form` 옵션이 이걸 처리한다.)
+     *
+     * 게시물 저장 시 `attachmentIds`로 연결한다. 연결되지 않은 첨부는
+     * 24시간 후 서버가 정리하므로, 저장에 실패해도 쓰레기가 남지는 않는다.
+     */
+    upload(file: File): Promise<AttachmentUpload>;
+    /**
+     * SPEC_API §4.2 — 다운로드.
+     *
+     * ⚠️ `photos.downloadUrl`과 같은 이유로 **fetch가 아니라 URL을 만든다.**
+     *    서버가 302로 presigned URL(10분)로 보내므로 브라우저가 직접 이동해야
+     *    한다. fetch로 받으면 리다이렉트를 따라가 파일을 메모리에 담게 된다.
+     *    열람 권한은 게시물 권한을 상속하며, 로그아웃 상태면 `UNAUTHORIZED`다.
+     */
+    downloadUrl(attachmentId: string): string;
   };
   newcomers: {
     submit(input: NewcomerSubmission): Promise<{ id: string }>;

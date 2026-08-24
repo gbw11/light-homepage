@@ -17,7 +17,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const inputClass =
-  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base outline-none focus:border-[var(--color-yellow)]";
+  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]";
 
 export function ResetRequestForm() {
   const [submitted, setSubmitted] = useState(false);
@@ -82,19 +82,19 @@ export function ResetRequestForm() {
           {...register("email")}
         />
         {errors.email && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.email.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.email.message}</p>
         )}
       </div>
 
       {errors.root && (
-        <p className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
+        <p role="alert" className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
       )}
 
       <Button type="submit" className="w-full" disabled={mutation.isPending}>
         {mutation.isPending ? "전송 중..." : "재설정 링크 보내기"}
       </Button>
 
-      <Link href="/login" className="block text-center text-sm text-[var(--color-gray-400)]">
+      <Link href="/login" className="flex min-h-11 items-center justify-center text-center text-sm text-[var(--color-gray-400)]">
         ▸ 로그인으로 돌아가기
       </Link>
     </form>

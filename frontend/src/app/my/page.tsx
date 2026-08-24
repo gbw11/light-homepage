@@ -24,7 +24,9 @@ function villageLabel(village: Village): string {
  *
  * 관리 타일(콘텐츠 작성/회의록)은 LEADER·PASTOR에게만 보이는 UI 편의
  * 기능이다 — 실제 인가는 서버가 한다 (RequireMember와 동일 원칙,
- * docs/WORKPLAN.md §5.1). 대상 라우트가 아직 없어 이 타일도 "준비 중"이다.
+ * docs/WORKPLAN.md §5.1). M4에서 두 타일 모두 활성화됐다 — 회의록은 문서
+ * 게시판(`/my/documents` — 회의록·예산안 탭), 콘텐츠 작성은 글 작성 화면
+ * (`/admin/posts/new` — WIREFRAME.md §16).
  */
 export default function MyHomePage() {
   return (
@@ -44,7 +46,7 @@ function MyHomeContent() {
   const isAdmin = user.role === "LEADER" || user.role === "PASTOR";
 
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section>
         <h1 className="text-2xl font-bold md:text-3xl">
           안녕하세요, {user.name}님
@@ -65,8 +67,8 @@ function MyHomeContent() {
               관리 (임원 이상만 표시)
             </h2>
             <div className="grid grid-cols-2 gap-4">
-              <HomeTile icon="✏️" label="콘텐츠 작성" />
-              <HomeTile icon="📋" label="회의록" />
+              <HomeTile icon="✏️" label="콘텐츠 작성" href="/admin/posts/new" />
+              <HomeTile icon="📋" label="회의록" href="/my/documents" />
             </div>
           </div>
         )}

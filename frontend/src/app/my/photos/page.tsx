@@ -20,7 +20,7 @@ export const metadata: Metadata = {
  */
 export default function MyPhotosPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section>
         <h1 className="text-2xl font-bold md:text-3xl">사진첩</h1>
         <div className="mt-8">
