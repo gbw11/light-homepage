@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { api } from "@/lib/api";
 import type { Bulletin } from "@/types/api";
 
 /**
@@ -154,16 +155,50 @@ export function BulletinViewer({ bulletin }: { bulletin: Bulletin }) {
       </div>
 
       <p className="mt-4 font-bold">{bulletinLabel(bulletin.serviceDate)}</p>
+
+      {/*
+        FR-BUL-04 · WIREFRAME §12의 `[ ⬇ 다운로드 ]`.
+
+        **지금 보고 있는 장 하나를 내려받는다.** WIREFRAME §12에는 장 수와
+        무관하게 버튼이 하나뿐이고 바로 위에 페이저(`‹ 1 / 2 ›`)가 있으므로,
+        "현재 장"이 이 버튼의 자연스러운 대상이다. 장마다 버튼을 늘어놓거나
+        전체 묶음(ZIP)을 만드는 쪽은 와이어프레임에 없고, FR-BUL-04이 요구하는
+        "장별 개별 다운로드"도 장을 넘겨 각각 받는 것으로 충족된다.
+
+        ⚠️ `api.bulletins.downloadUrl`은 **[CONTRACT] 미합의 엔드포인트**다
+        (`lib/api/types.ts` 주석 · SPEC_API §5에 다운로드 경로가 없다).
+        `pages[].url`은 열람용이라 `Content-Disposition`이 없어 브라우저가
+        탭에서 열어버리므로 그걸 대신 쓰지 않는다.
+
+        라이트박스(`/my/photos/[id]/_components/Lightbox.tsx`)와 같은 두 가지
+        판단을 그대로 따른다:
+        · fetch가 아니라 **앵커**다 — 실서비스 응답은 302 → R2 presigned(다른
+          오리진)이므로 브라우저가 직접 이동해야 한다. fetch로 받으면
+          리다이렉트를 따라가 파일 전체를 메모리에 담게 된다.
+        · `download`에 **파일명을 주지 않는다** — 크로스 오리진 리다이렉트에서는
+          속성값이 무시되고 서버의 `Content-Disposition`이 이름을 정한다.
+          확장자를 추측해 붙이면 mock에서만 맞다.
+
+        키보드: 앵커는 ←/→ 를 쓰지 않으므로 뷰어의 장 이동 핸들러와 겹치지
+        않는다. Tab 순서는 페이저 → 이 버튼 순으로 화면 순서와 같다.
+      */}
+      <a
+        href={api.bulletins.downloadUrl(bulletin.id, page.pageNo)}
+        download
+        aria-label={`${bulletinLabel(bulletin.serviceDate)} ${page.pageNo}장 다운로드`}
+        className="mt-3 inline-flex min-h-11 items-center justify-center gap-1 rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+      >
+        {/* 1장짜리 주보에서 "이 장"이라고 쓰면 고를 게 있는 것처럼 읽힌다 */}
+        <span aria-hidden="true">⬇</span> {total > 1 ? "이 장 다운로드" : "다운로드"}
+      </a>
+
       {total > 1 && (
-        <p className="mt-1 text-sm text-[var(--color-gray-400)]">
+        <p className="mt-2 text-sm text-[var(--color-gray-400)]">
           좌우로 넘기거나 ← → 키로 장을 이동할 수 있습니다. 확대는 두 손가락으로
-          벌리면 됩니다.
+          벌리면 됩니다. 다운로드는 지금 보고 있는 장({index + 1}/{total})을
+          내려받습니다.
         </p>
       )}
-      {/*
-        WIREFRAME §12의 `[ ⬇ 다운로드 ]`는 FR-BUL-04(장별 개별 다운로드)로
-        별도 단위다. 동작하지 않는 버튼을 미리 두지 않는다.
-      */}
     </div>
   );
 }
