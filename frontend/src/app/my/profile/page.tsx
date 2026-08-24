@@ -5,6 +5,7 @@ import { Section } from "@/components/ui/Section";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { ProfileInfo } from "./_components/ProfileInfo";
 import { PasswordChangeForm } from "./_components/PasswordChangeForm";
+import { AccountActions } from "./_components/AccountActions";
 
 /** WIREFRAME.md §14 우측 — 내 정보 `/my/profile` */
 export default function ProfilePage() {
@@ -31,6 +32,10 @@ function ProfileContent() {
           <hr className="border-[var(--color-navy-100)]" />
 
           <PasswordChangeForm />
+
+          <hr className="border-[var(--color-navy-100)]" />
+
+          <AccountActions />
         </div>
       </Section>
     </main>
