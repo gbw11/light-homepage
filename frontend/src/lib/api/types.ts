@@ -1,9 +1,14 @@
 import type {
+  AuthUser,
+  CompleteProfileInput,
+  LoginInput,
+  LoginResult,
   NewcomerSubmission,
   Page,
   PostCategory,
   PostDetail,
   PostSummary,
+  SignupInput,
 } from "@/types/api";
 
 /**
@@ -23,5 +28,20 @@ export type Api = {
   };
   newcomers: {
     submit(input: NewcomerSubmission): Promise<{ id: string }>;
+  };
+  auth: {
+    signup(input: SignupInput): Promise<{ id: string; role: AuthUser["role"] }>;
+    login(input: LoginInput): Promise<LoginResult>;
+    logout(): Promise<void>;
+    refresh(): Promise<{ refreshed: boolean }>;
+    me(): Promise<AuthUser>;
+    completeProfile(
+      input: CompleteProfileInput,
+    ): Promise<{ profileComplete: boolean; role: AuthUser["role"] }>;
+    passwordResetRequest(input: { email: string }): Promise<void>;
+    passwordResetConfirm(input: { token: string; password: string }): Promise<void>;
+    updateProfile(input: { phone: string }): Promise<AuthUser>;
+    changePassword(input: { currentPassword: string; newPassword: string }): Promise<void>;
+    deleteAccount(input: { password: string }): Promise<void>;
   };
 };
