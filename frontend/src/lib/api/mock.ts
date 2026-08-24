@@ -139,6 +139,47 @@ const NOTICES: PostSummary[] = [
     publishedAt: "2026-08-12T01:00:00Z",
     attachmentCount: 0,
   },
+  // ── 문서 게시판 (FR-DOC) — 임원(`L`) 이상만 열람 가능한 분류 ──
+  {
+    id: "31",
+    category: "MINUTES",
+    title: "8월 정기 임원회의록",
+    slug: "minutes-2026-08",
+    pinned: false,
+    authorName: "박OO",
+    publishedAt: "2026-08-21T01:00:00Z",
+    attachmentCount: 1,
+  },
+  {
+    id: "30",
+    category: "MINUTES",
+    title: "7월 정기 임원회의록",
+    slug: "minutes-2026-07",
+    pinned: false,
+    authorName: "박OO",
+    publishedAt: "2026-07-17T01:00:00Z",
+    attachmentCount: 0,
+  },
+  {
+    id: "33",
+    category: "BUDGET",
+    title: "2026년 하반기 예산안",
+    slug: "budget-2026-h2",
+    pinned: true,
+    authorName: "최OO",
+    publishedAt: "2026-08-19T01:00:00Z",
+    attachmentCount: 1,
+  },
+  {
+    id: "32",
+    category: "BUDGET",
+    title: "2026년 상반기 결산 보고",
+    slug: "budget-2026-h1-report",
+    pinned: false,
+    authorName: "최OO",
+    publishedAt: "2026-07-10T01:00:00Z",
+    attachmentCount: 0,
+  },
 ];
 
 /** `PostSummary`에 상세 조회용 `body`/`attachments`만 덧붙인 것 — 목록과 동일 소스를 공유한다 */
@@ -369,6 +410,96 @@ const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "at
     updatedAt: "2026-08-12T01:00:00Z",
     attachments: [],
   },
+  "31": {
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "일시: 2026년 8월 21일 20:00 · 장소: 청년부실 · 참석 7명" }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "1. 여름 수련회 결산 보고 — 참가비 잔액은 가을 전도축제 예산으로 이월하기로 결의했습니다." }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "2. 마을 재편성 — 9월 첫 주에 새가족 3명을 각 마을에 배정합니다." }],
+        },
+      ],
+    },
+    updatedAt: "2026-08-22T05:00:00Z",
+    attachments: [
+      {
+        id: "31",
+        filename: "2026-08_임원회의록.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 189440,
+      },
+    ],
+  },
+  "30": {
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "일시: 2026년 7월 17일 20:00 · 장소: 청년부실 · 참석 6명" }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "1. 수련회 준비 상황 점검 — 숙소 계약 완료, 차량 2대 확보." }],
+        },
+      ],
+    },
+    updatedAt: "2026-07-17T13:00:00Z",
+    attachments: [],
+  },
+  "33": {
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "2026년 하반기(7~12월) 청년교회 예산안입니다." }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "총 수입 8,400,000원 · 총 지출 8,150,000원 · 예비비 250,000원." }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "세부 항목은 첨부된 파일을 확인해 주세요. 문의는 회계 담당 임원에게 부탁드립니다." }],
+        },
+      ],
+    },
+    updatedAt: "2026-08-19T02:00:00Z",
+    attachments: [
+      {
+        id: "33",
+        filename: "예산안_2026_하반기.xlsx",
+        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        sizeBytes: 43008,
+      },
+    ],
+  },
+  "32": {
+    body: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "2026년 상반기(1~6월) 결산 보고입니다." }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "집행률 96% · 잔액 320,000원은 하반기 예비비로 이월했습니다." }],
+        },
+      ],
+    },
+    updatedAt: "2026-07-10T02:00:00Z",
+    attachments: [],
+  },
 };
 
 // ── 사진첩 mock (SPEC_API §6) ──────────────────────────────
@@ -525,6 +656,16 @@ const MOCK_USERS: Record<string, AuthUser> = {
     role: "LEADER",
     profileComplete: true,
     approvedAt: "2026-01-05T02:11:00Z",
+  },
+  "pastor@example.com": {
+    id: "1",
+    name: "최OO",
+    email: "pastor@example.com",
+    phone: "010-7777-8888",
+    village: "1",
+    role: "PASTOR",
+    profileComplete: true,
+    approvedAt: "2025-03-02T02:11:00Z",
   },
 };
 

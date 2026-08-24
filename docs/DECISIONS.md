@@ -135,8 +135,10 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 - **근거**: `node_modules/next/dist/docs`에 따르면 `priority`는 Next 16.0.0에서
   deprecated이고, 문서가 대부분의 경우 `loading`/`fetchPriority` 사용을 권한다.
   이 저장소의 첫 `next/image` 사용처(공개 페이지 히어로)에서 처음 드러났다
-- **스펙 문서 반영 상태**: `frontend/docs/COMPONENTS.md`에 이미지 규칙이 없다 —
-  후속 작업자가 또 `priority`를 쓸 수 있으니 추가하면 좋다 (이번엔 미반영)
+- **스펙 문서 반영 상태**: ✅ `frontend/docs/COMPONENTS.md` **§6 이미지**에 반영
+  완료. `priority` 금지 외에 `next/image` vs `<img>` 선택 기준(presigned URL은
+  옵티마이저 캐시 미스라 `<img>`), 크기 지정(CLS), `alt` 규칙, **회원 사진을
+  공개 페이지에 쓰지 않는다는 제약**까지 함께 명문화했다
 - **미확정 사항**: 없음
 - **구현**: `frontend/src/app/_components/LandingGate.tsx`, `frontend/src/app/home/page.tsx`
 
