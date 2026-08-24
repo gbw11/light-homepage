@@ -13,6 +13,38 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-08-24 — 기능 완료된 `feat/fe-*` 브랜치는 머지 후 삭제한다
+
+**결정**: `feat/fe-*` 작업 브랜치는 기능 작업이 끝나고 상위 브랜치
+(`frontend_develop`)에 머지되면 **로컬과 GitHub 양쪽에서 삭제**한다.
+브랜치 목록에 완료된 작업이 계속 쌓이면 지금 진행 중인 작업이 무엇인지
+한눈에 안 보인다.
+
+- **영역**: 협업·Git 운영 규칙 (프론트엔드 브랜치에 한정)
+- **스펙 문서 반영 상태**: `docs/INTEGRATION.md` §6(브랜치 전략)에 삭제
+  시점이 명시돼 있지 않다 — 이 항목이 그 공백을 메운다. `INTEGRATION.md`
+  정식 반영은 아직 안 했다
+- **삭제 전 확인 절차** (이번에 실제로 적용한 순서):
+  1. 해당 브랜치가 상위 브랜치에 **완전히 병합됐는지** `git merge-base
+     --is-ancestor`로 검증한다
+  2. 로컬은 `git branch -d`(안전 삭제)를 쓴다 — 미병합이면 git이 거부하므로
+     실수 방지가 된다. `-D`(강제)는 고유 커밋이 0개임을 따로 확인한
+     경우에만 쓴다
+  3. 원격은 `git push origin --delete`로 지운다
+- **적용 범위 주의**: `feat/infra-*`는 서버·인프라 담당 영역이므로 FE가
+  임의로 지우지 않는다. `main`·`develop`·`*_develop`은 영구 브랜치로 삭제
+  대상이 아니다
+- **연관 주의사항**: GitHub 저장소 설정 "Automatically delete head branches"는
+  **계속 꺼둔다.** `frontend_develop` 같은 영구 브랜치가 PR head가 될 때
+  자동 삭제되는 사고가 이전에 실제로 발생했다 (`docs/CICD.md` §4 관련)
+- **미확정 사항**: 없음
+- **구현**: 2026-08-24 M1·M2 완료 시점에 `feat/fe-*` 19개 삭제
+  (`feat/fe-auth-core`, `feat/fe-signup-followup`, `feat/fe-password-reset`,
+  `feat/fe-my-home`, `feat/fe-internal-notices`, `feat/fe-my-profile` +
+  M1 시절 13개)
+
+---
+
 ## 2026-08-21 — 디자인 톤: 베이지 + 그린 (로고가 나뭇잎이라서)
 
 **결정**: 전체 디자인 톤을 베이지(배경) + 그린(강조색)으로 바꾼다. 기존
