@@ -3,7 +3,7 @@ import { Section } from "@/components/ui/Section";
 import { SignupForm } from "./SignupForm";
 
 export const metadata: Metadata = {
-  title: "회원가입 | LIGHT",
+  title: "회원가입",
   description: "LIGHT 이메일 회원가입.",
 };
 

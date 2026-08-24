@@ -3,7 +3,7 @@ import { Section } from "@/components/ui/Section";
 import { Button } from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: "말씀 | LIGHT",
+  title: "말씀",
   description: "LIGHT 청년교회 YouTube 채널의 설교 영상 목록입니다.",
 };
 

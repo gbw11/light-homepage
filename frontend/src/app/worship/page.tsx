@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 
 export const metadata: Metadata = {
-  title: "예배와 모임 | LIGHT",
+  title: "예배와 모임",
   description:
     "청년예배(주일 14:00 · 드림센터 4층), 마을모임(예배 후 15:30~16:00), 그 외 모임 안내.",
 };
