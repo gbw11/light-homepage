@@ -5,6 +5,7 @@ import type {
   AttachmentUpload,
   AuthUser,
   Bulletin,
+  BulletinInput,
   BulletinSummary,
   CompleteProfileInput,
   Cursor,
@@ -202,6 +203,19 @@ export type Api = {
      * 합의 전까지 FE는 이 경로를 가리키기만 하므로, 백엔드가 다른 경로를
      * 택하면 이 함수 한 곳만 바꾸면 된다.
      */
+    /**
+     * SPEC_API §5.4 — 권한 `L` · `multipart/form-data`.
+     *
+     * ⚠️ **사진첩과 전송 경로가 다르다.** 주보는 presigned PUT이 아니라
+     * **Spring을 통과**한다 (페이지가 2~4장이라 서버를 거치는 비용이 문제가
+     * 아니고, 순서를 한 요청 안에서 확정하는 편이 안전하다).
+     *
+     * 실패: 같은 날짜가 이미 있으면 `DUPLICATE` — **교체 여부를 화면이 물어본
+     * 뒤 다시 요청한다** (§5.4). 용량 초과는 `STORAGE_LIMIT`.
+     */
+    create(input: BulletinInput): Promise<{ id: string; pageCount: number }>;
+    /** SPEC_API §5.5 — 권한 `L` · `204`. ⚠️ R2 객체까지 삭제한다 */
+    remove(id: string): Promise<void>;
     downloadUrl(id: string, pageNo: number): string;
   };
   /**
