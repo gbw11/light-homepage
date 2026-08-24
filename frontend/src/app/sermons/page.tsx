@@ -81,7 +81,7 @@ export default function SermonsPage() {
                 rel="noreferrer"
                 className="block rounded-[var(--radius-card)] transition hover:opacity-90"
               >
-                <div className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
+                <div className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
                   썸네일 (16:9)
                 </div>
                 <p className="mt-3 font-bold">{sermon.title}</p>

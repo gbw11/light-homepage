@@ -55,7 +55,7 @@ export default function AboutPage() {
         <p className="text-base">
           하나님 안에 사는 것 — 예배와 말씀으로 세워집니다.
         </p>
-        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
+        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
           예배 사진
         </figure>
       </Section>
@@ -64,7 +64,7 @@ export default function AboutPage() {
         <p className="text-base">
           이웃을 돕는 것 — 마을과 섬김으로 함께합니다.
         </p>
-        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
+        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
           공동체 사진
         </figure>
       </Section>
@@ -73,7 +73,7 @@ export default function AboutPage() {
         <div className="grid gap-4 md:grid-cols-4">
           {SERVING_LEADERS.map((person) => (
             <div key={person.role} className="flex flex-col gap-2">
-              <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
+              <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
                 ❓
               </figure>
               <p className="font-bold">{person.role}</p>
