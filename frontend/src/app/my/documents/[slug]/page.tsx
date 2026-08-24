@@ -32,7 +32,17 @@ export default async function MyDocumentDetailPage({
   const { slug } = await params;
 
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
+      {/*
+        `h1`은 권한 결과와 무관하게 항상 렌더한다. 글 제목을 `h1`으로 쓰면
+        (a) 권한이 없을 때 페이지에 h1이 사라지고 (b) 제목 자체가 임원 전용
+        정보인데 문서 구조 최상단에 놓이게 된다. 그래서 중립적인 "문서"를
+        쓰고, 글 제목은 `DocumentDetail`에서 `h2`로 렌더한다.
+      */}
+      <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pt-16 md:px-10 md:pt-24">
+        <h1 className="text-2xl font-bold md:text-3xl">문서</h1>
+      </section>
+
       <RequireLeader>
         <DocumentDetail slug={slug} />
       </RequireLeader>
