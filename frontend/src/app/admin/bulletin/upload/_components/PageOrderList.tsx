@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { PendingPage } from "./pages";
 
 /**
@@ -10,7 +11,7 @@ import type { PendingPage } from "./pages";
  *
  * 와이어프레임은 드래그(`↕ 끌어서 순서 변경`)를 그렸지만, **드래그만으로는
  * 키보드·스크린리더 사용자가 순서를 바꿀 수 없다.** 그래서 [위로]/[아래로]
- * 버튼을 1차 수단으로 두고, 드래그는 그 위에 얹는다 (다음 단위).
+ * 버튼을 1차 수단으로 두고, 드래그는 그 위에 얹었다.
  */
 export function PageOrderList({
   pages,
@@ -21,13 +22,51 @@ export function PageOrderList({
   onMove: (from: number, to: number) => void;
   onRemove: (id: string) => void;
 }) {
+  /** 끌고 있는 항목의 인덱스 — 드래그 중이 아니면 null */
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
   return (
     <>
       <ol className="mt-4 divide-y divide-[var(--color-navy-100)] rounded-[var(--radius-card)] border border-[var(--color-navy-100)]">
         {pages.map((page, index) => (
-          <li key={page.id} className="flex items-center gap-3 p-3">
+          <li
+            key={page.id}
+            /*
+              드래그는 ↑↓ 버튼 위에 얹은 **보조 수단**이다 (마우스 사용자에게
+              2~4장 순서 맞추기가 훨씬 빠르다). 키보드로는 여전히 버튼을 쓴다.
+            */
+            draggable
+            onDragStart={(event) => {
+              setDragIndex(index);
+              // 데이터를 넣지 않으면 Firefox가 드래그를 시작하지 않는다
+              event.dataTransfer.setData("text/plain", page.id);
+              event.dataTransfer.effectAllowed = "move";
+            }}
+            onDragOver={(event) => {
+              // preventDefault를 하지 않으면 drop 이벤트가 아예 오지 않는다
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              if (dragIndex !== null) onMove(dragIndex, index);
+              setDragIndex(null);
+            }}
+            onDragEnd={() => setDragIndex(null)}
+            className={`flex items-center gap-3 p-3 ${
+              dragIndex === index ? "opacity-40" : ""
+            }`}
+          >
             <span className="w-5 shrink-0 text-sm font-bold text-[var(--color-gray-400)]">
               {index + 1}
+            </span>
+
+            {/*
+              드래그 손잡이 표시. 실제 드래그는 행 전체가 받으므로 이건 순수
+              장식이다 — 스크린리더에는 읽히지 않게 한다 (↑↓ 버튼이 그 역할).
+            */}
+            <span aria-hidden className="shrink-0 cursor-move text-[var(--color-gray-400)]">
+              ↕
             </span>
 
             {/*
@@ -69,7 +108,7 @@ export function PageOrderList({
       </ol>
 
       <p className="mt-2 text-sm text-[var(--color-gray-400)]">
-        위 순서가 그대로 페이지 번호가 됩니다. ↑↓ 버튼으로 바꿀 수 있습니다.
+        위 순서가 그대로 페이지 번호가 됩니다. ↑↓ 버튼이나 끌어서 바꿀 수 있습니다.
       </p>
     </>
   );
