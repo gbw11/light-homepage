@@ -4,6 +4,7 @@ import type {
   CompleteProfileInput,
   LoginInput,
   NewcomerSubmission,
+  PostInput,
   SignupInput,
 } from "@/types/api";
 import { ApiError } from "./error";
@@ -71,12 +72,24 @@ function buildUrl(path: string, qs: string): string {
   return origin ? `${origin.replace(/\/$/, "")}${rel}` : rel;
 }
 
+type RequestOptions = RequestInit & {
+  query?: Record<string, string | number | undefined>;
+  /**
+   * `multipart/form-data` 전송 (첨부 업로드, SPEC_API §4.1).
+   *
+   * ⚠️ **값이 아니라 팩토리를 받는다.** 이유가 두 개다:
+   *   ① `Content-Type`을 우리가 붙이면 안 된다 — boundary는 브라우저가
+   *      생성한다. 그래서 이 옵션이 있을 때만 기본 JSON 헤더를 뺀다.
+   *   ② `request()`는 401 후 리프레시하고 **같은 init으로 재시도**한다.
+   *      body를 미리 만들어 넘기면 두 번째 fetch가 이미 소비된 body를
+   *      보내게 된다. 시도마다 팩토리를 호출해 새 FormData를 만든다.
+   */
+  form?: () => FormData;
+};
+
 /** 리프레시 재시도가 없는 순수 fetch 1회 */
-async function rawRequest<T>(
-  path: string,
-  init?: RequestInit & { query?: Record<string, string | number | undefined> },
-): Promise<T> {
-  const { query, ...rest } = init ?? {};
+async function rawRequest<T>(path: string, init?: RequestOptions): Promise<T> {
+  const { query, form, ...rest } = init ?? {};
 
   const search = new URLSearchParams();
   for (const [k, v] of Object.entries(query ?? {})) {
@@ -86,7 +99,9 @@ async function rawRequest<T>(
 
   const res = await fetch(buildUrl(path, qs), {
     ...rest,
-    headers: { "Content-Type": "application/json", ...rest.headers },
+    ...(form ? { body: form() } : null),
+    // multipart일 때는 헤더를 비워 브라우저가 boundary까지 채운 값을 넣게 한다
+    headers: form ? { ...rest.headers } : { "Content-Type": "application/json", ...rest.headers },
   });
 
   // 204는 본문이 없다 (logout·reset-request 등, SPEC_API §2) — json() 파싱을 시도하지 않는다
@@ -121,10 +136,7 @@ async function rawRequest<T>(
  *
  * 재시도는 **정확히 1회**다. 재시도한 요청이 또 401이면 그대로 던진다.
  */
-async function request<T>(
-  path: string,
-  init?: RequestInit & { query?: Record<string, string | number | undefined> },
-): Promise<T> {
+async function request<T>(path: string, init?: RequestOptions): Promise<T> {
   try {
     return await rawRequest<T>(path, init);
   } catch (error) {
@@ -153,6 +165,28 @@ export const realApi: Api = {
     list: ({ category, page = 0, size = 20 }) =>
       request("/posts", { query: { category, page, size } }),
     get: (idOrSlug) => request(`/posts/${encodeURIComponent(idOrSlug)}`),
+    create: (input: PostInput) =>
+      request("/posts", { method: "POST", body: JSON.stringify(input) }),
+    update: (id, input: PostInput) =>
+      request(`/posts/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }),
+    remove: (id) => request(`/posts/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  },
+  attachments: {
+    upload: (file) =>
+      request("/attachments", {
+        method: "POST",
+        // 시도마다 새 FormData — 리프레시 재시도가 소비된 body를 보내지 않게 한다
+        form: () => {
+          const fd = new FormData();
+          fd.append("file", file);
+          return fd;
+        },
+      }),
+    // 302 → presigned(10분) — 브라우저가 따라가야 한다 (SPEC_API §4.2)
+    downloadUrl: (attachmentId) => `/api/files/${encodeURIComponent(attachmentId)}`,
   },
   newcomers: {
     submit: (input: NewcomerSubmission) =>
