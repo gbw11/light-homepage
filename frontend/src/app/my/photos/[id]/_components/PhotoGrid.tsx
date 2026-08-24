@@ -6,6 +6,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import type { Photo } from "@/types/api";
+import { AlbumDangerZone } from "./AlbumDangerZone";
 import { Lightbox } from "./Lightbox";
 import { MAX_ZIP_PHOTOS, SelectionBar } from "./SelectionBar";
 
@@ -82,6 +83,14 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
 
   /** 라이트박스로 열린 사진의 인덱스 — 닫혀 있으면 null (WIREFRAME §13-4) */
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  /**
+   * 사진 삭제 결과 안내 (FR-PHO-09). 라이트박스가 닫히면서 사라지므로
+   * 결과는 목록 화면이 들고 있어야 한다 — 안 그러면 삭제 후 아무 일도 없었던
+   * 것처럼 보인다. mock의 no-op 안내도 이 문구에 실려 온다
+   * (`PhotoDeletePanel` 상단 주석).
+   */
+  const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
 
   /**
    * 선택 모드 (WIREFRAME §13-3, FR-PHO-05).
@@ -164,6 +173,29 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
           )}
         </div>
       </section>
+
+      {/*
+        `role="status"`(암시적 aria-live) — 삭제 결과는 스크린리더에도 전달돼야
+        한다. 되돌릴 수 없는 동작의 결과를 조용히 넘기지 않는다.
+      */}
+      {deleteNotice && (
+        <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pt-6 md:px-10">
+          <div
+            role="status"
+            className="flex items-start justify-between gap-3 rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-4"
+          >
+            <p className="text-sm leading-relaxed">{deleteNotice}</p>
+            <button
+              type="button"
+              onClick={() => setDeleteNotice(null)}
+              aria-label="삭제 결과 안내 닫기"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl hover:bg-[var(--color-navy-100)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]"
+            >
+              ✕
+            </button>
+          </div>
+        </section>
+      )}
 
       <Section className="pt-8">
         {photosQuery.isLoading ? (
@@ -248,6 +280,20 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
       </Section>
 
       {/*
+        FR-PHO-09 — 앨범 삭제는 그리드 **아래**에 둔다 (컴포넌트 주석 참고).
+        · 선택 모드에서는 감춘다: 지금은 "다운로드할 사진을 고르는 중"이고,
+          하단 고정 바 근처에 파괴적 버튼을 같이 띄우면 오탭 위험만 만든다.
+        · 제목을 모르면(목록 조회 실패) 타이핑 확인을 할 수 없으므로 렌더하지 않는다.
+      */}
+      {!notFound && !selectMode && album && (
+        <AlbumDangerZone
+          albumId={albumId}
+          title={album.title}
+          photoCount={album.photoCount}
+        />
+      )}
+
+      {/*
         하단 고정 바가 마지막 줄을 덮지 않도록 여백을 준다. 안내 문구가
         두세 줄로 늘어날 수 있어(제한·mock 안내) 바 최대 높이 기준으로 잡는다.
       */}
@@ -264,12 +310,14 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
 
       {openIndex !== null && (
         <Lightbox
+          albumId={albumId}
           photos={photos}
           totalCount={album?.photoCount}
           index={openIndex}
           onIndexChange={setOpenIndex}
           onClose={() => setOpenIndex(null)}
           onReachEnd={loadMore}
+          onPhotoDeleted={setDeleteNotice}
         />
       )}
     </>
