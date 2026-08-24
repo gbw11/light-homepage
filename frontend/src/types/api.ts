@@ -143,6 +143,36 @@ export type CompleteProfileInput = {
   agreed: boolean;
 };
 
+// ── 사진첩 (SPEC_API §6) ───────────────────────────────────
+/** 앨범 목록 항목 (SPEC_API §6.1) */
+export type AlbumSummary = {
+  id: string;
+  title: string;
+  /** LocalDate — `YYYY-MM-DD` */
+  eventDate: string;
+  photoCount: number;
+  /** presigned URL. 사진이 없는 앨범은 null */
+  coverThumbUrl: string | null;
+};
+
+/** 앨범 사진 (SPEC_API §6.4) — 커서 페이징으로 받는다 */
+export type Photo = {
+  id: string;
+  /** 640px. **그리드는 이것만 쓴다** */
+  thumbUrl: string;
+  /** 확대·다운로드용 */
+  viewUrl: string;
+  width: number;
+  height: number;
+  /** ISO-8601 UTC. EXIF가 없으면 null */
+  takenAt: string | null;
+};
+
+export type AlbumInput = {
+  title: string;
+  eventDate: string;
+};
+
 // ── 새가족 등록 (SPEC_API §9.1) ────────────────────────────
 export type Gender = "MALE" | "FEMALE";
 export type AgeGroup = "EARLY_20S" | "LATE_20S" | "EARLY_30S" | "LATE_30S";

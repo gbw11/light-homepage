@@ -1,6 +1,10 @@
 import type {
+  AlbumInput,
+  AlbumSummary,
   AuthUser,
   CompleteProfileInput,
+  Cursor,
+  Photo,
   LoginInput,
   LoginResult,
   NewcomerSubmission,
@@ -28,6 +32,21 @@ export type Api = {
   };
   newcomers: {
     submit(input: NewcomerSubmission): Promise<{ id: string }>;
+  };
+  albums: {
+    /** SPEC_API §6.1 — 권한 `M` */
+    list(params?: { page?: number; size?: number }): Promise<Page<AlbumSummary>>;
+    /** SPEC_API §6.2 — 권한 `L` */
+    create(input: AlbumInput): Promise<{ id: string }>;
+    /** SPEC_API §6.4 — 권한 `M` · **커서** 페이징 (수백 장 스크롤) */
+    photos(
+      albumId: string,
+      params?: { cursor?: string; size?: number },
+    ): Promise<Cursor<Photo>>;
+  };
+  photos: {
+    /** SPEC_API §6.10 — 초상권 대응 신고·삭제 요청. 권한 `M` */
+    report(photoId: string, input: { reason: string }): Promise<void>;
   };
   auth: {
     signup(input: SignupInput): Promise<{ id: string; role: AuthUser["role"] }>;
