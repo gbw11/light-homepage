@@ -1,0 +1,97 @@
+"use client";
+
+import type { QueueItem, QueueItemStatus } from "./queue";
+
+/** 상태별 표시. 아이콘만으로 구분하지 않는다 — 색·모양은 보조 수단이다 */
+const STATUS_LABEL: Record<QueueItemStatus, string> = {
+  PREPARING: "준비 중",
+  SKIPPED: "건너뜀",
+  READY: "대기",
+  UPLOADING: "올리는 중",
+  DONE: "완료",
+  FAILED: "실패",
+};
+
+const STATUS_CLASS: Record<QueueItemStatus, string> = {
+  PREPARING: "text-[var(--color-gray-400)]",
+  SKIPPED: "text-[var(--color-gray-400)]",
+  READY: "text-[var(--color-gray-400)]",
+  UPLOADING: "text-[var(--color-navy-900)] font-bold",
+  DONE: "text-[var(--color-navy-900)] font-bold",
+  FAILED: "text-[var(--color-red-500)] font-bold",
+};
+
+/**
+ * WIREFRAME.md §18 — 전체/완료/실패 카운트 + 진행률 + 항목별 상태.
+ *
+ * ⚠️ **항목별 상태를 반드시 보여준다.** 전체 진행률만 있으면 243장 중 2장이
+ * 실패했을 때 어느 파일인지 알 수 없어 전체 재업로드밖에 방법이 없어진다
+ * (FR-PHO-08).
+ */
+export function UploadQueueList({ items }: { items: readonly QueueItem[] }) {
+  const total = items.length;
+  const done = items.filter((item) => item.status === "DONE").length;
+  const failed = items.filter((item) => item.status === "FAILED").length;
+  const skipped = items.filter((item) => item.status === "SKIPPED").length;
+
+  // 건너뛴 파일은 올릴 수 없으므로 분모에서 뺀다 — 그러지 않으면 진행률이
+  // 100%에 닿지 못해 "끝났는데 안 끝난" 화면이 된다.
+  const uploadable = total - skipped;
+  const percent = uploadable === 0 ? 0 : Math.round((done / uploadable) * 100);
+
+  return (
+    <div className="mt-8">
+      {/*
+        진행 상황은 스크린리더에도 전달돼야 한다. 다만 `assertive`로 두면 장마다
+        읽기를 끊어버리므로 `polite`로 둔다.
+      */}
+      <p aria-live="polite" className="text-sm font-bold">
+        전체 {total}장 · 완료 {done} · 실패 {failed}
+        {skipped > 0 && ` · 건너뜀 ${skipped}`}
+      </p>
+
+      <div
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="업로드 진행률"
+        className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--color-navy-100)]"
+      >
+        <div
+          className="h-full bg-[var(--color-yellow)] transition-[width]"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <p className="mt-1 text-sm text-[var(--color-gray-400)]">{percent}%</p>
+
+      <ul className="mt-5 divide-y divide-[var(--color-navy-100)] rounded-[var(--radius-card)] border border-[var(--color-navy-100)]">
+        {items.map((item) => (
+          <li key={item.clientId} className="flex items-center gap-3 px-4 py-3">
+            <span className="min-w-0 flex-1 truncate text-sm" title={item.fileName}>
+              {item.fileName}
+            </span>
+            <span className={`shrink-0 text-sm ${STATUS_CLASS[item.status]}`}>
+              {item.status === "UPLOADING"
+                ? `${item.progress}%`
+                : STATUS_LABEL[item.status]}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {/* 건너뛴 파일은 이유를 알려줘야 사용자가 조치할 수 있다 (JPG로 재저장 등) */}
+      {items.some((item) => item.status === "SKIPPED" || item.status === "FAILED") && (
+        <ul className="mt-3 space-y-1 text-sm text-[var(--color-red-500)]">
+          {items
+            .filter((item) => item.error)
+            .map((item) => (
+              <li key={`error-${item.clientId}`}>
+                {item.fileName} — {item.error}
+              </li>
+            ))}
+        </ul>
+      )}
+    </div>
+  );
+}
