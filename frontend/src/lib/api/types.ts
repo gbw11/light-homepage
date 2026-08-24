@@ -1,4 +1,5 @@
 import type {
+  AdminMember,
   AlbumInput,
   AlbumSummary,
   AttachmentUpload,
@@ -7,7 +8,12 @@ import type {
   BulletinSummary,
   CompleteProfileInput,
   Cursor,
+  MeetingDetail,
+  MeetingSummary,
+  NewcomerRecord,
   Photo,
+  Role,
+  StorageUsage,
   LoginInput,
   LoginResult,
   NewcomerSubmission,
@@ -94,6 +100,44 @@ export type Api = {
      *    이동해야 한다. fetch로 받으면 리다이렉트를 따라가 메모리에 담게 된다.
      */
     downloadUrl(photoId: string): string;
+  };
+  meetings: {
+    /** SPEC_API §7.1 — 권한 `M`. 종료된 자료도 목록에는 남는다 */
+    list(params?: { page?: number; size?: number }): Promise<Page<MeetingSummary>>;
+    /** SPEC_API §7.2 — 권한 `M`. 기간 외면 `FORBIDDEN` + `viewReason` */
+    get(id: string): Promise<MeetingDetail>;
+    /**
+     * SPEC_API §7.3 — 페이지 이미지 **URL을 만든다** (fetch가 아니다).
+     *
+     * ⚠️ 응답이 이미지 바이너리이고 **워터마크를 서버가 합성**한다.
+     *    presigned URL이 아니라 이 엔드포인트를 `<img src>`로 직접 가리켜야 한다 —
+     *    URL을 저장·공유할 수 없게 하는 것이 이 설계의 목적이다.
+     *    `Cache-Control: no-store`이므로 캐시에도 남지 않는다.
+     */
+    pageUrl(id: string, pageNo: number): string;
+  };
+  admin: {
+    /** SPEC_API §8.1 — 권한 **`T`** */
+    members(params?: {
+      status?: "PENDING" | "ALL";
+      q?: string;
+      page?: number;
+      size?: number;
+    }): Promise<Page<AdminMember>>;
+    /** SPEC_API §8.2 — 권한 **`T`** */
+    approveMember(id: string): Promise<void>;
+    /** SPEC_API §8.3 — 권한 **`T`** */
+    rejectMember(id: string, input: { reason: string }): Promise<void>;
+    /**
+     * SPEC_API §8.4 — 권한 **`T`**.
+     * ⚠️ 마지막 `PASTOR`를 강등하면 아무도 회원을 승인할 수 없게 되므로
+     *    서버가 `VALIDATION_ERROR`로 거부한다 (FR-ADM-05 자기 잠금 방지).
+     */
+    changeRole(id: string, input: { role: Role }): Promise<void>;
+    /** SPEC_API §8.5 — 권한 `L`. 95% 도달 시 업로드 차단 */
+    storage(): Promise<StorageUsage>;
+    /** SPEC_API §8.6 — 권한 `L`. ⚠️ 개인정보, 보유기간 1년 */
+    newcomers(params?: { page?: number; size?: number }): Promise<Page<NewcomerRecord>>;
   };
   bulletins: {
     /** SPEC_API §5.1 — 최신 주보. **없으면 null** */
