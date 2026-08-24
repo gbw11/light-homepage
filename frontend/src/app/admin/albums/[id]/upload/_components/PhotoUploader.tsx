@@ -97,6 +97,12 @@ export function PhotoUploader({ albumId }: { albumId: string }) {
           accept="image/*"
           multiple
           className="sr-only"
+          /*
+            탭 순서에서는 뺀다 — 바로 아래 [파일 선택] 버튼이 이 input을
+            클릭하므로, 그냥 두면 키보드 사용자가 보이지 않는 정지점을 한 번
+            더 지나게 된다. 버튼은 실제 `<button>`이라 Enter/Space로 동작한다.
+          */
+          tabIndex={-1}
           onChange={(event) => {
             handleFiles(event.target.files);
             // 같은 파일을 다시 고를 수 있어야 한다 — value를 비우지 않으면

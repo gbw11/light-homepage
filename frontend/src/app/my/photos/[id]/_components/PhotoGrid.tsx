@@ -9,6 +9,7 @@ import type { Photo } from "@/types/api";
 import { AlbumDangerZone } from "./AlbumDangerZone";
 import { Lightbox } from "./Lightbox";
 import { MAX_ZIP_PHOTOS, SelectionBar } from "./SelectionBar";
+import { UploadLink } from "./UploadLink";
 
 /** SPEC_API §6.4 — 커서 페이징 기본 크기 (mock도 20장) */
 const PAGE_SIZE = 20;
@@ -161,16 +162,24 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
             )}
           </div>
 
-          {!notFound && photos.length > 0 && (
-            <button
-              type="button"
-              onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
-              aria-pressed={selectMode}
-              className="shrink-0 rounded-[var(--radius-button)] border border-[var(--color-navy-100)] px-4 py-2 text-sm font-bold hover:bg-[var(--color-navy-100)]"
-            >
-              {selectMode ? "취소" : "선택"}
-            </button>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {/*
+              선택 모드에서는 감춘다 — 선택 중에 다른 화면으로 나가는 링크를 두면
+              고른 사진이 조용히 사라진다.
+            */}
+            {!notFound && !selectMode && <UploadLink albumId={albumId} />}
+
+            {!notFound && photos.length > 0 && (
+              <button
+                type="button"
+                onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+                aria-pressed={selectMode}
+                className="rounded-[var(--radius-button)] border border-[var(--color-navy-100)] px-4 py-2 text-sm font-bold hover:bg-[var(--color-navy-100)]"
+              >
+                {selectMode ? "취소" : "선택"}
+              </button>
+            )}
+          </div>
         </div>
       </section>
 
