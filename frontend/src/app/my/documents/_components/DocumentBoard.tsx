@@ -88,7 +88,7 @@ function DocumentList({ category }: { category: DocumentCategory }) {
     const forbidden = isApiError(error) && error.code === "FORBIDDEN";
     return (
       <Section className="pt-8">
-        <p className="text-[var(--color-red-500)]">
+        <p role="alert" className="text-[var(--color-red-500)]">
           {forbidden
             ? "이 문서를 열람할 권한이 없습니다."
             : isApiError(error)

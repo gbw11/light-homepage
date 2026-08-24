@@ -56,7 +56,7 @@ export function DocumentDetail({ slug }: { slug: string }) {
     const notFound = isApiError(error) && (error.code === "NOT_FOUND" || error.code === "FORBIDDEN");
     return (
       <Section>
-        <p className="text-[var(--color-red-500)]">
+        <p role="alert" className="text-[var(--color-red-500)]">
           {notFound ? "찾을 수 없는 문서입니다." : "문서를 불러오지 못했습니다."}
         </p>
         <BackLink />
@@ -70,7 +70,7 @@ export function DocumentDetail({ slug }: { slug: string }) {
         🔒 {post.pinned && "📌 "}
         {CATEGORY_LABEL[post.category] ?? "문서"}
       </p>
-      <h1 className="mt-2 text-2xl font-bold md:text-3xl">{post.title}</h1>
+      <h2 className="mt-2 text-2xl font-bold md:text-3xl">{post.title}</h2>
       <p className="mt-2 text-sm text-[var(--color-gray-400)]">
         {post.authorName} · {formatDate(post.publishedAt)}
       </p>
