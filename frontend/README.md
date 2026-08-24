@@ -29,11 +29,27 @@ npx create-next-app@latest . \
 npm i @tanstack/react-query react-hook-form zod
 ```
 
-**아직 안 한 것**
-```bash
-npm i -D @serwist/next serwist          # PWA (M4). Next 16 호환 여부 확인 필요
-```
-Pretendard 폰트는 `public/fonts/`에 self-host 후 `next/font/local`로 로드합니다.
+**PWA는 의존성 없이 구현했습니다 (M4)** — Serwist/next-pwa를 쓰지 않습니다.
+캐싱 정책이 성능 편의가 아니라 보안 요구사항(FR-MEM-03)이라, 라이브러리 설정 대신
+직접 읽고 감사할 수 있는 파일로 뒀습니다. 근거는
+[`docs/DECISIONS.md`](../docs/DECISIONS.md) 2026-08-24 "PWA에 의존성을 추가하지 않는다".
+
+| 파일 | 역할 |
+|---|---|
+| `src/app/manifest.ts` | 웹 앱 매니페스트 (`/manifest.webmanifest`) |
+| `public/sw.js` | 서비스워커 — ⚠️ **보안 경계.** 캐시 화이트리스트가 이 파일에 있다 |
+| `src/components/pwa/ServiceWorkerRegistrar.tsx` | 등록. 개발 모드에서는 오히려 해제한다 |
+| `src/components/pwa/InstallBanner.tsx` | `[ 홈 화면에 추가 ]` 배너 (`/my`에서만) |
+| `src/app/offline/` | 오프라인 폴백 페이지 |
+
+> ⚠️ `public/sw.js`를 수정할 때는 파일 상단 주석을 먼저 읽으세요. 회원 사진·주보가
+> 캐시에 남지 않는 것이 요구사항이고, `/_next/image`를 화이트리스트에 넣으면
+> 조용히 깨집니다 (회원 앨범 커버가 그 경로를 씁니다).
+>
+> 서비스워커는 **개발 모드에서 등록되지 않습니다.** 동작 확인은
+> `npm run build && npm run start`로 하세요.
+
+**아직 안 한 것** — Pretendard 폰트는 `public/fonts/`에 self-host 후 `next/font/local`로 로드합니다.
 현재는 시스템 한글 폰트 스택을 쓰고 있습니다 (`src/app/globals.css`).
 
 ---
