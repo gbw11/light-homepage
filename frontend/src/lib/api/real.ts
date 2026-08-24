@@ -1,4 +1,5 @@
 import type {
+  AlbumInput,
   ApiEnvelope,
   CompleteProfileInput,
   LoginInput,
@@ -134,6 +135,20 @@ export const realApi: Api = {
   newcomers: {
     submit: (input: NewcomerSubmission) =>
       request("/newcomers", { method: "POST", body: JSON.stringify(input) }),
+  },
+  albums: {
+    list: ({ page = 0, size = 20 } = {}) => request("/albums", { query: { page, size } }),
+    create: (input: AlbumInput) =>
+      request("/albums", { method: "POST", body: JSON.stringify(input) }),
+    photos: (albumId, { cursor, size = 20 } = {}) =>
+      request(`/albums/${encodeURIComponent(albumId)}/photos`, { query: { cursor, size } }),
+  },
+  photos: {
+    report: (photoId, input) =>
+      request(`/photos/${encodeURIComponent(photoId)}/report`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
   },
   auth: {
     signup: (input: SignupInput) =>
