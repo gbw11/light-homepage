@@ -49,6 +49,32 @@
 
 ---
 
+## 2026-08-24 — M2 내부 공지 mock API — 백엔드가 그대로 구현하면 되는 계약
+
+**상태**: 계약 변경 없음. `docs/SPEC_API.md §3.1/§3.2/§3.3`에 이미 정의된
+`NOTICE_MEMBER` 분류를 프론트 mock(`frontend/src/lib/api/mock.ts`)에
+데이터로 채워 `/my/notices`(내부 공지 통합 목록)를 구현했다.
+
+| 엔드포인트 | 프론트 사용처 | 스펙 |
+|---|---|---|
+| `GET /api/posts?category=NOTICE_MEMBER` | `/my/notices` 통합 목록(공개+내부 병합) | `SPEC_API.md §3.2` |
+| `GET /api/posts/{idOrSlug}` | `/my/notices/[slug]` 상세 (카테고리 무관 동일 사용) | `SPEC_API.md §3.3` |
+
+- **왜 필요한지**: `WIREFRAME.md §14` 내부 공지 화면 — `NOTICE_PUBLIC` +
+  `NOTICE_MEMBER`를 하나의 목록으로 합쳐 최신순 정렬하고, 내부 글에 🔒
+  표시를 붙인다. 정렬·병합은 프론트에서 두 목록을 받아 처리하므로 백엔드가
+  통합 정렬 API를 새로 만들 필요는 없다.
+- **인가 확인**: `SPEC_API.md §3.1`대로 `NOTICE_MEMBER` 열람은 `M`(회원)
+  이상만 가능해야 한다 — 프론트는 `RequireMember`로 비로그인/승인대기
+  사용자를 걸러내지만 이건 UI 편의일 뿐이다. **서버가 카테고리별 열람 권한을
+  실제로 검사하는지 재확인 필요** (`SPEC_API.md §3.3` 경고: id로 먼저 조회 후
+  category 권한 확인 — category 파라미터를 그대로 신뢰하면 우회 가능).
+- **미확정 사항**: 없음 — 계약 그대로 사용했다. 다만 위 인가 검사가 실제
+  구현에도 반영됐는지는 백엔드 쪽 확인이 필요하다.
+- **관련 PR**: `feat/fe-internal-notices` 브랜치 (M2 인증·회원)
+
+---
+
 <!--
 새 항목 추가 형식:
 
