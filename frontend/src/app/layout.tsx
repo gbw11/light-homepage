@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
+import { InstallBanner } from "@/components/pwa/InstallBanner";
 
 /**
  * ⚠️ 폰트: Pretendard를 `public/fonts/`에 self-host하고 `next/font/local`로
@@ -26,6 +28,17 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     url: SITE_URL,
   },
+};
+
+/**
+ * PWA 설치 시 OS 표시줄 색. `app/manifest.ts`의 `theme_color`와 같은 값을 유지한다
+ * (globals.css `--background` 베이지 / 다크 모드 웜톤).
+ */
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f1e4" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1a15" },
+  ],
 };
 
 /** 검색엔진용 구조화 데이터 (SPEC_FUNCTIONAL.md FR-PUB-10) */
@@ -59,9 +72,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
         <QueryProvider>
           <AuthProvider>
+            <ServiceWorkerRegistrar />
             <Header />
             {children}
             <Footer />
+            <InstallBanner />
           </AuthProvider>
         </QueryProvider>
       </body>
