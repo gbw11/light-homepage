@@ -1,5 +1,3 @@
-import type { ResizedPhoto } from "@/lib/image/resize";
-
 /**
  * 업로드 큐의 한 항목. **파일 하나 = 항목 하나**이고, 화면의 목록·카운트·재시도가
  * 모두 이 상태를 읽는다 (WIREFRAME §18).
@@ -28,11 +26,12 @@ export type QueueItem = {
   progress: number;
   error?: string;
   /**
-   * `uploads:issue`가 발급한 photoId. 재시도는 **같은 photoId로 URL을 재발급**
-   * 해야 한다 — 새로 발급하면 R2에 고아 객체가 남는다 (SPEC_API §6.5).
+   * `uploads:issue`가 발급한 photoId.
+   *
+   * ⚠️ 재시도는 **같은 photoId로 URL을 재발급**해야 한다 — 새로 발급하면 이미
+   * 올라간 객체가 주인 없이 남는다 (SPEC_API §6.5 "고아 방지").
    */
   photoId?: string;
-  resized?: ResizedPhoto;
 };
 
 /** `f1`, `f2`, … — 한 세션 안에서만 유일하면 된다 (서버는 photoId로 식별한다) */
@@ -41,6 +40,18 @@ export function nextClientId(): string {
   clientIdSeq += 1;
   return `f${clientIdSeq}`;
 }
+
+/** 리사이즈·전송 동시 실행 수 (FR-PHO-08 "동시 3~4개씩") */
+export const CONCURRENCY = 4;
+
+/**
+ * 한 번에 URL을 발급받는 장수.
+ *
+ * presigned URL은 **15분**만 유효하다 (SPEC_API §6.5). 200장을 한 번에 발급하면
+ * 뒤쪽 URL이 쓰기 전에 만료된다 — 그래서 배치로 나눠 발급하고, 배치가 끝나면
+ * 다음 배치를 발급한다. commit도 같은 단위(20장)로 부른다 (§6.6).
+ */
+export const BATCH_SIZE = 20;
 
 /**
  * 최대 `limit`개만 동시에 돌린다.
@@ -68,4 +79,11 @@ export async function runWithConcurrency<T>(
   await Promise.all(
     Array.from({ length: Math.min(limit, items.length) }, () => worker()),
   );
+}
+
+/** 배열을 크기 `size`씩 자른다 */
+export function chunk<T>(items: readonly T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
 }

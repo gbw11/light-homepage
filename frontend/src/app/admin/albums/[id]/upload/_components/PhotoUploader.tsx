@@ -34,10 +34,15 @@ export function PhotoUploader({ albumId }: { albumId: string }) {
   });
   const album = albumQuery.data?.items.find((a) => a.id === albumId);
 
-  const { items, addFiles } = useUploadQueue();
+  const { items, running, blockedReason, addFiles, start } = useUploadQueue(albumId);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputId = useId();
   const [dragging, setDragging] = useState(false);
+
+  const pending = items.filter(
+    (item) => item.status === "READY" || item.status === "FAILED",
+  ).length;
+  const preparing = items.some((item) => item.status === "PREPARING");
 
   function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
@@ -109,7 +114,39 @@ export function PhotoUploader({ albumId }: { albumId: string }) {
         </Button>
       </div>
 
-      {items.length > 0 && <UploadQueueList items={items} />}
+      {items.length > 0 && (
+        <>
+          <UploadQueueList items={items} />
+
+          {/*
+            큐 전체가 멈춘 이유는 항목별 실패와 따로 보여준다 — 용량 초과라면
+            사용자가 할 일이 "재시도"가 아니라 "용량 정리"이기 때문이다
+            (FR-PHO-10).
+          */}
+          {blockedReason && (
+            <p
+              role="alert"
+              className="mt-4 rounded-[var(--radius-card)] border border-[var(--color-red-500)] p-4 text-sm text-[var(--color-red-500)]"
+            >
+              업로드를 중단했습니다 — {blockedReason}
+            </p>
+          )}
+
+          <div className="mt-5">
+            <Button
+              type="button"
+              disabled={running || preparing || pending === 0}
+              onClick={() => void start()}
+            >
+              {running
+                ? "올리는 중..."
+                : preparing
+                  ? "준비 중..."
+                  : `${pending}장 업로드`}
+            </Button>
+          </div>
+        </>
+      )}
 
       {/*
         FR-PHO-04 — 보관 화질 경계를 업로드 시점에 알린다. 올린 뒤에 "원본이
