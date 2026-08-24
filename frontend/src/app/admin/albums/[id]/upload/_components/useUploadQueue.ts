@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
+import type { ErrorCode } from "@/types/api";
 import { ResizeError, resizeForUpload, type ResizedPhoto } from "@/lib/image/resize";
 import {
   BATCH_SIZE,
@@ -47,8 +48,15 @@ export function useUploadQueue(albumId: string) {
   const itemsRef = useRef<QueueItem[]>([]);
   const [items, setItems] = useState<QueueItem[]>([]);
   const [running, setRunning] = useState(false);
-  /** 큐 전체를 멈춘 이유 (용량 초과·권한 등). 항목별 실패와 구분한다 */
-  const [blockedReason, setBlockedReason] = useState<string | null>(null);
+  /**
+   * 큐 전체를 멈춘 이유 (용량 초과·권한 등). 항목별 실패와 구분한다.
+   *
+   * `code`를 함께 들고 있는 이유: `STORAGE_LIMIT`은 사용자가 할 일이
+   * "재시도"가 아니라 "용량 정리"라서 화면이 다르게 안내해야 한다 (FR-PHO-10).
+   */
+  const [blocked, setBlocked] = useState<{ code: ErrorCode | null; message: string } | null>(
+    null,
+  );
 
   const resizedRef = useRef(new Map<string, ResizedPhoto>());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,16 +135,20 @@ export function useUploadQueue(albumId: string) {
    * 것"이기 때문이다. photoId를 그대로 들고 있으므로 `issue`가 같은 행을 다시
    * 쓰고 R2에 고아가 남지 않는다 (SPEC_API §6.5).
    */
-  const start = useCallback(async () => {
+  const start = useCallback(
+    async (onlyClientIds?: readonly string[]) => {
     if (running) return;
 
+    const only = onlyClientIds ? new Set(onlyClientIds) : null;
     const targets = itemsRef.current.filter(
-      (item) => item.status === "READY" || item.status === "FAILED",
+      (item) =>
+        (item.status === "READY" || item.status === "FAILED") &&
+        (!only || only.has(item.clientId)),
     );
     if (targets.length === 0) return;
 
     setRunning(true);
-    setBlockedReason(null);
+    setBlocked(null);
 
     // 재시도분의 이전 에러 문구를 지운다 — 남겨두면 성공한 뒤에도 빨간 줄이 남는다
     for (const item of targets) {
@@ -178,7 +190,7 @@ export function useUploadQueue(albumId: string) {
           for (const item of batch) {
             patch(item.clientId, { status: "FAILED", error: message });
           }
-          setBlockedReason(message);
+          setBlocked({ code: isApiError(error) ? error.code : null, message });
           return;
         }
 
@@ -273,7 +285,36 @@ export function useUploadQueue(albumId: string) {
       // 앨범 목록·사진 그리드를 다시 읽게 한다 (장수·커버가 바뀌었다)
       void queryClient.invalidateQueries({ queryKey: ["albums"] });
     }
-  }, [albumId, flushNow, patch, queryClient, running]);
+    },
+    [albumId, flushNow, patch, queryClient, running],
+  );
 
-  return { items, running, blockedReason, addFiles, start };
+  /**
+   * 업로드 중 페이지 이탈 경고 (FR-PHO-08 · WIREFRAME §18 "창을 닫지 마세요").
+   *
+   * 탭을 닫으면 진행 중인 PUT이 끊기고, 확정되지 않은 사진은 서버가 24시간 후
+   * 정리한다 — 사용자 입장에서는 "올린 줄 알았는데 없는" 상태가 된다.
+   *
+   * ⚠️ 문구는 브라우저가 무시한다 (자체 문구를 쓴다). 그래도 `preventDefault`가
+   * 확인 창을 띄우는 유일한 방법이다.
+   */
+  useEffect(() => {
+    if (!running) return;
+
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [running]);
+
+  /** 타이머가 남은 채로 언마운트되면 사라진 컴포넌트에 setState하게 된다 */
+  useEffect(
+    () => () => {
+      if (flushTimerRef.current !== null) clearTimeout(flushTimerRef.current);
+    },
+    [],
+  );
+
+  return { items, running, blocked, addFiles, start };
 }

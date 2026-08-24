@@ -28,10 +28,20 @@ const STATUS_CLASS: Record<QueueItemStatus, string> = {
  * 실패했을 때 어느 파일인지 알 수 없어 전체 재업로드밖에 방법이 없어진다
  * (FR-PHO-08).
  */
-export function UploadQueueList({ items }: { items: readonly QueueItem[] }) {
+export function UploadQueueList({
+  items,
+  running,
+  onRetry,
+}: {
+  items: readonly QueueItem[];
+  running: boolean;
+  /** 실패한 항목만 다시 태운다 — 전체 재업로드를 요구하지 않는다 (FR-PHO-08) */
+  onRetry: (clientIds: string[]) => void;
+}) {
   const total = items.length;
   const done = items.filter((item) => item.status === "DONE").length;
-  const failed = items.filter((item) => item.status === "FAILED").length;
+  const failedItems = items.filter((item) => item.status === "FAILED");
+  const failed = failedItems.length;
   const skipped = items.filter((item) => item.status === "SKIPPED").length;
 
   // 건너뛴 파일은 올릴 수 없으므로 분모에서 뺀다 — 그러지 않으면 진행률이
@@ -76,9 +86,36 @@ export function UploadQueueList({ items }: { items: readonly QueueItem[] }) {
                 ? `${item.progress}%`
                 : STATUS_LABEL[item.status]}
             </span>
+            {item.status === "FAILED" && (
+              <button
+                type="button"
+                disabled={running}
+                // 같은 이름의 버튼이 여러 개 나열되므로 어떤 파일인지 이름에 넣는다
+                aria-label={`${item.fileName} 다시 시도`}
+                onClick={() => onRetry([item.clientId])}
+                className="shrink-0 rounded-[var(--radius-button)] border border-[var(--color-navy-100)] px-3 py-1 text-sm font-bold transition hover:brightness-95 disabled:opacity-50"
+              >
+                재시도
+              </button>
+            )}
           </li>
         ))}
       </ul>
+
+      {/*
+        243장 중 2장이 실패했을 때 한 번에 처리할 수단이 있어야 한다 — 행마다
+        [재시도]를 누르게 만들면 실질적으로 전체 재업로드와 다를 게 없다.
+      */}
+      {failed > 1 && (
+        <button
+          type="button"
+          disabled={running}
+          onClick={() => onRetry(failedItems.map((item) => item.clientId))}
+          className="mt-3 inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-5 text-base font-bold transition hover:brightness-95 disabled:opacity-50"
+        >
+          실패 {failed}건 모두 재시도
+        </button>
+      )}
 
       {/* 건너뛴 파일은 이유를 알려줘야 사용자가 조치할 수 있다 (JPG로 재저장 등) */}
       {items.some((item) => item.status === "SKIPPED" || item.status === "FAILED") && (
