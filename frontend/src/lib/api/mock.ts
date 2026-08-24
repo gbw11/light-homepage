@@ -1,4 +1,5 @@
 import type {
+  AdminMember,
   AlbumInput,
   AlbumSummary,
   AttachmentUpload,
@@ -7,7 +8,12 @@ import type {
   BulletinSummary,
   CompleteProfileInput,
   Cursor,
+  MeetingDetail,
+  MeetingSummary,
+  NewcomerRecord,
   Photo,
+  Role,
+  StorageUsage,
   LoginInput,
   LoginResult,
   NewcomerSubmission,
@@ -593,6 +599,71 @@ function bulletinOf(entry: (typeof BULLETIN_DATES)[number]): Bulletin {
   };
 }
 
+// ── 월례회 mock (SPEC_API §7) ──────────────────────────────
+/**
+ * ⚠️ **mock으로는 이 기능의 핵심을 검증할 수 없다.**
+ *    월례회는 (a) 서버가 워터마크를 합성하고 (b) presigned URL을 발급하지 않고
+ *    직접 스트리밍하며 (c) `Cache-Control: no-store`로 캐시를 막는 것이 요구사항이다.
+ *    mock에는 서버가 없으므로 **열람 기간 판정과 화면 상태만** 흉내낸다.
+ *    워터마크·스트리밍·열람 로그는 BE 구현 후 통합에서 확인해야 한다.
+ *
+ * 상태 3가지가 모두 필요하다 — 화면이 SCHEDULED/OPEN/CLOSED를 다르게 보여야 한다.
+ */
+const MEETINGS: MeetingSummary[] = [
+  {
+    id: "3",
+    title: "2026년 8월 월례회",
+    meetingDate: "2026-08-24",
+    pageCount: 10,
+    viewableFrom: "2026-08-24T11:00:00Z",
+    viewableUntil: "2026-08-26T14:59:00Z",
+    status: "OPEN",
+  },
+  {
+    id: "2",
+    title: "2026년 6월 월례회",
+    meetingDate: "2026-06-22",
+    pageCount: 8,
+    viewableFrom: "2026-06-22T11:00:00Z",
+    viewableUntil: "2026-06-24T14:59:00Z",
+    status: "CLOSED",
+  },
+  {
+    id: "4",
+    title: "2026년 9월 월례회",
+    meetingDate: "2026-09-28",
+    pageCount: 6,
+    viewableFrom: "2026-09-28T11:00:00Z",
+    viewableUntil: "2026-09-30T14:59:00Z",
+    status: "SCHEDULED",
+  },
+];
+
+// ── 관리 mock (SPEC_API §8) ────────────────────────────────
+const ADMIN_NEWCOMERS: NewcomerRecord[] = [
+  {
+    id: "14",
+    name: "김OO",
+    phone: "010-1234-5678",
+    gender: "MALE",
+    ageGroup: "EARLY_20S",
+    referrer: "FRIEND",
+    message: "친구 소개로 가보려고요",
+    createdAt: "2026-08-19T10:22:00Z",
+  },
+  {
+    id: "13",
+    name: "박OO",
+    phone: "010-5555-6666",
+    gender: "FEMALE",
+    ageGroup: "LATE_20S",
+    referrer: "SEARCH",
+    // 선택 항목이 비어 있는 경우도 화면이 처리해야 한다
+    message: null,
+    createdAt: "2026-08-12T04:10:00Z",
+  },
+];
+
 // ── 인증 mock 세션 ────────────────────────────────────────
 // 실제 백엔드는 httpOnly 쿠키로 세션을 유지한다 (SPEC_API §1.4). mock에는
 // 서버가 없으므로 브라우저 localStorage로 흉내낸다 — 새로고침해도 로그인
@@ -1026,6 +1097,181 @@ export const mockApi: Api = {
       return index >= 0
         ? RETREAT_PHOTOS[index].viewUrl
         : `/api/photos/${encodeURIComponent(photoId)}/download`;
+    },
+  },
+  meetings: {
+    async list({ page = 0, size = 20 } = {}): Promise<Page<MeetingSummary>> {
+      await delay();
+      throwIfScenario();
+      requireSession();
+
+      const all = scenario() === "empty" ? [] : MEETINGS;
+      return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
+    },
+
+    async get(id: string): Promise<MeetingDetail> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+
+      const m = MEETINGS.find((x) => x.id === id);
+      if (!m) {
+        throw new ApiError({ code: "NOT_FOUND", message: "자료를 찾을 수 없습니다.", status: 404 });
+      }
+
+      // SPEC_API §7.1: `L` 이상은 status와 무관하게 열람 가능
+      const isLeader = user.role === "LEADER" || user.role === "PASTOR";
+      const canView = isLeader || m.status === "OPEN";
+
+      const remainingSeconds =
+        m.status === "OPEN"
+          ? Math.max(0, Math.floor((new Date(m.viewableUntil).getTime() - Date.now()) / 1000))
+          : 0;
+
+      return {
+        id: m.id,
+        title: m.title,
+        meetingDate: m.meetingDate,
+        pageCount: m.pageCount,
+        status: m.status,
+        viewableUntil: m.viewableUntil,
+        remainingSeconds,
+        canView,
+        viewReason: canView ? null : "PERIOD_CLOSED",
+      };
+    },
+
+    pageUrl(id: string, pageNo: number): string {
+      /*
+       * mock에는 워터마크를 합성해 스트리밍할 서버가 없다. 실제 엔드포인트
+       * 경로를 그대로 돌려주므로 **mock 모드에서는 이미지가 뜨지 않는다** —
+       * 화면이 이미지 로드 실패를 처리해야 한다는 뜻이고, 그게 의도다.
+       * 가짜 이미지를 돌려주면 "워터마크 없이도 잘 보인다"는 착각을 만든다.
+       */
+      return `/api/meetings/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}`;
+    },
+  },
+  admin: {
+    async members({ status = "PENDING", q, page = 0, size = 20 } = {}): Promise<
+      Page<AdminMember>
+    > {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+
+      // SPEC_API §8.1 — 권한 `T`(PASTOR)만
+      if (user.role !== "PASTOR") {
+        throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
+      }
+
+      const all: AdminMember[] = Object.values(MOCK_USERS).map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        village: u.village,
+        role: u.role,
+        profileComplete: u.profileComplete,
+        createdAt: "2026-08-19T09:00:00Z",
+        approvedAt: u.approvedAt,
+      }));
+
+      let items = status === "PENDING" ? all.filter((m) => m.role === "PENDING") : all;
+      if (q?.trim()) items = items.filter((m) => m.name.includes(q.trim()));
+      if (scenario() === "empty") items = [];
+
+      return { items: items.slice(page * size, (page + 1) * size), page, size, hasNext: false };
+    },
+
+    async approveMember(): Promise<void> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+      if (user.role !== "PASTOR") {
+        throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
+      }
+    },
+
+    async rejectMember(_id: string, input: { reason: string }): Promise<void> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+      if (user.role !== "PASTOR") {
+        throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
+      }
+      if (!input.reason.trim()) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "거절 사유를 입력해주세요.",
+          status: 400,
+          field: "reason",
+        });
+      }
+    },
+
+    async changeRole(id: string, input: { role: Role }): Promise<void> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+      if (user.role !== "PASTOR") {
+        throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
+      }
+
+      /*
+       * FR-ADM-05 자기 잠금 방지 — 마지막 PASTOR를 강등하면 아무도 회원을
+       * 승인할 수 없게 된다. 서버가 막는 규칙이지만 mock에도 넣어야 화면이
+       * 이 에러를 처리하는지 확인할 수 있다.
+       */
+      const pastors = Object.values(MOCK_USERS).filter((u) => u.role === "PASTOR");
+      const target = Object.values(MOCK_USERS).find((u) => u.id === id);
+      if (target?.role === "PASTOR" && input.role !== "PASTOR" && pastors.length <= 1) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "마지막 관리자의 권한은 변경할 수 없습니다. 다른 관리자를 먼저 지정해주세요.",
+          status: 400,
+          field: "role",
+        });
+      }
+    },
+
+    async storage(): Promise<StorageUsage> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+      if (user.role !== "LEADER" && user.role !== "PASTOR") {
+        throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
+      }
+
+      // `?mock=storage`는 기존에 STORAGE_LIMIT 에러를 던진다 (throwIfScenario).
+      // 여기서는 경고/차단 임계값 화면을 보기 위한 별도 시나리오를 둔다.
+      const nearLimit = scenario() === "storage-warning";
+      const blocked = scenario() === "storage-blocked";
+
+      const limitBytes = 10_737_418_240;
+      const usagePercent = blocked ? 96.4 : nearLimit ? 83.2 : 42.0;
+
+      return {
+        usedBytes: Math.round((limitBytes * usagePercent) / 100),
+        limitBytes,
+        usagePercent,
+        photoCount: 3100,
+        estimatedRemainingPhotos: blocked ? 0 : nearLimit ? 900 : 4300,
+        warningThreshold: 80,
+        blockThreshold: 95,
+        uploadBlocked: blocked,
+      };
+    },
+
+    async newcomers({ page = 0, size = 20 } = {}): Promise<Page<NewcomerRecord>> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+      if (user.role !== "LEADER" && user.role !== "PASTOR") {
+        throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
+      }
+
+      const all = scenario() === "empty" ? [] : ADMIN_NEWCOMERS;
+      return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
     },
   },
   bulletins: {
