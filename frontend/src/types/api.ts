@@ -191,6 +191,89 @@ export type CompleteProfileInput = {
   agreed: boolean;
 };
 
+// ── 월례회 (SPEC_API §7) ───────────────────────────────────
+/**
+ * ⚠️ 이 리소스는 **presigned URL을 발급하지 않는다** (SPEC_API §7 머리말).
+ *    발급하면 열람 기간이 끝난 뒤에도 URL이 만료 전까지 살아있고 공유된다.
+ *    페이지 이미지는 **서버가 직접 스트리밍**하고 워터마크도 서버가 합성한다.
+ *    → FE는 `<img src="/api/meetings/{id}/pages/{n}">`처럼 **엔드포인트를 직접
+ *      가리키고**, 이미지 URL을 저장·재사용하지 않는다.
+ */
+export type MeetingStatus = "SCHEDULED" | "OPEN" | "CLOSED";
+
+/** 열람 불가 사유 (SPEC_API §7.2) */
+export type MeetingViewReason = "PERIOD_CLOSED" | null;
+
+export type MeetingSummary = {
+  id: string;
+  title: string;
+  /** LocalDate */
+  meetingDate: string;
+  pageCount: number;
+  viewableFrom: string;
+  viewableUntil: string;
+  status: MeetingStatus;
+};
+
+/** 단건 조회 (SPEC_API §7.2) */
+export type MeetingDetail = {
+  id: string;
+  title: string;
+  meetingDate: string;
+  pageCount: number;
+  status: MeetingStatus;
+  viewableUntil: string;
+  /** 남은 열람 시간(초). 카운트다운 표시용 */
+  remainingSeconds: number;
+  /**
+   * 이 사용자가 지금 열람할 수 있는지. ⚠️ **UI 편의일 뿐 보안이 아니다** —
+   * 서버가 페이지 스트리밍 시점에 다시 검사한다 (SPEC_API §7.3 처리 순서 2).
+   * `L` 이상은 기간과 무관하게 `true`다.
+   */
+  canView: boolean;
+  viewReason: MeetingViewReason;
+};
+
+// ── 관리 (SPEC_API §8) ─────────────────────────────────────
+/** 회원 관리 목록 항목 (SPEC_API §8.1) — 권한 `T` */
+export type AdminMember = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string;
+  village: Village;
+  role: Role;
+  profileComplete: boolean;
+  createdAt: string;
+  approvedAt: string | null;
+};
+
+/** 저장 용량 (SPEC_API §8.5) — 권한 `L` */
+export type StorageUsage = {
+  usedBytes: number;
+  limitBytes: number;
+  usagePercent: number;
+  photoCount: number;
+  estimatedRemainingPhotos: number;
+  /** 이 비율부터 경고 */
+  warningThreshold: number;
+  /** 이 비율부터 업로드 차단 */
+  blockThreshold: number;
+  uploadBlocked: boolean;
+};
+
+/** 새가족 등록 내역 (SPEC_API §8.6) — 권한 `L`. ⚠️ 개인정보, 보유기간 1년 */
+export type NewcomerRecord = {
+  id: string;
+  name: string;
+  phone: string;
+  gender: Gender | null;
+  ageGroup: AgeGroup | null;
+  referrer: Referrer | null;
+  message: string | null;
+  createdAt: string;
+};
+
 // ── 주보 (SPEC_API §5) ─────────────────────────────────────
 /**
  * 주보 한 페이지.

@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { isLeaderOrAbove } from "@/components/auth/RequireLeader";
+import { useAuth } from "@/components/providers/AuthProvider";
 import type { Photo } from "@/types/api";
+import { PhotoDeletePanel } from "./PhotoDeletePanel";
 import { PhotoReportForm } from "./PhotoReportForm";
 
 /** 스와이프로 인정할 최소 가로 이동량(px) */
@@ -17,7 +20,15 @@ const SWIPE_THRESHOLD = 50;
  */
 const MAX_STORED_LONG_EDGE = 2560;
 
+/**
+ * `⋮`로 열리는 겹침 패널. 라이트박스는 한 번에 하나만 띄운다 — 두 개를 따로
+ * boolean으로 들고 있으면 "신고 패널 위에 삭제 패널"이 가능해진다.
+ */
+type Overlay = "none" | "actions" | "report" | "delete";
+
 type LightboxProps = {
+  /** 앨범 id — 사진 삭제 후 캐시 무효화에 쓴다 (SPEC_API §6.9) */
+  albumId: string;
   /** 현재까지 로드된 사진들 — 인덱스 기준은 이 배열이다 */
   photos: Photo[];
   /**
@@ -31,6 +42,8 @@ type LightboxProps = {
   onClose: () => void;
   /** 마지막 장에 도달했을 때 다음 커서를 요청한다 (무한 스크롤과 동일 소스) */
   onReachEnd?: () => void;
+  /** 사진 삭제 성공 — 라이트박스를 닫고 목록에 결과를 안내한다 (FR-PHO-09) */
+  onPhotoDeleted: (message: string) => void;
 };
 
 /**
@@ -48,33 +61,46 @@ type LightboxProps = {
  * 그래서 터치 핸들러는 손가락이 2개 이상이면 전부 무시한다(핀치 방해 금지).
  */
 export function Lightbox({
+  albumId,
   photos,
   totalCount,
   index,
   onIndexChange,
   onClose,
   onReachEnd,
+  onPhotoDeleted,
 }: LightboxProps) {
   const photo = photos[index];
   const total = totalCount ?? photos.length;
-  /** `⋮` → 신고·요청 패널 (WIREFRAME §13-4, SPEC_API §6.10) */
-  const [reportOpen, setReportOpen] = useState(false);
+  /** `⋮`로 여는 겹침 패널 (WIREFRAME §13-4) */
+  const [overlay, setOverlay] = useState<Overlay>("none");
+  const { user } = useAuth();
+  /**
+   * 사진 삭제는 임원(`L`) 이상만 (SPEC_API §6.9). 권한이 없으면 `⋮`의 항목이
+   * 신고·요청 하나뿐이라 중간 메뉴 없이 바로 그 패널을 연다 — 아래 `⋮` 핸들러.
+   * 화면에서 감추는 건 UI 편의이고 실제 인가는 서버가 한다 (`RequireLeader` 주석).
+   */
+  const canDelete = !!user && isLeaderOrAbove(user.role);
+  const overlayOpen = overlay !== "none";
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const hasPrev = index > 0;
   const hasNext = index < photos.length - 1;
 
-  /** 사진을 넘길 때 열려 있던 신고 패널은 닫는다 (다른 사진에 요청이 붙지 않게) */
+  /**
+   * 사진을 넘길 때 열려 있던 패널은 닫는다 — 다른 사진에 요청이 붙거나,
+   * 더 나쁘게는 **다른 사진을 지우게 되는** 것을 막는다 (FR-PHO-09).
+   */
   const goPrev = useCallback(() => {
     if (index === 0) return;
-    setReportOpen(false);
+    setOverlay("none");
     onIndexChange(index - 1);
   }, [index, onIndexChange]);
 
   const goNext = useCallback(() => {
     if (index >= photos.length - 1) return;
-    setReportOpen(false);
+    setOverlay("none");
     onIndexChange(index + 1);
   }, [index, photos.length, onIndexChange]);
 
@@ -104,8 +130,8 @@ export function Lightbox({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      // 신고 패널이 열려 있으면 사진 이동·닫기 키는 패널이 우선한다
-      if (reportOpen && e.key !== "Tab") return;
+      // 겹침 패널이 열려 있으면 사진 이동·닫기 키는 패널이 우선한다
+      if (overlayOpen && e.key !== "Tab") return;
 
       if (e.key === "Escape") {
         e.preventDefault();
@@ -144,7 +170,7 @@ export function Lightbox({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose, goPrev, goNext, reportOpen]);
+  }, [onClose, goPrev, goNext, overlayOpen]);
 
   if (!photo) return null;
 
@@ -158,7 +184,7 @@ export function Lightbox({
       className="fixed inset-0 z-50 flex flex-col bg-black/95 outline-none"
       onTouchStart={(e) => {
         // 손가락 2개 이상 = 핀치 → 브라우저 기본 동작에 맡기고 스와이프 판정을 포기한다
-        if (reportOpen || e.touches.length !== 1) {
+        if (overlayOpen || e.touches.length !== 1) {
           touchStart.current = null;
           return;
         }
@@ -211,14 +237,17 @@ export function Lightbox({
           </a>
 
           {/*
-            WIREFRAME §13-4의 `⋮`. 지금 이 메뉴의 항목은 신고·요청 하나뿐이므로
-            중간 단계 메뉴를 두지 않고 바로 요청 패널을 연다.
+            WIREFRAME §13-4의 `⋮`.
+            · 일반 회원: 항목이 신고·요청 하나뿐이라 중간 메뉴 없이 바로 연다.
+            · 임원 이상: 삭제(§6.9)가 붙어 항목이 둘이므로 메뉴를 한 단계 둔다.
+              파괴적 동작을 헤더의 `⬇` 옆에 나란히 놓지 않는 것이 목적이다 —
+              다운로드를 누르려던 손가락이 삭제에 닿으면 안 된다.
           */}
           <button
             type="button"
-            onClick={() => setReportOpen(true)}
-            aria-label="사진 신고 · 삭제 요청"
-            aria-expanded={reportOpen}
+            onClick={() => setOverlay(canDelete ? "actions" : "report")}
+            aria-label={canDelete ? "사진 작업 메뉴" : "사진 신고 · 삭제 요청"}
+            aria-expanded={overlayOpen}
             className="flex h-11 w-11 items-center justify-center rounded-full text-2xl text-white hover:bg-white/10"
           >
             ⋮
@@ -272,9 +301,95 @@ export function Lightbox({
         </p>
       </div>
 
-      {reportOpen && (
-        <PhotoReportForm photoId={photo.id} onClose={() => setReportOpen(false)} />
+      {overlay === "actions" && (
+        <PhotoActionsMenu
+          position={index + 1}
+          onReport={() => setOverlay("report")}
+          onDelete={() => setOverlay("delete")}
+          onClose={() => setOverlay("none")}
+        />
       )}
+
+      {overlay === "report" && (
+        <PhotoReportForm photoId={photo.id} onClose={() => setOverlay("none")} />
+      )}
+
+      {overlay === "delete" && (
+        <PhotoDeletePanel
+          albumId={albumId}
+          photoId={photo.id}
+          position={index + 1}
+          total={total}
+          onClose={() => setOverlay("none")}
+          onDeleted={(message) => {
+            setOverlay("none");
+            // 지운 사진을 계속 띄워둘 수 없다 — 라이트박스를 닫고 목록에서 결과를 알린다
+            onClose();
+            onPhotoDeleted(message);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * `⋮` 액션 메뉴 (임원 이상에만 렌더 — 호출부 참고).
+ *
+ * 삭제를 헤더 아이콘으로 직접 노출하지 않고 이 한 단계를 두는 이유:
+ * 헤더에는 `⬇`(다운로드)가 이미 있고, 44px 아이콘 두 개가 붙어 있으면
+ * "받으려다 지운다"가 실제로 일어난다. 메뉴 안에서는 항목마다 글자 라벨이
+ * 있고 삭제는 빨간색으로 분리돼 있어 무엇을 누르는지가 분명하다.
+ */
+function PhotoActionsMenu({
+  position,
+  onReport,
+  onDelete,
+  onClose,
+}: {
+  position: number;
+  onReport: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`사진 ${position} 작업 메뉴`}
+      className="absolute inset-x-0 bottom-0 z-20 max-h-full overflow-y-auto rounded-t-[var(--radius-card)] bg-[var(--background)] p-5"
+      onKeyDown={(e) => {
+        // 라이트박스의 ←/→·Esc가 메뉴 위에서 동작하지 않게 막는다
+        e.stopPropagation();
+        if (e.key === "Escape") onClose();
+      }}
+    >
+      <p className="text-sm font-bold text-[var(--color-gray-400)]">사진 {position}</p>
+      <div className="mt-3 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={onReport}
+          className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] px-3 text-left text-base font-bold hover:bg-[var(--color-navy-100)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]"
+        >
+          신고 · 삭제 요청
+        </button>
+        {/* 접근성: 이름이 "삭제"만이면 무엇이 지워지는지 알 수 없다 */}
+        <button
+          type="button"
+          onClick={onDelete}
+          aria-label={`${position}번째 사진 삭제 (되돌릴 수 없음)`}
+          className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] px-3 text-left text-base font-bold text-[var(--color-red-500)] hover:bg-[var(--color-red-500)]/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-red-500)]"
+        >
+          사진 삭제 · 되돌릴 수 없음
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-1 inline-flex min-h-11 items-center rounded-[var(--radius-card)] px-3 text-left text-base font-bold text-[var(--color-gray-400)] hover:bg-[var(--color-navy-100)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]"
+        >
+          닫기
+        </button>
+      </div>
     </div>
   );
 }
