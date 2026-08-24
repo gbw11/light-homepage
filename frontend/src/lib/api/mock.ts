@@ -10,6 +10,7 @@ import type {
   SignupInput,
 } from "@/types/api";
 import { ApiError } from "./error";
+import { notifySessionExpired } from "./session";
 import type { Api } from "./types";
 
 /**
@@ -490,6 +491,21 @@ export const mockApi: Api = {
 
     async me(): Promise<AuthUser> {
       await delay(150);
+
+      // `?mock=session-expired` — 리프레시까지 실패해 되살릴 수 없는 세션.
+      // 실제 백엔드에서는 real.ts의 401 재시도가 먼저 돌고, 그게 실패했을 때
+      // 이 상태가 된다 (SPEC_API §12.2). mock에는 토큰이 없으므로 결과만 흉내낸다.
+      // 기대 동작: AuthProvider가 세션을 비우고 → RequireMember가 /login으로 보낸다.
+      if (scenario() === "session-expired") {
+        writeSession(null);
+        notifySessionExpired();
+        throw new ApiError({
+          code: "UNAUTHORIZED",
+          message: "세션이 만료되었습니다. 다시 로그인해주세요.",
+          status: 401,
+        });
+      }
+
       return requireSession();
     },
 
