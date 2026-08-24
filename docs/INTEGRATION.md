@@ -58,7 +58,7 @@ light-homepage/
 - [x] ~~`main` 브랜치 보호 설정~~ → ⚠️ **무료 Private 저장소에서는 불가** (GitHub Pro 필요). §6.5 규칙으로 대체
 - [x] `develop` 브랜치 생성
 - [x] 통합 브랜치 3개 생성: `frontend_develop` · `backend_develop` · `server_develop`
-- [ ] GitHub 설정에서 **PR 머지 시 브랜치 자동 삭제** 켜기 (Settings → General → Automatically delete head branches)
+- [x] GitHub 설정 **Automatically delete head branches는 끈 상태로 유지** — 켜면 영구 브랜치가 PR head일 때 삭제되는 사고가 발생합니다. 브랜치 삭제는 §6.7 절차대로 수동으로 합니다
 - [ ] 루트 `.gitignore` 작성 (§2.4)
 - [ ] `README.md` — 실행 방법 2줄 (FE/BE 각각)
 - [ ] PR 템플릿 추가 (§6.3)
@@ -318,14 +318,33 @@ git push origin backend_develop
 
 **규칙**
 - **주 2회 정기 동기화 때 `develop` → 자기 `*_develop`을 반드시 pull** 합니다
-- `feat/*` 브랜치는 **수명을 짧게** 유지합니다. 3일 이상 열려 있으면 쪼개는 것을 고려하세요
+- `feat/*` 브랜치는 **수명을 짧게** 유지합니다. 3일 이상 열려 있으면 쪼개는 것을 고려하세요 (→ 머지 후 삭제 절차는 §6.7)
 - `docs/**` 변경은 `develop`에 먼저 반영되므로, 문서를 참조하려면 동기화가 필요합니다
 
 > 실제로 이 구조에서 문제가 생기는 지점은 충돌이 아니라 **"내 브랜치에는 있는데 상대 브랜치에는 없는 문서·설정"** 입니다. 동기화를 건너뛰지 마세요.
 
 ### 6.7 정리 규칙
-- 머지된 `feat/*` 브랜치는 **삭제**합니다 (GitHub PR 머지 시 자동 삭제 옵션 켜두기)
+- 머지된 `feat/*` 브랜치는 **로컬·GitHub 양쪽에서 삭제**합니다 (`DECISIONS.md` 2026-08-24)
+- ⚠️ **GitHub "Automatically delete head branches" 옵션은 켜지 않습니다.** `frontend_develop`
+  같은 **영구 브랜치가 PR head가 될 때 같이 삭제되는 사고가 실제로 한 번 발생**했습니다.
+  삭제는 아래 절차대로 **수동으로** 합니다
 - `main` · `develop` · `*_develop` 5개는 **영구 브랜치**입니다. 삭제하지 않습니다
+
+**삭제 절차** (순서 고정)
+```bash
+# 1) 상위 브랜치에 완전히 병합됐는지 먼저 검증한다
+git merge-base --is-ancestor feat/fe-foo frontend_develop && echo MERGED
+
+# 2) 로컬은 -d(안전 삭제). 미병합이면 git이 거부하므로 실수 방지가 된다
+git branch -d feat/fe-foo
+
+# 3) 원격 삭제
+git push origin --delete feat/fe-foo
+```
+- `-D`(강제 삭제)는 `git rev-list --count <상위브랜치>..<브랜치>`가 **0임을 확인한 경우에만**
+  씁니다. 이 확인 없이 `-D`를 쓰면 커밋이 조용히 사라집니다
+- **삭제 권한은 디렉터리 소유권을 따릅니다**: FE는 `feat/fe-*`만, 인프라 담당은
+  `feat/infra-*`만 지웁니다. 상대 영역의 브랜치를 임의로 지우지 않습니다
 
 ### 6.8 커밋 메시지
 ```
