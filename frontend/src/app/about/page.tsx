@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Section } from "@/components/ui/Section";
 
 export const metadata: Metadata = {
-  title: "소개 | LIGHT",
+  title: "소개",
   description:
     "LIGHT — Live In God, Help The other. 하나님 안에 사는 것과 이웃을 돕는 것, 두 축으로 세워지는 청년교회를 소개합니다.",
 };

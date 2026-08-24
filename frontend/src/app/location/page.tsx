@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 
 export const metadata: Metadata = {
-  title: "오시는 길 | LIGHT",
+  title: "오시는 길",
   description:
     "경남 김해시 분성로317번길 31, 드림센터 4층. 카카오맵·네이버지도로 길찾기.",
 };

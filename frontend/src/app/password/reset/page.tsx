@@ -4,7 +4,7 @@ import { Section } from "@/components/ui/Section";
 import { ResetForm } from "./ResetForm";
 
 export const metadata: Metadata = {
-  title: "비밀번호 재설정 | LIGHT",
+  title: "비밀번호 재설정",
   description: "LIGHT 새 비밀번호 설정.",
 };
 

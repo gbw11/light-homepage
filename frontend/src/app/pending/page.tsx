@@ -3,7 +3,7 @@ import { Section } from "@/components/ui/Section";
 import { PendingActions } from "./PendingActions";
 
 export const metadata: Metadata = {
-  title: "승인 대기 | LIGHT",
+  title: "승인 대기",
   description: "가입 신청이 접수되어 관리자 승인을 기다리고 있습니다.",
 };
 
