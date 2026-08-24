@@ -6,6 +6,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import type { Photo } from "@/types/api";
+import { AlbumDangerZone } from "./AlbumDangerZone";
 import { Lightbox } from "./Lightbox";
 import { MAX_ZIP_PHOTOS, SelectionBar } from "./SelectionBar";
 
@@ -246,6 +247,20 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
           </>
         )}
       </Section>
+
+      {/*
+        FR-PHO-09 — 앨범 삭제는 그리드 **아래**에 둔다 (컴포넌트 주석 참고).
+        · 선택 모드에서는 감춘다: 지금은 "다운로드할 사진을 고르는 중"이고,
+          하단 고정 바 근처에 파괴적 버튼을 같이 띄우면 오탭 위험만 만든다.
+        · 제목을 모르면(목록 조회 실패) 타이핑 확인을 할 수 없으므로 렌더하지 않는다.
+      */}
+      {!notFound && !selectMode && album && (
+        <AlbumDangerZone
+          albumId={albumId}
+          title={album.title}
+          photoCount={album.photoCount}
+        />
+      )}
 
       {/*
         하단 고정 바가 마지막 줄을 덮지 않도록 여백을 준다. 안내 문구가
