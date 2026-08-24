@@ -14,6 +14,9 @@ import type {
   Photo,
   Role,
   StorageUsage,
+  UploadCommitResult,
+  UploadIssueInput,
+  UploadTicket,
   LoginInput,
   LoginResult,
   NewcomerSubmission,
@@ -93,6 +96,37 @@ export type Api = {
      * ⚠️ **사진과 R2 객체를 모두 삭제한다.** 되돌릴 수 없다 (고아 객체 방지 목적).
      */
     remove(albumId: string): Promise<void>;
+  };
+  /**
+   * 사진 업로드 (SPEC_API §6.5 · §6.6).
+   *
+   * ⚠️ **파일은 백엔드를 통과하지 않는다** — 브라우저가 R2로 직접 PUT한다
+   * (ARCHITECTURE.md §7.3). 그래서 이 묶음은 세 갈래로 나뉜다:
+   *   ① `issue`  서버에 photoId + presigned PUT URL을 받는다
+   *   ② `put`    R2로 직접 전송한다 (우리 서버가 아니다)
+   *   ③ `commit` 서버에 "올라갔다"고 알린다 → `COMMITTED` + 용량 기록
+   *
+   * ②를 화면 코드가 직접 `fetch`하지 않고 여기에 둔 이유: mock 모드에서
+   * presigned URL이 실제로 존재하지 않기 때문이다. 여기 있으면 mock이
+   * 전송·진행률·실패까지 흉내낼 수 있고, 화면 코드는 그대로 둔 채 real로
+   * 바뀐다 (CONVENTIONS.md §3).
+   */
+  uploads: {
+    /** SPEC_API §6.5 — 권한 `L`. 실패: `STORAGE_LIMIT`(용량 95% 초과) */
+    issue(input: UploadIssueInput): Promise<{ uploads: UploadTicket[] }>;
+    /**
+     * presigned URL로 객체 하나를 PUT한다. **우리 서버가 아니라 R2로 간다.**
+     *
+     * 진행률이 필요하므로 구현은 `fetch`가 아니라 `XMLHttpRequest`다 —
+     * `fetch`는 업로드 진행률을 알려주지 않는다.
+     */
+    put(
+      url: string,
+      body: Blob,
+      options?: { onProgress?: (percent: number) => void; signal?: AbortSignal },
+    ): Promise<void>;
+    /** SPEC_API §6.6 — 권한 `L` · **20장 배치**로 부른다 (200회 호출은 낭비) */
+    commit(photoIds: string[]): Promise<UploadCommitResult>;
   };
   photos: {
     /** SPEC_API §6.10 — 초상권 대응 신고·삭제 요청. 권한 `M` */

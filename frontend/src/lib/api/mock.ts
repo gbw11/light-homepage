@@ -14,6 +14,9 @@ import type {
   Photo,
   Role,
   StorageUsage,
+  UploadCommitResult,
+  UploadIssueInput,
+  UploadTicket,
   LoginInput,
   LoginResult,
   NewcomerSubmission,
@@ -844,6 +847,36 @@ function buildMockPost(id: string, input: PostInput, authorName: string): MockPo
   };
 }
 
+// ── 사진 업로드 mock (SPEC_API §6.5 · §6.6) ────────────────
+/**
+ * mock은 R2가 없다. 그래서 presigned URL 대신 `mock://` URL을 발급하고,
+ * `uploads.put`이 blob을 **objectURL로 붙잡아둔다** — 그러면 commit 후 앨범
+ * 그리드에 방금 올린 사진이 실제로 보인다. 이게 없으면 "업로드 성공"만 뜨고
+ * 화면에는 아무 변화가 없어서, 큐가 제대로 도는지 눈으로 확인할 수 없다.
+ *
+ * ⚠️ objectURL은 이 문서(탭)에서만 유효하다. 새로고침하면 사라진다 —
+ *    `dynamicAlbums`와 같은 mock의 한계다.
+ */
+type MockPendingUpload = {
+  albumId: string;
+  width: number;
+  height: number;
+  takenAt: string | null;
+  /** put이 실제로 들어왔을 때만 채워진다 — 없으면 commit이 OBJECT_NOT_FOUND다 */
+  viewObjectUrl?: string;
+  thumbObjectUrl?: string;
+};
+
+/** photoId → 발급됐지만 아직 commit되지 않은 업로드 (실서비스의 `PENDING` 행) */
+const mockPendingUploads = new Map<string, MockPendingUpload>();
+/** albumId → 이번 세션에 업로드한 사진 (최신 먼저) */
+const mockUploadedPhotos = new Map<string, Photo[]>();
+
+let mockPhotoIdSeq = 900;
+
+/** `mock://uploads/{photoId}/{view|thumb}` */
+const MOCK_PUT_URL_RE = /^mock:\/\/uploads\/(\d+)\/(view|thumb)$/;
+
 export const mockApi: Api = {
   posts: {
     async list({ category, page = 0, size = 20 }): Promise<Page<PostSummary>> {
@@ -1052,7 +1085,10 @@ export const mockApi: Api = {
       }
 
       // 사진이 있는 앨범은 5번뿐 — 나머지는 빈 목록(화면이 처리해야 하는 상태)
-      const source = albumId === "5" && scenario() !== "empty" ? RETREAT_PHOTOS : [];
+      const seeded = albumId === "5" && scenario() !== "empty" ? RETREAT_PHOTOS : [];
+      // 이번 세션에 업로드한 사진을 앞에 붙인다 (최신순) — 업로드 결과를 앨범에서
+      // 실제로 확인할 수 있어야 큐가 제대로 돌았는지 알 수 있다
+      const source = [...(mockUploadedPhotos.get(albumId) ?? []), ...seeded];
 
       // 커서는 불투명한 문자열이어야 한다 (SPEC_API §1.6). 오프셋을 감싸 흉내낸다
       const offset = cursor ? Number(atob(cursor)) || 0 : 0;
@@ -1092,6 +1128,128 @@ export const mockApi: Api = {
       // `capabilities.zipDownload = false`로 화면이 안내를 띄우게 한다.
       const ids = photoIds.join(",");
       return `/api/albums/${encodeURIComponent(albumId)}/download?ids=${ids}`;
+    },
+  },
+  uploads: {
+    async issue(input: UploadIssueInput): Promise<{ uploads: UploadTicket[] }> {
+      await delay();
+      // `?mock=storage`가 STORAGE_LIMIT(409)을 던진다 — 업로드 차단 화면 확인용
+      throwIfScenario();
+      requireLeader("사진을 올릴 권한이 없습니다.");
+
+      if (![...dynamicAlbums, ...ALBUMS].some((a) => a.id === input.albumId)) {
+        throw new ApiError({
+          code: "NOT_FOUND",
+          message: "앨범을 찾을 수 없습니다.",
+          status: 404,
+        });
+      }
+      if (input.files.length === 0) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "올릴 사진이 없습니다.",
+          status: 400,
+          field: "files",
+        });
+      }
+
+      const uploads = input.files.map((file) => {
+        mockPhotoIdSeq += 1;
+        const photoId = `${mockPhotoIdSeq}`;
+        mockPendingUploads.set(photoId, {
+          albumId: input.albumId,
+          width: file.width,
+          height: file.height,
+          takenAt: file.takenAt,
+        });
+        return {
+          clientId: file.clientId,
+          photoId,
+          viewPutUrl: `mock://uploads/${photoId}/view`,
+          thumbPutUrl: `mock://uploads/${photoId}/thumb`,
+          expiresIn: 900,
+        };
+      });
+
+      return { uploads };
+    },
+
+    async put(url, body, options): Promise<void> {
+      const matched = MOCK_PUT_URL_RE.exec(url);
+      if (!matched) throw new Error("발급되지 않은 업로드 URL입니다.");
+      const [, photoId, variant] = matched;
+
+      const pending = mockPendingUploads.get(photoId);
+      // 실서비스에서 서명이 만료(15분)된 상황에 해당한다
+      if (!pending) throw new Error("업로드 URL이 만료되었습니다 (403).");
+
+      // 진행률이 실제로 움직이는지 눈으로 확인할 수 있어야 한다
+      for (const percent of [20, 55, 85]) {
+        if (options?.signal?.aborted) throw new Error("업로드가 취소되었습니다.");
+        await delay(60);
+        options?.onProgress?.(percent);
+      }
+
+      /*
+        ★ 실패 케이스 (docs/INTEGRATION.md — 성공 경로만 만들면 통합 때 무너진다).
+        `?mock=upload-fail`이면 photoId 4의 배수만 실패시킨다. 전부 실패시키면
+        "부분 실패 재시도"(FR-PHO-08)를 확인할 수 없다 — 정확히 이 UI가 존재하는
+        이유가 243장 중 2장이 실패하는 상황이다.
+      */
+      if (scenario() === "upload-fail" && Number(photoId) % 4 === 0) {
+        throw new Error("전송에 실패했습니다 (500).");
+      }
+
+      await delay(60);
+      options?.onProgress?.(100);
+
+      // blob을 붙잡아둔다 (위 주석 참고). 서버 환경에는 objectURL이 없다
+      if (typeof URL.createObjectURL === "function") {
+        const objectUrl = URL.createObjectURL(body);
+        if (variant === "view") pending.viewObjectUrl = objectUrl;
+        else pending.thumbObjectUrl = objectUrl;
+      }
+    },
+
+    async commit(photoIds): Promise<UploadCommitResult> {
+      await delay();
+      throwIfScenario();
+      requireLeader("사진을 올릴 권한이 없습니다.");
+
+      const committed: string[] = [];
+      const failed: UploadCommitResult["failed"] = [];
+
+      for (const photoId of photoIds) {
+        const pending = mockPendingUploads.get(photoId);
+        // 객체가 R2에 없으면 서버는 COMMITTED로 바꾸지 않는다 (SPEC_API §6.6)
+        if (!pending || !pending.viewObjectUrl || !pending.thumbObjectUrl) {
+          failed.push({ photoId, reason: "OBJECT_NOT_FOUND" });
+          continue;
+        }
+
+        const photo: Photo = {
+          id: photoId,
+          thumbUrl: pending.thumbObjectUrl,
+          viewUrl: pending.viewObjectUrl,
+          width: pending.width,
+          height: pending.height,
+          takenAt: pending.takenAt,
+        };
+        const existing = mockUploadedPhotos.get(pending.albumId) ?? [];
+        mockUploadedPhotos.set(pending.albumId, [photo, ...existing]);
+
+        // 앨범 목록의 장수·커버도 따라 움직여야 화면이 앞뒤가 맞는다
+        const album = [...dynamicAlbums, ...ALBUMS].find((a) => a.id === pending.albumId);
+        if (album) {
+          album.photoCount += 1;
+          album.coverThumbUrl ??= photo.thumbUrl;
+        }
+
+        mockPendingUploads.delete(photoId);
+        committed.push(photoId);
+      }
+
+      return { committed, failed };
     },
   },
   photos: {
