@@ -250,10 +250,11 @@ BE가 병목. FE는 여유 시간에 M3 컴포넌트를 선행 착수할 수 있
 | **소계** | **44** | **소계** | **82** |
 
 🤝 **통합 #2** — 인증 + 프록시(§8.3) → 배포
-> ⏸ **대기 중** — FE는 `SPEC_API.md §2` 계약대로 mock/real 양쪽 구현 완료.
-> BE가 Spring Security·JWT 쿠키를 붙이면 전환 가능 (`docs/BACKEND_HANDOFF.md`
-> 2026-08-24 auth-core 항목). **FE 미구현 1건**: 401 → refresh 자동 재시도
-> (`SPEC_API.md §12.2`)는 `api.auth.refresh()` 함수만 있고 인터셉터는 아직 없다
+> ⏸ **대기 중** — FE는 `SPEC_API.md §2` 계약대로 mock/real 양쪽 구현 완료
+> (401 자동 재시도 포함). BE가 Spring Security·JWT 쿠키를 붙이면 전환 가능
+> (`docs/BACKEND_HANDOFF.md` 2026-08-24 auth-core 항목).
+> **통합 시 최우선 검증 대상**: 액세스 토큰 만료 → 자동 갱신 → 원래 요청 성공.
+> FE 로직은 있지만 실제 401 왕복은 BE 없이 검증할 수 없다
 
 ### M3 — 사진첩·주보 (FE 62h · BE 60h) · 누적 ~10주
 | FE | h | BE | h |
