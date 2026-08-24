@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Section } from "@/components/ui/Section";
 
 export const metadata: Metadata = {
-  title: "소개 | LIGHT",
+  title: "소개",
   description:
     "LIGHT — Live In God, Help The other. 하나님 안에 사는 것과 이웃을 돕는 것, 두 축으로 세워지는 청년교회를 소개합니다.",
 };
@@ -30,7 +30,7 @@ const YEAR_FLOW = [
  */
 export default function AboutPage() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       <Section className="pb-8 md:pb-8">
         <p className="text-sm font-bold text-[var(--color-gray-400)]">LIGHT</p>
         <h1 className="mt-2 text-2xl font-bold md:text-3xl">
@@ -55,7 +55,7 @@ export default function AboutPage() {
         <p className="text-base">
           하나님 안에 사는 것 — 예배와 말씀으로 세워집니다.
         </p>
-        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
+        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
           예배 사진
         </figure>
       </Section>
@@ -64,7 +64,7 @@ export default function AboutPage() {
         <p className="text-base">
           이웃을 돕는 것 — 마을과 섬김으로 함께합니다.
         </p>
-        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
+        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
           공동체 사진
         </figure>
       </Section>
@@ -73,7 +73,7 @@ export default function AboutPage() {
         <div className="grid gap-4 md:grid-cols-4">
           {SERVING_LEADERS.map((person) => (
             <div key={person.role} className="flex flex-col gap-2">
-              <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]">
+              <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
                 ❓
               </figure>
               <p className="font-bold">{person.role}</p>

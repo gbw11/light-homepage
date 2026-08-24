@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 const MENU_LINKS = [
@@ -13,11 +13,15 @@ const MENU_LINKS = [
   { href: "/location", label: "오시는 길" },
 ];
 
+const MENU_ID = "site-menu";
+
 /** WIREFRAME.md 공통 헤더/메뉴 · §11 `/my` 진입점 */
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   const handleLogout = async () => {
     await logout();
@@ -25,10 +29,66 @@ export function Header() {
     router.push("/");
   };
 
+  /**
+   * 메뉴는 화면 전체를 덮는 불투명 패널이다 — 즉 시각적으로는 모달이므로
+   * 키보드에도 모달처럼 동작해야 한다 (NFR-A11Y-06 / -09).
+   * 포커스 트랩·Escape 규칙은 라이트박스와 같은 패턴을 쓴다
+   * (`app/my/photos/[id]/_components/Lightbox.tsx`) — 같은 동작이 화면마다
+   * 다르게 느껴지지 않게 한다.
+   */
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const panel = panelRef.current;
+    panel?.querySelector<HTMLElement>("a[href], button")?.focus();
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setIsMenuOpen(false);
+        // 열었던 버튼으로 포커스를 되돌린다 — 안 하면 body로 떨어져서
+        // 다음 Tab이 페이지 맨 처음부터 다시 시작한다
+        toggleRef.current?.focus();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      // 열려 있는 동안 Tab은 [메뉴 열기/닫기 버튼 + 패널] 안에서만 돈다.
+      // 뒤에 가려진 페이지 본문으로 포커스가 새면 보이지 않는 곳을 훑게 된다.
+      const focusables = [
+        toggleRef.current,
+        ...Array.from(
+          panel?.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), input, textarea, select, [tabindex]:not([tabindex="-1"])',
+          ) ?? [],
+        ),
+      ].filter((el): el is HTMLElement => Boolean(el));
+      if (focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isMenuOpen]);
+
   return (
     <>
       <header className="sticky top-0 z-40 flex min-h-14 items-center justify-between border-b border-[var(--color-navy-100)] bg-[var(--background)] px-5">
-        <Link href="/" className="text-lg font-bold">
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center text-lg font-bold"
+        >
           LIGHT
         </Link>
         <div className="flex items-center gap-3">
@@ -39,9 +99,11 @@ export function Header() {
             처음이신가요
           </Link>
           <button
+            ref={toggleRef}
             type="button"
             aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
             aria-expanded={isMenuOpen}
+            aria-controls={MENU_ID}
             className="flex min-h-11 min-w-11 items-center justify-center text-2xl"
             onClick={() => setIsMenuOpen((open) => !open)}
           >
@@ -51,13 +113,20 @@ export function Header() {
       </header>
 
       {isMenuOpen && (
-        <div className="fixed inset-0 z-30 flex flex-col bg-[var(--background)] px-5 pt-20">
-          <nav className="flex flex-col gap-2">
+        <div
+          ref={panelRef}
+          id={MENU_ID}
+          role="dialog"
+          aria-modal="true"
+          aria-label="전체 메뉴"
+          className="fixed inset-0 z-30 flex flex-col overflow-y-auto bg-[var(--background)] px-5 pt-20"
+        >
+          <nav aria-label="주요 메뉴" className="flex flex-col gap-2">
             {MENU_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="min-h-11 py-2 text-lg font-bold"
+                className="inline-flex min-h-11 items-center py-2 text-lg font-bold"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {link.label}
@@ -79,10 +148,20 @@ export function Header() {
           </Link>
 
           <div className="mt-4 flex gap-4 text-sm text-[var(--color-gray-400)]">
-            <a href="https://instagram.com" target="_blank" rel="noreferrer">
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center"
+            >
               ▸ Instagram
             </a>
-            <a href="https://youtube.com" target="_blank" rel="noreferrer">
+            <a
+              href="https://youtube.com"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center"
+            >
               ▸ YouTube
             </a>
           </div>
@@ -93,14 +172,14 @@ export function Header() {
             <div className="flex flex-col gap-2">
               <Link
                 href="/my"
-                className="min-h-11 py-2 text-base font-bold"
+                className="inline-flex min-h-11 items-center py-2 text-base font-bold"
                 onClick={() => setIsMenuOpen(false)}
               >
                 👤 {user.name}님 · 나의 LIGHT
               </Link>
               <button
                 type="button"
-                className="min-h-11 py-2 text-left text-base text-[var(--color-gray-400)]"
+                className="inline-flex min-h-11 items-center py-2 text-left text-base text-[var(--color-gray-400)]"
                 onClick={handleLogout}
               >
                 로그아웃
@@ -109,7 +188,7 @@ export function Header() {
           ) : (
             <Link
               href="/login"
-              className="min-h-11 py-2 text-base text-[var(--color-gray-400)]"
+              className="inline-flex min-h-11 items-center py-2 text-base text-[var(--color-gray-400)]"
               onClick={() => setIsMenuOpen(false)}
             >
               🔒 로그인 / 회원가입

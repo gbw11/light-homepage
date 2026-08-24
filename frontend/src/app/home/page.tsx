@@ -62,7 +62,7 @@ const GALLERY = [
  */
 export default function Home() {
   return (
-    <main>
+    <main id="main" tabIndex={-1}>
       {/* Hero */}
       <section className="flex min-h-[calc(100dvh-3.5rem)] items-center bg-[var(--color-navy-900)] text-white">
         <div className="mx-auto grid w-full max-w-[var(--container-max)] gap-8 px-5 py-10 md:grid-cols-2 md:items-center md:px-10">
@@ -121,7 +121,9 @@ export default function Home() {
           ))}
         </ul>
         <div className="mt-6 flex gap-4 text-sm font-bold">
-          <Link href="/news">▸ 공지 전체보기</Link>
+          <Link href="/news" className="inline-flex min-h-11 items-center">
+            ▸ 공지 전체보기
+          </Link>
           {/* 주보 보기: /bulletin 라우트 미구현 (M3 예정). 링크 없이 텍스트만 노출 */}
           <span className="text-[var(--color-gray-400)]">▸ 주보 보기</span>
         </div>
@@ -147,7 +149,7 @@ export default function Home() {
           />
         </figure>
 
-        <Link href="/about" className="mt-6 inline-block text-sm font-bold">
+        <Link href="/about" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
           ▸ 더 알아보기
         </Link>
       </Section>
@@ -167,7 +169,7 @@ export default function Home() {
           </li>
         </ul>
 
-        <Link href="/worship" className="mt-6 inline-block text-sm font-bold">
+        <Link href="/worship" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
           ▸ 자세히 보기
         </Link>
       </Section>
@@ -177,7 +179,7 @@ export default function Home() {
         <div className="max-w-sm rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-4 md:max-w-none">
           <figure
             aria-hidden
-            className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-gray-400)]"
+            className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]"
           >
             썸네일 (16:9)
           </figure>
@@ -185,7 +187,7 @@ export default function Home() {
           <p className="text-sm text-[var(--color-gray-400)]">{RECENT_SERMON.date}</p>
         </div>
 
-        <Link href="/sermons" className="mt-6 inline-block text-sm font-bold">
+        <Link href="/sermons" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
           ▸ 지난 말씀 전체보기
         </Link>
       </Section>
@@ -213,7 +215,7 @@ export default function Home() {
         </div>
 
         {/* 갤러리 탭 미구현 — 소식 페이지로 연결 */}
-        <Link href="/news" className="mt-6 inline-block text-sm font-bold">
+        <Link href="/news" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
           ▸ 갤러리
         </Link>
       </Section>

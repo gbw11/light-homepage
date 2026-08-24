@@ -20,7 +20,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const inputClass =
-  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base outline-none focus:border-[var(--color-yellow)]";
+  "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]";
 
 export function LoginForm() {
   const router = useRouter();
@@ -87,7 +87,7 @@ export function LoginForm() {
             {...register("email")}
           />
           {errors.email && (
-            <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.email.message}</p>
+            <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.email.message}</p>
           )}
         </div>
 
@@ -103,12 +103,12 @@ export function LoginForm() {
             {...register("password")}
           />
           {errors.password && (
-            <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.password.message}</p>
+            <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.password.message}</p>
           )}
         </div>
 
         {errors.root && (
-          <p className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
+          <p role="alert" className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
         )}
 
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
@@ -117,13 +117,13 @@ export function LoginForm() {
       </form>
 
       <div className="mt-6 space-y-2 text-sm">
-        <Link href="/password/reset-request" className="block text-[var(--color-gray-400)]">
+        <Link href="/password/reset-request" className="flex min-h-11 items-center text-[var(--color-gray-400)]">
           ▸ 비밀번호를 잊으셨나요?
         </Link>
-        <Link href="/signup" className="block font-bold">
+        <Link href="/signup" className="flex min-h-11 items-center font-bold">
           ▸ 처음이신가요? 회원가입
         </Link>
-        <Link href="/welcome" className="block text-[var(--color-gray-400)]">
+        <Link href="/welcome" className="flex min-h-11 items-center text-[var(--color-gray-400)]">
           ▸ 처음 오시는 분이신가요?
         </Link>
       </div>
