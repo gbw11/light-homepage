@@ -98,7 +98,7 @@ export function AccountActions() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            {error && <p className="text-sm text-[var(--color-red-500)]">{error}</p>}
+            {error && <p role="alert" className="text-sm text-[var(--color-red-500)]">{error}</p>}
             <button
               type="button"
               className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-red-500)] px-6 text-base font-bold text-white transition hover:brightness-95 disabled:opacity-60"

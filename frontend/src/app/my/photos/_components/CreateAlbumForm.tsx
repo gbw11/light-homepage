@@ -90,7 +90,7 @@ export function CreateAlbumForm() {
           {...register("title")}
         />
         {errors.title && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.title.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.title.message}</p>
         )}
       </div>
 
@@ -105,12 +105,12 @@ export function CreateAlbumForm() {
           {...register("eventDate")}
         />
         {errors.eventDate && (
-          <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.eventDate.message}</p>
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.eventDate.message}</p>
         )}
       </div>
 
       {errors.root && (
-        <p className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
+        <p role="alert" className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
       )}
 
       <div className="flex gap-3">

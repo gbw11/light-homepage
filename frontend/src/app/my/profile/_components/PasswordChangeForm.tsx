@@ -107,7 +107,7 @@ export function PasswordChangeForm() {
               {...register("currentPassword")}
             />
             {errors.currentPassword && (
-              <p className="mt-1 text-sm text-[var(--color-red-500)]">
+              <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">
                 {errors.currentPassword.message}
               </p>
             )}
@@ -125,7 +125,7 @@ export function PasswordChangeForm() {
               {...register("newPassword")}
             />
             {errors.newPassword && (
-              <p className="mt-1 text-sm text-[var(--color-red-500)]">
+              <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">
                 {errors.newPassword.message}
               </p>
             )}
@@ -143,14 +143,14 @@ export function PasswordChangeForm() {
               {...register("newPasswordConfirm")}
             />
             {errors.newPasswordConfirm && (
-              <p className="mt-1 text-sm text-[var(--color-red-500)]">
+              <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">
                 {errors.newPasswordConfirm.message}
               </p>
             )}
           </div>
 
           {errors.root && (
-            <p className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
+            <p role="alert" className="text-sm text-[var(--color-red-500)]">{errors.root.message}</p>
           )}
 
           <Button type="submit" variant="secondary" disabled={mutation.isPending}>
