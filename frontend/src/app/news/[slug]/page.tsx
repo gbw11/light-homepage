@@ -6,6 +6,9 @@ import { PostBodyView } from "@/components/post/PostBodyView";
 import { EditPostLink } from "@/components/post/EditPostLink";
 import type { PostDetail } from "@/types/api";
 
+/** ISR — 5분마다 재생성. 근거는 `/news`(목록 페이지)의 같은 상수 주석 참고 */
+export const revalidate = 300;
+
 /**
  * `generateMetadata`와 페이지 본문이 같은 요청을 중복 호출하지 않도록
  * 요청 단위로 결과를 캐싱한다 (React `cache`).

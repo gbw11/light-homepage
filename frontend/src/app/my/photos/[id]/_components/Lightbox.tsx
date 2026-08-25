@@ -128,6 +128,12 @@ export function Lightbox({
     return () => restoreTo?.focus?.();
   }, []);
 
+  /**
+   * 키 핸들러는 ref로 항상 최신을 가리키고, window 리스너는 마운트에 한 번만
+   * 붙인다. 핸들러를 effect 의존성에 두면 goPrev/goNext가 index마다 새로
+   * 만들어져 **화살표 키를 누를 때마다** 리스너가 떼었다 붙는다.
+   */
+  const keydownRef = useRef<(e: KeyboardEvent) => void>(() => {});
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       // 겹침 패널이 열려 있으면 사진 이동·닫기 키는 패널이 우선한다
@@ -168,9 +174,14 @@ export function Lightbox({
       }
     }
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    keydownRef.current = onKeyDown;
   }, [onClose, goPrev, goNext, overlayOpen]);
+
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => keydownRef.current(e);
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, []);
 
   if (!photo) return null;
 
@@ -273,6 +284,7 @@ export function Lightbox({
           alt={`사진 ${index + 1}`}
           width={photo.width}
           height={photo.height}
+          decoding="async"
           className="max-h-full max-w-full object-contain"
         />
 
@@ -285,6 +297,20 @@ export function Lightbox({
         >
           ›
         </button>
+
+        {/*
+          이웃 사진 미리 받기 — viewUrl(2560px)은 수백 KB라 화살표를 누른 뒤에
+          받기 시작하면 빈 화면이 한 박자 보인다. display:none이어도 브라우저는
+          src를 받아두므로, 넘기는 순간 캐시에서 바로 뜬다.
+        */}
+        {hasPrev && (
+          // eslint-disable-next-line @next/next/no-img-element -- presigned URL 프리로드 (위 본문 img와 같은 이유)
+          <img src={photos[index - 1].viewUrl} alt="" aria-hidden className="hidden" />
+        )}
+        {hasNext && (
+          // eslint-disable-next-line @next/next/no-img-element -- presigned URL 프리로드 (위 본문 img와 같은 이유)
+          <img src={photos[index + 1].viewUrl} alt="" aria-hidden className="hidden" />
+        )}
       </div>
 
       <div className="shrink-0 px-5 py-5 text-center">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import Link from "next/link";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
@@ -23,6 +23,100 @@ function retryOnlyServerErrors(failureCount: number, error: unknown): boolean {
   if (isApiError(error) && error.status >= 400 && error.status < 500) return false;
   return failureCount < 2;
 }
+
+/**
+ * 선택 모드 상태. 선택 목록과 안내 문구를 리듀서 하나로 묶은 이유:
+ * · 30장 제한 안내는 "선택 시도" 시점에만 뜰 수 있어서 상태에서 파생할 수
+ *   없고, 그렇다고 setState 업데이터 안에서 다른 setState를 부르면
+ *   업데이터가 불순해진다(StrictMode에서 두 번 실행되는 자리).
+ * · dispatch는 항상 같은 참조라 아래 PhotoTile의 memo가 유지된다.
+ *
+ * 선택은 **사진 id**로 들고 있다 — 인덱스로 들고 있으면 무한 스크롤로
+ * 다음 페이지가 붙을 때 의미가 흔들린다. id 기준이면 20장을 더 불러와도
+ * 이미 선택한 사진이 그대로 유지된다.
+ */
+type SelectionState = { ids: string[]; notice: string | null };
+type SelectionAction =
+  | { type: "toggle"; photoId: string }
+  | { type: "clear" }
+  | { type: "notice"; notice: string | null };
+
+function selectionReducer(state: SelectionState, action: SelectionAction): SelectionState {
+  switch (action.type) {
+    case "toggle": {
+      if (state.ids.includes(action.photoId)) {
+        return { ids: state.ids.filter((id) => id !== action.photoId), notice: null };
+      }
+      if (state.ids.length >= MAX_ZIP_PHOTOS) {
+        // 서버(§6.8)도 막지만 요청을 보내기 전에 화면에서 끊는다
+        return { ...state, notice: `한 번에 최대 ${MAX_ZIP_PHOTOS}장까지 선택할 수 있습니다.` };
+      }
+      return { ids: [...state.ids, action.photoId], notice: null };
+    }
+    case "clear":
+      return { ids: [], notice: null };
+    case "notice":
+      return { ...state, notice: action.notice };
+  }
+}
+
+/**
+ * 그리드의 타일 한 칸. `memo`인 이유: 선택 모드에서 한 장을 탭하면 선택
+ * 배열이 바뀌어 그리드 전체가 리렌더되는데, 실제로 겉모습이 바뀌는 타일은
+ * 한 개뿐이다. 무한 스크롤이라 장수에 상한이 없으므로 나머지는 건너뛴다.
+ */
+const PhotoTile = memo(function PhotoTile({
+  photo,
+  index,
+  selectMode,
+  selected,
+  onToggle,
+  onOpen,
+}: {
+  photo: Photo;
+  index: number;
+  selectMode: boolean;
+  selected: boolean;
+  onToggle: (photoId: string) => void;
+  onOpen: (index: number) => void;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        // 선택 모드에서 탭하면 선택이지 확대 보기가 아니다 (§13-3)
+        onClick={() => (selectMode ? onToggle(photo.id) : onOpen(index))}
+        aria-label={selectMode ? `사진 ${index + 1} 선택` : `사진 ${index + 1} 확대 보기`}
+        aria-pressed={selectMode ? selected : undefined}
+        className="relative block aspect-square w-full overflow-hidden rounded-[4px] bg-[var(--color-navy-100)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- 실서비스 URL은 R2 presigned(만료·서명 포함)라 next/image 최적화 대상이 아니다 (SPEC_API §6.4) */}
+        <img
+          src={photo.thumbUrl}
+          alt=""
+          width={photo.width}
+          height={photo.height}
+          loading="lazy"
+          decoding="async"
+          className={`h-full w-full object-cover ${selected ? "opacity-60" : ""}`}
+        />
+
+        {selectMode && (
+          <span
+            aria-hidden
+            className={`absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold ${
+              selected
+                ? "bg-[var(--color-yellow)] text-[var(--color-accent-fg)]"
+                : "bg-black/40 text-white/80"
+            }`}
+          >
+            {selected ? "✓" : ""}
+          </span>
+        )}
+      </button>
+    </li>
+  );
+});
 
 /**
  * WIREFRAME.md §13-2 — 앨범 상세 3열 썸네일 그리드 + 무한 스크롤.
@@ -94,45 +188,40 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
   const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
 
   /**
-   * 선택 모드 (WIREFRAME §13-3, FR-PHO-05).
-   *
-   * 선택은 **사진 id**로 들고 있다 — 인덱스로 들고 있으면 무한 스크롤로
-   * 다음 페이지가 붙을 때 의미가 흔들린다. id 기준이면 20장을 더 불러와도
-   * 이미 선택한 사진이 그대로 유지된다.
+   * 선택 모드 (WIREFRAME §13-3, FR-PHO-05). 선택 목록·안내 문구는
+   * `selectionReducer` 주석 참고 — 안내(notice)는 30장 제한과 mock ZIP
+   * 미지원 안내가 같은 자리를 쓰므로 한 곳에 모았다.
    */
   const [selectMode, setSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  /**
-   * 하단 바 안내 문구 — 30장 제한, mock ZIP 미지원 안내가 같은 자리를 쓴다.
-   * 두 곳에서 따로 관리하면 어느 문구가 최신인지 알 수 없어 한 곳에 모았다.
-   */
-  const [notice, setNotice] = useState<string | null>(null);
+  const [{ ids: selectedIds, notice }, dispatchSelection] = useReducer(selectionReducer, {
+    ids: [],
+    notice: null,
+  });
 
   const exitSelectMode = useCallback(() => {
     setSelectMode(false);
     // 선택 모드를 나가면 선택은 비운다 — 남겨두면 다시 들어왔을 때
     // 사용자가 기억하지 못하는 선택으로 ZIP을 만들게 된다.
-    setSelectedIds([]);
-    setNotice(null);
+    dispatchSelection({ type: "clear" });
   }, []);
 
-  const toggleSelected = useCallback((photoId: string) => {
-    setSelectedIds((prev) => {
-      if (prev.includes(photoId)) {
-        setNotice(null);
-        return prev.filter((id) => id !== photoId);
-      }
-      if (prev.length >= MAX_ZIP_PHOTOS) {
-        // 서버(§6.8)도 막지만 요청을 보내기 전에 화면에서 끊는다
-        setNotice(`한 번에 최대 ${MAX_ZIP_PHOTOS}장까지 선택할 수 있습니다.`);
-        return prev;
-      }
-      setNotice(null);
-      return [...prev, photoId];
-    });
-  }, []);
+  const toggleSelected = useCallback(
+    (photoId: string) => dispatchSelection({ type: "toggle", photoId }),
+    [],
+  );
+  const handleNotice = useCallback(
+    (next: string | null) => dispatchSelection({ type: "notice", notice: next }),
+    [],
+  );
 
-  const photos: Photo[] = photosQuery.data?.pages.flatMap((p) => p.items) ?? [];
+  // 렌더마다 flatMap으로 새 배열을 만들면 선택 탭 한 번에도 Lightbox까지
+  // 새 props를 받는다 — 페이지 데이터가 실제로 바뀔 때만 다시 만든다.
+  const photos: Photo[] = useMemo(
+    () => photosQuery.data?.pages.flatMap((p) => p.items) ?? [],
+    [photosQuery.data],
+  );
+  // 타일마다 includes(O(n))를 돌리면 선택 검사만 O(n²)이 된다
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const notFound =
     photosQuery.isError && isApiError(photosQuery.error) && photosQuery.error.code === "NOT_FOUND";
 
@@ -227,48 +316,17 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
               6장밖에 안 들어간다 — 폭이 넓어지면 열을 늘린다 (COMPONENTS §5 반응형).
             */}
             <ul className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 md:gap-2 lg:grid-cols-6">
-              {photos.map((photo, i) => {
-                const selected = selectedIds.includes(photo.id);
-
-                return (
-                  <li key={photo.id}>
-                    <button
-                      type="button"
-                      // 선택 모드에서 탭하면 선택이지 확대 보기가 아니다 (§13-3)
-                      onClick={() => (selectMode ? toggleSelected(photo.id) : setOpenIndex(i))}
-                      aria-label={
-                        selectMode ? `사진 ${i + 1} 선택` : `사진 ${i + 1} 확대 보기`
-                      }
-                      aria-pressed={selectMode ? selected : undefined}
-                      className="relative block aspect-square w-full overflow-hidden rounded-[4px] bg-[var(--color-navy-100)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element -- 실서비스 URL은 R2 presigned(만료·서명 포함)라 next/image 최적화 대상이 아니다 (SPEC_API §6.4) */}
-                      <img
-                        src={photo.thumbUrl}
-                        alt=""
-                        width={photo.width}
-                        height={photo.height}
-                        loading="lazy"
-                        decoding="async"
-                        className={`h-full w-full object-cover ${selected ? "opacity-60" : ""}`}
-                      />
-
-                      {selectMode && (
-                        <span
-                          aria-hidden
-                          className={`absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold ${
-                            selected
-                              ? "bg-[var(--color-yellow)] text-[var(--color-accent-fg)]"
-                              : "bg-black/40 text-white/80"
-                          }`}
-                        >
-                          {selected ? "✓" : ""}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
+              {photos.map((photo, i) => (
+                <PhotoTile
+                  key={photo.id}
+                  photo={photo}
+                  index={i}
+                  selectMode={selectMode}
+                  selected={selectedSet.has(photo.id)}
+                  onToggle={toggleSelected}
+                  onOpen={setOpenIndex}
+                />
+              ))}
             </ul>
 
             {/* 무한 스크롤 감지용 sentinel — 화면에 들어오면 다음 커서를 받는다 */}
@@ -313,7 +371,7 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
           albumId={albumId}
           selectedIds={selectedIds}
           notice={notice}
-          onNotice={setNotice}
+          onNotice={handleNotice}
         />
       )}
 

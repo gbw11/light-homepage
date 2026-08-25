@@ -36,7 +36,9 @@
  *   · GET 이외 메서드, 다른 출처(cross-origin) 요청
  */
 
-const VERSION = "v1";
+// 캐시 저장 방식이 바뀌면 반드시 올린다 — 이름이 바뀌어야 activate가 이전
+// 캐시를 통째로 지운다. (v2: 내비게이션 캐시 키를 pathname으로 정규화)
+const VERSION = "v2";
 const STATIC_CACHE = `light-static-${VERSION}`;
 const SHELL_CACHE = `light-shell-${VERSION}`;
 const OWNED_CACHES = [STATIC_CACHE, SHELL_CACHE];
@@ -128,7 +130,19 @@ self.addEventListener("install", (event) => {
   );
 });
 
-/** 활성화: 이전 버전 캐시를 지우고 열려 있는 탭까지 바로 인수한다 */
+/**
+ * 캐시 엔트리 수 상한. VERSION이 안 바뀌는 한 activate의 "이전 버전 삭제"는
+ * 영영 안 걸리는데, STATIC_CACHE는 배포마다 새 해시 청크를 계속 받아
+ * 상한 없이 자란다. 오래된 것(삽입 순서 앞쪽)부터 지운다.
+ */
+async function trimCache(cacheName, maxEntries) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  if (keys.length <= maxEntries) return;
+  await Promise.all(keys.slice(0, keys.length - maxEntries).map((key) => cache.delete(key)));
+}
+
+/** 활성화: 이전 버전 캐시를 지우고, 현재 캐시를 다듬고, 열려 있는 탭까지 바로 인수한다 */
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
@@ -138,6 +152,8 @@ self.addEventListener("activate", (event) => {
           .filter((key) => key.startsWith("light-") && !OWNED_CACHES.includes(key))
           .map((key) => caches.delete(key)),
       );
+      await trimCache(STATIC_CACHE, 100);
+      await trimCache(SHELL_CACHE, 30);
       await self.clients.claim();
     })(),
   );
@@ -156,7 +172,10 @@ async function handleNavigation(request) {
     const response = await fetch(request);
     if (cacheable && response.ok && response.type === "basic") {
       const shell = await caches.open(SHELL_CACHE);
-      await shell.put(request, response.clone());
+      // 쿼리스트링을 떼고 pathname으로 저장한다. request 그대로 저장하면
+      // `/news?utm_source=a`, `?utm_source=b`가 각각 HTML 전체를 새 엔트리로
+      // 쌓는데, 읽는 쪽은 ignoreSearch라 어차피 구분해 꺼내지도 못한다.
+      await shell.put(pathname, response.clone());
     }
     return response;
   } catch (error) {
@@ -172,12 +191,14 @@ async function handleNavigation(request) {
 
 /** 정적 자산: 캐시 우선 (해시 파일명이라 내용이 바뀌면 URL도 바뀐다) */
 async function handleStatic(request) {
-  const cached = await caches.match(request);
+  // 전역 caches.match가 아니라 자기 캐시만 본다 — SHELL_CACHE의 HTML이
+  // 정적 자산 응답으로 잘못 잡히는 경로를 원천 차단.
+  const staticCache = await caches.open(STATIC_CACHE);
+  const cached = await staticCache.match(request);
   if (cached) return cached;
 
   const response = await fetch(request);
   if (response.ok && response.type === "basic") {
-    const staticCache = await caches.open(STATIC_CACHE);
     await staticCache.put(request, response.clone());
   }
   return response;

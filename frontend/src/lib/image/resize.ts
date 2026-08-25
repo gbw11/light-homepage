@@ -10,9 +10,9 @@ import { readTakenAt } from "./exif";
  */
 
 /** 확대·다운로드용 장변 (SPEC_API §6.4 `viewUrl`) */
-export const VIEW_MAX_EDGE = 2560;
+const VIEW_MAX_EDGE = 2560;
 /** 그리드 열람용 장변 — 200장 열람 전송량을 16MB 안에 두는 근거 (§6.4) */
-export const THUMB_MAX_EDGE = 640;
+const THUMB_MAX_EDGE = 640;
 /**
  * 주보 장변 (ARCHITECTURE.md §4.2 · FR-BUL-03).
  *

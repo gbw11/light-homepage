@@ -8,7 +8,7 @@ import { BulletinViewer } from "./BulletinViewer";
 import { PastBulletinList } from "./PastBulletinList";
 
 /** 최신 주보 쿼리 키 */
-export const LATEST_BULLETIN_QUERY_KEY = ["bulletins", "latest"] as const;
+const LATEST_BULLETIN_QUERY_KEY = ["bulletins", "latest"] as const;
 
 /**
  * FR-BUL-01 — **페이지에 들어오면 최신 주보가 이미 열려 있다.**

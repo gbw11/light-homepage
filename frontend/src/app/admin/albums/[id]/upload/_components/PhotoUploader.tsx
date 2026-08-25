@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
@@ -35,6 +35,8 @@ export function PhotoUploader({ albumId }: { albumId: string }) {
   const album = albumQuery.data?.items.find((a) => a.id === albumId);
 
   const { items, running, blocked, addFiles, start } = useUploadQueue(albumId);
+  // 인라인 화살표로 넘기면 렌더마다 새 함수라 QueueRow의 memo가 전부 빗나간다
+  const handleRetry = useCallback((clientIds: string[]) => void start(clientIds), [start]);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputId = useId();
   const [dragging, setDragging] = useState(false);
@@ -122,11 +124,7 @@ export function PhotoUploader({ albumId }: { albumId: string }) {
 
       {items.length > 0 && (
         <>
-          <UploadQueueList
-            items={items}
-            running={running}
-            onRetry={(clientIds) => void start(clientIds)}
-          />
+          <UploadQueueList items={items} running={running} onRetry={handleRetry} />
 
           {/*
             큐 전체가 멈춘 이유는 항목별 실패와 따로 보여준다 — 용량 초과라면
