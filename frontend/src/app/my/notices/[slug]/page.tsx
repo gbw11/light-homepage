@@ -4,7 +4,6 @@ import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import { PostBodyView } from "@/components/post/PostBodyView";
 import { EditPostLink } from "@/components/post/EditPostLink";
-import { RequireMember } from "@/components/auth/RequireMember";
 import type { PostDetail } from "@/types/api";
 
 /**
@@ -47,12 +46,9 @@ export async function generateMetadata({
 /**
  * WIREFRAME.md §14 — 내부 공지 상세 `/my/notices/[slug]`.
  * `api.posts.get`은 category를 구분하지 않으므로 `NOTICE_PUBLIC`,
- * `NOTICE_MEMBER` 글 모두 동일하게 렌더한다 (SPEC_API §3.3). 이 라우트
- * 자체는 회원(`M`) 이상만 접근 가능해야 하므로 `RequireMember`로 감싼다.
- *
- * ⚠️ 열람 권한 자체(비회원이 내부 공지 slug로 직접 접근하는 경우 등)는
- * 서버가 최종 판단한다 — `RequireMember`는 헛걸음을 줄이는 UI 편의일 뿐
- * 실제 인가가 아니다 (`RequireMember.tsx` 주석 참고).
+ * `NOTICE_MEMBER` 글 모두 동일하게 렌더한다 (SPEC_API §3.3).
+ * 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 가능하다.
+ * 수정 링크(EditPostLink)는 기존대로 전도사에게만 보인다.
  */
 export default async function MyNoticeDetailPage({
   params,
@@ -64,19 +60,16 @@ export default async function MyNoticeDetailPage({
 
   if (!notice) {
     return (
-      <RequireMember>
-        <main id="main" tabIndex={-1}>
-          <Section>
-            <p className="text-[var(--color-red-500)]">찾을 수 없는 글입니다.</p>
-          </Section>
-        </main>
-      </RequireMember>
+      <main id="main" tabIndex={-1}>
+        <Section>
+          <p className="text-[var(--color-red-500)]">찾을 수 없는 글입니다.</p>
+        </Section>
+      </main>
     );
   }
 
   return (
-    <RequireMember>
-      <main id="main" tabIndex={-1}>
+    <main id="main" tabIndex={-1}>
         <Section>
           <p className="text-sm font-bold text-[var(--color-gray-400)]">
             {notice.category === "NOTICE_MEMBER" && "🔒 "}
@@ -119,7 +112,6 @@ export default async function MyNoticeDetailPage({
             </div>
           )}
         </Section>
-      </main>
-    </RequireMember>
+    </main>
   );
 }

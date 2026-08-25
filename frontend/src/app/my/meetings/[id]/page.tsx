@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { RequireMember } from "@/components/auth/RequireMember";
 import { Section } from "@/components/ui/Section";
 import { MeetingScreen } from "./_components/MeetingScreen";
 
@@ -26,9 +25,7 @@ export default async function MeetingDetailPage({
   return (
     <main id="main" tabIndex={-1}>
       <Section>
-        <RequireMember>
-          <MeetingScreen meetingId={id} />
-        </RequireMember>
+        <MeetingScreen meetingId={id} />
       </Section>
     </main>
   );

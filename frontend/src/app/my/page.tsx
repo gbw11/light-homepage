@@ -1,6 +1,6 @@
 "use client";
 
-import { RequireMember } from "@/components/auth/RequireMember";
+import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Section } from "@/components/ui/Section";
 import { villageLabel } from "@/lib/village";
@@ -29,35 +29,53 @@ import { HomeTile } from "./_components/HomeTile";
  * **전도사 전용**이다 (SPEC_API §8 — 항목마다 권한이 다르다).
  */
 export default function MyHomePage() {
-  return (
-    <RequireMember>
-      <MyHomeContent />
-    </RequireMember>
-  );
+  return <MyHomeContent />;
 }
 
+/**
+ * 공개 열람 전환(PM 결정 2026-08-25): 이 화면은 더 이상 로그인을 요구하지
+ * 않는다. 로그인한 사용자에게는 인사말·내 정보 타일을, 익명 방문자에게는
+ * 로그인 안내를 보여준다 — 타일(주보·사진첩·공지·월례회)은 누구에게나 열린다.
+ */
 function MyHomeContent() {
   const { user } = useAuth();
-
-  // RequireMember가 로그인 안 됨/승인 대기를 이미 걸러내므로 여기 도달했다면
-  // user는 항상 존재한다. 다만 타입은 여전히 nullable이라 방어적으로 처리.
-  if (!user) return null;
-
-  const isAdmin = user.role === "LEADER" || user.role === "PASTOR";
+  const member = user && user.role !== "PENDING" ? user : null;
+  const isAdmin = member?.role === "LEADER" || member?.role === "PASTOR";
 
   return (
     <main id="main" tabIndex={-1}>
       <Section>
-        <h1 className="text-2xl font-bold md:text-3xl">
-          안녕하세요, {user.name}님
-        </h1>
-        <p className="mt-1 text-[var(--color-gray-400)]">{villageLabel(user.village)}</p>
+        {member ? (
+          <>
+            <h1 className="text-2xl font-bold md:text-3xl">
+              안녕하세요, {member.name}님
+            </h1>
+            <p className="mt-1 text-[var(--color-gray-400)]">
+              {villageLabel(member.village)}
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold md:text-3xl">LIGHT 자료</h1>
+            <p className="mt-1 text-[var(--color-gray-400)]">
+              주보·사진첩·공지·월례회 자료는 누구나 볼 수 있습니다.{" "}
+              <Link href="/login" className="font-bold underline">
+                로그인
+              </Link>
+              하면 자료 업로드 등 맡은 권한으로 활동할 수 있습니다.
+            </p>
+          </>
+        )}
 
         <div className="mt-8 grid grid-cols-2 gap-4">
           <HomeTile icon="📄" label="주보" href="/my/bulletin" />
           <HomeTile icon="📷" label="사진첩" href="/my/photos" />
           <HomeTile icon="📢" label="공지사항" href="/my/notices" />
-          <HomeTile icon="⚙️" label="내 정보" href="/my/profile" />
+          {member ? (
+            <HomeTile icon="⚙️" label="내 정보" href="/my/profile" />
+          ) : (
+            <HomeTile icon="🔑" label="로그인" href="/login" />
+          )}
           <HomeTile
             icon="🗂"
             label="월례회 자료"

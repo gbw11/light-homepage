@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { RequireMember } from "@/components/auth/RequireMember";
 import { InternalNoticeList } from "./_components/InternalNoticeList";
 
 export const metadata: Metadata = {
@@ -10,7 +9,8 @@ export const metadata: Metadata = {
 /**
  * WIREFRAME.md §14 — 내부 공지 `/my/notices`.
  * 공개 공지(`NOTICE_PUBLIC`)와 내부 공지(`NOTICE_MEMBER`)를 하나의 목록으로
- * 통합해 보여준다 (SPEC_API §3.1). 회원(`M`) 이상만 접근 가능하다.
+ * 통합해 보여준다 (SPEC_API §3.1).
+ * 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 가능하다.
  *
  * ⚠️ **서버에서 prefetch하지 않는다.** `/news`(공개 페이지)와 다른 점이고,
  *    의도된 차이다:
@@ -33,9 +33,7 @@ export default function MyNoticesPage() {
         <h1 className="text-2xl font-bold md:text-3xl">내부 공지</h1>
       </section>
 
-      <RequireMember>
-        <InternalNoticeList />
-      </RequireMember>
+      <InternalNoticeList />
     </main>
   );
 }

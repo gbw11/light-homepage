@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { RequireMember } from "@/components/auth/RequireMember";
 import { PhotoGrid } from "./_components/PhotoGrid";
 
 export const metadata: Metadata = {
@@ -10,10 +9,9 @@ export const metadata: Metadata = {
 /**
  * WIREFRAME.md §13-2 — 앨범 상세 `/my/photos/[id]`.
  *
- * 서버에서 prefetch하지 않는다: mock 세션은 브라우저 localStorage에 있고
- * (`mock.ts`의 `requireSession`), 실서비스에서도 `GET /api/albums/{id}/photos`는
- * 권한 `M`(쿠키 인증)이 필요하다 (SPEC_API §6.4). 따라서 데이터 조회는 전부
- * 클라이언트(`PhotoGrid`)에서 하고, 이 페이지는 라우팅·권한 경계만 잡는다.
+ * 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 가능하다.
+ * 사진 업로드·삭제는 임원 권한으로 남는다 (UploadLink·Lightbox ⋮).
+ * 데이터 조회는 기존대로 클라이언트(`PhotoGrid`)에서 한다.
  */
 export default async function AlbumDetailPage({
   params,
@@ -23,10 +21,8 @@ export default async function AlbumDetailPage({
   const { id } = await params;
 
   return (
-    <RequireMember>
-      <main id="main" tabIndex={-1}>
-        <PhotoGrid albumId={id} />
-      </main>
-    </RequireMember>
+    <main id="main" tabIndex={-1}>
+      <PhotoGrid albumId={id} />
+    </main>
   );
 }
