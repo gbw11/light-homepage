@@ -37,16 +37,24 @@ const TICK_MS = 30_000;
  * **UI 편의일 뿐**이고, 실제 판정은 페이지 이미지를 스트리밍하는 서버가
  * 매 요청마다 다시 한다 (§7.3 처리 순서 2).
  */
-export function MeetingList() {
-  const { user } = useAuth();
-  const isLeader = user?.role === "LEADER" || user?.role === "PASTOR";
-
-  // 남은 시간 문구가 화면에 그대로 굳어 있지 않게 주기적으로 다시 그린다
+/**
+ * 남은 시간 문구. 잎 컴포넌트로 분리한 이유: 틱 상태가 목록에 있으면 30초마다
+ * **카드 전체(20장)**가 다시 그려진다 — 주기적으로 바뀌는 건 OPEN 카드의
+ * 이 문구뿐이고, OPEN은 보통 한 장이다.
+ */
+function RemainingText({ until }: { until: string }) {
+  // 문구가 화면에 그대로 굳어 있지 않게 주기적으로 다시 그린다
   const [, setTick] = useState(0);
   useEffect(() => {
     const id = window.setInterval(() => setTick((t) => t + 1), TICK_MS);
     return () => window.clearInterval(id);
   }, []);
+  return <>({formatRemaining(secondsUntil(until))})</>;
+}
+
+export function MeetingList() {
+  const { user } = useAuth();
+  const isLeader = user?.role === "LEADER" || user?.role === "PASTOR";
 
   const { data, isLoading, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useInfiniteQuery({
@@ -110,7 +118,6 @@ export function MeetingList() {
 
 function MeetingCard({ item, isLeader }: { item: MeetingSummary; isLeader: boolean }) {
   const openable = item.status === "OPEN" || isLeader;
-  const remaining = secondsUntil(item.viewableUntil);
 
   return (
     <article className="rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-5">
@@ -137,7 +144,7 @@ function MeetingCard({ item, isLeader }: { item: MeetingSummary; isLeader: boole
         <p className="mt-3 font-bold">
           <span aria-hidden>⏳</span> {formatDeadline(item.viewableUntil)}까지{" "}
           <span className="font-normal text-[var(--color-gray-400)]">
-            ({formatRemaining(remaining)})
+            <RemainingText until={item.viewableUntil} />
           </span>
         </p>
       )}
