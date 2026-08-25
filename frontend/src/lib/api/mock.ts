@@ -1239,12 +1239,6 @@ export const mockApi: Api = {
       // 고정 mock 앨범은 실제로 지우지 않는다 (새로고침 시 되살아나 혼란을 준다)
     },
 
-    downloadUrl(albumId: string, photoIds: string[]): string {
-      // 실제로는 ZIP 스트리밍 엔드포인트다. mock은 ZIP을 만들 수 없으므로
-      // `capabilities.zipDownload = false`로 화면이 안내를 띄우게 한다.
-      const ids = photoIds.join(",");
-      return `/api/albums/${encodeURIComponent(albumId)}/download?ids=${ids}`;
-    },
   },
   uploads: {
     async issue(input: UploadIssueInput): Promise<{ uploads: UploadTicket[] }> {
@@ -1844,10 +1838,6 @@ export const mockApi: Api = {
         `/api/bulletins/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}/download`
       );
     },
-  },
-  capabilities: {
-    // mock은 ZIP을 만들 수 없다 — 화면이 "다운로드했습니다"라고 속이지 않도록
-    zipDownload: false,
   },
   auth: {
     async signup(input: SignupInput): Promise<{ id: string; role: AuthUser["role"] }> {

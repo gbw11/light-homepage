@@ -330,9 +330,6 @@ export const realApi: Api = {
       request("/albums", { method: "POST", body: JSON.stringify(input) }),
     photos: (albumId, { cursor, size = 20 } = {}) =>
       request(`/albums/${encodeURIComponent(albumId)}/photos`, { query: { cursor, size } }),
-    // ZIP 스트리밍 — fetch가 아니라 브라우저가 직접 이동한다 (SPEC_API §6.8)
-    downloadUrl: (albumId, photoIds) =>
-      `/api/albums/${encodeURIComponent(albumId)}/download?ids=${photoIds.join(",")}`,
     remove: (albumId) =>
       request(`/albums/${encodeURIComponent(albumId)}`, { method: "DELETE" }),
   },
@@ -432,9 +429,6 @@ export const realApi: Api = {
     // [CONTRACT] 신규 제안 경로 — 백엔드가 다르게 정하면 여기만 바꾼다
     downloadUrl: (id, pageNo) =>
       `/api/bulletins/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}/download`,
-  },
-  capabilities: {
-    zipDownload: true,
   },
   auth: {
     signup: (input: SignupInput) =>
