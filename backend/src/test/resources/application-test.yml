@@ -1,0 +1,24 @@
+# ─────────────────────────────────────────────────────────────
+#  test — CI(GitHub Actions · Jenkins)가 이 프로필로 테스트를 돌린다.
+#  CI가 postgres:16 컨테이너를 띄우고 아래 환경변수를 주입한다 (docs/TESTING.md §2.1).
+#  로컬에서 그냥 ./gradlew test를 돌릴 때를 위해 기본값을 함께 둔다.
+# ─────────────────────────────────────────────────────────────
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/light}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:local}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    clean-disabled: false
+
+app:
+  jwt:
+    # CI가 JWT_SECRET을 주입한다. 아래 기본값은 로컬에서 env 없이 테스트를 돌리기 위한
+    # 더미이며 운영 값이 아니다. (Jenkins Secret Scan 예외 표시)
+    secret: ${JWT_SECRET:test-secret-key-at-least-256-bits-long-for-hmac-sha256!!}  # allowlist-secret
