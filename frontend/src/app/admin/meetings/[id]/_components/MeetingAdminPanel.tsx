@@ -164,7 +164,7 @@ export function MeetingAdminPanel({ id }: { id: string }) {
     <Section>
       <Link
         href="/admin"
-        className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-navy-900)]"
+        className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-ink)]"
       >
         ← 관리
       </Link>

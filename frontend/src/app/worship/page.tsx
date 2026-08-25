@@ -43,7 +43,7 @@ export default function WorshipPage() {
         </p>
         <Link
           href="/welcome"
-          className="mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold text-[var(--color-navy-900)]"
+          className="mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold text-[var(--color-ink)]"
         >
           처음 오시는 분
         </Link>

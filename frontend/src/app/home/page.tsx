@@ -179,7 +179,7 @@ export default function Home() {
         <div className="max-w-sm rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-4 md:max-w-none">
           <figure
             aria-hidden
-            className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]"
+            className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]"
           >
             썸네일 (16:9)
           </figure>

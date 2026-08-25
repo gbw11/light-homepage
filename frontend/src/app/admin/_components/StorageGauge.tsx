@@ -45,7 +45,7 @@ const BAR_CLASS: Record<GaugeLevel, string> = {
 };
 
 const BADGE_CLASS: Record<GaugeLevel, string> = {
-  OK: "bg-[var(--color-navy-100)] text-[var(--color-navy-900)]",
+  OK: "bg-[var(--color-navy-100)] text-[var(--color-ink)]",
   WARNING: "border border-[var(--color-red-500)] text-[var(--color-red-500)]",
   BLOCKED: "bg-[var(--color-red-500)] text-[var(--color-danger-fg)]",
 };

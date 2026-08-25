@@ -150,7 +150,7 @@ function BackLink({ id }: { id: string }) {
   return (
     <Link
       href={`/admin/meetings/${id}`}
-      className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-navy-900)]"
+      className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-ink)]"
     >
       ← 자료 관리
     </Link>

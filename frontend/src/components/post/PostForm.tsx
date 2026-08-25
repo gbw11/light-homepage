@@ -360,7 +360,7 @@ export function PostForm({ post }: { post?: PostDetail }) {
       {/* ── 첨부파일 ─────────────────────────────────────── */}
       <div>
         <p className="text-sm font-bold">첨부파일</p>
-        <label className="mt-2 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95">
+        <label className="mt-2 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold text-[var(--color-ink)] transition hover:brightness-95">
           + 파일 선택
           <input
             type="file"

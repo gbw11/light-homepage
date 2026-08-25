@@ -23,7 +23,7 @@ export default function NewPostPage() {
         <Section>
           <Link
             href="/my"
-            className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-navy-900)]"
+            className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-ink)]"
           >
             ← 나의 LIGHT
           </Link>
