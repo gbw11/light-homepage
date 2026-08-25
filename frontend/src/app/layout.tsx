@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
@@ -86,7 +86,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <ServiceWorkerRegistrar />
             <Header />
             {children}
-            <Footer />
+            <SiteFooter />
             <InstallBanner />
           </AuthProvider>
         </QueryProvider>

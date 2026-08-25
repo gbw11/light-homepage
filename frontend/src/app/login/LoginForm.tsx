@@ -120,9 +120,16 @@ export function LoginForm() {
         <Link href="/password/reset-request" className="flex min-h-11 items-center text-[var(--color-gray-400)]">
           ▸ 비밀번호를 잊으셨나요?
         </Link>
-        <Link href="/signup" className="flex min-h-11 items-center font-bold">
-          ▸ 처음이신가요? 회원가입
-        </Link>
+        {/*
+          회원가입 진입점을 노출하지 않는다 (PM 결정 2026-08-25).
+          공개 열람 전환으로 **일반 회원 계정이 비회원보다 할 수 있는 일이
+          없어졌다** — 자료 열람은 로그인 없이 되고, 업로드·관리는 임원
+          권한이다. 그래서 "가입하면 뭔가 열린다"는 기대를 만들지 않는다.
+          계정이 필요한 사람(임원)은 전도사가 만들어 준다.
+
+          ⚠️ `/signup` 라우트와 폼은 그대로 살아 있다. 주소를 직접 알려주면
+          가입할 수 있고, 정책이 바뀌면 이 링크만 되살리면 된다.
+        */}
         <Link href="/welcome" className="flex min-h-11 items-center text-[var(--color-gray-400)]">
           ▸ 처음 오시는 분이신가요?
         </Link>

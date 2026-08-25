@@ -29,19 +29,24 @@ type AdminLink = {
  */
 const CONTENT_LINKS: AdminLink[] = [
   { label: "공지 작성", href: "/admin/posts/new" },
-  { label: "주보 업로드" },
-  { label: "앨범 만들기 / 사진 업로드" },
-  { label: "월례회 자료 업로드" },
+  { label: "주보 업로드", href: "/admin/bulletin/upload" },
+  /*
+    업로드는 앨범에 매달린 화면이라(`/admin/albums/[id]/upload`) 앨범을 고르지
+    않고 바로 갈 수 없다. 그래서 사진첩으로 보낸다 — 거기서 앨범을 만들거나
+    고른 뒤 [사진 올리기]로 들어간다.
+  */
+  { label: "앨범 만들기 / 사진 업로드", href: "/photos" },
+  { label: "월례회 자료 업로드", href: "/admin/meetings/new" },
 ];
 
 /**
  * 회의록·예산안은 권한이 동일해(SPEC_FUNCTIONAL §7.1) 한 라우트의 탭 두
- * 개로 구현돼 있다 (`/my/documents` 주석 참고). 와이어프레임의 두 항목이
+ * 개로 구현돼 있다 (`/documents` 주석 참고). 와이어프레임의 두 항목이
  * 같은 화면을 가리킨다.
  */
 const DOCUMENT_LINKS: AdminLink[] = [
-  { label: "회의록", href: "/my/documents" },
-  { label: "예산안", href: "/my/documents" },
+  { label: "회의록", href: "/documents" },
+  { label: "예산안", href: "/documents" },
 ];
 
 /**
@@ -68,7 +73,7 @@ export function AdminHome() {
         <div>
           <Link
             href="/my"
-            className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-navy-900)]"
+            className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-ink)]"
           >
             ← 나의 LIGHT
           </Link>

@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, isApiError, onSessionExpired } from "@/lib/api";
 import type { AuthUser } from "@/types/api";
 
-export const AUTH_ME_QUERY_KEY = ["auth", "me"] as const;
+const AUTH_ME_QUERY_KEY = ["auth", "me"] as const;
 
 type AuthContextValue = {
   /** 로그인 안 됨 = null. 로딩 중에는 isLoading을 함께 본다 */

@@ -101,7 +101,7 @@ export function AccountActions() {
             {error && <p role="alert" className="text-sm text-[var(--color-red-500)]">{error}</p>}
             <button
               type="button"
-              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-red-500)] px-6 text-base font-bold text-white transition hover:brightness-95 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-red-500)] px-6 text-base font-bold text-[var(--color-danger-fg)] transition hover:brightness-95 disabled:opacity-60"
               onClick={handleWithdraw}
               disabled={deleteMutation.isPending}
             >

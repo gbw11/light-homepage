@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { CHURCH_PHONE } from "@/content/contact";
 
 const MENU_LINKS = [
   { href: "/about", label: "소개" },
@@ -11,6 +12,23 @@ const MENU_LINKS = [
   { href: "/sermons", label: "말씀" },
   { href: "/news", label: "소식" },
   { href: "/location", label: "오시는 길" },
+];
+
+/**
+ * 자료 화면 — 공개 열람 전환(PM 결정 2026-08-25)으로 로그인 없이 볼 수 있게
+ * 되면서, 여기가 **유일한 진입 경로**가 됐다. 예전에는 `/my` 홈의 타일이
+ * 그 역할을 했지만 지금 `/my`는 로그인한 사람의 개인 화면이다.
+ *
+ * 공지는 여기 없다 — 위 주요 메뉴의 "소식"(`/news`)이 공지 전체를 담는다
+ * (공지 통합, PM 결정 2026-08-25). 회의록(`/documents`)은 넣는다: 예산안 탭만
+ * 임원에게 보이고 회의록 자체는 공개다.
+ * 색인은 계속 막혀 있으므로(robots.ts) 검색으로는 여전히 안 나온다.
+ */
+const RESOURCE_LINKS = [
+  { href: "/bulletin", label: "주보" },
+  { href: "/photos", label: "사진첩" },
+  { href: "/meetings", label: "월례회 자료" },
+  { href: "/documents", label: "회의록" },
 ];
 
 const MENU_ID = "site-menu";
@@ -33,7 +51,7 @@ export function Header() {
    * 메뉴는 화면 전체를 덮는 불투명 패널이다 — 즉 시각적으로는 모달이므로
    * 키보드에도 모달처럼 동작해야 한다 (NFR-A11Y-06 / -09).
    * 포커스 트랩·Escape 규칙은 라이트박스와 같은 패턴을 쓴다
-   * (`app/my/photos/[id]/_components/Lightbox.tsx`) — 같은 동작이 화면마다
+   * (`app/photos/[id]/_components/Lightbox.tsx`) — 같은 동작이 화면마다
    * 다르게 느껴지지 않게 한다.
    */
   useEffect(() => {
@@ -94,9 +112,23 @@ export function Header() {
         <div className="flex items-center gap-3">
           <Link
             href="/welcome"
-            className="inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-4 text-sm font-bold text-[var(--color-navy-900)]"
+            className="inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-4 text-sm font-bold text-[var(--color-accent-fg)]"
           >
             처음이신가요
+          </Link>
+          {/*
+            문의 진입점 (PM 결정 2026-08-25). `tel:`로 곧장 걸지 않고
+            `/contact`로 보낸다 — 데스크톱에는 전화 앱이 없어 `tel:`이
+            아무 반응도 없고 번호를 눈으로 볼 수도 없다.
+            아이콘만 두므로 `aria-label`이 유일한 이름이다.
+          */}
+          <Link
+            href="/contact"
+            aria-label="문의"
+            title="문의"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-xl transition hover:bg-[var(--color-navy-100)]"
+          >
+            <span aria-hidden>☎</span>
           </Link>
           <button
             ref={toggleRef}
@@ -136,12 +168,35 @@ export function Header() {
 
           <hr className="my-6 border-[var(--color-navy-100)]" />
 
+          <nav aria-label="자료" className="flex flex-col gap-1">
+            <h2 className="mb-1 text-sm font-bold text-[var(--color-gray-400)]">자료</h2>
+            {RESOURCE_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex min-h-11 items-center py-1 text-base font-bold"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          <hr className="my-6 border-[var(--color-navy-100)]" />
+
           <p className="text-base text-[var(--color-gray-400)]">
             주일 14:00 · 드림센터 4층
           </p>
           <Link
+            href="/contact"
+            className="mt-2 inline-flex min-h-11 items-center text-base text-[var(--color-gray-400)]"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            ☎ 문의 · {CHURCH_PHONE}
+          </Link>
+          <Link
             href="/welcome"
-            className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] font-bold text-[var(--color-navy-900)]"
+            className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] font-bold text-[var(--color-accent-fg)]"
             onClick={() => setIsMenuOpen(false)}
           >
             처음 오시는 분

@@ -23,20 +23,25 @@
  *   4. 오프라인 폴백 페이지 `/offline`
  *
  * 캐싱하지 않는 것:
- *   · `/my/**` `/admin/**` `/photos/**` `/bulletins/**` — robots.ts·
- *     next.config.ts가 noindex로 표시하는 민감 경로 목록과 같게 유지한다
+ *   · `/my/**` `/admin/**` 과 자료 화면 전체(`/photos` `/bulletin` `/meetings`
+ *     `/notices` `/documents`) — robots.ts·next.config.ts가 noindex로 표시하는
+ *     민감 경로 목록과 같게 유지한다.
+ *     ⚠️ 자료 화면은 공개 열람 전환(PM 결정 2026-08-25) 뒤에도 캐싱하지 않는다.
+ *     "로그인 없이 볼 수 있다"와 "공용 기기에 남는다"는 다른 문제이고, PM이
+ *     오프라인 캐싱을 하지 않는 쪽을 택했다
  *   · `/api/**` — 응답 전부 (회원 데이터 그 자체)
- *   · **`/_next/image` 전부** — ⚠️ 여기가 이 파일에서 가장 중요한 줄이다.
- *     회원 앨범 커버가 `next/image`를 타서 실제 요청 URL이
- *     `/_next/image?url=%2Fphotos%2Fretreat-2026%2Fthumb%2Fp001.webp` 형태가
- *     된다(`src/app/my/photos/_components/AlbumList.tsx`). 경로만 보면
- *     `/_next/`로 시작해서 "정적 자산"처럼 보이지만 **내용은 회원 사진**이다.
- *     `/_next/`를 통째로 화이트리스트에 넣는 순간 사진이 캐시에 남는다.
+ *   · **`/_next/image` 전부** — 경로만 보면 `/_next/`로 시작해 "정적 자산"처럼
+ *     보이지만, 사람 사진이 이 URL로 실려 나갈 수 있다. `/_next/`를 통째로
+ *     화이트리스트에 넣지 않는 이유다. (앨범 커버는 presigned URL이라 지금은
+ *     `<img>`로 직접 로드하지만, 이 방어선은 그대로 둔다 — 다음에 누가
+ *     `next/image`를 쓰는 순간 조용히 캐싱되면 안 된다.)
  *     대가: 오프라인에서 공개 페이지의 이미지가 안 나온다. 스펙대로 보안 우선.
  *   · GET 이외 메서드, 다른 출처(cross-origin) 요청
  */
 
-const VERSION = "v1";
+// 캐시 저장 방식이 바뀌면 반드시 올린다 — 이름이 바뀌어야 activate가 이전
+// 캐시를 통째로 지운다. (v2: 내비게이션 캐시 키를 pathname으로 정규화)
+const VERSION = "v2";
 const STATIC_CACHE = `light-static-${VERSION}`;
 const SHELL_CACHE = `light-shell-${VERSION}`;
 const OWNED_CACHES = [STATIC_CACHE, SHELL_CACHE];
@@ -48,7 +53,17 @@ const OFFLINE_URL = "/offline";
  * 민감 경로. `robots.ts`의 disallow 목록 + `/api`와 같게 유지한다.
  * 여기에 걸리면 캐시에 넣지도, 캐시에서 꺼내지도 않는다.
  */
-const SENSITIVE_PREFIXES = ["/my", "/admin", "/photos", "/bulletins", "/api"];
+const SENSITIVE_PREFIXES = [
+  "/my",
+  "/admin",
+  "/photos",
+  "/bulletin",
+  "/bulletins",
+  "/meetings",
+  "/notices",
+  "/documents",
+  "/api",
+];
 
 /** HTML 셸을 캐싱해도 되는 공개 라우트 (app/sitemap.ts + 인증 진입 화면) */
 const PUBLIC_ROUTE_PREFIXES = [
@@ -128,7 +143,19 @@ self.addEventListener("install", (event) => {
   );
 });
 
-/** 활성화: 이전 버전 캐시를 지우고 열려 있는 탭까지 바로 인수한다 */
+/**
+ * 캐시 엔트리 수 상한. VERSION이 안 바뀌는 한 activate의 "이전 버전 삭제"는
+ * 영영 안 걸리는데, STATIC_CACHE는 배포마다 새 해시 청크를 계속 받아
+ * 상한 없이 자란다. 오래된 것(삽입 순서 앞쪽)부터 지운다.
+ */
+async function trimCache(cacheName, maxEntries) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  if (keys.length <= maxEntries) return;
+  await Promise.all(keys.slice(0, keys.length - maxEntries).map((key) => cache.delete(key)));
+}
+
+/** 활성화: 이전 버전 캐시를 지우고, 현재 캐시를 다듬고, 열려 있는 탭까지 바로 인수한다 */
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
@@ -138,6 +165,8 @@ self.addEventListener("activate", (event) => {
           .filter((key) => key.startsWith("light-") && !OWNED_CACHES.includes(key))
           .map((key) => caches.delete(key)),
       );
+      await trimCache(STATIC_CACHE, 100);
+      await trimCache(SHELL_CACHE, 30);
       await self.clients.claim();
     })(),
   );
@@ -156,7 +185,10 @@ async function handleNavigation(request) {
     const response = await fetch(request);
     if (cacheable && response.ok && response.type === "basic") {
       const shell = await caches.open(SHELL_CACHE);
-      await shell.put(request, response.clone());
+      // 쿼리스트링을 떼고 pathname으로 저장한다. request 그대로 저장하면
+      // `/news?utm_source=a`, `?utm_source=b`가 각각 HTML 전체를 새 엔트리로
+      // 쌓는데, 읽는 쪽은 ignoreSearch라 어차피 구분해 꺼내지도 못한다.
+      await shell.put(pathname, response.clone());
     }
     return response;
   } catch (error) {
@@ -172,12 +204,14 @@ async function handleNavigation(request) {
 
 /** 정적 자산: 캐시 우선 (해시 파일명이라 내용이 바뀌면 URL도 바뀐다) */
 async function handleStatic(request) {
-  const cached = await caches.match(request);
+  // 전역 caches.match가 아니라 자기 캐시만 본다 — SHELL_CACHE의 HTML이
+  // 정적 자산 응답으로 잘못 잡히는 경로를 원천 차단.
+  const staticCache = await caches.open(STATIC_CACHE);
+  const cached = await staticCache.match(request);
   if (cached) return cached;
 
   const response = await fetch(request);
   if (response.ok && response.type === "basic") {
-    const staticCache = await caches.open(STATIC_CACHE);
     await staticCache.put(request, response.clone());
   }
   return response;
