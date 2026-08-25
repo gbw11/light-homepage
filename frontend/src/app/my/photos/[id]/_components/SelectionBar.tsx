@@ -58,7 +58,7 @@ export function SelectionBar({ albumId, selectedIds, notice, onNotice }: Selecti
             <a
               href={href}
               download
-              className="mt-3 flex min-h-11 w-full items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+              className="mt-3 flex min-h-11 w-full items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
             >
               {label}
             </a>

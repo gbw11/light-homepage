@@ -81,7 +81,7 @@ export default function SermonsPage() {
                 rel="noreferrer"
                 className="block rounded-[var(--radius-card)] transition hover:opacity-90"
               >
-                <div className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
+                <div className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]">
                   썸네일 (16:9)
                 </div>
                 <p className="mt-3 font-bold">{sermon.title}</p>
@@ -101,7 +101,7 @@ export default function SermonsPage() {
             href={YOUTUBE_CHANNEL_URL}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--color-navy-900)] underline"
+            className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--color-ink)] underline"
           >
             ▸ YouTube 채널 전체 보기
           </a>

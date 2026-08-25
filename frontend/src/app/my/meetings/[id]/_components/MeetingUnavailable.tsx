@@ -73,7 +73,7 @@ export function MeetingUnavailable({
       <div className="mt-8">
         <Link
           href="/my/meetings"
-          className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold text-[var(--color-ink)] transition hover:brightness-95"
         >
           목록으로
         </Link>

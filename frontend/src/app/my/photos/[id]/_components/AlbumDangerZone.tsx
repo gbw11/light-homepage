@@ -178,7 +178,7 @@ export function AlbumDangerZone({
                   ? `앨범 ${title}과 사진 ${photoCount}장 영구 삭제 확정`
                   : `앨범 ${title} 영구 삭제 확정`
               }
-              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-red-500)] px-6 text-base font-bold text-white transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-red-500)] disabled:opacity-50"
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-red-500)] px-6 text-base font-bold text-[var(--color-danger-fg)] transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-red-500)] disabled:opacity-50"
             >
               {mutation.isPending ? "삭제 중..." : "앨범 삭제 확정"}
             </button>

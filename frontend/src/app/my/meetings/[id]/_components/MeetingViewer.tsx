@@ -209,7 +209,7 @@ export function MeetingViewer({ detail }: { detail: MeetingDetail }) {
                 <button
                   type="button"
                   onClick={() => setRetry((r) => r + 1)}
-                  className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-5 text-sm font-bold text-[var(--color-navy-900)]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-5 text-sm font-bold text-[var(--color-ink)]"
                 >
                   다시 시도
                 </button>

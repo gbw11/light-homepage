@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { CHURCH_PHONE } from "@/content/contact";
 
 const MENU_LINKS = [
   { href: "/about", label: "소개" },
@@ -94,9 +95,23 @@ export function Header() {
         <div className="flex items-center gap-3">
           <Link
             href="/welcome"
-            className="inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-4 text-sm font-bold text-[var(--color-navy-900)]"
+            className="inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-4 text-sm font-bold text-[var(--color-accent-fg)]"
           >
             처음이신가요
+          </Link>
+          {/*
+            문의 진입점 (PM 결정 2026-08-25). `tel:`로 곧장 걸지 않고
+            `/contact`로 보낸다 — 데스크톱에는 전화 앱이 없어 `tel:`이
+            아무 반응도 없고 번호를 눈으로 볼 수도 없다.
+            아이콘만 두므로 `aria-label`이 유일한 이름이다.
+          */}
+          <Link
+            href="/contact"
+            aria-label="문의"
+            title="문의"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-xl transition hover:bg-[var(--color-navy-100)]"
+          >
+            <span aria-hidden>☎</span>
           </Link>
           <button
             ref={toggleRef}
@@ -140,8 +155,15 @@ export function Header() {
             주일 14:00 · 드림센터 4층
           </p>
           <Link
+            href="/contact"
+            className="mt-2 inline-flex min-h-11 items-center text-base text-[var(--color-gray-400)]"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            ☎ 문의 · {CHURCH_PHONE}
+          </Link>
+          <Link
             href="/welcome"
-            className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] font-bold text-[var(--color-navy-900)]"
+            className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] font-bold text-[var(--color-accent-fg)]"
             onClick={() => setIsMenuOpen(false)}
           >
             처음 오시는 분

@@ -83,7 +83,7 @@ function AlbumCover({ album }: { album: AlbumSummary }) {
     // navy-100 + navy-900은 두 값 모두 스킴과 무관하게 고정이라 어느 쪽에서도 11.7:1이다.
     return (
       <div className="flex aspect-[4/3] items-center justify-center bg-[var(--color-navy-100)]">
-        <span className="text-sm text-[var(--color-navy-900)]">사진 없음</span>
+        <span className="text-sm text-[var(--color-ink)]">사진 없음</span>
       </div>
     );
   }

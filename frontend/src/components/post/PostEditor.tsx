@@ -62,7 +62,7 @@ function ToolbarButton({ label, children, active, disabled, onClick }: ToolbarBu
       className={`h-9 min-w-9 rounded-md px-2 text-sm font-bold transition-colors disabled:opacity-40 ${
         active
           ? "bg-[var(--color-navy-900)] text-white"
-          : "text-[var(--color-navy-900)] hover:bg-[var(--color-navy-100)]"
+          : "text-[var(--color-ink)] hover:bg-[var(--color-navy-100)]"
       }`}
     >
       {children}

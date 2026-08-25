@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/ui/Section";
 import { PendingActions } from "./PendingActions";
+import { CHURCH_PHONE } from "@/content/contact";
 
 export const metadata: Metadata = {
   title: "승인 대기",
@@ -25,7 +26,7 @@ export default function PendingPage() {
             관리자 확인 후 이용하실 수 있습니다. 보통 하루 안에 처리됩니다.
           </p>
           <p className="text-sm text-[var(--color-gray-400)]">
-            문의 ▸ 카카오톡 / 055-333-6321
+            문의 ▸ 카카오톡 / {CHURCH_PHONE}
           </p>
           <PendingActions />
         </div>

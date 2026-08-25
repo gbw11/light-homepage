@@ -136,7 +136,7 @@ export function PhotoDeletePanel({
           }}
           disabled={mutation.isPending}
           aria-label={`${position}번째 사진 영구 삭제`}
-          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-red-500)] px-6 text-base font-bold text-white transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-50"
+          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-red-500)] px-6 text-base font-bold text-[var(--color-danger-fg)] transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-50"
         >
           {mutation.isPending ? "삭제 중..." : "영구 삭제"}
         </button>

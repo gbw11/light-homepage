@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import { PostBodyView } from "@/components/post/PostBodyView";
+import { EditPostLink } from "@/components/post/EditPostLink";
 import type { PostCategory } from "@/types/api";
 
 const CATEGORY_LABEL: Partial<Record<PostCategory, string>> = {
@@ -75,6 +76,10 @@ export function DocumentDetail({ slug }: { slug: string }) {
         {post.authorName} · {formatDate(post.publishedAt)}
       </p>
 
+      <div className="mt-4">
+        <EditPostLink postId={post.id} />
+      </div>
+
       <PostBodyView body={post.body} className="mt-8" />
 
       {post.attachments.length > 0 && (
@@ -90,7 +95,7 @@ export function DocumentDetail({ slug }: { slug: string }) {
                 */}
                 <a
                   href={api.attachments.downloadUrl(a.id)}
-                  className="flex items-center justify-between gap-4 rounded-lg px-2 py-1.5 text-sm text-[var(--color-gray-400)] hover:bg-[var(--color-navy-100)] hover:text-[var(--color-navy-900)]"
+                  className="flex items-center justify-between gap-4 rounded-lg px-2 py-1.5 text-sm text-[var(--color-gray-400)] hover:bg-[var(--color-navy-100)] hover:text-[var(--color-ink)]"
                 >
                   <span>📎 {a.filename}</span>
                   <span>{formatSize(a.sizeBytes)}</span>

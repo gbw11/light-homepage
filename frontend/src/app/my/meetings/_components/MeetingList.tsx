@@ -161,7 +161,7 @@ function MeetingCard({ item, isLeader }: { item: MeetingSummary; isLeader: boole
         <div className="mt-4">
           <Link
             href={`/my/meetings/${item.id}`}
-            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
           >
             열람하기
           </Link>

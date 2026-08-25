@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import { PostBodyView } from "@/components/post/PostBodyView";
+import { EditPostLink } from "@/components/post/EditPostLink";
 import { RequireMember } from "@/components/auth/RequireMember";
 import type { PostDetail } from "@/types/api";
 
@@ -87,6 +88,10 @@ export default async function MyNoticeDetailPage({
             {notice.authorName} · {formatDate(notice.publishedAt)}
           </p>
 
+          <div className="mt-4">
+            <EditPostLink postId={notice.id} />
+          </div>
+
           {/* 에디터(PostEditor)와 같은 노드 집합을 렌더한다 — 어느 쪽도 앞서 나가지 않는다 */}
           <PostBodyView body={notice.body} className="mt-8" />
 
@@ -103,7 +108,7 @@ export default async function MyNoticeDetailPage({
                     */}
                     <a
                       href={api.attachments.downloadUrl(a.id)}
-                      className="flex items-center justify-between gap-4 rounded-lg px-2 py-1.5 text-sm text-[var(--color-gray-400)] hover:bg-[var(--color-navy-100)] hover:text-[var(--color-navy-900)]"
+                      className="flex items-center justify-between gap-4 rounded-lg px-2 py-1.5 text-sm text-[var(--color-gray-400)] hover:bg-[var(--color-navy-100)] hover:text-[var(--color-ink)]"
                     >
                       <span>📎 {a.filename}</span>
                       <span>{formatSize(a.sizeBytes)}</span>

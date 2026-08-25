@@ -34,7 +34,7 @@ export function PendingApprovalBanner() {
       </p>
       <Link
         href="/admin/members"
-        className="mt-4 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+        className="mt-4 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
       >
         확인하기
       </Link>
