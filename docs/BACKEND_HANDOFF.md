@@ -30,6 +30,63 @@
 
 ---
 
+## 2026-08-25 — 🙏 `[CONTRACT]` 신규 요청: 설교 목록 API (`GET /api/sermons`)
+
+**상태**: FE는 mock으로 화면을 완성했다. 계약만 정해지면 `NEXT_PUBLIC_USE_MOCK=0`
+전환으로 붙는다. **급하지 않다** — 지금은 mock 14편으로 화면이 정상 동작한다.
+
+### 왜 백엔드를 거쳐야 하는가
+
+**YouTube Data API 키를 클라이언트에 실을 수 없다.** `NEXT_PUBLIC_`으로 넣으면
+번들에 그대로 박히고(`NFR-SEC-22`), 키가 유출되면 쿼터를 남이 쓴다. 그래서
+브라우저가 YouTube를 직접 부르지 않고 **백엔드가 프록시**한다.
+
+### 제안 계약
+
+```
+GET /api/sermons?page=0&size=12     권한: G (누구나)
+```
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "dQw4w9WgXcQ",
+        "title": "오늘, 다시 시작하는 믿음",
+        "publishedAt": "2026-08-16T05:00:00Z",
+        "youtubeUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "thumbnailUrl": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
+      }
+    ],
+    "page": 0, "size": 12, "hasNext": true
+  }
+}
+```
+
+- **최신순**으로 주세요 (화면이 정렬하지 않는다).
+- `id`는 목록 키로만 씁니다. YouTube 영상 id를 그대로 쓰면 됩니다.
+- `thumbnailUrl`은 YouTube CDN 주소를 그대로 넘겨주세요 — FE가 `<img>`로 직접
+  로드하고, **404가 오면 자리표시자로 넘어갑니다**(영상이 비공개로 바뀌는 경우).
+- `publishedAt`은 ISO-8601 UTC.
+
+### 정해야 할 것 (백엔드 판단)
+
+1. **응답 캐시 기간** — YouTube API 쿼터가 하루 10,000 units이고 목록 조회는
+   1회당 100 units 정도입니다. 서버에서 캐시하지 않으면 방문자가 늘 때 쿼터가
+   빠르게 소진됩니다. 설교는 주 1회 올라가므로 **수 시간 캐시가 안전합니다.**
+2. **채널 id 또는 재생목록 id** — 어느 것을 소스로 할지. 재생목록이면 "설교"만
+   골라 담을 수 있어 잡영상이 섞이지 않습니다 (`PLAN §8`의 ❓ "YouTube 재생목록
+   구성"과 연결됩니다 — PM 확인 필요).
+3. **API 실패 시 응답** — YouTube가 죽었을 때 빈 목록(`items: []`)을 줄지
+   `502`를 줄지. FE는 둘 다 처리합니다(빈 목록이면 "아직 등록된 영상이 없습니다").
+
+### `SPEC_API`에 추가돼야 하는 것
+- `§10` 엔드포인트 표에 이 행
+- `ARCHITECTURE §5.3` 인가 매트릭스에 `G` 권한 행
+
+---
+
 ## 2026-08-25 — ⚠️ 인가 매트릭스 대변경: 열람 엔드포인트 익명 허용 (PM 결정)
 
 **상태**: FE는 mock 기준으로 전환 완료(`feat/fe-public-read-model`). 백엔드가

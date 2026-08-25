@@ -5,14 +5,15 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Section } from "@/components/ui/Section";
 import { villageLabel } from "@/lib/village";
 import { HomeTile } from "./_components/HomeTile";
+import { MyPreviews } from "./_components/MyPreviews";
 
 /**
  * WIREFRAME.md §11 — 나의 LIGHT `/my` (회원 홈).
  *
- * 이번 단위 범위: 인사말 + 타일 그리드만 구현한다. "이번 주 주보"/"최근 앨범"
- * 미리보기와 PWA "홈 화면에 추가" 배너는 주보·사진첩 데이터(M3)가 있어야
- * 의미가 있어 생략했다 — WORKFLOW.md 분해 원칙(눈에 보이는 최소 단위)에 맞춰
- * 데이터가 준비되면 별도 단위로 추가한다.
+ * "이번 주 주보"/"최근 앨범" 미리보기는 주보·사진첩 API가 생긴 뒤
+ * 2026-08-25에 추가했다 (`_components/MyPreviews.tsx`).
+ * PWA "홈 화면에 추가" 배너는 `/home`으로 옮겼다 — 공개 열람 전환으로
+ * 비회원도 앱처럼 쓸 수 있게 되면서 설치 대상이 회원으로 한정되지 않는다.
  *
  * 사진첩·주보는 M3에서 `/photos`·`/bulletin`으로 구현돼 타일이
  * 활성화됐다. 월례회 자료도 M4에서 `/meetings`(WIREFRAME.md §14b)가
@@ -73,6 +74,11 @@ function MyHomeContent() {
       <Section>
         <h1 className="text-2xl font-bold md:text-3xl">안녕하세요, {member.name}님</h1>
         <p className="mt-1 text-[var(--color-gray-400)]">{villageLabel(member.village)}</p>
+
+        {/* 이번 주 주보 · 최근 앨범 (FR-MEM-01) — `_components/MyPreviews.tsx` */}
+        <div className="mt-8">
+          <MyPreviews />
+        </div>
 
         <div className="mt-8 grid grid-cols-2 gap-4">
           <HomeTile icon="⚙️" label="내 정보" href="/my/profile" />

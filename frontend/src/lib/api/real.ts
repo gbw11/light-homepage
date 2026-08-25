@@ -403,6 +403,10 @@ export const realApi: Api = {
     newcomers: ({ page = 0, size = 20 } = {}) =>
       request("/admin/newcomers", { query: { page, size } }),
   },
+  sermons: {
+    // [CONTRACT] 신규 제안 경로 — 백엔드가 다르게 정하면 여기만 바꾼다
+    list: ({ page = 0, size = 12 } = {}) => request("/sermons", { query: { page, size } }),
+  },
   bulletins: {
     latest: () => request("/bulletins/latest"),
     list: ({ page = 0, size = 20 } = {}) => request("/bulletins", { query: { page, size } }),
