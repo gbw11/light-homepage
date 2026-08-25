@@ -3,23 +3,14 @@ import { ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
+import { RecentSermon } from "./_components/RecentSermon";
+import { WeeklyNotices } from "./_components/WeeklyNotices";
 import { LIGHT_WORDMARK } from "@/lib/viewTransition";
 
 export const metadata: Metadata = {
   title: "LIGHT — 김해교회 청년교회",
   description:
     "청년예배 주일 14:00 드림센터 4층. 하나님 안에 살며, 이웃을 돕는 청년 공동체 LIGHT입니다.",
-};
-
-const NOTICES = [
-  { date: "8/24", title: "수련회 신청 안내" },
-  { date: "8/22", title: "마을모임 장소 변경" },
-  { date: "8/18", title: "여름 특별 새벽예배 안내" },
-];
-
-const RECENT_SERMON = {
-  title: "흔들리지 않는 믿음",
-  date: "2026.08.16",
 };
 
 const ACROSTIC = [
@@ -115,16 +106,8 @@ export default function Home() {
 
       {/* 이번 주 */}
       <Section title="이번 주">
-        <ul className="divide-y divide-[var(--color-navy-100)]">
-          {NOTICES.map((notice) => (
-            <li key={notice.title} className="flex gap-4 py-3">
-              <span className="w-12 shrink-0 text-sm text-[var(--color-gray-400)]">
-                {notice.date}
-              </span>
-              <span className="font-bold">{notice.title}</span>
-            </li>
-          ))}
-        </ul>
+        {/* 공지는 API에서 온다 — `_components/WeeklyNotices.tsx` 주석 참고 */}
+        <WeeklyNotices />
         <div className="mt-6 flex gap-4 text-sm font-bold">
           <Link href="/news" className="inline-flex min-h-11 items-center">
             ▸ 공지 전체보기
@@ -183,16 +166,7 @@ export default function Home() {
 
       {/* 최근 말씀 */}
       <Section title="최근 말씀">
-        <div className="max-w-sm rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-4 md:max-w-none">
-          <figure
-            aria-hidden
-            className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]"
-          >
-            썸네일 (16:9)
-          </figure>
-          <p className="mt-4 font-bold">{RECENT_SERMON.title}</p>
-          <p className="text-sm text-[var(--color-gray-400)]">{RECENT_SERMON.date}</p>
-        </div>
+        <RecentSermon />
 
         <Link href="/sermons" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
           ▸ 지난 말씀 전체보기
