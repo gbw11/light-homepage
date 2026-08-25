@@ -30,6 +30,49 @@
 
 ---
 
+## 2026-08-25 — ⚠️ 인가 매트릭스 대변경: 열람 엔드포인트 익명 허용 (PM 결정)
+
+**상태**: FE는 mock 기준으로 전환 완료(`feat/fe-public-read-model`). 백엔드가
+아래를 반영해야 `NEXT_PUBLIC_USE_MOCK=0` 연동이 된다. **기존 SPEC_API의 권한
+표(대부분 `M`)와 다르다** — 이 표가 새 기준이고, 스펙 문서 갱신은 추후.
+
+### 익명(비로그인) 허용으로 바뀌는 엔드포인트 (기존 `M` → 익명)
+
+| 엔드포인트 | 스펙 | 비고 |
+|---|---|---|
+| `GET /api/albums` | §6.1 | 앨범 목록 |
+| `GET /api/albums/{id}/photos` | §6.4 | 사진 목록 (presigned URL 발급 포함) |
+| `GET /api/photos/{id}/download` | §6.7 | 개별 다운로드 302 |
+| `GET /api/albums/{id}/download?ids=` | §6.8 | ZIP 다운로드 (30장 제한은 유지) |
+| `GET /api/bulletins/latest` · `GET /api/bulletins` · `GET /api/bulletins/{id}` | §5.1~5.3 | 주보 열람 |
+| `GET /api/posts` · `GET /api/posts/{idOrSlug}` | §3.1/§3.3 | `NOTICE_MEMBER` 포함. **단 `DOCUMENT`(회의록·예산안)는 기존대로 `L` 이상** |
+| `GET /api/attachments/{id}/download` | §4.2 | 첨부 다운로드 — 글 권한 상속이므로 DOCUMENT 첨부만 `L` 유지 |
+| `GET /api/meetings` | §7.1 | 목록 |
+| `GET /api/meetings/{id}` | §7.2(요청 승격분 포함) | 상세 — 익명은 `OPEN`만 `canView: true`, **임원의 기간 외 우회는 세션 있을 때만** |
+| `GET /api/meetings/{id}/pages/{pageNo}` | §7.3 | ⚠️ 아래 워터마크 항목 참고 |
+
+### 유지되는 권한 (변경 없음)
+
+- 쓰기 전체: 글/첨부(`L`↑), 사진 업로드·삭제/앨범 생성·삭제(`L`↑), 주보
+  업로드·삭제(`L`↑), 월례회 업로드·기간수정·삭제·열람로그(`L`↑)
+- 회원 관리·역할 변경·승인(전도사), 저장공간 조회(`L`↑)
+- `POST /api/photos/{id}/report` 사진 신고 — **로그인 필요 유지** (FE도 익명에게 진입점을 숨김)
+- `GET /api/auth/me` 등 auth 계열
+
+### ⚠️ 설계 협의 필요 — 월례회 페이지 스트리밍(§7.3)의 익명 처리
+
+기존 설계는 열람자 이름·연락처 뒷4자리를 워터마크로 합성한다. 익명 열람자는
+박을 이름이 없다. 선택지 제안 (PM과 협의해 결정):
+1. 익명에게는 "익명 열람 · IP 일부 · 열람시각"류 대체 워터마크
+2. 익명에게는 워터마크 없이 스트리밍 (억제 설계 사실상 폐기)
+3. §7.3만 로그인 유지 (그 경우 FE 뷰어에 로그인 유도 화면 추가 필요 — 알려주시면 작업)
+
+- **왜 필요한지**: PM 결정 2026-08-25 "열람은 공개, 로그인은 권한의 관문"
+  (`DECISIONS.md` 같은 날짜 항목에 배경·폐기된 결정 포함)
+- **관련 PR**: `feat/fe-public-read-model` (머지 시 링크 추가)
+
+---
+
 ## 2026-08-25 — 성능 스윕: 백엔드가 알아두면 좋은 트래픽 패턴 변화 (계약 변경 없음)
 
 **상태**: FE 성능 최적화(`feat/fe-perf-sweep`, `docs/PERF_SWEEP_2026-08-25.md`)
