@@ -3,7 +3,7 @@ import { ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
-import { LIGHT_WORDMARK } from "@/app/_components/LandingGate";
+import { LIGHT_WORDMARK } from "@/lib/viewTransition";
 
 export const metadata: Metadata = {
   title: "LIGHT — 김해교회 청년교회",
