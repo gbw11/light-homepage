@@ -5,15 +5,23 @@ import type {
   AttachmentUpload,
   AuthUser,
   Bulletin,
+  BulletinInput,
   BulletinSummary,
   CompleteProfileInput,
   Cursor,
+  MeetingCreateInput,
   MeetingDetail,
+  MeetingStatus,
   MeetingSummary,
+  MeetingView,
+  MeetingWindowInput,
   NewcomerRecord,
   Photo,
   Role,
   StorageUsage,
+  UploadCommitResult,
+  UploadIssueInput,
+  UploadTicket,
   LoginInput,
   LoginResult,
   NewcomerSubmission,
@@ -328,7 +336,7 @@ const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "at
             { type: "text", text: "사진은 " },
             {
               type: "text",
-              marks: [{ type: "link", attrs: { href: "/my/photos" } }],
+              marks: [{ type: "link", attrs: { href: "/photos" } }],
               text: "사진첩",
             },
             { type: "text", text: "에서 보실 수 있습니다." },
@@ -639,6 +647,69 @@ const MEETINGS: MeetingSummary[] = [
   },
 ];
 
+/** 업로드·기간수정으로 생기거나 바뀐 월례회. 같은 id면 이쪽이 이긴다 */
+const dynamicMeetings: MeetingSummary[] = [];
+/** 삭제된 월례회 id — 정적 mock 데이터는 지울 수 없으니 가려서 흉내낸다 */
+const removedMeetingIds = new Set<string>();
+
+/**
+ * 열람 기간으로부터 `status`를 계산한다 (SPEC_API §7.1).
+ *
+ * mock 데이터에 `status`가 값으로 박혀 있지만 그대로 쓰지 않는다 — 그러면
+ * **기간을 수정해도 상태가 안 바뀐다.** 종료된 자료의 기간을 늘려 다시 여는
+ * 것(연장)이 §7.5의 핵심 용도인데, 그게 화면에서 확인되지 않으면 기간 수정
+ * 기능을 검증할 수단이 없다. 실제 서버도 기간에서 상태를 파생한다.
+ */
+function meetingStatus(viewableFrom: string, viewableUntil: string): MeetingStatus {
+  const now = Date.now();
+  if (now < new Date(viewableFrom).getTime()) return "SCHEDULED";
+  if (now > new Date(viewableUntil).getTime()) return "CLOSED";
+  return "OPEN";
+}
+
+/**
+ * 열람 종료가 시작보다 뒤인지 (SPEC_API §7.4 · §7.5의 `VALIDATION_ERROR`).
+ * 화면에서도 막지만 서버가 최종 판단이라 mock도 같이 막는다 — 한쪽만 막으면
+ * "화면에서는 되는데 서버에서 거부"가 통합 때 처음 드러난다.
+ */
+function validateMeetingWindow(viewableFrom: string, viewableUntil: string) {
+  if (new Date(viewableUntil).getTime() <= new Date(viewableFrom).getTime()) {
+    throw new ApiError({
+      code: "VALIDATION_ERROR",
+      message: "열람 종료는 시작보다 뒤여야 합니다.",
+      status: 400,
+      field: "viewableUntil",
+    });
+  }
+}
+
+/** 정적 + 동적을 합치고, 삭제된 것을 빼고, 상태를 기간에서 다시 계산한다 */
+function mockMeetings(): MeetingSummary[] {
+  const overridden = new Set(dynamicMeetings.map((m) => m.id));
+  return [...dynamicMeetings, ...MEETINGS.filter((m) => !overridden.has(m.id))]
+    .filter((m) => !removedMeetingIds.has(m.id))
+    .map((m) => ({ ...m, status: meetingStatus(m.viewableFrom, m.viewableUntil) }))
+    .sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
+}
+
+/**
+ * 열람 로그 mock (SPEC_API §7.7).
+ *
+ * 이름을 `김OO`처럼 가린 채로 둔다 — 이 화면은 실명과 마을이 함께 보이는
+ * 자리라서, mock 데이터라도 진짜처럼 생긴 명단을 만들어두면 스크린샷이나
+ * 데모에서 그대로 새어나간다.
+ */
+const MEETING_VIEWS: Record<string, MeetingView[]> = {
+  "3": [
+    { memberName: "김OO", village: "3", lastViewedAt: "2026-08-24T12:03:00Z", maxPageNo: 10 },
+    { memberName: "이OO", village: "1", lastViewedAt: "2026-08-24T12:41:00Z", maxPageNo: 7 },
+    { memberName: "박OO", village: "newcomer", lastViewedAt: "2026-08-25T01:12:00Z", maxPageNo: 2 },
+    { memberName: "최OO", village: "5", lastViewedAt: "2026-08-25T02:30:00Z", maxPageNo: 10 },
+  ],
+  // 아직 아무도 안 본 자료 — 빈 목록도 화면이 처리해야 한다
+  "4": [],
+};
+
 // ── 관리 mock (SPEC_API §8) ────────────────────────────────
 const ADMIN_NEWCOMERS: NewcomerRecord[] = [
   {
@@ -770,8 +841,20 @@ type MockPost = {
 const dynamicPosts: MockPost[] = [];
 /** 삭제된 글 id — 정적 mock 데이터는 지울 수 없으니 가려서 흉내낸다 */
 const removedPostIds = new Set<string>();
-/** 업로드됐지만 아직 게시물에 연결되지 않은 첨부 (실서비스는 24시간 후 정리) */
+/**
+ * 서버가 알고 있는 첨부 전체 — id로 조회할 수 있는 것들.
+ *
+ * 이름 그대로 "방금 업로드한 것"만 담아뒀더니 **글 수정이 깨졌다.**
+ * 수정 화면은 기존 첨부 id를 그대로 다시 보내는데, 그 id는 이 브라우저
+ * 세션에서 업로드한 적이 없어서 `validatePostInput`의 "업로드되지 않은
+ * 첨부" 검사에 걸렸다. 실제 서버는 DB에 있는 첨부를 당연히 알고 있으므로
+ * 그쪽이 맞다 — mock이 서버보다 좁았던 것이다.
+ * 그래서 정적 mock 글에 붙어 있는 첨부도 처음부터 여기 등록해둔다.
+ */
 const uploadedAttachments = new Map<string, PostAttachment>();
+for (const detail of Object.values(NOTICE_DETAILS)) {
+  for (const a of detail.attachments) uploadedAttachments.set(a.id, a);
+}
 
 /** 정적 + 동적 mock 글을 하나로 합친다. 같은 id는 **동적 쪽이 이긴다**(수정 반영) */
 function mockPostSummaries(): PostSummary[] {
@@ -780,6 +863,15 @@ function mockPostSummaries(): PostSummary[] {
     ...dynamicPosts.map((p) => p.summary),
     ...NOTICES.filter((n) => !overridden.has(n.id)),
   ].filter((p) => !removedPostIds.has(p.id));
+}
+
+/**
+ * 예산안(`BUDGET`)은 공개 열람 전환(PM 결정 2026-08-25)에서 **유일하게 제외된
+ * 분류**다 — 회의록은 공개, 예산안은 임원 이상. 헌금·지출 내역이 담기기 때문.
+ */
+function isLeaderSession(): boolean {
+  const user = readSession();
+  return user?.role === "LEADER" || user?.role === "PASTOR";
 }
 
 /** SPEC_API §3.1 — 작성은 전부 권한 `L`. 서버가 실제로 막지만 mock도 흉내낸다 */
@@ -837,11 +929,77 @@ function buildMockPost(id: string, input: PostInput, authorName: string): MockPo
     detail: {
       body: input.body,
       updatedAt: now,
-      attachments: input.attachmentIds.map(
-        (aid) => uploadedAttachments.get(aid) as PostAttachment,
-      ),
+      // `validatePostInput`이 모르는 id를 이미 막지만, 여기서도 걸러낸다 —
+      // 검사를 한 곳이라도 놓치면 `undefined`가 목록에 섞여 렌더가 깨진다
+      attachments: input.attachmentIds
+        .map((aid) => uploadedAttachments.get(aid))
+        .filter((a): a is PostAttachment => a !== undefined),
     },
   };
+}
+
+// ── 사진 업로드 mock (SPEC_API §6.5 · §6.6) ────────────────
+/**
+ * mock은 R2가 없다. 그래서 presigned URL 대신 `mock://` URL을 발급하고,
+ * `uploads.put`이 blob을 **objectURL로 붙잡아둔다** — 그러면 commit 후 앨범
+ * 그리드에 방금 올린 사진이 실제로 보인다. 이게 없으면 "업로드 성공"만 뜨고
+ * 화면에는 아무 변화가 없어서, 큐가 제대로 도는지 눈으로 확인할 수 없다.
+ *
+ * ⚠️ objectURL은 이 문서(탭)에서만 유효하다. 새로고침하면 사라진다 —
+ *    `dynamicAlbums`와 같은 mock의 한계다.
+ */
+type MockPendingUpload = {
+  albumId: string;
+  width: number;
+  height: number;
+  takenAt: string | null;
+  /** put이 실제로 들어왔을 때만 채워진다 — 없으면 commit이 OBJECT_NOT_FOUND다 */
+  viewObjectUrl?: string;
+  thumbObjectUrl?: string;
+};
+
+/** photoId → 발급됐지만 아직 commit되지 않은 업로드 (실서비스의 `PENDING` 행) */
+const mockPendingUploads = new Map<string, MockPendingUpload>();
+/** albumId → 이번 세션에 업로드한 사진 (최신 먼저) */
+const mockUploadedPhotos = new Map<string, Photo[]>();
+
+let mockPhotoIdSeq = 900;
+
+/** `mock://uploads/{photoId}/{view|thumb}` */
+const MOCK_PUT_URL_RE = /^mock:\/\/uploads\/(\d+)\/(view|thumb)$/;
+
+// ── 주보 업로드 mock (SPEC_API §5.4 · §5.5) ─────────────────
+/**
+ * 이번 세션에 업로드한 주보. 페이지 URL은 업로드한 blob의 objectURL이라
+ * **새로고침하면 사라진다** (`dynamicAlbums`·`mockUploadedPhotos`와 같은 한계).
+ *
+ * 이렇게까지 하는 이유: 업로드 후 뷰어에 실제로 뜨는지 봐야 순서(페이지 번호)가
+ * 제대로 갔는지 확인할 수 있다. FR-BUL-05의 핵심이 순서다.
+ */
+type MockBulletin = {
+  id: string;
+  serviceDate: string;
+  pages: Bulletin["pages"];
+  thumbUrl: string;
+};
+
+const dynamicBulletins: MockBulletin[] = [];
+/** 삭제된 고정 mock 주보 id — 정적 파일은 지울 수 없으니 가려서 흉내낸다 */
+const removedMockBulletinIds = new Set<string>();
+let mockBulletinIdSeq = 12;
+
+/** 동적 + 정적 주보를 **주일 날짜 최신순**으로 합친다 (`latest`가 이 순서에 의존한다) */
+function allMockBulletins(): MockBulletin[] {
+  const seeded: MockBulletin[] = BULLETIN_DATES.map((entry) => ({
+    id: entry.id,
+    serviceDate: entry.date,
+    pages: bulletinOf(entry).pages,
+    thumbUrl: `/bulletins/${entry.date}-thumb.webp`,
+  }));
+
+  return [...dynamicBulletins, ...seeded]
+    .filter((b) => !removedMockBulletinIds.has(b.id))
+    .sort((a, b) => b.serviceDate.localeCompare(a.serviceDate));
 }
 
 export const mockApi: Api = {
@@ -849,6 +1007,15 @@ export const mockApi: Api = {
     async list({ category, page = 0, size = 20 }): Promise<Page<PostSummary>> {
       await delay();
       throwIfScenario();
+
+      // 예산안만 임원 이상 (위 `isLeaderSession` 주석)
+      if (category === "BUDGET" && !isLeaderSession()) {
+        throw new ApiError({
+          code: "FORBIDDEN",
+          message: "예산안을 열람할 권한이 없습니다.",
+          status: 403,
+        });
+      }
 
       // 빈 목록도 반드시 확인해야 하는 상태다
       const items =
@@ -872,6 +1039,16 @@ export const mockApi: Api = {
       const detail = dynamic ? dynamic.detail : summary ? NOTICE_DETAILS[summary.id] : undefined;
 
       if (!summary || !detail || removedPostIds.has(summary.id)) {
+        throw new ApiError({
+          code: "NOT_FOUND",
+          message: "글을 찾을 수 없습니다.",
+          status: 404,
+        });
+      }
+
+      // 예산안은 임원 이상만. 권한이 없으면 **존재 자체를 숨긴다**(404) —
+      // 403은 "그 문서가 있긴 하다"를 알려주는 셈이다 (SPEC_API §3.3).
+      if (summary.category === "BUDGET" && !isLeaderSession()) {
         throw new ApiError({
           code: "NOT_FOUND",
           message: "글을 찾을 수 없습니다.",
@@ -999,7 +1176,7 @@ export const mockApi: Api = {
     async list({ page = 0, size = 20 } = {}): Promise<Page<AlbumSummary>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const all = scenario() === "empty" ? [] : [...dynamicAlbums, ...ALBUMS];
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
@@ -1044,7 +1221,7 @@ export const mockApi: Api = {
     ): Promise<Cursor<Photo>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const known = [...dynamicAlbums, ...ALBUMS].find((a) => a.id === albumId);
       if (!known) {
@@ -1052,7 +1229,10 @@ export const mockApi: Api = {
       }
 
       // 사진이 있는 앨범은 5번뿐 — 나머지는 빈 목록(화면이 처리해야 하는 상태)
-      const source = albumId === "5" && scenario() !== "empty" ? RETREAT_PHOTOS : [];
+      const seeded = albumId === "5" && scenario() !== "empty" ? RETREAT_PHOTOS : [];
+      // 이번 세션에 업로드한 사진을 앞에 붙인다 (최신순) — 업로드 결과를 앨범에서
+      // 실제로 확인할 수 있어야 큐가 제대로 돌았는지 알 수 있다
+      const source = [...(mockUploadedPhotos.get(albumId) ?? []), ...seeded];
 
       // 커서는 불투명한 문자열이어야 한다 (SPEC_API §1.6). 오프셋을 감싸 흉내낸다
       const offset = cursor ? Number(atob(cursor)) || 0 : 0;
@@ -1087,18 +1267,136 @@ export const mockApi: Api = {
       // 고정 mock 앨범은 실제로 지우지 않는다 (새로고침 시 되살아나 혼란을 준다)
     },
 
-    downloadUrl(albumId: string, photoIds: string[]): string {
-      // 실제로는 ZIP 스트리밍 엔드포인트다. mock은 ZIP을 만들 수 없으므로
-      // `capabilities.zipDownload = false`로 화면이 안내를 띄우게 한다.
-      const ids = photoIds.join(",");
-      return `/api/albums/${encodeURIComponent(albumId)}/download?ids=${ids}`;
+  },
+  uploads: {
+    async issue(input: UploadIssueInput): Promise<{ uploads: UploadTicket[] }> {
+      await delay();
+      // `?mock=storage`가 STORAGE_LIMIT(409)을 던진다 — 업로드 차단 화면 확인용
+      throwIfScenario();
+      requireLeader("사진을 올릴 권한이 없습니다.");
+
+      if (![...dynamicAlbums, ...ALBUMS].some((a) => a.id === input.albumId)) {
+        throw new ApiError({
+          code: "NOT_FOUND",
+          message: "앨범을 찾을 수 없습니다.",
+          status: 404,
+        });
+      }
+      if (input.files.length === 0) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "올릴 사진이 없습니다.",
+          status: 400,
+          field: "files",
+        });
+      }
+
+      const uploads = input.files.map((file) => {
+        mockPhotoIdSeq += 1;
+        const photoId = `${mockPhotoIdSeq}`;
+        mockPendingUploads.set(photoId, {
+          albumId: input.albumId,
+          width: file.width,
+          height: file.height,
+          takenAt: file.takenAt,
+        });
+        return {
+          clientId: file.clientId,
+          photoId,
+          viewPutUrl: `mock://uploads/${photoId}/view`,
+          thumbPutUrl: `mock://uploads/${photoId}/thumb`,
+          expiresIn: 900,
+        };
+      });
+
+      return { uploads };
+    },
+
+    async put(url, body, options): Promise<void> {
+      const matched = MOCK_PUT_URL_RE.exec(url);
+      if (!matched) throw new Error("발급되지 않은 업로드 URL입니다.");
+      const [, photoId, variant] = matched;
+
+      const pending = mockPendingUploads.get(photoId);
+      // 실서비스에서 서명이 만료(15분)된 상황에 해당한다
+      if (!pending) throw new Error("업로드 URL이 만료되었습니다 (403).");
+
+      // 진행률이 실제로 움직이는지 눈으로 확인할 수 있어야 한다
+      for (const percent of [20, 55, 85]) {
+        if (options?.signal?.aborted) throw new Error("업로드가 취소되었습니다.");
+        await delay(60);
+        options?.onProgress?.(percent);
+      }
+
+      /*
+        ★ 실패 케이스 (docs/INTEGRATION.md — 성공 경로만 만들면 통합 때 무너진다).
+        `?mock=upload-fail`이면 photoId 4의 배수만 실패시킨다. 전부 실패시키면
+        "부분 실패 재시도"(FR-PHO-08)를 확인할 수 없다 — 정확히 이 UI가 존재하는
+        이유가 243장 중 2장이 실패하는 상황이다.
+      */
+      if (scenario() === "upload-fail" && Number(photoId) % 4 === 0) {
+        throw new Error("전송에 실패했습니다 (500).");
+      }
+
+      await delay(60);
+      options?.onProgress?.(100);
+
+      // blob을 붙잡아둔다 (위 주석 참고). 서버 환경에는 objectURL이 없다
+      if (typeof URL.createObjectURL === "function") {
+        const objectUrl = URL.createObjectURL(body);
+        if (variant === "view") pending.viewObjectUrl = objectUrl;
+        else pending.thumbObjectUrl = objectUrl;
+      }
+    },
+
+    async commit(photoIds): Promise<UploadCommitResult> {
+      await delay();
+      throwIfScenario();
+      requireLeader("사진을 올릴 권한이 없습니다.");
+
+      const committed: string[] = [];
+      const failed: UploadCommitResult["failed"] = [];
+
+      for (const photoId of photoIds) {
+        const pending = mockPendingUploads.get(photoId);
+        // 객체가 R2에 없으면 서버는 COMMITTED로 바꾸지 않는다 (SPEC_API §6.6)
+        if (!pending || !pending.viewObjectUrl || !pending.thumbObjectUrl) {
+          failed.push({ photoId, reason: "OBJECT_NOT_FOUND" });
+          continue;
+        }
+
+        const photo: Photo = {
+          id: photoId,
+          thumbUrl: pending.thumbObjectUrl,
+          viewUrl: pending.viewObjectUrl,
+          width: pending.width,
+          height: pending.height,
+          takenAt: pending.takenAt,
+        };
+        const existing = mockUploadedPhotos.get(pending.albumId) ?? [];
+        mockUploadedPhotos.set(pending.albumId, [photo, ...existing]);
+
+        // 앨범 목록의 장수·커버도 따라 움직여야 화면이 앞뒤가 맞는다
+        const album = [...dynamicAlbums, ...ALBUMS].find((a) => a.id === pending.albumId);
+        if (album) {
+          album.photoCount += 1;
+          album.coverThumbUrl ??= photo.thumbUrl;
+        }
+
+        mockPendingUploads.delete(photoId);
+        committed.push(photoId);
+      }
+
+      return { committed, failed };
     },
   },
   photos: {
     async report(photoId: string, input: { reason: string }): Promise<void> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 익명 신고 허용(PM 결정 2026-08-25): 사진첩이 공개되면서 얼굴이 찍힌
+      // 비회원이 '내려달라'고 알릴 유일한 창구가 됐다. 로그인을 요구하면
+      // 정작 요청해야 할 사람이 요청할 수 없다.
 
       if (!input.reason.trim()) {
         throw new ApiError({
@@ -1147,24 +1445,25 @@ export const mockApi: Api = {
     async list({ page = 0, size = 20 } = {}): Promise<Page<MeetingSummary>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
-      const all = scenario() === "empty" ? [] : MEETINGS;
+      const all = scenario() === "empty" ? [] : mockMeetings();
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
     },
 
     async get(id: string): Promise<MeetingDetail> {
       await delay();
       throwIfScenario();
-      const user = requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 세션은 임원 우회 판정에만 쓴다
+      const user = readSession();
 
-      const m = MEETINGS.find((x) => x.id === id);
+      const m = mockMeetings().find((x) => x.id === id);
       if (!m) {
         throw new ApiError({ code: "NOT_FOUND", message: "자료를 찾을 수 없습니다.", status: 404 });
       }
 
-      // SPEC_API §7.1: `L` 이상은 status와 무관하게 열람 가능
-      const isLeader = user.role === "LEADER" || user.role === "PASTOR";
+      // SPEC_API §7.1: `L` 이상은 status와 무관하게 열람 가능 (익명은 OPEN만)
+      const isLeader = user != null && (user.role === "LEADER" || user.role === "PASTOR");
       const canView = isLeader || m.status === "OPEN";
 
       const remainingSeconds =
@@ -1193,6 +1492,124 @@ export const mockApi: Api = {
        * 가짜 이미지를 돌려주면 "워터마크 없이도 잘 보인다"는 착각을 만든다.
        */
       return `/api/meetings/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}`;
+    },
+
+    async create(
+      input: MeetingCreateInput,
+      options?: { onUploadProgress?: (percent: number) => void },
+    ): Promise<{ id: string; pageCount: number }> {
+      throwIfScenario();
+      requireLeader("월례회 자료 업로드 권한이 없습니다.");
+      validateMeetingWindow(input.viewableFrom, input.viewableUntil);
+
+      /*
+        PDF가 맞는지만 본다. **암호화·손상 PDF는 mock이 판별할 수 없다** —
+        그건 서버가 PDFBox로 열어봐야 아는 것이라서, 여기서 통과했다고
+        실제로 변환된다는 뜻이 아니다 (화면에도 그렇게 적는다).
+      */
+      const isPdf =
+        input.file.type === "application/pdf" ||
+        input.file.name.toLowerCase().endsWith(".pdf");
+      if (!isPdf) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "PDF 파일만 올릴 수 있습니다. Word에서 「PDF로 저장」해 주세요.",
+          status: 400,
+          field: "file",
+        });
+      }
+
+      /*
+        ★ 서버는 여기서 PDF를 페이지 이미지로 **동기 변환**하며 10페이지
+          기준 15~30초가 걸린다 (SPEC_API §7.4). mock에는 변환할 것이 없지만
+          그 대기만은 흉내낸다 — 진행 표시가 실제로 버티는지, 사용자가 그
+          사이 이탈하려 할 때 경고가 뜨는지를 확인할 수 있어야 한다.
+          실제 15초를 그대로 기다리면 개발이 불가능해 6초로 압축했다.
+          **화면 문구는 압축값이 아니라 실제 소요(15~30초)를 안내한다.**
+      */
+      /*
+        전송 구간 — 실제로는 브라우저가 파일을 밀어 올리는 시간이다.
+        mock에는 올릴 곳이 없으니 0→100을 짧게 훑는다. 이 구간의 진행률은
+        **실제 서버에서도 진짜 값**이다(XHR이 알려준다) — 지어내는 건 mock의
+        타이밍뿐이고, 화면이 읽는 값의 의미는 같다.
+      */
+      for (let p = 0; p <= 100; p += 10) {
+        options?.onUploadProgress?.(p);
+        await delay(60);
+      }
+
+      await delay(6000);
+
+      // 변환 결과 페이지 수는 서버만 안다. mock은 지어내되 고정값을 쓴다
+      const pageCount = 10;
+      const id = `m-${dynamicMeetings.length + 1}-${Date.now()}`;
+      dynamicMeetings.unshift({
+        id,
+        title: input.title.trim(),
+        meetingDate: input.meetingDate,
+        pageCount,
+        viewableFrom: input.viewableFrom,
+        viewableUntil: input.viewableUntil,
+        status: meetingStatus(input.viewableFrom, input.viewableUntil),
+      });
+      return { id, pageCount };
+    },
+
+    async updateWindow(id: string, input: MeetingWindowInput): Promise<void> {
+      await delay();
+      throwIfScenario();
+      requireLeader("열람 기간 수정 권한이 없습니다.");
+      validateMeetingWindow(input.viewableFrom, input.viewableUntil);
+
+      const existing = mockMeetings().find((m) => m.id === id);
+      if (!existing) {
+        throw new ApiError({ code: "NOT_FOUND", message: "자료를 찾을 수 없습니다.", status: 404 });
+      }
+
+      const next: MeetingSummary = {
+        ...existing,
+        viewableFrom: input.viewableFrom,
+        viewableUntil: input.viewableUntil,
+        status: meetingStatus(input.viewableFrom, input.viewableUntil),
+      };
+      const at = dynamicMeetings.findIndex((m) => m.id === id);
+      if (at >= 0) dynamicMeetings[at] = next;
+      else dynamicMeetings.unshift(next);
+    },
+
+    async remove(id: string): Promise<void> {
+      await delay();
+      throwIfScenario();
+      requireLeader("월례회 자료 삭제 권한이 없습니다.");
+
+      if (!mockMeetings().some((m) => m.id === id)) {
+        throw new ApiError({ code: "NOT_FOUND", message: "자료를 찾을 수 없습니다.", status: 404 });
+      }
+      removedMeetingIds.add(id);
+      const at = dynamicMeetings.findIndex((m) => m.id === id);
+      if (at >= 0) dynamicMeetings.splice(at, 1);
+    },
+
+    async views(
+      id: string,
+      { page = 0, size = 20 }: { page?: number; size?: number } = {},
+    ): Promise<Page<MeetingView> & { totalViewers: number }> {
+      await delay();
+      throwIfScenario();
+      requireLeader("열람 로그 조회 권한이 없습니다.");
+
+      if (!mockMeetings().some((m) => m.id === id)) {
+        throw new ApiError({ code: "NOT_FOUND", message: "자료를 찾을 수 없습니다.", status: 404 });
+      }
+
+      const all = scenario() === "empty" ? [] : (MEETING_VIEWS[id] ?? []);
+      return {
+        items: all.slice(page * size, (page + 1) * size),
+        page,
+        size,
+        hasNext: (page + 1) * size < all.length,
+        totalViewers: all.length,
+      };
     },
   },
   admin: {
@@ -1322,58 +1739,135 @@ export const mockApi: Api = {
     async latest(): Promise<Bulletin | null> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       // 주보가 아직 없는 상태도 화면이 처리해야 한다 (SPEC_API §5.1: data null)
       if (scenario() === "empty") return null;
-      return bulletinOf(BULLETIN_DATES[0]);
+      const [newest] = allMockBulletins();
+      return newest ? { id: newest.id, serviceDate: newest.serviceDate, pages: newest.pages } : null;
     },
 
     async list({ page = 0, size = 20 } = {}): Promise<Page<BulletinSummary>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const all: BulletinSummary[] =
         scenario() === "empty"
           ? []
-          : BULLETIN_DATES.map((b) => ({
+          : allMockBulletins().map((b) => ({
               id: b.id,
-              serviceDate: b.date,
-              pageCount: b.pages,
-              thumbUrl: `/bulletins/${b.date}-thumb.webp`,
+              serviceDate: b.serviceDate,
+              pageCount: b.pages.length,
+              thumbUrl: b.thumbUrl,
             }));
 
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
     },
 
-    downloadUrl(id: string, pageNo: number): string {
-      /*
-       * 실제 서버는 302 → presigned(attachment)로 보낸다. mock은 정적
-       * 이미지를 그대로 가리켜서 브라우저가 저장할 수 있게 한다 — 파일명은
-       * 실서비스에서 서버의 Content-Disposition이 정한다.
-       */
-      const entry = BULLETIN_DATES.find((b) => b.id === id);
-      return entry
-        ? `/bulletins/${entry.date}-p${pageNo}.webp`
-        : `/api/bulletins/${encodeURIComponent(id)}/pages/${pageNo}/download`;
-    },
-
     async get(id: string): Promise<Bulletin> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
-      const entry = BULLETIN_DATES.find((b) => b.id === id);
-      if (!entry) {
+      const found = allMockBulletins().find((b) => b.id === id);
+      if (!found) {
         throw new ApiError({ code: "NOT_FOUND", message: "주보를 찾을 수 없습니다.", status: 404 });
       }
-      return bulletinOf(entry);
+      return { id: found.id, serviceDate: found.serviceDate, pages: found.pages };
     },
-  },
-  capabilities: {
-    // mock은 ZIP을 만들 수 없다 — 화면이 "다운로드했습니다"라고 속이지 않도록
-    zipDownload: false,
+
+    async create(input: BulletinInput): Promise<{ id: string; pageCount: number }> {
+      await delay();
+      throwIfScenario();
+      requireLeader("주보를 올릴 권한이 없습니다.");
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(input.serviceDate)) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "주일 날짜를 선택해주세요.",
+          status: 400,
+          field: "serviceDate",
+        });
+      }
+      if (input.pages.length === 0) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "주보 이미지를 1장 이상 선택해주세요.",
+          status: 400,
+          field: "pages",
+        });
+      }
+
+      /*
+        ★ 실패 케이스 — 같은 날짜가 이미 있으면 `DUPLICATE`다 (SPEC_API §5.4).
+        화면이 "교체할까요?"를 물어본 뒤 삭제→재업로드로 처리하는 경로를
+        여기서 실제로 밟을 수 있어야 한다.
+      */
+      if (allMockBulletins().some((b) => b.serviceDate === input.serviceDate)) {
+        throw new ApiError({
+          code: "DUPLICATE",
+          message: "같은 날짜의 주보가 이미 있습니다.",
+          status: 409,
+        });
+      }
+
+      mockBulletinIdSeq += 1;
+      const id = `${mockBulletinIdSeq}`;
+      // 업로드한 blob을 그대로 붙잡아 뷰어에서 실제로 보이게 한다
+      // (`uploads.put`의 objectURL과 같은 원리 — 새로고침하면 사라진다)
+      const pages = input.pages.map((blob, index) => ({
+        pageNo: index + 1,
+        url: typeof URL.createObjectURL === "function" ? URL.createObjectURL(blob) : "",
+        width: 1448,
+        height: 2048,
+      }));
+
+      dynamicBulletins.unshift({
+        id,
+        serviceDate: input.serviceDate,
+        pages,
+        // 실서비스는 서버가 썸네일을 만든다. mock은 1장을 그대로 쓴다
+        thumbUrl: pages[0].url,
+      });
+
+      return { id, pageCount: pages.length };
+    },
+
+    async remove(id: string): Promise<void> {
+      await delay();
+      throwIfScenario();
+      requireLeader("주보를 삭제할 권한이 없습니다.");
+
+      const index = dynamicBulletins.findIndex((b) => b.id === id);
+      if (index >= 0) {
+        for (const page of dynamicBulletins[index].pages) {
+          if (page.url.startsWith("blob:")) URL.revokeObjectURL(page.url);
+        }
+        dynamicBulletins.splice(index, 1);
+        return;
+      }
+
+      if (!BULLETIN_DATES.some((b) => b.id === id)) {
+        throw new ApiError({ code: "NOT_FOUND", message: "주보를 찾을 수 없습니다.", status: 404 });
+      }
+      // 고정 mock 주보는 파일이라 실제로 지울 수 없다 — 가려서 흉내낸다
+      removedMockBulletinIds.add(id);
+    },
+
+    downloadUrl(id: string, pageNo: number): string {
+      /*
+       * 실제 서버는 302 → presigned(attachment)로 보낸다. mock은 이미지를
+       * 그대로 가리켜서 브라우저가 저장할 수 있게 한다 — 파일명은 실서비스에서
+       * 서버의 Content-Disposition이 정한다.
+       */
+      const found = allMockBulletins().find((b) => b.id === id);
+      const page = found?.pages.find((p) => p.pageNo === pageNo);
+      return (
+        page?.url ??
+        `/api/bulletins/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}/download`
+      );
+    },
   },
   auth: {
     async signup(input: SignupInput): Promise<{ id: string; role: AuthUser["role"] }> {

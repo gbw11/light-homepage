@@ -1,11 +1,13 @@
 import type {
   AlbumInput,
+  BulletinInput,
   ApiEnvelope,
   CompleteProfileInput,
   LoginInput,
   NewcomerSubmission,
   PostInput,
   SignupInput,
+  UploadIssueInput,
 } from "@/types/api";
 import { ApiError } from "./error";
 import { notifySessionExpired } from "./session";
@@ -85,33 +87,93 @@ type RequestOptions = RequestInit & {
    *      보내게 된다. 시도마다 팩토리를 호출해 새 FormData를 만든다.
    */
   form?: () => FormData;
+  /**
+   * 업로드 진행률(0~100). **지정하면 `fetch` 대신 XHR로 보낸다** —
+   * `fetch`는 업로드 진행률을 알려주지 않는다.
+   *
+   * 응답 해석(`{data}`/`{error}` 봉투)과 401 리프레시 재시도는 두 경로가
+   * 똑같이 탄다. 달라지는 것은 "요청을 어떤 API로 보내는가" 하나뿐이다.
+   */
+  onUploadProgress?: (percent: number) => void;
 };
+
+/** 전송 수단이 무엇이든 여기까지 오면 같은 모양이다 */
+type RawResponse = { status: number; text: string };
+
+/**
+ * XHR 전송 — 업로드 진행률이 필요할 때만 쓴다.
+ *
+ * `putToPresignedUrl`과 달리 **우리 서버로 가는 요청**이라 쿠키가 실려야 하고
+ * 응답은 우리 규약(`{data}`/`{error}`)이다. 그래서 상태·본문만 그대로 돌려주고
+ * 해석은 `rawRequest`가 fetch 경로와 동일하게 처리한다.
+ */
+function sendWithProgress(
+  url: string,
+  init: RequestInit,
+  form: (() => FormData) | undefined,
+  onUploadProgress: (percent: number) => void,
+): Promise<RawResponse> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(init.method ?? "GET", url, true);
+    // 같은 출처면 기본으로 실리지만, 프록시 구성이 바뀌어도 흔들리지 않게 명시한다
+    xhr.withCredentials = true;
+    // multipart일 때 Content-Type을 우리가 붙이면 boundary가 빠진다 — 브라우저에 맡긴다
+    if (!form) xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        onUploadProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+
+    xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText });
+    // fetch가 네트워크 실패에 TypeError를 던지는 것과 같은 급으로 맞춘다
+    // (규약 에러 코드 §1.2에 "전송 실패"가 없다)
+    xhr.onerror = () => reject(new Error("네트워크 오류로 전송하지 못했습니다."));
+    xhr.ontimeout = () => reject(new Error("전송 시간이 초과되었습니다."));
+
+    xhr.send(form ? form() : ((init.body as XMLHttpRequestBodyInit | null) ?? null));
+  });
+}
 
 /** 리프레시 재시도가 없는 순수 fetch 1회 */
 async function rawRequest<T>(path: string, init?: RequestOptions): Promise<T> {
-  const { query, form, ...rest } = init ?? {};
+  const { query, form, onUploadProgress, ...rest } = init ?? {};
 
   const search = new URLSearchParams();
   for (const [k, v] of Object.entries(query ?? {})) {
     if (v !== undefined) search.set(k, String(v));
   }
-  const qs = search.toString();
+  const url = buildUrl(path, search.toString());
 
-  const res = await fetch(buildUrl(path, qs), {
-    ...rest,
-    ...(form ? { body: form() } : null),
-    // multipart일 때는 헤더를 비워 브라우저가 boundary까지 채운 값을 넣게 한다
-    headers: form ? { ...rest.headers } : { "Content-Type": "application/json", ...rest.headers },
-  });
+  /*
+    진행률을 요구할 때만 XHR로 간다. 서버(SSR)에는 XMLHttpRequest가 없으므로
+    브라우저인지도 함께 본다 — 진행률을 볼 사람도 서버에는 없다.
+  */
+  const res: RawResponse =
+    onUploadProgress && typeof window !== "undefined"
+      ? await sendWithProgress(url, rest, form, onUploadProgress)
+      : await (async () => {
+          const r = await fetch(url, {
+            ...rest,
+            ...(form ? { body: form() } : null),
+            // multipart일 때는 헤더를 비워 브라우저가 boundary까지 채운 값을 넣게 한다
+            headers: form
+              ? { ...rest.headers }
+              : { "Content-Type": "application/json", ...rest.headers },
+          });
+          return { status: r.status, text: await r.text() };
+        })();
 
-  // 204는 본문이 없다 (logout·reset-request 등, SPEC_API §2) — json() 파싱을 시도하지 않는다
-  if (res.status === 204) {
+  // 204는 본문이 없다 (logout·reset-request 등, SPEC_API §2) — 파싱을 시도하지 않는다
+  if (res.status === 204 || res.text === "") {
     return undefined as T;
   }
 
   let body: ApiEnvelope<T>;
   try {
-    body = (await res.json()) as ApiEnvelope<T>;
+    body = JSON.parse(res.text) as ApiEnvelope<T>;
   } catch {
     // 규약을 벗어난 응답 (프록시 실패·502 HTML 등)
     throw new ApiError({
@@ -160,6 +222,76 @@ async function request<T>(path: string, init?: RequestOptions): Promise<T> {
   }
 }
 
+/**
+ * presigned URL로 객체 하나를 PUT한다 (SPEC_API §6.5 · ARCHITECTURE.md §7.3).
+ *
+ * ⚠️ **우리 서버가 아니라 R2로 직접 간다.** `request()`를 쓰지 않는 이유가 여럿이다:
+ *   · 경로가 `/api/**`가 아니라 절대 URL이다 (프록시·쿠키·리프레시가 무관하다)
+ *   · 응답이 우리 규약(`{data}`/`{error}`)이 아니다 — R2는 XML을 준다
+ *   · **진행률이 필요하다.** `fetch`는 업로드 진행률을 알려주지 않아서 XHR을 쓴다.
+ *     243장 업로드에서 진행률은 선택 사항이 아니다 (FR-PHO-08)
+ *
+ * 실패는 `ApiError`가 아니라 일반 `Error`다 — 규약 에러 코드(§1.2)에 전송 실패가
+ * 없고, 화면은 이걸 "재시도 가능한 실패"로만 다룬다.
+ */
+function putToPresignedUrl(
+  url: string,
+  body: Blob,
+  options?: { onProgress?: (percent: number) => void; signal?: AbortSignal },
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (options?.signal?.aborted) {
+      reject(new Error("업로드가 취소되었습니다."));
+      return;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url, true);
+
+    /*
+      Content-Type을 반드시 우리가 지정한다 — presigned 서명에 포함된 값과
+      다르면 R2가 403을 준다. 리사이즈 결과는 항상 image/webp다.
+      쿠키는 보내지 않는다(withCredentials 기본 false): 다른 출처이고, 인증은
+      URL 서명에 이미 들어있다.
+    */
+    xhr.setRequestHeader("Content-Type", body.type || "application/octet-stream");
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        options?.onProgress?.(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+
+    const onAbort = () => xhr.abort();
+    options?.signal?.addEventListener("abort", onAbort, { once: true });
+    const cleanup = () => options?.signal?.removeEventListener("abort", onAbort);
+
+    xhr.onload = () => {
+      cleanup();
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+        return;
+      }
+      // 403은 대개 서명 만료(15분)다 — 재시도 시 URL을 재발급해야 한다
+      reject(new Error(`전송에 실패했습니다 (${xhr.status}).`));
+    };
+    xhr.onerror = () => {
+      cleanup();
+      reject(new Error("네트워크 오류로 전송하지 못했습니다."));
+    };
+    xhr.ontimeout = () => {
+      cleanup();
+      reject(new Error("전송 시간이 초과되었습니다."));
+    };
+    xhr.onabort = () => {
+      cleanup();
+      reject(new Error("업로드가 취소되었습니다."));
+    };
+
+    xhr.send(body);
+  });
+}
+
 export const realApi: Api = {
   posts: {
     list: ({ category, page = 0, size = 20 }) =>
@@ -198,11 +330,15 @@ export const realApi: Api = {
       request("/albums", { method: "POST", body: JSON.stringify(input) }),
     photos: (albumId, { cursor, size = 20 } = {}) =>
       request(`/albums/${encodeURIComponent(albumId)}/photos`, { query: { cursor, size } }),
-    // ZIP 스트리밍 — fetch가 아니라 브라우저가 직접 이동한다 (SPEC_API §6.8)
-    downloadUrl: (albumId, photoIds) =>
-      `/api/albums/${encodeURIComponent(albumId)}/download?ids=${photoIds.join(",")}`,
     remove: (albumId) =>
       request(`/albums/${encodeURIComponent(albumId)}`, { method: "DELETE" }),
+  },
+  uploads: {
+    issue: (input: UploadIssueInput) =>
+      request("/uploads:issue", { method: "POST", body: JSON.stringify(input) }),
+    put: putToPresignedUrl,
+    commit: (photoIds) =>
+      request("/uploads:commit", { method: "POST", body: JSON.stringify({ photoIds }) }),
   },
   photos: {
     report: (photoId, input) =>
@@ -220,6 +356,33 @@ export const realApi: Api = {
     // 서버가 워터마크를 합성해 스트리밍한다 — presigned URL이 아니다 (SPEC_API §7.3)
     pageUrl: (id, pageNo) =>
       `/api/meetings/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}`,
+    create: (input, options) =>
+      request("/meetings", {
+        method: "POST",
+        onUploadProgress: options?.onUploadProgress,
+        /*
+          시도마다 새 FormData — 401 후 리프레시 재시도가 이미 소비된 body를
+          보내지 않게 한다 (`bulletins.create`와 같은 이유).
+        */
+        form: () => {
+          const fd = new FormData();
+          fd.append("title", input.title);
+          fd.append("meetingDate", input.meetingDate);
+          fd.append("viewableFrom", input.viewableFrom);
+          fd.append("viewableUntil", input.viewableUntil);
+          // 파일명이 없으면 서버가 파트를 파일로 인식하지 못하는 구현이 있다
+          fd.append("file", input.file, input.file.name || "meeting.pdf");
+          return fd;
+        },
+      }),
+    updateWindow: (id, input) =>
+      request(`/meetings/${encodeURIComponent(id)}/window`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id) => request(`/meetings/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    views: (id, { page = 0, size = 20 } = {}) =>
+      request(`/meetings/${encodeURIComponent(id)}/views`, { query: { page, size } }),
   },
   admin: {
     members: ({ status, q, page = 0, size = 20 } = {}) =>
@@ -244,12 +407,28 @@ export const realApi: Api = {
     latest: () => request("/bulletins/latest"),
     list: ({ page = 0, size = 20 } = {}) => request("/bulletins", { query: { page, size } }),
     get: (id) => request(`/bulletins/${encodeURIComponent(id)}`),
+    create: (input: BulletinInput) =>
+      request("/bulletins", {
+        method: "POST",
+        /*
+          시도마다 새 FormData — 401 후 리프레시 재시도가 이미 소비된 body를
+          보내지 않게 한다 (`attachments.upload`와 같은 이유).
+          ⚠️ append 순서가 곧 페이지 순서다 (SPEC_API §5.4).
+        */
+        form: () => {
+          const fd = new FormData();
+          fd.append("serviceDate", input.serviceDate);
+          input.pages.forEach((page, index) => {
+            // 파일명이 없으면 서버가 파트를 파일로 인식하지 못하는 구현이 있다
+            fd.append("pages", page, `page-${index + 1}.webp`);
+          });
+          return fd;
+        },
+      }),
+    remove: (id) => request(`/bulletins/${encodeURIComponent(id)}`, { method: "DELETE" }),
     // [CONTRACT] 신규 제안 경로 — 백엔드가 다르게 정하면 여기만 바꾼다
     downloadUrl: (id, pageNo) =>
       `/api/bulletins/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}/download`,
-  },
-  capabilities: {
-    zipDownload: true,
   },
   auth: {
     signup: (input: SignupInput) =>

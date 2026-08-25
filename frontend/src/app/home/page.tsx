@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
+import { LIGHT_WORDMARK } from "@/lib/viewTransition";
 
 export const metadata: Metadata = {
   title: "LIGHT — 김해교회 청년교회",
@@ -29,7 +31,7 @@ const ACROSTIC = [
 ];
 
 const CTA_PRIMARY =
-  "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95";
+  "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95";
 const CTA_SECONDARY =
   "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-white/10 px-6 text-base font-bold text-white ring-1 ring-inset ring-white/40 transition hover:bg-white/20";
 
@@ -67,14 +69,17 @@ export default function Home() {
       <section className="flex min-h-[calc(100dvh-3.5rem)] items-center bg-[var(--color-navy-900)] text-white">
         <div className="mx-auto grid w-full max-w-[var(--container-max)] gap-8 px-5 py-10 md:grid-cols-2 md:items-center md:px-10">
           <div>
-            <p aria-hidden className="select-none text-lg font-bold leading-tight md:text-2xl">
-              {ACROSTIC.map(({ letter, rest }) => (
-                <span key={letter} className="block">
-                  <span className="text-[var(--color-yellow)]">{letter}</span>
-                  {rest}
-                </span>
-              ))}
-            </p>
+            {/* 첫 화면(`/`)의 워드마크와 같은 이름 — 그쪽 주석 참고 */}
+            <ViewTransition name={LIGHT_WORDMARK}>
+              <p aria-hidden className="select-none text-lg font-bold leading-tight md:text-2xl">
+                {ACROSTIC.map(({ letter, rest }) => (
+                  <span key={letter} className="block">
+                    <span className="text-[var(--color-accent-on-dark)]">{letter}</span>
+                    {rest}
+                  </span>
+                ))}
+              </p>
+            </ViewTransition>
             <h1 className="sr-only">LIGHT — 김해교회 청년교회</h1>
 
             <p className="mt-6 text-base font-bold text-white/90 md:text-lg">
@@ -179,7 +184,7 @@ export default function Home() {
         <div className="max-w-sm rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-4 md:max-w-none">
           <figure
             aria-hidden
-            className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]"
+            className="flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]"
           >
             썸네일 (16:9)
           </figure>

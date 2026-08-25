@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
-import type { AdminMember, Village } from "@/types/api";
+import type { AdminMember } from "@/types/api";
 import { MemberRow } from "./MemberRow";
 import { PendingMemberCard } from "./PendingMemberCard";
 
@@ -15,10 +15,6 @@ const TABS = [
   { status: "ALL", label: "전체" },
 ] as const satisfies readonly { status: Tab; label: string }[];
 
-export function villageLabel(village: Village): string {
-  return village === "newcomer" ? "새가족" : `${village}마을`;
-}
-
 /** "8/19 신청" (WIREFRAME.md §19) — 연도는 목록에서 노이즈라 뺀다 */
 export function formatApplyDate(iso: string): string {
   const d = new Date(iso);
@@ -28,7 +24,7 @@ export function formatApplyDate(iso: string): string {
 /**
  * WIREFRAME.md §19 — 회원 관리 `/admin/members` (FR-ADM-02/03/04).
  *
- * 탭 전환은 URL을 바꾸지 않는다 (`/my/documents`와 같은 판단 — 권한 있는
+ * 탭 전환은 URL을 바꾸지 않는다 (`/documents`와 같은 판단 — 권한 있는
  * 사람만 보는 목록은 공유·북마크 대상이 아니다).
  *
  * 검색은 **제출 시점에만** 서버로 보낸다. 입력마다 쿼리를 날리면 §8.1을

@@ -234,6 +234,42 @@ export type MeetingDetail = {
   viewReason: MeetingViewReason;
 };
 
+/**
+ * 업로드 요청 (SPEC_API §7.4) — `multipart/form-data`로 나간다.
+ *
+ * 서버가 PDFBox로 페이지 이미지를 만드는 데 **10페이지 기준 15~30초**가
+ * 걸리고 그동안 응답이 오지 않는다. 그 대기를 화면이 설명해야 한다.
+ */
+export type MeetingCreateInput = {
+  title: string;
+  /** LocalDate `2026-08-24` */
+  meetingDate: string;
+  viewableFrom: string;
+  viewableUntil: string;
+  /** Word에서 「PDF로 저장」한 파일. ⚠️ 서버는 이 원본을 보관하지 않는다 */
+  file: File;
+};
+
+/** 열람 기간 수정 (SPEC_API §7.5) — 연장·조기 종료 둘 다 이 요청이다 */
+export type MeetingWindowInput = {
+  viewableFrom: string;
+  viewableUntil: string;
+};
+
+/**
+ * 열람 로그 한 줄 (SPEC_API §7.7).
+ *
+ * ⚠️ 회원 개인정보다. 유출이 생겼을 때 워터마크와 대조하는 근거이지,
+ *    평소에 누가 뭘 보는지 들여다보라고 있는 화면이 아니다.
+ */
+export type MeetingView = {
+  memberName: string;
+  village: Village;
+  lastViewedAt: string;
+  /** 어디까지 봤는지 — 워터마크 대조 시 페이지 범위를 좁혀준다 */
+  maxPageNo: number;
+};
+
 // ── 관리 (SPEC_API §8) ─────────────────────────────────────
 /** 회원 관리 목록 항목 (SPEC_API §8.1) — 권한 `T` */
 export type AdminMember = {
@@ -304,6 +340,19 @@ export type BulletinSummary = {
   thumbUrl: string;
 };
 
+/**
+ * 주보 업로드 (SPEC_API §5.4) — `multipart/form-data`.
+ *
+ * ⚠️ **배열 순서가 페이지 번호다.** 정렬 기준이 따로 없으므로 서버는 받은
+ * 순서를 그대로 `pageNo`로 쓴다.
+ */
+export type BulletinInput = {
+  /** `YYYY-MM-DD` (주일 날짜) */
+  serviceDate: string;
+  /** 2048px WebP로 변환된 페이지 이미지. **1장 이상** */
+  pages: Blob[];
+};
+
 // ── 사진첩 (SPEC_API §6) ───────────────────────────────────
 /** 앨범 목록 항목 (SPEC_API §6.1) */
 export type AlbumSummary = {
@@ -332,6 +381,49 @@ export type Photo = {
 export type AlbumInput = {
   title: string;
   eventDate: string;
+};
+
+// ── 사진 업로드 (SPEC_API §6.5 · §6.6) ─────────────────────
+/**
+ * `uploads:issue`에 보내는 파일 하나의 메타 (SPEC_API §6.5).
+ *
+ * ⚠️ 크기·해상도는 **리사이즈 후** 값이다. 서버가 이 값으로 용량 한도를
+ * 검사하므로(§6.5 `STORAGE_LIMIT`) 촬영 원본 크기를 보내면 멀쩡한 업로드가
+ * 막힌다.
+ */
+export type UploadFileMeta = {
+  /** 브라우저가 붙이는 임시 식별자. 응답의 `photoId`와 짝지을 때만 쓴다 */
+  clientId: string;
+  /** 2560px WebP 크기 */
+  sizeBytes: number;
+  /** 640px WebP 크기 */
+  thumbSizeBytes: number;
+  width: number;
+  height: number;
+  /** EXIF 촬영 시각 (ISO-8601). 없으면 null */
+  takenAt: string | null;
+};
+
+export type UploadIssueInput = {
+  albumId: string;
+  files: UploadFileMeta[];
+};
+
+/** 발급된 presigned PUT URL 한 쌍 (SPEC_API §6.5) */
+export type UploadTicket = {
+  clientId: string;
+  photoId: string;
+  viewPutUrl: string;
+  thumbPutUrl: string;
+  /** 초. 기본 900(15분) — 200장은 배치로 나눠 재발급한다 */
+  expiresIn: number;
+};
+
+/** `uploads:commit` 결과 (SPEC_API §6.6) */
+export type UploadCommitResult = {
+  committed: string[];
+  /** `OBJECT_NOT_FOUND` 등 — 해당 photoId는 재시도 대상이다 */
+  failed: { photoId: string; reason: string }[];
 };
 
 // ── 새가족 등록 (SPEC_API §9.1) ────────────────────────────

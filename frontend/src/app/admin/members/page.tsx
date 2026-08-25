@@ -20,7 +20,7 @@ export const metadata: Metadata = {
  *
  * ⚠️ **서버에서 prefetch하지 않는다** — 회원 이름·연락처가 초기 HTML에
  * 실려 내려가면 안 된다. 목록은 로그인한 브라우저에서만 조회한다
- * (`/my/documents`와 같은 판단).
+ * (`/documents`와 같은 판단).
  */
 export default function AdminMembersPage() {
   return (
@@ -28,7 +28,7 @@ export default function AdminMembersPage() {
       <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pt-16 md:px-10 md:pt-24">
         <Link
           href="/admin"
-          className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-navy-900)]"
+          className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-ink)]"
         >
           ← 관리
         </Link>
