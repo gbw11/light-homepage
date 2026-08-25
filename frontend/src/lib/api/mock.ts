@@ -1469,7 +1469,10 @@ export const mockApi: Api = {
       return `/api/meetings/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}`;
     },
 
-    async create(input: MeetingCreateInput): Promise<{ id: string; pageCount: number }> {
+    async create(
+      input: MeetingCreateInput,
+      options?: { onUploadProgress?: (percent: number) => void },
+    ): Promise<{ id: string; pageCount: number }> {
       throwIfScenario();
       requireLeader("월례회 자료 업로드 권한이 없습니다.");
       validateMeetingWindow(input.viewableFrom, input.viewableUntil);
@@ -1499,6 +1502,17 @@ export const mockApi: Api = {
           실제 15초를 그대로 기다리면 개발이 불가능해 6초로 압축했다.
           **화면 문구는 압축값이 아니라 실제 소요(15~30초)를 안내한다.**
       */
+      /*
+        전송 구간 — 실제로는 브라우저가 파일을 밀어 올리는 시간이다.
+        mock에는 올릴 곳이 없으니 0→100을 짧게 훑는다. 이 구간의 진행률은
+        **실제 서버에서도 진짜 값**이다(XHR이 알려준다) — 지어내는 건 mock의
+        타이밍뿐이고, 화면이 읽는 값의 의미는 같다.
+      */
+      for (let p = 0; p <= 100; p += 10) {
+        options?.onUploadProgress?.(p);
+        await delay(60);
+      }
+
       await delay(6000);
 
       // 변환 결과 페이지 수는 서버만 안다. mock은 지어내되 고정값을 쓴다

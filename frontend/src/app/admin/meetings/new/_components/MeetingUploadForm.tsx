@@ -17,6 +17,9 @@ import { defaultWindow, localInputToIso } from "../../_components/meetingWindow"
  */
 type Phase =
   | { kind: "idle" }
+  /** PDF를 서버로 보내는 중 — 진행률이 **진짜 값**이다 (XHR이 알려준다) */
+  | { kind: "uploading"; percent: number }
+  /** 서버가 변환하는 중 — 진행률을 알 방법이 없어 경과 시간만 보여준다 */
   | { kind: "converting" }
   | { kind: "done"; id: string; pageCount: number };
 
@@ -55,7 +58,7 @@ export function MeetingUploadForm() {
   const untilId = useId();
   const queryClient = useQueryClient();
 
-  const busy = phase.kind === "converting";
+  const busy = phase.kind === "uploading" || phase.kind === "converting";
 
   /*
     변환 중 이탈 경고. 여기서 창을 닫으면 서버는 변환을 마치고도 그 결과를
@@ -78,13 +81,14 @@ export function MeetingUploadForm() {
     그래서 알 수 있는 것(경과 시간)만 보여주고 예상 소요를 함께 적는다.
   */
   const [elapsed, setElapsed] = useState(0);
+  const converting = phase.kind === "converting";
   useEffect(() => {
-    if (!busy) return;
+    if (!converting) return;
     // 0으로 되돌리는 것은 제출 시점(handleSubmit)에서 한다 — 이펙트 안에서
     // setState하면 렌더 직후 한 번 더 렌더가 돌고, 린트도 이를 막는다
     const t = setInterval(() => setElapsed((n) => n + 1), 1000);
     return () => clearInterval(t);
-  }, [busy]);
+  }, [converting]);
 
   function handleDateChange(next: string) {
     setMeetingDate(next);
@@ -143,15 +147,25 @@ export function MeetingUploadForm() {
     }
 
     setElapsed(0);
-    setPhase({ kind: "converting" });
+    setPhase({ kind: "uploading", percent: 0 });
     try {
-      const result = await api.meetings.create({
-        title: title.trim(),
-        meetingDate,
-        viewableFrom: localInputToIso(viewableFrom),
-        viewableUntil: localInputToIso(viewableUntil),
-        file,
-      });
+      const result = await api.meetings.create(
+        {
+          title: title.trim(),
+          meetingDate,
+          viewableFrom: localInputToIso(viewableFrom),
+          viewableUntil: localInputToIso(viewableUntil),
+          file,
+        },
+        {
+          onUploadProgress: (percent) =>
+            /*
+              전송이 끝나면(100%) 곧바로 변환 구간이다. 100%인 채로 멈춰
+              있으면 "다 됐는데 왜 안 넘어가지"로 읽히므로 단계를 바꾼다.
+            */
+            setPhase(percent >= 100 ? { kind: "converting" } : { kind: "uploading", percent }),
+        },
+      );
       await queryClient.invalidateQueries({ queryKey: ["meetings"] });
       setPhase({ kind: "done", id: result.id, pageCount: result.pageCount });
     } catch (cause) {
@@ -174,6 +188,39 @@ export function MeetingUploadForm() {
     }
   }
 
+  // ── 전송 중 ──────────────────────────────────────────────
+  if (phase.kind === "uploading") {
+    return (
+      <Section>
+        <h1 className="text-2xl font-bold md:text-3xl">자료를 올리고 있습니다</h1>
+        <div role="status" aria-live="polite" className="mt-6">
+          {/* 여기는 길이가 진행률을 그대로 뜻한다 — 브라우저가 아는 실제 값이다 */}
+          <div
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={phase.percent}
+            aria-label="업로드 진행률"
+            className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-navy-100)]"
+          >
+            <div
+              className="h-full rounded-full bg-[var(--color-yellow)] transition-[width]"
+              style={{ width: `${phase.percent}%` }}
+            />
+          </div>
+          <p className="mt-4 text-base font-bold">{phase.percent}%</p>
+          <p className="mt-1 text-sm text-[var(--color-gray-400)]">
+            파일을 서버로 보내는 중입니다. 다 보내고 나면 페이지 이미지로 바꾸는
+            작업이 이어집니다.
+          </p>
+          <p className="mt-4 text-sm font-bold text-[var(--color-red-500)]">
+            창을 닫거나 새로고침하지 마세요. 처음부터 다시 올려야 합니다.
+          </p>
+        </div>
+      </Section>
+    );
+  }
+
   // ── 변환 중 ──────────────────────────────────────────────
   if (phase.kind === "converting") {
     return (
@@ -181,11 +228,16 @@ export function MeetingUploadForm() {
         <h1 className="text-2xl font-bold md:text-3xl">자료를 변환하고 있습니다</h1>
         {/* 진행 상황이 스크린리더에도 전달돼야 한다 */}
         <div role="status" aria-live="polite" className="mt-6">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-navy-100)]">
-            {/*
-              길이가 진행률을 뜻하지 않는다 — 알 수 없으므로 무한 반복
-              애니메이션으로 "일하는 중"만 표현한다.
-            */}
+          {/*
+            길이가 진행률을 뜻하지 않는다 — 서버가 변환 진행을 알려주지 않으므로
+            알 수 없다. 무한 반복 애니메이션으로 "일하는 중"만 표현하고,
+            `aria-valuenow`를 주지 않아 보조기술에도 "진행률 미상"으로 전달한다.
+          */}
+          <div
+            role="progressbar"
+            aria-label="변환 중"
+            className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-navy-100)]"
+          >
             <div className="h-full w-1/3 animate-pulse rounded-full bg-[var(--color-yellow)]" />
           </div>
           <p className="mt-4 text-base font-bold">{elapsed}초 경과</p>

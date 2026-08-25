@@ -167,7 +167,19 @@ export type Api = {
      *    10페이지 기준 15~30초가 걸린다. 부르는 쪽은 그동안 진행 상태를
      *    보여줘야 한다 — 아무 표시가 없으면 사용자는 실패로 읽고 다시 누른다.
      */
-    create(input: MeetingCreateInput): Promise<{ id: string; pageCount: number }>;
+    create(
+      input: MeetingCreateInput,
+      options?: {
+        /**
+         * PDF를 서버로 **보내는 동안**의 진행률(0~100).
+         *
+         * ⚠️ 이건 전송 구간이지 변환 구간이 아니다. 100%가 됐다는 건 파일이
+         * 서버에 다 도착했다는 뜻일 뿐이고, 그때부터 15~30초의 변환이 시작된다.
+         * 변환 진행은 서버가 알려주지 않으므로 화면이 지어내서는 안 된다.
+         */
+        onUploadProgress?: (percent: number) => void;
+      },
+    ): Promise<{ id: string; pageCount: number }>;
     /** SPEC_API §7.5 — 권한 `L`. 연장·조기 종료 둘 다 이 요청이다 */
     updateWindow(id: string, input: MeetingWindowInput): Promise<void>;
     /** SPEC_API §7.6 — 권한 `L` · 204. ⚠️ 페이지 이미지까지 지운다 */
