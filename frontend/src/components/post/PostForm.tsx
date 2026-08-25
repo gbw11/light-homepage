@@ -7,15 +7,32 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/Button";
-import {
-  EMPTY_POST_BODY,
-  PostEditor,
-  isPostBodyEmpty,
-} from "@/components/post/PostEditor";
+import { EMPTY_POST_BODY, isPostBodyEmpty } from "@/components/post/postBody";
 import { PostBodyView } from "@/components/post/PostBodyView";
 import { postHref } from "@/lib/post/href";
 import type { PostBody, PostCategory, PostDetail, PostInput } from "@/types/api";
+
+/**
+ * 에디터(tiptap+ProseMirror)는 빌드에서 가장 큰 청크라 폼의 초기 JS에서
+ * 분리한다 — 제목·분류 입력은 에디터가 도착하기 전에도 동작한다.
+ * `ssr: false`인 이유: 에디터 자체가 `immediatelyRender: false`로 SSR
+ * 렌더를 포기한다(hydration 불일치). placeholder는 에디터가 첫 렌더에
+ * 내놓는 높이 확보용 사각형과 동일하게 맞춰 레이아웃이 튀지 않게 한다.
+ */
+const PostEditor = dynamic(
+  () => import("@/components/post/PostEditor").then((m) => m.PostEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="h-72 rounded-xl border border-[var(--color-navy-100)] bg-white"
+        aria-hidden="true"
+      />
+    ),
+  },
+);
 
 /**
  * WIREFRAME.md §16 · SPEC_API §3.4/§3.5 — 글 작성·수정 폼 (FR-DOC-01).
