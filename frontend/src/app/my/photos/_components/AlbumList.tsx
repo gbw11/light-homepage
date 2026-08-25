@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
@@ -90,12 +89,13 @@ function AlbumCover({ album }: { album: AlbumSummary }) {
 
   return (
     <div className="relative aspect-[4/3] bg-[var(--color-navy-100)]/40">
-      <Image
+      {/* eslint-disable-next-line @next/next/no-img-element -- 실서비스 URL은 R2 presigned(만료·서명 포함)라 next/image 최적화 대상이 아니다 (COMPONENTS.md §6.1). remotePatterns에 없는 원격 URL이라 next/image에 넣으면 mock을 끄는 순간 400으로 깨진다. */}
+      <img
         src={album.coverThumbUrl}
         alt={`${album.title} 커버 사진`}
-        fill
-        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-        className="object-cover"
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover"
       />
     </div>
   );
