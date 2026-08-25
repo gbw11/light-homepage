@@ -8,9 +8,12 @@ export const metadata: Metadata = {
 };
 
 /**
- * 첫 화면 클릭 게이트 (PM 결정: docs/DECISIONS.md "첫 화면 클릭 게이트: 신규/기존 방문자 분기").
- * 기존 스크롤형 HOME(FR-PUB-01)은 /home으로 이동했다.
- * 실제 인터랙션은 클라이언트 컴포넌트(`_components/LandingGate.tsx`)로 분리한다.
+ * 첫 화면 `/` — 화면 전체가 `/home`으로 들어가는 하나의 진입 버튼이다
+ * (PM 결정 2026-08-25). 스크롤형 HOME(FR-PUB-01)은 `/home`에 있다.
+ *
+ * 이 경로에서는 푸터를 렌더하지 않아(`SiteFooter`) 문서가 뷰포트와 정확히
+ * 같아지고, 그 결과 스크롤할 것이 없다.
+ * 실제 인터랙션은 클라이언트 컴포넌트(`_components/LandingGate.tsx`)에 있다.
  */
 export default function Home() {
   return (
