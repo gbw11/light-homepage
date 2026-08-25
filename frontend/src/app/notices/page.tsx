@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { InternalNoticeList } from "./_components/InternalNoticeList";
 
 export const metadata: Metadata = {
-  title: "내부 공지",
-  description: "LIGHT 청년교회 회원 대상 내부 공지를 확인하세요.",
+  title: "공지",
+  description: "LIGHT 청년교회의 공지를 모두 확인하세요.",
 };
 
 /**
@@ -30,7 +30,15 @@ export default function MyNoticesPage() {
   return (
     <main id="main" tabIndex={-1}>
       <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pt-16 md:px-10 md:pt-24">
-        <h1 className="text-2xl font-bold md:text-3xl">내부 공지</h1>
+        {/*
+          제목에서 "내부"를 뺐다 — 공개 열람 전환(PM 결정 2026-08-25) 이후
+          이 목록은 누구나 볼 수 있어서, "내부"는 못 보는 사람이 있다는
+          반대 정보를 준다. 회원 대상 글은 목록 안에서 뱃지로 구분한다.
+        */}
+        <h1 className="text-2xl font-bold md:text-3xl">공지</h1>
+        <p className="mt-1 text-sm text-[var(--color-gray-400)]">
+          공개 공지와 회원 대상 공지를 모두 모았습니다.
+        </p>
       </section>
 
       <InternalNoticeList />
