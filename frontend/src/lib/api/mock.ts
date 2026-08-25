@@ -1148,7 +1148,7 @@ export const mockApi: Api = {
     async list({ page = 0, size = 20 } = {}): Promise<Page<AlbumSummary>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const all = scenario() === "empty" ? [] : [...dynamicAlbums, ...ALBUMS];
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
@@ -1193,7 +1193,7 @@ export const mockApi: Api = {
     ): Promise<Cursor<Photo>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const known = [...dynamicAlbums, ...ALBUMS].find((a) => a.id === albumId);
       if (!known) {
@@ -1421,7 +1421,7 @@ export const mockApi: Api = {
     async list({ page = 0, size = 20 } = {}): Promise<Page<MeetingSummary>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const all = scenario() === "empty" ? [] : mockMeetings();
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
@@ -1430,15 +1430,16 @@ export const mockApi: Api = {
     async get(id: string): Promise<MeetingDetail> {
       await delay();
       throwIfScenario();
-      const user = requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 세션은 임원 우회 판정에만 쓴다
+      const user = readSession();
 
       const m = mockMeetings().find((x) => x.id === id);
       if (!m) {
         throw new ApiError({ code: "NOT_FOUND", message: "자료를 찾을 수 없습니다.", status: 404 });
       }
 
-      // SPEC_API §7.1: `L` 이상은 status와 무관하게 열람 가능
-      const isLeader = user.role === "LEADER" || user.role === "PASTOR";
+      // SPEC_API §7.1: `L` 이상은 status와 무관하게 열람 가능 (익명은 OPEN만)
+      const isLeader = user != null && (user.role === "LEADER" || user.role === "PASTOR");
       const canView = isLeader || m.status === "OPEN";
 
       const remainingSeconds =
@@ -1714,7 +1715,7 @@ export const mockApi: Api = {
     async latest(): Promise<Bulletin | null> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       // 주보가 아직 없는 상태도 화면이 처리해야 한다 (SPEC_API §5.1: data null)
       if (scenario() === "empty") return null;
@@ -1725,7 +1726,7 @@ export const mockApi: Api = {
     async list({ page = 0, size = 20 } = {}): Promise<Page<BulletinSummary>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const all: BulletinSummary[] =
         scenario() === "empty"
@@ -1743,7 +1744,7 @@ export const mockApi: Api = {
     async get(id: string): Promise<Bulletin> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const found = allMockBulletins().find((b) => b.id === id);
       if (!found) {
