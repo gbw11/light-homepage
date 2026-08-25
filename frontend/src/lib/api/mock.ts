@@ -1366,7 +1366,9 @@ export const mockApi: Api = {
     async report(photoId: string, input: { reason: string }): Promise<void> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 익명 신고 허용(PM 결정 2026-08-25): 사진첩이 공개되면서 얼굴이 찍힌
+      // 비회원이 '내려달라'고 알릴 유일한 창구가 됐다. 로그인을 요구하면
+      // 정작 요청해야 할 사람이 요청할 수 없다.
 
       if (!input.reason.trim()) {
         throw new ApiError({

@@ -249,24 +249,22 @@ export function Lightbox({
 
           {/*
             WIREFRAME §13-4의 `⋮`.
-            · 익명: 렌더하지 않는다 — 신고(§6.10)·삭제(§6.9) 모두 로그인이
-              필요해서, 열어봤자 제출에서 401이 난다 (공개 열람 전환 2026-08-25).
-            · 일반 회원: 항목이 신고·요청 하나뿐이라 중간 메뉴 없이 바로 연다.
+            · 익명·일반 회원: 항목이 신고·요청 하나뿐이라 중간 메뉴 없이 바로 연다.
+              익명에게도 보여준다 — 사진에 얼굴이 찍힌 비회원이 '내려달라'고
+              알릴 유일한 창구다 (PM 결정 2026-08-25).
             · 임원 이상: 삭제(§6.9)가 붙어 항목이 둘이므로 메뉴를 한 단계 둔다.
               파괴적 동작을 헤더의 `⬇` 옆에 나란히 놓지 않는 것이 목적이다 —
               다운로드를 누르려던 손가락이 삭제에 닿으면 안 된다.
           */}
-          {user && (
-            <button
-              type="button"
-              onClick={() => setOverlay(canDelete ? "actions" : "report")}
-              aria-label={canDelete ? "사진 작업 메뉴" : "사진 신고 · 삭제 요청"}
-              aria-expanded={overlayOpen}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-2xl text-white hover:bg-white/10"
-            >
-              ⋮
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setOverlay(canDelete ? "actions" : "report")}
+            aria-label={canDelete ? "사진 작업 메뉴" : "사진 신고 · 삭제 요청"}
+            aria-expanded={overlayOpen}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-2xl text-white hover:bg-white/10"
+          >
+            ⋮
+          </button>
         </div>
       </div>
 

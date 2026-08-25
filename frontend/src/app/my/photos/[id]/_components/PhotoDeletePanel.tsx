@@ -15,11 +15,8 @@ import { Button } from "@/components/ui/Button";
  * 오해를 만든다. 그래서 **낙관적 제거를 하지 않고**, mock 빌드에서만 왜 남아
  * 있는지를 문구로 덧붙인다.
  *
- * `api.capabilities`에는 아직 삭제 관련 플래그가 없고(`zipDownload`만 있다) 이
- * 브랜치에서 `src/lib/api/**`는 계약 고정 상태다. `NEXT_PUBLIC_USE_MOCK`은
- * `api` 스위치가 읽는 바로 그 값이고 빌드 타임 상수이므로, `=0` 빌드에서는 이
- * 문구가 번들에서 사라진다. (`capabilities.hardDelete` 추가가 더 깔끔하다 —
- * BACKEND_HANDOFF에 남겼다.)
+ * `NEXT_PUBLIC_USE_MOCK`은 `api` 스위치가 읽는 바로 그 값이고 빌드 타임
+ * 상수이므로, `=0` 빌드에서는 이 문구가 번들에서 통째로 사라진다.
  */
 const MOCK_NO_OP_NOTE =
   process.env.NEXT_PUBLIC_USE_MOCK === "1"
