@@ -74,7 +74,7 @@ export function ResetForm() {
         </p>
         <Link
           href="/password/reset-request"
-          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
         >
           재설정 메일 다시 받기
         </Link>
@@ -89,7 +89,7 @@ export function ResetForm() {
         <p className="mt-2 leading-relaxed text-[var(--color-gray-400)]">{tokenError}</p>
         <Link
           href="/password/reset-request"
-          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
         >
           재설정 메일 다시 받기
         </Link>
@@ -106,7 +106,7 @@ export function ResetForm() {
         </p>
         <Link
           href="/login"
-          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
         >
           로그인하러 가기
         </Link>

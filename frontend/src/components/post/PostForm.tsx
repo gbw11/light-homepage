@@ -14,10 +14,16 @@ import {
   isPostBodyEmpty,
 } from "@/components/post/PostEditor";
 import { PostBodyView } from "@/components/post/PostBodyView";
-import type { PostBody, PostCategory, PostInput } from "@/types/api";
+import { postHref } from "@/lib/post/href";
+import type { PostBody, PostCategory, PostDetail, PostInput } from "@/types/api";
 
 /**
- * WIREFRAME.md §16 · SPEC_API §3.4 — 글 작성 폼 (FR-DOC-01).
+ * WIREFRAME.md §16 · SPEC_API §3.4/§3.5 — 글 작성·수정 폼 (FR-DOC-01).
+ *
+ * 작성과 수정이 **같은 폼**인 이유: 요청 형태가 `PostInput`으로 동일하고
+ * (SPEC_API §3.5 "요청 형태는 §3.4와 동일") 화면도 같다. 폼을 둘로 나누면
+ * 분류 경고·첨부·본문 검증을 두 벌 관리하게 되고, 한쪽만 고치는 사고가 난다.
+ * 갈리는 것은 ① 초기값 ② 어느 API를 부르는가 ③ 저장 후 문구·이동 경로뿐이다.
  *
  * 상태를 셋으로 나눈 이유:
  *   · 분류·제목·상단고정 → react-hook-form + zod (CONVENTIONS.md §4)
@@ -41,6 +47,17 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+/**
+ * 서버 에러의 `field`를 그 입력 옆에 붙일 수 있는 필드 집합.
+ * 여기 없는 이름은 화면에 그릴 자리가 없으므로 root 에러로 보낸다.
+ * (`body`는 에디터가 따로 들고 있어 위쪽에서 먼저 걸러진다)
+ */
+const FIELD_ERROR_SLOTS: Record<keyof FormValues, true> = {
+  category: true,
+  title: true,
+  pinned: true,
+};
+
 /** 업로드 중인/끝난 첨부 하나 */
 type AttachmentItem = {
   /** 화면상의 키. 업로드 성공 후에도 바뀌지 않는다 */
@@ -62,10 +79,25 @@ function formatSize(bytes: number): string {
   return kb < 1024 ? `${kb.toFixed(0)}KB` : `${(kb / 1024).toFixed(1)}MB`;
 }
 
-export function PostForm() {
-  const [body, setBody] = useState<PostBody>(EMPTY_POST_BODY);
+export function PostForm({ post }: { post?: PostDetail }) {
+  /** 수정 모드인가 — 판단 근거를 한 곳에 둔다 */
+  const isEdit = post !== undefined;
+  const initialBody = post?.body ?? EMPTY_POST_BODY;
+
+  const [body, setBody] = useState<PostBody>(initialBody);
   const [bodyError, setBodyError] = useState<string | null>(null);
-  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+  const [attachments, setAttachments] = useState<AttachmentItem[]>(() =>
+    // 이미 붙어 있던 첨부는 업로드가 끝난 상태로 시작한다. 여기서 목록에
+    // 넣지 않으면 저장할 때 `attachmentIds`에서 빠져 **기존 첨부가 조용히
+    // 떨어져 나간다** — 수정 화면에서 가장 놓치기 쉬운 지점이다.
+    (post?.attachments ?? []).map((a) => ({
+      key: a.id,
+      filename: a.filename,
+      sizeBytes: a.sizeBytes,
+      status: "done" as const,
+      id: a.id,
+    })),
+  );
   const [saved, setSaved] = useState<{ id: string; published: boolean } | null>(null);
 
   const {
@@ -77,7 +109,9 @@ export function PostForm() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { category: "NOTICE_PUBLIC", title: "", pinned: false },
+    defaultValues: post
+      ? { category: post.category, title: post.title, pinned: post.pinned }
+      : { category: "NOTICE_PUBLIC", title: "", pinned: false },
   });
 
   const category = useWatch({ control, name: "category" });
@@ -97,7 +131,10 @@ export function PostForm() {
         attachmentIds: attachments.filter((a) => a.id).map((a) => a.id as string),
         publish,
       };
-      return api.posts.create(input).then((r) => ({ ...r, published: publish }));
+      // §3.5의 update는 204라 id를 돌려주지 않는다 — 이미 아는 값을 쓴다
+      return isEdit
+        ? api.posts.update(post.id, input).then(() => ({ id: post.id, published: publish }))
+        : api.posts.create(input).then((r) => ({ ...r, published: publish }));
     },
     onSuccess: ({ id, published }) => setSaved({ id, published }),
     onError: (error) => {
@@ -105,7 +142,16 @@ export function PostForm() {
         setBodyError(error.message);
         return;
       }
-      if (isApiError(error) && error.field) {
+      /*
+        ⚠️ 서버가 준 `field`를 그대로 `setError`에 넘기면 안 된다. 폼에 없는
+        이름(`attachmentIds` 등)을 넘기면 react-hook-form은 조용히 받아만 두고
+        화면에는 아무것도 렌더되지 않는다 — 사용자 입장에서는 저장 버튼을
+        눌렀는데 **아무 일도 일어나지 않는다.** 실제로 수정 화면을 만들면서
+        이 상태를 밟았다 (기존 첨부 id가 검증에 걸렸는데 화면은 무반응).
+        그리는 자리가 있는 필드만 그 필드에 붙이고, 나머지는 전부 root로
+        모아 반드시 눈에 보이게 한다.
+      */
+      if (isApiError(error) && error.field && error.field in FIELD_ERROR_SLOTS) {
         setError(error.field as keyof FormValues, { message: error.message });
         return;
       }
@@ -168,7 +214,11 @@ export function PostForm() {
     return (
       <div>
         <p className="text-xl font-bold">
-          {saved.published ? "게시했습니다 🎉" : "임시저장했습니다"}
+          {saved.published
+            ? isEdit
+              ? "수정했습니다 🎉"
+              : "게시했습니다 🎉"
+            : "임시저장했습니다"}
         </p>
         <p className="mt-2 text-sm text-[var(--color-gray-400)]">
           {saved.published
@@ -199,22 +249,33 @@ export function PostForm() {
         <div className="mt-8 flex gap-3">
           <Link
             href="/my"
-            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
           >
             나의 LIGHT로
           </Link>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setSaved(null);
-              setAttachments([]);
-              setBody(EMPTY_POST_BODY);
-              // 제목·분류·상단고정도 비운다 (에디터는 리마운트되며 저절로 빈다)
-              reset({ category: "NOTICE_PUBLIC", title: "", pinned: false });
-            }}
-          >
-            새 글 쓰기
-          </Button>
+          {isEdit ? (
+            // 수정한 글을 바로 확인할 수 있어야 한다. 폼을 비우는 것은
+            // 수정 모드에서 할 일이 아니다
+            <Link
+              href={postHref(selected.value, post.slug)}
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] border border-[var(--color-navy-100)] px-6 text-base font-bold transition hover:bg-[var(--color-navy-100)]"
+            >
+              글 보러 가기
+            </Link>
+          ) : (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSaved(null);
+                setAttachments([]);
+                setBody(EMPTY_POST_BODY);
+                // 제목·분류·상단고정도 비운다 (에디터는 리마운트되며 저절로 빈다)
+                reset({ category: "NOTICE_PUBLIC", title: "", pinned: false });
+              }}
+            >
+              새 글 쓰기
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -283,7 +344,7 @@ export function PostForm() {
         </p>
         <div className="mt-2" aria-labelledby="body-label">
           <PostEditor
-            value={EMPTY_POST_BODY}
+            value={initialBody}
             onChange={(next) => {
               setBody(next);
               if (bodyError) setBodyError(null);
@@ -299,7 +360,7 @@ export function PostForm() {
       {/* ── 첨부파일 ─────────────────────────────────────── */}
       <div>
         <p className="text-sm font-bold">첨부파일</p>
-        <label className="mt-2 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95">
+        <label className="mt-2 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold text-[var(--color-ink)] transition hover:brightness-95">
           + 파일 선택
           <input
             type="file"
@@ -389,7 +450,7 @@ export function PostForm() {
           {save.isPending ? "저장 중…" : "임시저장"}
         </Button>
         <Button type="submit" disabled={save.isPending || uploading}>
-          {save.isPending ? "저장 중…" : "게시하기"}
+          {save.isPending ? "저장 중…" : isEdit ? "수정 저장" : "게시하기"}
         </Button>
         {uploading && (
           <p className="self-center text-sm text-[var(--color-gray-400)]">

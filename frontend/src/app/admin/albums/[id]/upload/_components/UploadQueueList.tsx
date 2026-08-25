@@ -16,8 +16,8 @@ const STATUS_CLASS: Record<QueueItemStatus, string> = {
   PREPARING: "text-[var(--color-gray-400)]",
   SKIPPED: "text-[var(--color-gray-400)]",
   READY: "text-[var(--color-gray-400)]",
-  UPLOADING: "text-[var(--color-navy-900)] font-bold",
-  DONE: "text-[var(--color-navy-900)] font-bold",
+  UPLOADING: "text-[var(--color-ink)] font-bold",
+  DONE: "text-[var(--color-ink)] font-bold",
   FAILED: "text-[var(--color-red-500)] font-bold",
 };
 

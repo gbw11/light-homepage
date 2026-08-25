@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
-import type { AdminMember, Village } from "@/types/api";
+import type { AdminMember } from "@/types/api";
 import { MemberRow } from "./MemberRow";
 import { PendingMemberCard } from "./PendingMemberCard";
 
@@ -14,10 +14,6 @@ const TABS = [
   { status: "PENDING", label: "승인 대기" },
   { status: "ALL", label: "전체" },
 ] as const satisfies readonly { status: Tab; label: string }[];
-
-export function villageLabel(village: Village): string {
-  return village === "newcomer" ? "새가족" : `${village}마을`;
-}
 
 /** "8/19 신청" (WIREFRAME.md §19) — 연도는 목록에서 노이즈라 뺀다 */
 export function formatApplyDate(iso: string): string {

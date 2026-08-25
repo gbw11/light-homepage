@@ -36,7 +36,7 @@ const CONTENT_LINKS: AdminLink[] = [
     고른 뒤 [사진 올리기]로 들어간다.
   */
   { label: "앨범 만들기 / 사진 업로드", href: "/my/photos" },
-  { label: "월례회 자료 업로드" },
+  { label: "월례회 자료 업로드", href: "/admin/meetings/new" },
 ];
 
 /**
@@ -73,7 +73,7 @@ export function AdminHome() {
         <div>
           <Link
             href="/my"
-            className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-navy-900)]"
+            className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-ink)]"
           >
             ← 나의 LIGHT
           </Link>

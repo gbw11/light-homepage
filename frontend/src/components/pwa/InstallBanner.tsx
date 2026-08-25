@@ -177,7 +177,7 @@ export function InstallBanner() {
           <button
             type="button"
             onClick={install}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-4 text-sm font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-4 text-sm font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
           >
             홈 화면에 추가
           </button>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { RequireLeader } from "@/components/auth/RequireLeader";
-import { PostForm } from "./_components/PostForm";
+import { PostForm } from "@/components/post/PostForm";
 
 export const metadata: Metadata = {
   title: "글 작성 | LIGHT",
@@ -23,7 +23,7 @@ export default function NewPostPage() {
         <Section>
           <Link
             href="/my"
-            className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-navy-900)]"
+            className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-ink)]"
           >
             ← 나의 LIGHT
           </Link>

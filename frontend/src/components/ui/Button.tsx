@@ -8,9 +8,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClass: Record<ButtonVariant, string> = {
-  primary: "bg-[var(--color-yellow)] text-[var(--color-navy-900)] hover:brightness-95",
+  primary: "bg-[var(--color-yellow)] text-[var(--color-accent-fg)] hover:brightness-95",
   secondary:
-    "bg-[var(--color-navy-100)] text-[var(--color-navy-900)] hover:brightness-95",
+    "bg-[var(--color-navy-100)] text-[var(--color-ink)] hover:brightness-95",
 };
 
 /** 디자인 토큰 기준 CTA 버튼 — 라운드 999px, 터치 타겟 44px 이상 (ARCHITECTURE.md §11) */

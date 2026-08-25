@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import type { AdminMember, Role } from "@/types/api";
-import { villageLabel } from "./MemberBoard";
+import { villageLabel } from "@/lib/village";
 
 /** WIREFRAME.md §19 — 일반 / 임원 / 전도사 */
 const ROLE_LABEL: Record<Role, string> = {

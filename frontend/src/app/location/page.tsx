@@ -13,7 +13,7 @@ const KAKAO_MAP_URL = `https://map.kakao.com/link/search/${encodeURIComponent(AD
 const NAVER_MAP_URL = `https://map.naver.com/p/search/${encodeURIComponent(ADDRESS)}`;
 
 const linkButtonClass =
-  "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95";
+  "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold text-[var(--color-ink)] transition hover:brightness-95";
 
 /**
  * WIREFRAME.md §8 — 오시는 길.
@@ -28,7 +28,7 @@ export default function LocationPage() {
       </Section>
 
       <Section className="pt-0">
-        <figure className="flex aspect-video flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-4 text-center text-sm text-[var(--color-navy-900)]">
+        <figure className="flex aspect-video flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-4 text-center text-sm text-[var(--color-ink)]">
           <span>지도 미리보기는 준비 중입니다.</span>
           <span>아래 버튼으로 카카오맵·네이버지도에서 바로 확인하세요.</span>
         </figure>
@@ -58,7 +58,7 @@ export default function LocationPage() {
           ⚠️ 청년예배는 <strong>드림센터 4층</strong>입니다.
         </div>
 
-        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-navy-900)]">
+        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]">
           드림센터 외관 사진 (❓ 확인 필요)
         </figure>
       </Section>

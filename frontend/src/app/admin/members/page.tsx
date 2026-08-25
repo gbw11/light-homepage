@@ -28,7 +28,7 @@ export default function AdminMembersPage() {
       <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pt-16 md:px-10 md:pt-24">
         <Link
           href="/admin"
-          className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-navy-900)]"
+          className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-ink)]"
         >
           ← 관리
         </Link>

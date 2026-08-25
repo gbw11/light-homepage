@@ -186,7 +186,7 @@ export function BulletinViewer({ bulletin }: { bulletin: Bulletin }) {
         href={api.bulletins.downloadUrl(bulletin.id, page.pageNo)}
         download
         aria-label={`${bulletinLabel(bulletin.serviceDate)} ${page.pageNo}장 다운로드`}
-        className="mt-3 inline-flex min-h-11 items-center justify-center gap-1 rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+        className="mt-3 inline-flex min-h-11 items-center justify-center gap-1 rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
       >
         {/* 1장짜리 주보에서 "이 장"이라고 쓰면 고를 게 있는 것처럼 읽힌다 */}
         <span aria-hidden="true">⬇</span> {total > 1 ? "이 장 다운로드" : "다운로드"}
