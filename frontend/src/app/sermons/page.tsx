@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/ui/Section";
 import { Button } from "@/components/ui/Button";
+import { YOUTUBE_CHANNEL_URL } from "@/content/links";
 
 export const metadata: Metadata = {
   title: "말씀",
   description: "LIGHT 청년교회 YouTube 채널의 설교 영상 목록입니다.",
 };
-
-const YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@light4402";
 
 interface Sermon {
   id: string;

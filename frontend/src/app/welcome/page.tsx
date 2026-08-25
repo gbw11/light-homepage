@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
-import { Button } from "@/components/ui/Button";
 import { Accordion } from "@/components/ui/Accordion";
+import { KAKAO_MAP_URL } from "@/content/location";
 
 export const metadata: Metadata = {
   title: "처음 오시는 분",
@@ -68,9 +68,20 @@ export default function WelcomePage() {
         <p className="mt-6 text-base text-[var(--color-gray-400)]">
           본당 앞에서 도보 ❓ (확인 필요)
         </p>
-        <Button className="mt-3" disabled>
-          지도 앱으로 열기 (❓ 링크 확인 필요)
-        </Button>
+        {/*
+          예전에는 "링크 확인 필요"로 영구 비활성이었지만, `/location`이 이미
+          같은 주소로 동작하는 카카오맵 링크를 갖고 있었다. 값을
+          `content/location.ts`로 모으면서 여기서도 쓴다 — 길찾기가 이 페이지의
+          존재 이유인데(★최우선) 버튼이 죽어 있을 이유가 없다.
+        */}
+        <a
+          href={KAKAO_MAP_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
+        >
+          지도 앱으로 열기
+        </a>
       </Section>
 
       <Section title="② 주일은 이렇게 흘러갑니다">

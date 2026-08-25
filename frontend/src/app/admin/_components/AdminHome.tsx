@@ -15,8 +15,11 @@ function roleBadgeLabel(role: Role): string {
 
 type AdminLink = {
   label: string;
-  /** 없으면 라우트가 아직 없는 항목 — `/my`의 "준비 중" 타일과 같은 처리 */
-  href?: string;
+  /**
+   * M4에서 모든 항목에 라우트가 붙어, 예전의 "준비 중" 분기는 도달할 수 없는
+   * 코드가 됐다. 필수로 두어 라우트 없는 항목이 생기면 타입 에러로 드러난다.
+   */
+  href: string;
   /** 전도사 전용 항목에 붙는 꼬리표 (WIREFRAME.md §15 "[전도사님만]") */
   note?: string;
 };
@@ -107,25 +110,18 @@ function AdminLinkGroup({ title, links }: { title: string; links: AdminLink[] })
       <h2 className="mb-2 text-sm font-bold text-[var(--color-gray-400)]">{title}</h2>
       <ul className="divide-y divide-[var(--color-navy-100)] border-y border-[var(--color-navy-100)]">
         {links.map((link) => (
-          <li key={`${link.label}-${link.href ?? "soon"}`}>
-            {link.href ? (
-              <Link
-                href={link.href}
-                className="flex min-h-11 items-center justify-between gap-3 py-3 font-bold"
-              >
-                <span>▸ {link.label}</span>
-                {link.note && (
-                  <span className="shrink-0 text-xs font-bold text-[var(--color-gray-400)]">
-                    [{link.note}]
-                  </span>
-                )}
-              </Link>
-            ) : (
-              <p className="flex min-h-11 items-center justify-between gap-3 py-3 font-bold text-[var(--color-gray-400)]">
-                <span>▸ {link.label}</span>
-                <span className="shrink-0 text-xs font-bold">준비 중</span>
-              </p>
-            )}
+          <li key={`${link.label}-${link.href}`}>
+            <Link
+              href={link.href}
+              className="flex min-h-11 items-center justify-between gap-3 py-3 font-bold"
+            >
+              <span>▸ {link.label}</span>
+              {link.note && (
+                <span className="shrink-0 text-xs font-bold text-[var(--color-gray-400)]">
+                  [{link.note}]
+                </span>
+              )}
+            </Link>
           </li>
         ))}
       </ul>
