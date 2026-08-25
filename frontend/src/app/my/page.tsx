@@ -3,12 +3,8 @@
 import { RequireMember } from "@/components/auth/RequireMember";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Section } from "@/components/ui/Section";
-import type { Village } from "@/types/api";
+import { villageLabel } from "@/lib/village";
 import { HomeTile } from "./_components/HomeTile";
-
-function villageLabel(village: Village): string {
-  return village === "newcomer" ? "새가족" : `${village}마을`;
-}
 
 /**
  * WIREFRAME.md §11 — 나의 LIGHT `/my` (회원 홈).

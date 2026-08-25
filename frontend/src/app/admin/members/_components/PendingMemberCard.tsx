@@ -5,7 +5,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import type { AdminMember } from "@/types/api";
-import { formatApplyDate, villageLabel } from "./MemberBoard";
+import { formatApplyDate } from "./MemberBoard";
+import { villageLabel } from "@/lib/village";
 
 /**
  * WIREFRAME.md §19 승인 대기 카드 — 이름·마을·연락처·신청일 + 승인/거절
