@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/components/providers/AuthProvider";
 
 /**
  * `[ 홈 화면에 추가 ]` 설치 배너 — WIREFRAME.md §11 · FR-MEM-03 · NFR-COMP-06.
@@ -11,10 +10,14 @@ import { useAuth } from "@/components/providers/AuthProvider";
  * 그래서 한 번 띄운 시점에 localStorage에 기록하고 다시 띄우지 않는다. 닫기를
  * 눌렀는지와 무관하게 노출 자체가 1회다 — 조를 이유가 없다.
  *
- * ⚠️ 이 컴포넌트는 루트 레이아웃에서 마운트되고, **자기 스스로 `/my`에서만**
- *    렌더한다. 와이어프레임상 자리는 `/my` 홈이지만 `src/app/my/**`는 다른
- *    작업자가 소유한 파일이라 그쪽을 건드리지 않기 위한 선택이다. 정확히
- *    `/my`에서만 렌더해서 하위 화면(주보 뷰어·사진 라이트박스)을 덮지 않는다.
+ * ⚠️ 이 컴포넌트는 루트 레이아웃에서 마운트되고, **자기 스스로 `/home`에서만**
+ *    렌더한다. 정확히 그 경로에서만 렌더해서 하위 화면(주보 뷰어·사진
+ *    라이트박스)을 덮지 않는다.
+ *
+ *    노출 위치가 `/my`에서 `/home`으로 바뀐 이유 (PM 결정 2026-08-25):
+ *    공개 열람 전환으로 **비회원도 앱처럼 쓸 수 있게 됐다.** 설치를 권할
+ *    대상이 회원으로 한정되지 않으므로, PWA `start_url`과 같은 화면인
+ *    `/home`에서 로그인 여부와 무관하게 띄운다. "1회 노출" 규칙은 그대로다.
  *
  * 브라우저별 동작 (NFR-COMP-06 "Android ○ / iOS ○(공유 → 홈 화면 추가, 안내 필요)"):
  *   · Android Chrome 등 → `beforeinstallprompt`를 잡아 실제 설치 프롬프트 버튼
@@ -78,6 +81,20 @@ function getServerSnapshot(): boolean {
   return false;
 }
 
+/**
+ * 하이드레이션이 끝났는가. `useSyncExternalStore`의 서버/클라이언트 스냅샷
+ * 차이를 그대로 쓴다 — effect에서 setState 하는 방식보다 렌더가 한 번 덜 돌고,
+ * 구독할 것이 없으므로 subscribe는 빈 함수다.
+ */
+const noopSubscribe = () => () => {};
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+}
+
 // ── 노출 여부 판정 ───────────────────────────────────────────
 
 function isStandalone(): boolean {
@@ -125,20 +142,25 @@ function decide(hasPrompt: boolean): Decision {
 }
 
 export function InstallBanner() {
-  const { user } = useAuth();
   const pathname = usePathname();
   const hasPrompt = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [closed, setClosed] = useState(false);
+  /**
+   * 예전에는 로그인 여부(`user`)가 판정에 들어가서 서버·첫 하이드레이션 렌더가
+   * 자동으로 "안 보임"이었다. 이제 경로만 보므로 그 보호가 사라졌다 —
+   * `decide()`가 localStorage·matchMedia를 읽기 때문에 하이드레이션 전에
+   * 판정하면 서버 HTML과 어긋난다.
+   */
+  const hydrated = useHydrated();
 
-  const onMemberHome = pathname === "/my" && user !== null;
+  const onAppHome = pathname === "/home";
 
   /**
-   * 판정을 렌더 중에 한다. localStorage·matchMedia는 클라이언트 전용이지만
-   * 하이드레이션 불일치가 없다 — `onMemberHome`은 `user`가 필요하고 `user`는
-   * 클라이언트 페칭(AuthProvider)으로만 채워지므로, 서버 렌더와 첫 하이드레이션
-   * 렌더에서는 양쪽 모두 `null`을 반환한다.
+   * 판정을 렌더 중에 한다. localStorage·matchMedia는 클라이언트 전용이라
+   * 서버 렌더와 첫 하이드레이션 렌더의 결과가 갈릴 수 있으므로, 마운트
+   * 전에는 무조건 "none"으로 두고 마운트 후에 다시 판정한다.
    */
-  const variant: Decision = onMemberHome ? decide(hasPrompt) : "none";
+  const variant: Decision = hydrated && onAppHome ? decide(hasPrompt) : "none";
   const visible = variant !== "none" && !closed;
 
   /** "1회 노출" 기록. 렌더 결과에 영향을 주지 않으므로 부수효과로 둔다 */

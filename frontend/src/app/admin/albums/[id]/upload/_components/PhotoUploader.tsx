@@ -54,7 +54,7 @@ export function PhotoUploader({ albumId }: { albumId: string }) {
   return (
     <Section>
       <Link
-        href={`/my/photos/${albumId}`}
+        href={`/photos/${albumId}`}
         className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--color-gray-400)] hover:underline"
       >
         ← 앨범으로 돌아가기

@@ -336,7 +336,7 @@ const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "at
             { type: "text", text: "사진은 " },
             {
               type: "text",
-              marks: [{ type: "link", attrs: { href: "/my/photos" } }],
+              marks: [{ type: "link", attrs: { href: "/photos" } }],
               text: "사진첩",
             },
             { type: "text", text: "에서 보실 수 있습니다." },
@@ -865,6 +865,15 @@ function mockPostSummaries(): PostSummary[] {
   ].filter((p) => !removedPostIds.has(p.id));
 }
 
+/**
+ * 예산안(`BUDGET`)은 공개 열람 전환(PM 결정 2026-08-25)에서 **유일하게 제외된
+ * 분류**다 — 회의록은 공개, 예산안은 임원 이상. 헌금·지출 내역이 담기기 때문.
+ */
+function isLeaderSession(): boolean {
+  const user = readSession();
+  return user?.role === "LEADER" || user?.role === "PASTOR";
+}
+
 /** SPEC_API §3.1 — 작성은 전부 권한 `L`. 서버가 실제로 막지만 mock도 흉내낸다 */
 function requireLeader(message: string): AuthUser {
   const user = requireSession();
@@ -999,6 +1008,15 @@ export const mockApi: Api = {
       await delay();
       throwIfScenario();
 
+      // 예산안만 임원 이상 (위 `isLeaderSession` 주석)
+      if (category === "BUDGET" && !isLeaderSession()) {
+        throw new ApiError({
+          code: "FORBIDDEN",
+          message: "예산안을 열람할 권한이 없습니다.",
+          status: 403,
+        });
+      }
+
       // 빈 목록도 반드시 확인해야 하는 상태다
       const items =
         scenario() === "empty"
@@ -1021,6 +1039,16 @@ export const mockApi: Api = {
       const detail = dynamic ? dynamic.detail : summary ? NOTICE_DETAILS[summary.id] : undefined;
 
       if (!summary || !detail || removedPostIds.has(summary.id)) {
+        throw new ApiError({
+          code: "NOT_FOUND",
+          message: "글을 찾을 수 없습니다.",
+          status: 404,
+        });
+      }
+
+      // 예산안은 임원 이상만. 권한이 없으면 **존재 자체를 숨긴다**(404) —
+      // 403은 "그 문서가 있긴 하다"를 알려주는 셈이다 (SPEC_API §3.3).
+      if (summary.category === "BUDGET" && !isLeaderSession()) {
         throw new ApiError({
           code: "NOT_FOUND",
           message: "글을 찾을 수 없습니다.",
@@ -1148,7 +1176,7 @@ export const mockApi: Api = {
     async list({ page = 0, size = 20 } = {}): Promise<Page<AlbumSummary>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const all = scenario() === "empty" ? [] : [...dynamicAlbums, ...ALBUMS];
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
@@ -1193,7 +1221,7 @@ export const mockApi: Api = {
     ): Promise<Cursor<Photo>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const known = [...dynamicAlbums, ...ALBUMS].find((a) => a.id === albumId);
       if (!known) {
@@ -1239,12 +1267,6 @@ export const mockApi: Api = {
       // 고정 mock 앨범은 실제로 지우지 않는다 (새로고침 시 되살아나 혼란을 준다)
     },
 
-    downloadUrl(albumId: string, photoIds: string[]): string {
-      // 실제로는 ZIP 스트리밍 엔드포인트다. mock은 ZIP을 만들 수 없으므로
-      // `capabilities.zipDownload = false`로 화면이 안내를 띄우게 한다.
-      const ids = photoIds.join(",");
-      return `/api/albums/${encodeURIComponent(albumId)}/download?ids=${ids}`;
-    },
   },
   uploads: {
     async issue(input: UploadIssueInput): Promise<{ uploads: UploadTicket[] }> {
@@ -1372,7 +1394,9 @@ export const mockApi: Api = {
     async report(photoId: string, input: { reason: string }): Promise<void> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 익명 신고 허용(PM 결정 2026-08-25): 사진첩이 공개되면서 얼굴이 찍힌
+      // 비회원이 '내려달라'고 알릴 유일한 창구가 됐다. 로그인을 요구하면
+      // 정작 요청해야 할 사람이 요청할 수 없다.
 
       if (!input.reason.trim()) {
         throw new ApiError({
@@ -1421,7 +1445,7 @@ export const mockApi: Api = {
     async list({ page = 0, size = 20 } = {}): Promise<Page<MeetingSummary>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const all = scenario() === "empty" ? [] : mockMeetings();
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
@@ -1430,15 +1454,16 @@ export const mockApi: Api = {
     async get(id: string): Promise<MeetingDetail> {
       await delay();
       throwIfScenario();
-      const user = requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 세션은 임원 우회 판정에만 쓴다
+      const user = readSession();
 
       const m = mockMeetings().find((x) => x.id === id);
       if (!m) {
         throw new ApiError({ code: "NOT_FOUND", message: "자료를 찾을 수 없습니다.", status: 404 });
       }
 
-      // SPEC_API §7.1: `L` 이상은 status와 무관하게 열람 가능
-      const isLeader = user.role === "LEADER" || user.role === "PASTOR";
+      // SPEC_API §7.1: `L` 이상은 status와 무관하게 열람 가능 (익명은 OPEN만)
+      const isLeader = user != null && (user.role === "LEADER" || user.role === "PASTOR");
       const canView = isLeader || m.status === "OPEN";
 
       const remainingSeconds =
@@ -1714,7 +1739,7 @@ export const mockApi: Api = {
     async latest(): Promise<Bulletin | null> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       // 주보가 아직 없는 상태도 화면이 처리해야 한다 (SPEC_API §5.1: data null)
       if (scenario() === "empty") return null;
@@ -1725,7 +1750,7 @@ export const mockApi: Api = {
     async list({ page = 0, size = 20 } = {}): Promise<Page<BulletinSummary>> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const all: BulletinSummary[] =
         scenario() === "empty"
@@ -1743,7 +1768,7 @@ export const mockApi: Api = {
     async get(id: string): Promise<Bulletin> {
       await delay();
       throwIfScenario();
-      requireSession();
+      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
 
       const found = allMockBulletins().find((b) => b.id === id);
       if (!found) {
@@ -1843,10 +1868,6 @@ export const mockApi: Api = {
         `/api/bulletins/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}/download`
       );
     },
-  },
-  capabilities: {
-    // mock은 ZIP을 만들 수 없다 — 화면이 "다운로드했습니다"라고 속이지 않도록
-    zipDownload: false,
   },
   auth: {
     async signup(input: SignupInput): Promise<{ id: string; role: AuthUser["role"] }> {

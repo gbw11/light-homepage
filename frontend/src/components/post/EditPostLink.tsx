@@ -7,7 +7,7 @@ import { isLeaderOrAbove } from "@/components/auth/RequireLeader";
 /**
  * 글 상세에서 `/admin/posts/[id]/edit`으로 가는 임원 전용 진입점.
  *
- * 상세 화면 셋(`/news/[slug]` · `/my/notices/[slug]` · `/my/documents/[slug]`)
+ * 상세 화면 둘(`/news/[slug]` · `/documents/[slug]`)
  * 중 앞의 둘은 서버 컴포넌트라 역할을 볼 수 없다. 그래서 이 조각만
  * 클라이언트로 떼어냈다 — 페이지 전체를 클라이언트로 바꾸면 공개 공지의
  * SSR/SEO를 잃는다.

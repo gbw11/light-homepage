@@ -49,10 +49,19 @@ const PostEditor = dynamic(
  *   · 첨부 → 파일별 업로드 진행/실패 상태가 있어 폼 값이 아니라 목록 상태다
  */
 
+/**
+ * ⚠️ `audience`는 **실제로 볼 수 있는 사람**이다. 분류 이름(대상)과 다르다.
+ *
+ * 공개 열람 전환(PM 결정 2026-08-25) 이후 `BUDGET`을 뺀 전부가 로그인 없이
+ * 열린다. "공지(회원 대상)"·"회의록"은 **누구를 향해 쓰는 글인지**를 뜻할 뿐
+ * 접근 제한이 아니다 — 이 구분을 흐리면 작성자가 "내부니까 괜찮겠지" 하고
+ * 민감한 내용을 쓰게 된다. 그래서 여기 값은 접근 권한만 말하고, 화면 문구도
+ * 그 값만 따른다.
+ */
 const CATEGORIES: { value: PostCategory; label: string; audience: string; isPublic: boolean }[] = [
   { value: "NOTICE_PUBLIC", label: "공지(공개)", audience: "누구나", isPublic: true },
-  { value: "NOTICE_MEMBER", label: "공지(내부)", audience: "회원", isPublic: false },
-  { value: "MINUTES", label: "회의록", audience: "임원 이상", isPublic: false },
+  { value: "NOTICE_MEMBER", label: "공지(회원 대상)", audience: "누구나", isPublic: true },
+  { value: "MINUTES", label: "회의록", audience: "누구나", isPublic: true },
   { value: "BUDGET", label: "예산안", audience: "임원 이상", isPublic: false },
 ];
 
@@ -328,11 +337,11 @@ export function PostForm({ post }: { post?: PostDetail }) {
             */
             className="mt-2 rounded-[var(--radius-card)] border border-[var(--color-red-500)] bg-[var(--color-red-500)]/10 px-4 py-3 text-sm font-bold"
           >
-            ⚠️ 공개 공지는 로그인 없이 누구나 볼 수 있습니다.
+            ⚠️ 이 글은 로그인 없이 누구나 볼 수 있습니다.
           </p>
         ) : (
           <p role="status" className="mt-2 text-sm text-[var(--color-gray-400)]">
-            🔒 {selected.audience}만 볼 수 있습니다.
+            🔒 {selected.audience}만 볼 수 있습니다. (열람 시 로그인 필요)
           </p>
         )}
       </div>

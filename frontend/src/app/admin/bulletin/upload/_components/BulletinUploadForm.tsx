@@ -204,7 +204,7 @@ export function BulletinUploadForm() {
   return (
     <Section>
       <Link
-        href="/my/bulletin"
+        href="/bulletin"
         className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--color-gray-400)] hover:underline"
       >
         ← 주보
@@ -267,7 +267,7 @@ export function BulletinUploadForm() {
           >
             <p className="font-bold">주보를 올렸습니다 ({phase.pageCount}장).</p>
             <p className="mt-1">
-              <Link href="/my/bulletin" className="underline">
+              <Link href="/bulletin" className="underline">
                 주보 화면에서 확인
               </Link>
               하거나, 다른 날짜의 주보를 이어서 올릴 수 있습니다.

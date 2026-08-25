@@ -88,14 +88,6 @@ export type Api = {
       params?: { cursor?: string; size?: number },
     ): Promise<Cursor<Photo>>;
     /**
-     * SPEC_API §6.8 — 선택한 사진을 ZIP으로. **최대 30장.**
-     *
-     * `photos.downloadUrl`과 같은 이유로 URL만 만든다 (ZIP 스트리밍 응답).
-     * 30장 제한은 서버가 `VALIDATION_ERROR`(field `ids`)로 막지만, 화면이
-     * 먼저 막아야 헛된 요청이 안 나간다.
-     */
-    downloadUrl(albumId: string, photoIds: string[]): string;
-    /**
      * SPEC_API §6.3 — 권한 `L`.
      * ⚠️ **사진과 R2 객체를 모두 삭제한다.** 되돌릴 수 없다 (고아 객체 방지 목적).
      */
@@ -252,17 +244,6 @@ export type Api = {
     /** SPEC_API §5.5 — 권한 `L` · `204`. ⚠️ R2 객체까지 삭제한다 */
     remove(id: string): Promise<void>;
     downloadUrl(id: string, pageNo: number): string;
-  };
-  /**
-   * mock이 흉내낼 수 없는 기능을 화면이 알 수 있게 한다.
-   *
-   * 예: ZIP 스트리밍(§6.8)은 서버가 만들어야 하므로 mock에서는 파일이 나오지
-   * 않는다. 이 플래그가 없으면 화면이 "다운로드했습니다"라고 거짓 성공을
-   * 표시하게 된다 — mock은 가짜여도 되지만 **성공했다고 속이면 안 된다.**
-   */
-  capabilities: {
-    /** `false`면 ZIP 다운로드가 실제로 파일을 만들지 않는다 (mock) */
-    zipDownload: boolean;
   };
   auth: {
     signup(input: SignupInput): Promise<{ id: string; role: AuthUser["role"] }>;

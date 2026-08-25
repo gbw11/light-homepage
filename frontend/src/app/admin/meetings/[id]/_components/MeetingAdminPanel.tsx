@@ -97,7 +97,7 @@ export function MeetingAdminPanel({ id }: { id: string }) {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["meetings"] });
       // 지운 자료의 관리 화면에 머무를 수 없다 (다음 조회는 404다)
-      router.replace("/my/meetings");
+      router.replace("/meetings");
     },
     onError: (err) => {
       setError(
@@ -121,7 +121,7 @@ export function MeetingAdminPanel({ id }: { id: string }) {
           찾을 수 없는 자료입니다.
         </p>
         <Link
-          href="/my/meetings"
+          href="/meetings"
           className="mt-4 inline-flex min-h-11 items-center text-sm font-bold hover:underline"
         >
           ← 월례회 자료
