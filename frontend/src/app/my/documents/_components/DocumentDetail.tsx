@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import { PostBodyView } from "@/components/post/PostBodyView";
+import { EditPostLink } from "@/components/post/EditPostLink";
 import type { PostCategory } from "@/types/api";
 
 const CATEGORY_LABEL: Partial<Record<PostCategory, string>> = {
@@ -74,6 +75,10 @@ export function DocumentDetail({ slug }: { slug: string }) {
       <p className="mt-2 text-sm text-[var(--color-gray-400)]">
         {post.authorName} · {formatDate(post.publishedAt)}
       </p>
+
+      <div className="mt-4">
+        <EditPostLink postId={post.id} />
+      </div>
 
       <PostBodyView body={post.body} className="mt-8" />
 

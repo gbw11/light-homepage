@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import { PostBodyView } from "@/components/post/PostBodyView";
+import { EditPostLink } from "@/components/post/EditPostLink";
 import type { PostDetail } from "@/types/api";
 
 /**
@@ -72,6 +73,14 @@ export default async function NoticeDetailPage({
         <p className="mt-2 text-sm text-[var(--color-gray-400)]">
           {notice.authorName} · {formatDate(notice.publishedAt)}
         </p>
+
+        {/*
+          공개 공지라 비로그인 방문자도 보는 화면이다. `EditPostLink`는
+          임원이 아니면 아무것도 그리지 않으므로 방문자에게는 없는 것과 같다.
+        */}
+        <div className="mt-4">
+          <EditPostLink postId={notice.id} />
+        </div>
 
         {/* 에디터(PostEditor)와 같은 노드 집합을 렌더한다 — 어느 쪽도 앞서 나가지 않는다 */}
         <PostBodyView body={notice.body} className="mt-8" />
