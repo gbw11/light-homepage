@@ -20,7 +20,7 @@ export const metadata: Metadata = {
  * 내부에서 역할을 다시 본다 (`AdminHome`). 게이트를 `RequirePastor`로
  * 올리면 임원이 저장 용량을 볼 수 없게 된다.
  *
- * ⚠️ **서버에서 prefetch하지 않는다** — `/my/documents`와 같은 이유다.
+ * ⚠️ **서버에서 prefetch하지 않는다** — `/documents`와 같은 이유다.
  * 세션이 필요한 데이터(회원 목록·저장 용량)를 초기 HTML에 구우면 권한 없는
  * 브라우저까지 내려간다.
  */

@@ -69,6 +69,8 @@ export default async function NoticeDetailPage({
     <main id="main" tabIndex={-1}>
       <Section>
         <p className="text-sm font-bold text-[var(--color-gray-400)]">
+          {/* 통합 목록과 같은 구분 (PM 결정 2026-08-25) — 잠김이 아니라 대상 표시 */}
+          {notice.category === "NOTICE_MEMBER" && "회원 대상 · "}
           {notice.pinned && "📌 "}
           공지
         </p>

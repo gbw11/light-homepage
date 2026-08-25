@@ -33,7 +33,31 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // 회원·운영 영역은 검색엔진에 노출되지 않아야 한다 (NFR-SEC-29)
+  /**
+   * 옛 회원 전용 주소 → 공개 주소 (PM 결정 2026-08-25: 열람 공개).
+   * 이미 공유된 링크·북마크·PWA 바로가기가 깨지지 않게 영구 리다이렉트한다.
+   */
+  async redirects() {
+    const moved = ["photos", "bulletin", "meetings", "documents"].flatMap((seg) => [
+      { source: `/my/${seg}`, destination: `/${seg}`, permanent: true },
+      { source: `/my/${seg}/:path*`, destination: `/${seg}/:path*`, permanent: true },
+    ]);
+
+    /**
+     * 공지 통합 (PM 결정 2026-08-25): `/notices`는 `/news`와 같은 목록이 되어
+     * 없앴다. 옛 주소 두 벌(`/my/notices`도 한때 유효했다)을 모두 보낸다.
+     */
+    const notices = [
+      { source: "/notices", destination: "/news", permanent: true },
+      { source: "/notices/:slug", destination: "/news/:slug", permanent: true },
+      { source: "/my/notices", destination: "/news", permanent: true },
+      { source: "/my/notices/:slug", destination: "/news/:slug", permanent: true },
+    ];
+
+    return [...moved, ...notices];
+  },
+
+  // 색인 차단 대상 (NFR-SEC-29) — `src/app/robots.ts`의 목록과 같이 유지한다
   async headers() {
     const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
     return [
@@ -49,7 +73,11 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/(my|admin)/:path*",
+        /**
+         * 자료 화면은 공개지만 색인은 막는다 (PM 결정 2026-08-25 —
+         * `robots.ts` 주석의 "공개 ≠ 검색 노출" 참고).
+         */
+        source: "/(my|admin|photos|bulletin|meetings|documents)/:path*",
         headers: noindex,
       },
       {
