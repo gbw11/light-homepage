@@ -76,7 +76,12 @@ export function InternalNoticeList() {
               className="flex items-center justify-between gap-4 py-4"
             >
               <span className="flex items-center gap-2">
-                {item.category === "NOTICE_MEMBER" && <span aria-label="내부 공지">🔒</span>}
+                {/* 자물쇠가 아니다 — 공개돼 있고, '누구를 향한 글인지'만 표시한다 */}
+                {item.category === "NOTICE_MEMBER" && (
+                  <span className="rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-2 py-0.5 text-xs font-bold">
+                    회원 대상
+                  </span>
+                )}
                 {item.pinned && <span aria-label="고정됨">📌</span>}
                 <span className="font-bold">{item.title}</span>
               </span>

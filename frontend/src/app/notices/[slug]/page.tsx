@@ -72,7 +72,7 @@ export default async function MyNoticeDetailPage({
     <main id="main" tabIndex={-1}>
         <Section>
           <p className="text-sm font-bold text-[var(--color-gray-400)]">
-            {notice.category === "NOTICE_MEMBER" && "🔒 "}
+            {notice.category === "NOTICE_MEMBER" && "회원 대상 · "}
             {notice.pinned && "📌 "}
             공지
           </p>

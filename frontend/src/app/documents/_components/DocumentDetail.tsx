@@ -67,8 +67,14 @@ export function DocumentDetail({ slug }: { slug: string }) {
 
   return (
     <Section>
+      {/*
+        자물쇠는 **예산안에만** 붙인다 — 회의록은 공개다(PM 결정 2026-08-25).
+        공개 글에 자물쇠를 달면 "이건 나만 볼 수 있는 것"이라는 반대 정보를
+        준다.
+      */}
       <p className="text-sm font-bold text-[var(--color-gray-400)]">
-        🔒 {post.pinned && "📌 "}
+        {post.category === "BUDGET" && "🔒 "}
+        {post.pinned && "📌 "}
         {CATEGORY_LABEL[post.category] ?? "문서"}
       </p>
       <h2 className="mt-2 text-2xl font-bold md:text-3xl">{post.title}</h2>
