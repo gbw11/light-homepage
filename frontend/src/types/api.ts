@@ -324,6 +324,33 @@ export type BulletinPage = {
   height: number;
 };
 
+/**
+ * 설교 영상 한 편 (FR-PUB-09).
+ *
+ * ⚠️ **[CONTRACT] 스펙에 없는 신규 엔드포인트다** — 백엔드 합의 필요
+ * (`docs/BACKEND_HANDOFF.md` 2026-08-25 항목).
+ *
+ * YouTube Data API를 **백엔드가 프록시한다.** 브라우저에서 직접 부르지 않는
+ * 이유는 하나뿐이다: **API 키를 클라이언트에 실을 수 없다.** `NEXT_PUBLIC_`으로
+ * 넣으면 번들에 그대로 박히고(NFR-SEC-22), 키가 유출되면 쿼터를 남이 쓴다.
+ */
+export type Sermon = {
+  /** YouTube 영상 id (`youtubeUrl`에서 파생 가능하지만 목록 키로 쓴다) */
+  id: string;
+  title: string;
+  /** ISO-8601 UTC — 영상 게시 시각 */
+  publishedAt: string;
+  /** 시청 URL. 자체 플레이어를 두지 않고 새 탭으로 보낸다 (FR-PUB-09) */
+  youtubeUrl: string;
+  /**
+   * 썸네일 URL (YouTube CDN, `i.ytimg.com`).
+   * ⚠️ `next/image`에 넣지 않는다 — 외부 호스트라 `remotePatterns` 설정이
+   * 필요하고, 그러면 우리 서버가 YouTube 이미지를 재가공해 캐시한다.
+   * presigned URL과 같은 이유로 `<img>`를 쓴다 (COMPONENTS.md §6.1).
+   */
+  thumbnailUrl: string;
+};
+
 /** 주보 상세 (SPEC_API §5.1 · §5.3) */
 export type Bulletin = {
   id: string;

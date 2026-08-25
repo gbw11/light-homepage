@@ -7,6 +7,7 @@ import type {
   Bulletin,
   BulletinInput,
   BulletinSummary,
+  Sermon,
   CompleteProfileInput,
   Cursor,
   MeetingCreateInput,
@@ -207,6 +208,16 @@ export type Api = {
     storage(): Promise<StorageUsage>;
     /** SPEC_API §8.6 — 권한 `L`. ⚠️ 개인정보, 보유기간 1년 */
     newcomers(params?: { page?: number; size?: number }): Promise<Page<NewcomerRecord>>;
+  };
+  sermons: {
+    /**
+     * ⚠️ **[CONTRACT] 스펙에 없는 신규 엔드포인트다** — 백엔드 합의 필요.
+     *
+     * 제안: `GET /api/sermons?page=&size=` · 권한 `G`(누구나) · 최신순.
+     * 백엔드가 YouTube Data API를 프록시한다 (`Sermon` 타입 주석 — API 키를
+     * 클라이언트에 실을 수 없다). 응답을 서버에서 캐시해두면 쿼터도 아낀다.
+     */
+    list(params?: { page?: number; size?: number }): Promise<Page<Sermon>>;
   };
   bulletins: {
     /** SPEC_API §5.1 — 최신 주보. **없으면 null** */
