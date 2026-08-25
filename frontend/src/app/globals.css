@@ -110,10 +110,6 @@
   --color-red-500: var(--color-red-500);
   --color-danger-fg: var(--color-danger-fg);
 
-  /* 간격 4px 배수 · 섹션 여백 64/96 (모바일/데스크톱) */
-  --spacing-section-mobile: 64px;
-  --spacing-section-desktop: 96px;
-
   /* 라운드 — 카드 8px / 버튼 999px */
   --radius-card: 8px;
   --radius-button: 999px;

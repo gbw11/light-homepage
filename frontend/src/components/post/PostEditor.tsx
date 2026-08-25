@@ -24,19 +24,6 @@ import type { PostBody } from "@/types/api";
  * 부모(작성 화면)는 ProseMirror를 몰라도 된다.
  */
 
-/** 빈 본문 — 스펙 §3.3의 `{ type: "doc", content: [] }` 형태 */
-export const EMPTY_POST_BODY: PostBody = { type: "doc", content: [] };
-
-/** 본문이 실제로 비었는지 (빈 문단 하나만 있는 상태도 "빔"으로 본다) */
-export function isPostBodyEmpty(body: PostBody): boolean {
-  return !body.content.some((node) => {
-    if (typeof node !== "object" || node === null) return false;
-    const n = node as { type?: unknown; content?: unknown; text?: unknown };
-    if (n.type === "horizontalRule") return true;
-    return Array.isArray(n.content) && n.content.length > 0;
-  });
-}
-
 type ToolbarButtonProps = {
   label: string;
   /** 버튼에 보일 짧은 표기 (B, I, …) */

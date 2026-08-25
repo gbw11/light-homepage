@@ -29,6 +29,48 @@ function phoneTail(phone: string): string {
 }
 
 /**
+ * 카운트다운 표시. 잎 컴포넌트로 분리한 이유: 매초 바뀌는 건 이 문구뿐인데
+ * 상태가 뷰어에 있으면 **1초마다 뷰어 전체**(페이지 이미지·오버레이 포함)가
+ * 리렌더된다. 부모는 만료 순간에 `onExpired`로 한 번만 알림받는다.
+ *
+ * **서버가 준 `remainingSeconds`를 기준점으로 삼고** 경과 시간을 빼는
+ * 방식이다 — 매초 `setState(prev - 1)`로 줄이면 탭이 백그라운드로 가서
+ * 타이머가 밀리는 만큼 실제보다 늦게 간다.
+ */
+function RemainingCountdown({
+  baseSeconds,
+  onExpired,
+}: {
+  baseSeconds: number;
+  onExpired: () => void;
+}) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (baseSeconds <= 0) return;
+    const startedAt = Date.now();
+    const id = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [baseSeconds]);
+  const remaining = Math.max(0, baseSeconds - elapsed);
+
+  const onExpiredRef = useRef(onExpired);
+  useEffect(() => {
+    onExpiredRef.current = onExpired;
+  });
+  useEffect(() => {
+    if (remaining <= 0) onExpiredRef.current();
+  }, [remaining]);
+
+  return (
+    <>
+      <span aria-hidden>⏳</span> {formatRemaining(remaining)}
+    </>
+  );
+}
+
+/**
  * WIREFRAME.md §14b-2 · FR-MTG-02/03 — 월례회 자료 뷰어.
  *
  * ## 이미지를 어떻게 얻는가
@@ -103,25 +145,16 @@ export function MeetingViewer({ detail }: { detail: MeetingDetail }) {
   }, [total, goPrev, goNext]);
 
   /**
-   * 카운트다운. **서버가 준 `remainingSeconds`를 기준점으로 삼고**
-   * 경과 시간을 빼는 방식이다 — 매초 `setState(prev - 1)`로 줄이면 탭이
-   * 백그라운드로 가서 타이머가 밀리는 만큼 실제보다 늦게 간다.
+   * 만료 여부만 이 컴포넌트가 든다 — 매초 도는 카운트다운은
+   * `RemainingCountdown`(잎)이 맡고, 만료 순간에 한 번만 여기로 올라온다.
    */
-  const [elapsed, setElapsed] = useState(0);
-  useEffect(() => {
-    if (detail.remainingSeconds <= 0) return;
-    const startedAt = Date.now();
-    const id = window.setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [detail.remainingSeconds]);
-  const remaining = Math.max(0, detail.remainingSeconds - elapsed);
+  const [expired, setExpired] = useState(detail.remainingSeconds <= 0);
+  const markExpired = useCallback(() => setExpired(true), []);
 
   /** 기간 밖인데 열람 중 = 임원(§7.1). 카운트다운 대신 그 사실을 밝힌다 */
   const leaderOverride = detail.status !== "OPEN";
   /** 열람 중에 기간이 끝난 경우 (§7.3이 다음 페이지부터 403을 준다) */
-  const justExpired = !leaderOverride && remaining <= 0;
+  const justExpired = !leaderOverride && expired;
 
   const src = api.meetings.pageUrl(detail.id, pageNo);
 
@@ -145,7 +178,10 @@ export function MeetingViewer({ detail }: { detail: MeetingDetail }) {
             aria-live="polite"
             className="shrink-0 text-sm font-bold text-[var(--color-gray-400)]"
           >
-            <span aria-hidden>⏳</span> {formatRemaining(remaining)}
+            <RemainingCountdown
+              baseSeconds={detail.remainingSeconds}
+              onExpired={markExpired}
+            />
           </span>
         )}
       </header>

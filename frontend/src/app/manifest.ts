@@ -15,7 +15,7 @@ import type { MetadataRoute } from "next";
  * hex를 직접 적는 유일한 예외다 (CONVENTIONS.md §5의 "hex 박지 않는다"에 대한 예외 —
  * 매니페스트는 CSS가 아니라 브라우저 OS 통합용 메타데이터다).
  *   --background     #f6f1e4 (베이지)
- *   --color-yellow   #3e8e5b (브랜드 그린)
+ *   --color-yellow   #2f7a4a (브랜드 그린)
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
