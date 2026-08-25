@@ -47,6 +47,17 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+/**
+ * 서버 에러의 `field`를 그 입력 옆에 붙일 수 있는 필드 집합.
+ * 여기 없는 이름은 화면에 그릴 자리가 없으므로 root 에러로 보낸다.
+ * (`body`는 에디터가 따로 들고 있어 위쪽에서 먼저 걸러진다)
+ */
+const FIELD_ERROR_SLOTS: Record<keyof FormValues, true> = {
+  category: true,
+  title: true,
+  pinned: true,
+};
+
 /** 업로드 중인/끝난 첨부 하나 */
 type AttachmentItem = {
   /** 화면상의 키. 업로드 성공 후에도 바뀌지 않는다 */
@@ -131,7 +142,16 @@ export function PostForm({ post }: { post?: PostDetail }) {
         setBodyError(error.message);
         return;
       }
-      if (isApiError(error) && error.field) {
+      /*
+        ⚠️ 서버가 준 `field`를 그대로 `setError`에 넘기면 안 된다. 폼에 없는
+        이름(`attachmentIds` 등)을 넘기면 react-hook-form은 조용히 받아만 두고
+        화면에는 아무것도 렌더되지 않는다 — 사용자 입장에서는 저장 버튼을
+        눌렀는데 **아무 일도 일어나지 않는다.** 실제로 수정 화면을 만들면서
+        이 상태를 밟았다 (기존 첨부 id가 검증에 걸렸는데 화면은 무반응).
+        그리는 자리가 있는 필드만 그 필드에 붙이고, 나머지는 전부 root로
+        모아 반드시 눈에 보이게 한다.
+      */
+      if (isApiError(error) && error.field && error.field in FIELD_ERROR_SLOTS) {
         setError(error.field as keyof FormValues, { message: error.message });
         return;
       }

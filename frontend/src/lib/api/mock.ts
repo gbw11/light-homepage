@@ -774,8 +774,20 @@ type MockPost = {
 const dynamicPosts: MockPost[] = [];
 /** 삭제된 글 id — 정적 mock 데이터는 지울 수 없으니 가려서 흉내낸다 */
 const removedPostIds = new Set<string>();
-/** 업로드됐지만 아직 게시물에 연결되지 않은 첨부 (실서비스는 24시간 후 정리) */
+/**
+ * 서버가 알고 있는 첨부 전체 — id로 조회할 수 있는 것들.
+ *
+ * 이름 그대로 "방금 업로드한 것"만 담아뒀더니 **글 수정이 깨졌다.**
+ * 수정 화면은 기존 첨부 id를 그대로 다시 보내는데, 그 id는 이 브라우저
+ * 세션에서 업로드한 적이 없어서 `validatePostInput`의 "업로드되지 않은
+ * 첨부" 검사에 걸렸다. 실제 서버는 DB에 있는 첨부를 당연히 알고 있으므로
+ * 그쪽이 맞다 — mock이 서버보다 좁았던 것이다.
+ * 그래서 정적 mock 글에 붙어 있는 첨부도 처음부터 여기 등록해둔다.
+ */
 const uploadedAttachments = new Map<string, PostAttachment>();
+for (const detail of Object.values(NOTICE_DETAILS)) {
+  for (const a of detail.attachments) uploadedAttachments.set(a.id, a);
+}
 
 /** 정적 + 동적 mock 글을 하나로 합친다. 같은 id는 **동적 쪽이 이긴다**(수정 반영) */
 function mockPostSummaries(): PostSummary[] {
@@ -841,9 +853,11 @@ function buildMockPost(id: string, input: PostInput, authorName: string): MockPo
     detail: {
       body: input.body,
       updatedAt: now,
-      attachments: input.attachmentIds.map(
-        (aid) => uploadedAttachments.get(aid) as PostAttachment,
-      ),
+      // `validatePostInput`이 모르는 id를 이미 막지만, 여기서도 걸러낸다 —
+      // 검사를 한 곳이라도 놓치면 `undefined`가 목록에 섞여 렌더가 깨진다
+      attachments: input.attachmentIds
+        .map((aid) => uploadedAttachments.get(aid))
+        .filter((a): a is PostAttachment => a !== undefined),
     },
   };
 }
