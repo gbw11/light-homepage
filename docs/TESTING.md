@@ -38,10 +38,15 @@ NEXT_PUBLIC_USE_MOCK=1 npm run build # mock 모드 빌드 (백엔드 없이도 �
 
 ## 2. 백엔드 — 지금 상태와 반드시 채워야 할 테스트
 
-**현재 `backend/`에는 코드가 없다** (README만 존재, `build.gradle`/`src` 없음).
-즉 Jenkinsfile의 `Backend` 스테이지는 `expression { fileExists('backend/gradlew') }`
-조건에 걸려 **아직 실행조차 되지 않는다.** 백엔드 담당자가 프로젝트를
-부트스트랩하는 순간부터 아래 내용이 실제로 적용된다.
+**2026-08-25 갱신 — BE가 착수했다.** `backend_develop`에 Spring Boot 3.5.16
+프로젝트 초기화가 머지됐고(PR #61), Flyway V1 스키마 + JPA 엔티티는
+`feat/be-schema`에 올라와 있다(**PR 미생성 상태**).
+
+⚠️ 단 **`develop`의 `backend/`에는 아직 README만 있다** — `backend_develop`이
+`develop`으로 올라오지 않았기 때문이다. 그래서 `develop` 기준으로 CI를 돌리면
+Jenkinsfile의 `Backend` 스테이지가 `expression { fileExists('backend/gradlew') }`
+조건에 걸려 여전히 건너뛰어진다. `backend_develop` → `develop` 통합 시점부터
+아래 내용이 실제로 적용된다.
 
 ### 2.1 CI가 실행하는 순서 (Jenkinsfile 기준)
 

@@ -116,13 +116,13 @@ type-check를 통과시키고 별도 커밋으로 남겼다 (`frontend/docs/WORK
 
 ## 스윕 중 발견한 기존 지뢰 (성능 아님, 후속 필요)
 
-- ⚠️ **`/my/notices/[slug]`·`/my/documents/[slug]`는 서버에서
-  `api.posts.get`을 호출하는데, API 계층 어디에도 쿠키 전달이 없다.**
-  mock에서는 티가 안 나지만 `NEXT_PUBLIC_USE_MOCK=0`이면 백엔드가 익명
-  요청을 받아 401 → 페이지가 깨진다. 목록 페이지들은 같은 이유로 서버
-  prefetch를 안 한다고 주석까지 있는데 상세 페이지가 예외로 남아 있다.
-  수정 방향: `next/headers`의 `cookies()`를 서버 요청에 전달하거나, 목록과
-  같이 클라이언트 fetch로 전환. **mock 전환 전 필수.**
+- ✅ **해소됨 (2026-08-25, `feat/fe-public-read-model`)** — 원래 지적:
+  "`/my/notices/[slug]`·`/my/documents/[slug]`가 서버에서 `api.posts.get`을
+  호출하는데 쿠키 전달이 없어 `mock=0`이면 401로 깨진다."
+  권한 모델 전환이 이 문제를 없앴다: 내부 공지는 **익명 허용**인 `/news/[slug]`로
+  통합됐고(쿠키가 필요 없다), 문서 상세는 클라이언트 컴포넌트로 조회한다.
+  지금 서버에서 API를 호출하는 페이지는 `/news/[slug]` 하나뿐이고 공개
+  데이터다. **더 이상 후속 작업이 아니다.**
 
 ## 측정·검증 결과
 
