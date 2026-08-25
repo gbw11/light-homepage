@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/sermons",
     "/news",
     "/location",
+    "/contact",
   ];
 
   return routes.map((route) => ({

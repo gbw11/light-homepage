@@ -1,3 +1,5 @@
+import { CHURCH_PHONE, CHURCH_PHONE_TEL } from "@/content/contact";
+
 export function Footer() {
   return (
     <footer className="mt-auto border-t border-[var(--color-navy-100)] px-5 py-10 text-sm text-[var(--color-gray-400)]">
@@ -7,7 +9,12 @@ export function Footer() {
       <div className="mt-4 space-y-1">
         <p>주일 14:00 · 드림센터 4층</p>
         <p>경남 김해시 가락로 117</p>
-        <p>055-333-6321</p>
+        {/* 텍스트로만 두면 모바일에서 눌러도 걸리지 않는다 (기기가 알아서 잡아주길 기대할 일이 아니다) */}
+        <p>
+          <a href={`tel:${CHURCH_PHONE_TEL}`} className="hover:underline">
+            {CHURCH_PHONE}
+          </a>
+        </p>
       </div>
 
       {/* 링크 한 줄 — 본문 속 링크가 아니라 개별 타겟이므로 44px를 맞춘다 (NFR-A11Y-05) */}
