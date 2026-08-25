@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
+import { ADDRESS, KAKAO_MAP_URL, NAVER_MAP_URL } from "@/content/location";
 
 export const metadata: Metadata = {
   title: "오시는 길",
@@ -8,9 +9,6 @@ export const metadata: Metadata = {
     "경남 김해시 분성로317번길 31, 드림센터 4층. 카카오맵·네이버지도로 길찾기.",
 };
 
-const ADDRESS = "경남 김해시 분성로317번길 31";
-const KAKAO_MAP_URL = `https://map.kakao.com/link/search/${encodeURIComponent(ADDRESS)}`;
-const NAVER_MAP_URL = `https://map.naver.com/p/search/${encodeURIComponent(ADDRESS)}`;
 
 const linkButtonClass =
   "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-6 text-base font-bold text-[var(--color-ink)] transition hover:brightness-95";

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { NoticeList } from "./_components/NoticeList";
 
 export const metadata: Metadata = {
@@ -39,15 +40,19 @@ export default function NewsPage() {
           >
             공지
           </button>
-          {/* 갤러리 탭은 M3(사진첩)에서 추가 */}
-          <button
-            type="button"
-            disabled
-            className="px-4 py-3 text-sm font-bold text-[var(--color-gray-400)]"
-            title="갤러리 탭은 M3에서 추가됩니다"
+          {/*
+            갤러리는 별도 탭을 만들지 않고 사진첩(`/photos`)으로 보낸다.
+            예전에는 사진첩이 회원 전용이라 비활성 탭으로 두고 "M3에서
+            추가됩니다"를 띄웠는데, 공개 열람 전환(PM 결정 2026-08-25)으로
+            `/photos`가 누구에게나 열렸다. 같은 사진을 두 곳에서 관리할 이유가
+            없으므로 탭 자리를 링크로 쓴다.
+          */}
+          <Link
+            href="/photos"
+            className="inline-flex min-h-11 items-center px-4 py-3 text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-ink)]"
           >
             갤러리
-          </button>
+          </Link>
         </div>
       </section>
 

@@ -129,8 +129,10 @@ export default function Home() {
           <Link href="/news" className="inline-flex min-h-11 items-center">
             ▸ 공지 전체보기
           </Link>
-          {/* 주보 보기: /bulletin 라우트 미구현 (M3 예정). 링크 없이 텍스트만 노출 */}
-          <span className="text-[var(--color-gray-400)]">▸ 주보 보기</span>
+          {/* 공개 열람 전환(PM 결정 2026-08-25)으로 주보가 로그인 없이 열린다 */}
+          <Link href="/bulletin" className="inline-flex min-h-11 items-center">
+            ▸ 주보 보기
+          </Link>
         </div>
       </Section>
 
@@ -219,9 +221,14 @@ export default function Home() {
           ))}
         </div>
 
-        {/* 갤러리 탭 미구현 — 소식 페이지로 연결 */}
-        <Link href="/news" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
-          ▸ 갤러리
+        {/*
+          사진첩으로 보낸다. 예전에는 사진첩이 회원 전용이라 소식 페이지로
+          우회했지만, 공개 열람 전환(PM 결정 2026-08-25)으로 `/photos`가
+          누구에게나 열렸다. 위 3장은 공개용 실사진이고, 눌러서 들어가는 앨범
+          쪽은 얼굴이 식별되는 사진이 있어 색인은 계속 막혀 있다(robots.ts).
+        */}
+        <Link href="/photos" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
+          ▸ 사진첩
         </Link>
       </Section>
 

@@ -1,4 +1,5 @@
 import { CHURCH_PHONE, CHURCH_PHONE_TEL } from "@/content/contact";
+import { CHURCH_SITE_URL, INSTAGRAM_URL, YOUTUBE_CHANNEL_URL } from "@/content/links";
 
 export function Footer() {
   return (
@@ -17,32 +18,41 @@ export function Footer() {
         </p>
       </div>
 
-      {/* 링크 한 줄 — 본문 속 링크가 아니라 개별 타겟이므로 44px를 맞춘다 (NFR-A11Y-05) */}
+      {/*
+        링크 한 줄 — 본문 속 링크가 아니라 개별 타겟이므로 44px를 맞춘다 (NFR-A11Y-05).
+        주소를 모르는 항목은 **아예 그리지 않는다** (`content/links.ts` 주석) —
+        예전에는 `instagram.com`·`gimhae.church`로 보내고 있어서 누른 사람이
+        엉뚱한 곳에 도착했다.
+      */}
       <nav aria-label="관련 링크" className="mt-4 flex flex-wrap gap-x-4">
+        {INSTAGRAM_URL && (
+          <a
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center"
+          >
+            ▸ Instagram
+          </a>
+        )}
         <a
-          href="https://instagram.com"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex min-h-11 items-center"
-        >
-          ▸ Instagram
-        </a>
-        <a
-          href="https://youtube.com"
+          href={YOUTUBE_CHANNEL_URL}
           target="_blank"
           rel="noreferrer"
           className="inline-flex min-h-11 items-center"
         >
           ▸ YouTube
         </a>
-        <a
-          href="https://gimhae.church"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex min-h-11 items-center"
-        >
-          ▸ 김해교회 홈페이지
-        </a>
+        {CHURCH_SITE_URL && (
+          <a
+            href={CHURCH_SITE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center"
+          >
+            ▸ 김해교회 홈페이지
+          </a>
+        )}
       </nav>
 
       <p className="mt-6 border-t border-[var(--color-navy-100)] pt-4">
