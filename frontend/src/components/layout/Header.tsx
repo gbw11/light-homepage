@@ -113,6 +113,20 @@ export function Header() {
           >
             <span aria-hidden>☎</span>
           </Link>
+          {/*
+            로그인/계정 진입점 (PM 결정 2026-08-25 — 열람은 공개, 로그인은
+            업로드 등 권한이 필요한 사람의 관문). 320px에서 상단바가 넘치지
+            않아야 해서(기존 /contact 결정과 같은 제약) 텍스트 대신 44px
+            아이콘 슬롯을 쓴다 — 사람 아이콘은 계정/로그인의 관용 표기다.
+          */}
+          <Link
+            href={user ? "/my" : "/login"}
+            aria-label={user ? `${user.name}님 — 나의 LIGHT` : "로그인"}
+            title={user ? "나의 LIGHT" : "로그인"}
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-xl transition hover:bg-[var(--color-navy-100)]"
+          >
+            <span aria-hidden>👤</span>
+          </Link>
           <button
             ref={toggleRef}
             type="button"
