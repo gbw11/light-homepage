@@ -19,13 +19,14 @@ const MENU_LINKS = [
  * 되면서, 여기가 **유일한 진입 경로**가 됐다. 예전에는 `/my` 홈의 타일이
  * 그 역할을 했지만 지금 `/my`는 로그인한 사람의 개인 화면이다.
  *
- * 회의록(`/documents`)도 넣는다 — 예산안 탭만 임원에게 보이고 회의록 자체는
- * 공개다. 색인은 계속 막혀 있으므로(robots.ts) 검색으로는 여전히 안 나온다.
+ * 공지는 여기 없다 — 위 주요 메뉴의 "소식"(`/news`)이 공지 전체를 담는다
+ * (공지 통합, PM 결정 2026-08-25). 회의록(`/documents`)은 넣는다: 예산안 탭만
+ * 임원에게 보이고 회의록 자체는 공개다.
+ * 색인은 계속 막혀 있으므로(robots.ts) 검색으로는 여전히 안 나온다.
  */
 const RESOURCE_LINKS = [
   { href: "/bulletin", label: "주보" },
   { href: "/photos", label: "사진첩" },
-  { href: "/notices", label: "공지" },
   { href: "/meetings", label: "월례회 자료" },
   { href: "/documents", label: "회의록" },
 ];

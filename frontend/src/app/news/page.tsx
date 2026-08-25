@@ -28,10 +28,17 @@ export const revalidate = 300;
  */
 export default async function NewsPage() {
   const queryClient = new QueryClient();
-  await queryClient.prefetchQuery({
-    queryKey: ["posts", "NOTICE_PUBLIC"],
-    queryFn: () => api.posts.list({ category: "NOTICE_PUBLIC" }),
-  });
+  // 목록이 두 분류를 합쳐 보여주므로 둘 다 미리 채운다 (NoticeList 주석)
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: ["posts", "NOTICE_PUBLIC"],
+      queryFn: () => api.posts.list({ category: "NOTICE_PUBLIC" }),
+    }),
+    queryClient.prefetchQuery({
+      queryKey: ["posts", "NOTICE_MEMBER"],
+      queryFn: () => api.posts.list({ category: "NOTICE_MEMBER" }),
+    }),
+  ]);
 
   return (
     <main id="main" tabIndex={-1}>

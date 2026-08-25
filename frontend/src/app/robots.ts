@@ -9,7 +9,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
  * ⚠️ 공개 열람 전환(PM 결정 2026-08-25) 이후에도 **자료 화면의 색인은 계속
  *    막는다.** "로그인 없이 볼 수 있다"와 "구글 이미지 검색에 얼굴 사진이
  *    뜬다"는 전혀 다른 문제라, PM이 noindex 유지를 택했다. 그래서 자료 경로
- *    (`/photos`·`/bulletin`·`/meetings`·`/notices`·`/documents`)가 공개
+ *    (`/photos`·`/bulletin`·`/meetings`·`/documents`)가 공개
  *    라우트가 된 지금도 목록에 그대로 남아 있다.
  *
  * ⚠️ `/photos`·`/bulletins`는 `public/`에 있는 **mock 개발용 자산** 경로이기도
@@ -34,7 +34,6 @@ export default function robots(): MetadataRoute.Robots {
         "/bulletin",
         "/bulletins",
         "/meetings",
-        "/notices",
         "/documents",
       ],
     },

@@ -34,7 +34,7 @@ function formatDate(iso: string | null): string {
 
 /**
  * 회의록·예산안 목록 — 분류 탭으로 전환한다 (FR-DOC-03/04).
- * 쿼리 키는 `/news`·`/notices`와 같은 `["posts", category]` 규칙을
+ * 쿼리 키는 `/news`와 같은 `["posts", category]` 규칙을
  * 그대로 쓴다 (TanStack Query 캐시 공유).
  *
  * 탭 전환은 URL을 바꾸지 않는다 — 문서 목록은 공유·북마크할 대상이 아니고
