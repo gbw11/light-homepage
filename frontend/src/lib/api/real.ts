@@ -299,6 +299,32 @@ export const realApi: Api = {
     // 서버가 워터마크를 합성해 스트리밍한다 — presigned URL이 아니다 (SPEC_API §7.3)
     pageUrl: (id, pageNo) =>
       `/api/meetings/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}`,
+    create: (input) =>
+      request("/meetings", {
+        method: "POST",
+        /*
+          시도마다 새 FormData — 401 후 리프레시 재시도가 이미 소비된 body를
+          보내지 않게 한다 (`bulletins.create`와 같은 이유).
+        */
+        form: () => {
+          const fd = new FormData();
+          fd.append("title", input.title);
+          fd.append("meetingDate", input.meetingDate);
+          fd.append("viewableFrom", input.viewableFrom);
+          fd.append("viewableUntil", input.viewableUntil);
+          // 파일명이 없으면 서버가 파트를 파일로 인식하지 못하는 구현이 있다
+          fd.append("file", input.file, input.file.name || "meeting.pdf");
+          return fd;
+        },
+      }),
+    updateWindow: (id, input) =>
+      request(`/meetings/${encodeURIComponent(id)}/window`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id) => request(`/meetings/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    views: (id, { page = 0, size = 20 } = {}) =>
+      request(`/meetings/${encodeURIComponent(id)}/views`, { query: { page, size } }),
   },
   admin: {
     members: ({ status, q, page = 0, size = 20 } = {}) =>

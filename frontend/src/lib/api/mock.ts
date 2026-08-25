@@ -9,8 +9,12 @@ import type {
   BulletinSummary,
   CompleteProfileInput,
   Cursor,
+  MeetingCreateInput,
   MeetingDetail,
+  MeetingStatus,
   MeetingSummary,
+  MeetingView,
+  MeetingWindowInput,
   NewcomerRecord,
   Photo,
   Role,
@@ -642,6 +646,69 @@ const MEETINGS: MeetingSummary[] = [
     status: "SCHEDULED",
   },
 ];
+
+/** 업로드·기간수정으로 생기거나 바뀐 월례회. 같은 id면 이쪽이 이긴다 */
+const dynamicMeetings: MeetingSummary[] = [];
+/** 삭제된 월례회 id — 정적 mock 데이터는 지울 수 없으니 가려서 흉내낸다 */
+const removedMeetingIds = new Set<string>();
+
+/**
+ * 열람 기간으로부터 `status`를 계산한다 (SPEC_API §7.1).
+ *
+ * mock 데이터에 `status`가 값으로 박혀 있지만 그대로 쓰지 않는다 — 그러면
+ * **기간을 수정해도 상태가 안 바뀐다.** 종료된 자료의 기간을 늘려 다시 여는
+ * 것(연장)이 §7.5의 핵심 용도인데, 그게 화면에서 확인되지 않으면 기간 수정
+ * 기능을 검증할 수단이 없다. 실제 서버도 기간에서 상태를 파생한다.
+ */
+function meetingStatus(viewableFrom: string, viewableUntil: string): MeetingStatus {
+  const now = Date.now();
+  if (now < new Date(viewableFrom).getTime()) return "SCHEDULED";
+  if (now > new Date(viewableUntil).getTime()) return "CLOSED";
+  return "OPEN";
+}
+
+/**
+ * 열람 종료가 시작보다 뒤인지 (SPEC_API §7.4 · §7.5의 `VALIDATION_ERROR`).
+ * 화면에서도 막지만 서버가 최종 판단이라 mock도 같이 막는다 — 한쪽만 막으면
+ * "화면에서는 되는데 서버에서 거부"가 통합 때 처음 드러난다.
+ */
+function validateMeetingWindow(viewableFrom: string, viewableUntil: string) {
+  if (new Date(viewableUntil).getTime() <= new Date(viewableFrom).getTime()) {
+    throw new ApiError({
+      code: "VALIDATION_ERROR",
+      message: "열람 종료는 시작보다 뒤여야 합니다.",
+      status: 400,
+      field: "viewableUntil",
+    });
+  }
+}
+
+/** 정적 + 동적을 합치고, 삭제된 것을 빼고, 상태를 기간에서 다시 계산한다 */
+function mockMeetings(): MeetingSummary[] {
+  const overridden = new Set(dynamicMeetings.map((m) => m.id));
+  return [...dynamicMeetings, ...MEETINGS.filter((m) => !overridden.has(m.id))]
+    .filter((m) => !removedMeetingIds.has(m.id))
+    .map((m) => ({ ...m, status: meetingStatus(m.viewableFrom, m.viewableUntil) }))
+    .sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
+}
+
+/**
+ * 열람 로그 mock (SPEC_API §7.7).
+ *
+ * 이름을 `김OO`처럼 가린 채로 둔다 — 이 화면은 실명과 마을이 함께 보이는
+ * 자리라서, mock 데이터라도 진짜처럼 생긴 명단을 만들어두면 스크린샷이나
+ * 데모에서 그대로 새어나간다.
+ */
+const MEETING_VIEWS: Record<string, MeetingView[]> = {
+  "3": [
+    { memberName: "김OO", village: "3", lastViewedAt: "2026-08-24T12:03:00Z", maxPageNo: 10 },
+    { memberName: "이OO", village: "1", lastViewedAt: "2026-08-24T12:41:00Z", maxPageNo: 7 },
+    { memberName: "박OO", village: "newcomer", lastViewedAt: "2026-08-25T01:12:00Z", maxPageNo: 2 },
+    { memberName: "최OO", village: "5", lastViewedAt: "2026-08-25T02:30:00Z", maxPageNo: 10 },
+  ],
+  // 아직 아무도 안 본 자료 — 빈 목록도 화면이 처리해야 한다
+  "4": [],
+};
 
 // ── 관리 mock (SPEC_API §8) ────────────────────────────────
 const ADMIN_NEWCOMERS: NewcomerRecord[] = [
@@ -1356,7 +1423,7 @@ export const mockApi: Api = {
       throwIfScenario();
       requireSession();
 
-      const all = scenario() === "empty" ? [] : MEETINGS;
+      const all = scenario() === "empty" ? [] : mockMeetings();
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
     },
 
@@ -1365,7 +1432,7 @@ export const mockApi: Api = {
       throwIfScenario();
       const user = requireSession();
 
-      const m = MEETINGS.find((x) => x.id === id);
+      const m = mockMeetings().find((x) => x.id === id);
       if (!m) {
         throw new ApiError({ code: "NOT_FOUND", message: "자료를 찾을 수 없습니다.", status: 404 });
       }
@@ -1400,6 +1467,110 @@ export const mockApi: Api = {
        * 가짜 이미지를 돌려주면 "워터마크 없이도 잘 보인다"는 착각을 만든다.
        */
       return `/api/meetings/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}`;
+    },
+
+    async create(input: MeetingCreateInput): Promise<{ id: string; pageCount: number }> {
+      throwIfScenario();
+      requireLeader("월례회 자료 업로드 권한이 없습니다.");
+      validateMeetingWindow(input.viewableFrom, input.viewableUntil);
+
+      /*
+        PDF가 맞는지만 본다. **암호화·손상 PDF는 mock이 판별할 수 없다** —
+        그건 서버가 PDFBox로 열어봐야 아는 것이라서, 여기서 통과했다고
+        실제로 변환된다는 뜻이 아니다 (화면에도 그렇게 적는다).
+      */
+      const isPdf =
+        input.file.type === "application/pdf" ||
+        input.file.name.toLowerCase().endsWith(".pdf");
+      if (!isPdf) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "PDF 파일만 올릴 수 있습니다. Word에서 「PDF로 저장」해 주세요.",
+          status: 400,
+          field: "file",
+        });
+      }
+
+      /*
+        ★ 서버는 여기서 PDF를 페이지 이미지로 **동기 변환**하며 10페이지
+          기준 15~30초가 걸린다 (SPEC_API §7.4). mock에는 변환할 것이 없지만
+          그 대기만은 흉내낸다 — 진행 표시가 실제로 버티는지, 사용자가 그
+          사이 이탈하려 할 때 경고가 뜨는지를 확인할 수 있어야 한다.
+          실제 15초를 그대로 기다리면 개발이 불가능해 6초로 압축했다.
+          **화면 문구는 압축값이 아니라 실제 소요(15~30초)를 안내한다.**
+      */
+      await delay(6000);
+
+      // 변환 결과 페이지 수는 서버만 안다. mock은 지어내되 고정값을 쓴다
+      const pageCount = 10;
+      const id = `m-${dynamicMeetings.length + 1}-${Date.now()}`;
+      dynamicMeetings.unshift({
+        id,
+        title: input.title.trim(),
+        meetingDate: input.meetingDate,
+        pageCount,
+        viewableFrom: input.viewableFrom,
+        viewableUntil: input.viewableUntil,
+        status: meetingStatus(input.viewableFrom, input.viewableUntil),
+      });
+      return { id, pageCount };
+    },
+
+    async updateWindow(id: string, input: MeetingWindowInput): Promise<void> {
+      await delay();
+      throwIfScenario();
+      requireLeader("열람 기간 수정 권한이 없습니다.");
+      validateMeetingWindow(input.viewableFrom, input.viewableUntil);
+
+      const existing = mockMeetings().find((m) => m.id === id);
+      if (!existing) {
+        throw new ApiError({ code: "NOT_FOUND", message: "자료를 찾을 수 없습니다.", status: 404 });
+      }
+
+      const next: MeetingSummary = {
+        ...existing,
+        viewableFrom: input.viewableFrom,
+        viewableUntil: input.viewableUntil,
+        status: meetingStatus(input.viewableFrom, input.viewableUntil),
+      };
+      const at = dynamicMeetings.findIndex((m) => m.id === id);
+      if (at >= 0) dynamicMeetings[at] = next;
+      else dynamicMeetings.unshift(next);
+    },
+
+    async remove(id: string): Promise<void> {
+      await delay();
+      throwIfScenario();
+      requireLeader("월례회 자료 삭제 권한이 없습니다.");
+
+      if (!mockMeetings().some((m) => m.id === id)) {
+        throw new ApiError({ code: "NOT_FOUND", message: "자료를 찾을 수 없습니다.", status: 404 });
+      }
+      removedMeetingIds.add(id);
+      const at = dynamicMeetings.findIndex((m) => m.id === id);
+      if (at >= 0) dynamicMeetings.splice(at, 1);
+    },
+
+    async views(
+      id: string,
+      { page = 0, size = 20 }: { page?: number; size?: number } = {},
+    ): Promise<Page<MeetingView> & { totalViewers: number }> {
+      await delay();
+      throwIfScenario();
+      requireLeader("열람 로그 조회 권한이 없습니다.");
+
+      if (!mockMeetings().some((m) => m.id === id)) {
+        throw new ApiError({ code: "NOT_FOUND", message: "자료를 찾을 수 없습니다.", status: 404 });
+      }
+
+      const all = scenario() === "empty" ? [] : (MEETING_VIEWS[id] ?? []);
+      return {
+        items: all.slice(page * size, (page + 1) * size),
+        page,
+        size,
+        hasNext: (page + 1) * size < all.length,
+        totalViewers: all.length,
+      };
     },
   },
   admin: {

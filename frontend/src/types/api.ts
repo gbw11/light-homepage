@@ -234,6 +234,42 @@ export type MeetingDetail = {
   viewReason: MeetingViewReason;
 };
 
+/**
+ * 업로드 요청 (SPEC_API §7.4) — `multipart/form-data`로 나간다.
+ *
+ * 서버가 PDFBox로 페이지 이미지를 만드는 데 **10페이지 기준 15~30초**가
+ * 걸리고 그동안 응답이 오지 않는다. 그 대기를 화면이 설명해야 한다.
+ */
+export type MeetingCreateInput = {
+  title: string;
+  /** LocalDate `2026-08-24` */
+  meetingDate: string;
+  viewableFrom: string;
+  viewableUntil: string;
+  /** Word에서 「PDF로 저장」한 파일. ⚠️ 서버는 이 원본을 보관하지 않는다 */
+  file: File;
+};
+
+/** 열람 기간 수정 (SPEC_API §7.5) — 연장·조기 종료 둘 다 이 요청이다 */
+export type MeetingWindowInput = {
+  viewableFrom: string;
+  viewableUntil: string;
+};
+
+/**
+ * 열람 로그 한 줄 (SPEC_API §7.7).
+ *
+ * ⚠️ 회원 개인정보다. 유출이 생겼을 때 워터마크와 대조하는 근거이지,
+ *    평소에 누가 뭘 보는지 들여다보라고 있는 화면이 아니다.
+ */
+export type MeetingView = {
+  memberName: string;
+  village: Village;
+  lastViewedAt: string;
+  /** 어디까지 봤는지 — 워터마크 대조 시 페이지 범위를 좁혀준다 */
+  maxPageNo: number;
+};
+
 // ── 관리 (SPEC_API §8) ─────────────────────────────────────
 /** 회원 관리 목록 항목 (SPEC_API §8.1) — 권한 `T` */
 export type AdminMember = {
