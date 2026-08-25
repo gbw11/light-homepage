@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import type { Photo } from "@/types/api";
 import { PhotoDeletePanel } from "./PhotoDeletePanel";
 import { PhotoReportForm } from "./PhotoReportForm";
+import { usePinchZoom } from "@/lib/gesture/usePinchZoom";
 
 /** 스와이프로 인정할 최소 가로 이동량(px) */
 const SWIPE_THRESHOLD = 50;
@@ -54,11 +55,10 @@ type LightboxProps = {
  * · 사진 비율이 섞여 있어(4:3 · 16:9 · 세로 1200x1600) `object-contain` +
  *   `max-h`/`max-w`로 어떤 비율이든 잘리지 않고 화면에 들어오게 한다.
  *
- * ⚠️ 핀치 줌: **커스텀 제스처를 구현하지 않았다.** 뷰포트 메타에
- * `user-scalable=no`를 두지 않았으므로 브라우저의 기본 핀치 줌(페이지 확대)이
- * 그대로 동작한다. 사진만 확대되는 전용 줌(더블탭 줌·팬 포함)은 별도 단위로
- * 분리한다 — 반쪽짜리 제스처 핸들러가 기본 동작까지 망치는 쪽이 더 나쁘다.
- * 그래서 터치 핸들러는 손가락이 2개 이상이면 전부 무시한다(핀치 방해 금지).
+ * 핀치 줌·팬·더블탭 확대는 `usePinchZoom`이 맡는다 (FR-PHO-03, 2026-08-25 구현).
+ * 주보 뷰어와 **같은 훅을 쓰므로 두 화면의 제스처가 어긋나지 않는다.**
+ * 확대 중에는 가로 스와이프가 '다음 사진'이 아니라 '이미지 밀기'가 된다 —
+ * 확대해서 왼쪽 끝을 보다가 오른쪽으로 밀면 사진이 넘어가면 안 된다.
  */
 export function Lightbox({
   albumId,
@@ -84,6 +84,7 @@ export function Lightbox({
   const overlayOpen = overlay !== "none";
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const zoom = usePinchZoom();
 
   const hasPrev = index > 0;
   const hasNext = index < photos.length - 1;
@@ -95,14 +96,16 @@ export function Lightbox({
   const goPrev = useCallback(() => {
     if (index === 0) return;
     setOverlay("none");
+    zoom.reset();
     onIndexChange(index - 1);
-  }, [index, onIndexChange]);
+  }, [index, onIndexChange, zoom]);
 
   const goNext = useCallback(() => {
     if (index >= photos.length - 1) return;
     setOverlay("none");
+    zoom.reset();
     onIndexChange(index + 1);
-  }, [index, photos.length, onIndexChange]);
+  }, [index, photos.length, onIndexChange, zoom]);
 
   /** 끝에 가까워지면 다음 페이지를 미리 받아둔다 (그리드 sentinel과 같은 역할) */
   useEffect(() => {
@@ -194,17 +197,31 @@ export function Lightbox({
       tabIndex={-1}
       className="fixed inset-0 z-50 flex flex-col bg-black/95 outline-none"
       onTouchStart={(e) => {
-        // 손가락 2개 이상 = 핀치 → 브라우저 기본 동작에 맡기고 스와이프 판정을 포기한다
-        if (overlayOpen || e.touches.length !== 1) {
+        // 겹침 패널이 열려 있으면 제스처를 전부 패널에 맡긴다
+        if (overlayOpen) {
+          touchStart.current = null;
+          return;
+        }
+        zoom.handlers.onTouchStart(e);
+        // 손가락 2개 이상 = 핀치 → 스와이프 판정을 포기하고 확대에 맡긴다
+        if (e.touches.length !== 1) {
           touchStart.current = null;
           return;
         }
         touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       }}
+      onTouchMove={(e) => {
+        if (overlayOpen) return;
+        zoom.handlers.onTouchMove(e);
+      }}
       onTouchEnd={(e) => {
+        if (overlayOpen) return;
+        zoom.handlers.onTouchEnd(e);
         const start = touchStart.current;
         touchStart.current = null;
         if (!start || e.touches.length > 0) return;
+        // 확대 중에는 가로 이동이 '다음 사진'이 아니라 '이미지 밀기'다
+        if (zoom.isZoomed) return;
 
         const end = e.changedTouches[0];
         const dx = end.clientX - start.x;
@@ -213,6 +230,9 @@ export function Lightbox({
         if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) <= Math.abs(dy)) return;
         if (dx > 0) goPrev();
         else goNext();
+      }}
+      onDoubleClick={() => {
+        if (!overlayOpen) zoom.handlers.onDoubleClick();
       }}
     >
       <div className="flex shrink-0 items-center justify-between p-4">
@@ -287,6 +307,7 @@ export function Lightbox({
           width={photo.width}
           height={photo.height}
           decoding="async"
+          style={zoom.style}
           className="max-h-full max-w-full object-contain"
         />
 
