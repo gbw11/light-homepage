@@ -5,7 +5,7 @@
 # ─────────────────────────────────────────────────────────────
 spring:
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/light}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/light_test}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:local}
 
