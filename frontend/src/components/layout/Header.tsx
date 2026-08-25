@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { CHURCH_PHONE } from "@/content/contact";
+import { INSTAGRAM_URL, YOUTUBE_CHANNEL_URL } from "@/content/links";
 
 const MENU_LINKS = [
   { href: "/about", label: "소개" },
@@ -202,17 +203,20 @@ export function Header() {
             처음 오시는 분
           </Link>
 
+          {/* 주소를 모르는 항목은 그리지 않는다 — `content/links.ts` 주석 참고 */}
           <div className="mt-4 flex gap-4 text-sm text-[var(--color-gray-400)]">
+            {INSTAGRAM_URL && (
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 items-center"
+              >
+                ▸ Instagram
+              </a>
+            )}
             <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-11 items-center"
-            >
-              ▸ Instagram
-            </a>
-            <a
-              href="https://youtube.com"
+              href={YOUTUBE_CHANNEL_URL}
               target="_blank"
               rel="noreferrer"
               className="inline-flex min-h-11 items-center"
