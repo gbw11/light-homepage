@@ -865,6 +865,15 @@ function mockPostSummaries(): PostSummary[] {
   ].filter((p) => !removedPostIds.has(p.id));
 }
 
+/**
+ * 예산안(`BUDGET`)은 공개 열람 전환(PM 결정 2026-08-25)에서 **유일하게 제외된
+ * 분류**다 — 회의록은 공개, 예산안은 임원 이상. 헌금·지출 내역이 담기기 때문.
+ */
+function isLeaderSession(): boolean {
+  const user = readSession();
+  return user?.role === "LEADER" || user?.role === "PASTOR";
+}
+
 /** SPEC_API §3.1 — 작성은 전부 권한 `L`. 서버가 실제로 막지만 mock도 흉내낸다 */
 function requireLeader(message: string): AuthUser {
   const user = requireSession();
@@ -999,6 +1008,15 @@ export const mockApi: Api = {
       await delay();
       throwIfScenario();
 
+      // 예산안만 임원 이상 (위 `isLeaderSession` 주석)
+      if (category === "BUDGET" && !isLeaderSession()) {
+        throw new ApiError({
+          code: "FORBIDDEN",
+          message: "예산안을 열람할 권한이 없습니다.",
+          status: 403,
+        });
+      }
+
       // 빈 목록도 반드시 확인해야 하는 상태다
       const items =
         scenario() === "empty"
@@ -1021,6 +1039,16 @@ export const mockApi: Api = {
       const detail = dynamic ? dynamic.detail : summary ? NOTICE_DETAILS[summary.id] : undefined;
 
       if (!summary || !detail || removedPostIds.has(summary.id)) {
+        throw new ApiError({
+          code: "NOT_FOUND",
+          message: "글을 찾을 수 없습니다.",
+          status: 404,
+        });
+      }
+
+      // 예산안은 임원 이상만. 권한이 없으면 **존재 자체를 숨긴다**(404) —
+      // 403은 "그 문서가 있긴 하다"를 알려주는 셈이다 (SPEC_API §3.3).
+      if (summary.category === "BUDGET" && !isLeaderSession()) {
         throw new ApiError({
           code: "NOT_FOUND",
           message: "글을 찾을 수 없습니다.",

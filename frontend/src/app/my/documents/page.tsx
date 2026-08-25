@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { RequireLeader } from "@/components/auth/RequireLeader";
 import { DocumentBoard } from "./_components/DocumentBoard";
 
 export const metadata: Metadata = {
   title: "문서",
-  description: "LIGHT 청년교회 임원 문서 게시판 — 회의록·예산안.",
+  description: "LIGHT 청년교회 문서 게시판 — 회의록·예산안.",
 };
 
 /**
@@ -30,13 +29,11 @@ export default function MyDocumentsPage() {
       <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pt-16 md:px-10 md:pt-24">
         <h1 className="text-2xl font-bold md:text-3xl">문서</h1>
         <p className="mt-1 text-sm text-[var(--color-gray-400)]">
-          🔒 임원 이상만 열람할 수 있는 문서입니다
+          회의록은 누구나 볼 수 있습니다. 예산안은 임원 이상만 열람할 수 있습니다.
         </p>
       </section>
 
-      <RequireLeader>
-        <DocumentBoard />
-      </RequireLeader>
+      <DocumentBoard />
     </main>
   );
 }

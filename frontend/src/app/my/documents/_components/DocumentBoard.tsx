@@ -5,13 +5,23 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
+import { isLeaderOrAbove } from "@/components/auth/RequireLeader";
+import { useAuth } from "@/components/providers/AuthProvider";
 import type { PostCategory, PostSummary } from "@/types/api";
 
-/** 이 화면이 다루는 분류 — 둘 다 열람 권한이 동일하다 (SPEC_API §3.1) */
+/**
+ * 이 화면이 다루는 분류. **열람 권한이 서로 다르다** (PM 결정 2026-08-25):
+ * 회의록은 공개, 예산안은 임원 이상 — 헌금·지출 내역이 담기기 때문이다.
+ * `leaderOnly`가 그 차이를 표시하고, 탭 노출·조회가 모두 이 값을 따른다.
+ */
 const TABS = [
-  { category: "MINUTES", label: "회의록" },
-  { category: "BUDGET", label: "예산안" },
-] as const satisfies readonly { category: PostCategory; label: string }[];
+  { category: "MINUTES", label: "회의록", leaderOnly: false },
+  { category: "BUDGET", label: "예산안", leaderOnly: true },
+] as const satisfies readonly {
+  category: PostCategory;
+  label: string;
+  leaderOnly: boolean;
+}[];
 
 type DocumentCategory = (typeof TABS)[number]["category"];
 
@@ -32,6 +42,11 @@ function formatDate(iso: string | null): string {
  */
 export function DocumentBoard() {
   const [category, setCategory] = useState<DocumentCategory>("MINUTES");
+  const { user } = useAuth();
+  const isLeader = !!user && isLeaderOrAbove(user.role);
+  // 권한이 없으면 예산안 탭 자체를 렌더하지 않는다 — 눌러봤자 403이고,
+  // 잠긴 탭을 보여주는 건 "여기 뭔가 있다"는 정보만 준다.
+  const tabs = TABS.filter((tab) => !tab.leaderOnly || isLeader);
 
   return (
     <>
@@ -41,7 +56,7 @@ export function DocumentBoard() {
           role="tablist"
           aria-label="문서 분류"
         >
-          {TABS.map((tab) => {
+          {tabs.map((tab) => {
             const active = tab.category === category;
             return (
               <button
