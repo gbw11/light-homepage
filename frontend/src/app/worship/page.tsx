@@ -27,7 +27,7 @@ export default function WorshipPage() {
         </div>
         <Link
           href="/location"
-          className="mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)]"
+          className="mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)]"
         >
           오시는 길
         </Link>

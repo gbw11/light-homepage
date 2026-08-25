@@ -13,7 +13,7 @@ const ACROSTIC = [
 ];
 
 const CTA_PRIMARY =
-  "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95 md:min-h-12 md:px-8 md:text-lg";
+  "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95 md:min-h-12 md:px-8 md:text-lg";
 
 /**
  * 첫 화면 클릭 게이트 (PM 결정: docs/DECISIONS.md "첫 화면 클릭 게이트: 신규/기존 방문자 분기").
@@ -58,7 +58,7 @@ export function LandingGate() {
         <p aria-hidden className="select-none text-lg font-bold leading-tight md:text-2xl">
           {ACROSTIC.map(({ letter, rest }) => (
             <span key={letter} className="block">
-              <span className="text-[var(--color-yellow)]">{letter}</span>
+              <span className="text-[var(--color-accent-on-dark)]">{letter}</span>
               {rest}
             </span>
           ))}

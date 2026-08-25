@@ -47,7 +47,7 @@ const BAR_CLASS: Record<GaugeLevel, string> = {
 const BADGE_CLASS: Record<GaugeLevel, string> = {
   OK: "bg-[var(--color-navy-100)] text-[var(--color-navy-900)]",
   WARNING: "border border-[var(--color-red-500)] text-[var(--color-red-500)]",
-  BLOCKED: "bg-[var(--color-red-500)] text-white",
+  BLOCKED: "bg-[var(--color-red-500)] text-[var(--color-danger-fg)]",
 };
 
 /**
@@ -131,7 +131,7 @@ export function StorageGauge() {
       {level === "BLOCKED" && (
         <p
           role="alert"
-          className="mt-3 rounded-[var(--radius-card)] bg-[var(--color-red-500)] px-4 py-3 text-sm font-bold text-white"
+          className="mt-3 rounded-[var(--radius-card)] bg-[var(--color-red-500)] px-4 py-3 text-sm font-bold text-[var(--color-danger-fg)]"
         >
           ⛔ 저장 공간이 {data.blockThreshold}%를 넘어 사진 업로드가 차단되었습니다.
           기존 사진을 정리한 뒤 다시 시도해 주세요.

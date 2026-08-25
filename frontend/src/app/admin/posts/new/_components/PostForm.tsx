@@ -199,7 +199,7 @@ export function PostForm() {
         <div className="mt-8 flex gap-3">
           <Link
             href="/my"
-            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
           >
             나의 LIGHT로
           </Link>

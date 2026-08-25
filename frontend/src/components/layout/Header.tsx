@@ -94,7 +94,7 @@ export function Header() {
         <div className="flex items-center gap-3">
           <Link
             href="/welcome"
-            className="inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-4 text-sm font-bold text-[var(--color-navy-900)]"
+            className="inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-4 text-sm font-bold text-[var(--color-accent-fg)]"
           >
             처음이신가요
           </Link>
@@ -141,7 +141,7 @@ export function Header() {
           </p>
           <Link
             href="/welcome"
-            className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] font-bold text-[var(--color-navy-900)]"
+            className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] font-bold text-[var(--color-accent-fg)]"
             onClick={() => setIsMenuOpen(false)}
           >
             처음 오시는 분

@@ -258,7 +258,7 @@ export function PhotoGrid({ albumId }: { albumId: string }) {
                           aria-hidden
                           className={`absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold ${
                             selected
-                              ? "bg-[var(--color-yellow)] text-[var(--color-navy-900)]"
+                              ? "bg-[var(--color-yellow)] text-[var(--color-accent-fg)]"
                               : "bg-black/40 text-white/80"
                           }`}
                         >

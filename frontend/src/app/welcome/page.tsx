@@ -109,7 +109,7 @@ export default function WelcomePage() {
       <Section title="미리 알려주시면 맞이하겠습니다">
         <Link
           href="/welcome/register"
-          className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95"
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
         >
           새가족 등록하기
         </Link>

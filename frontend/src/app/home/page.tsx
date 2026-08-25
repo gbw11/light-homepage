@@ -29,7 +29,7 @@ const ACROSTIC = [
 ];
 
 const CTA_PRIMARY =
-  "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-navy-900)] transition hover:brightness-95";
+  "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95";
 const CTA_SECONDARY =
   "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-white/10 px-6 text-base font-bold text-white ring-1 ring-inset ring-white/40 transition hover:bg-white/20";
 
@@ -70,7 +70,7 @@ export default function Home() {
             <p aria-hidden className="select-none text-lg font-bold leading-tight md:text-2xl">
               {ACROSTIC.map(({ letter, rest }) => (
                 <span key={letter} className="block">
-                  <span className="text-[var(--color-yellow)]">{letter}</span>
+                  <span className="text-[var(--color-accent-on-dark)]">{letter}</span>
                   {rest}
                 </span>
               ))}
