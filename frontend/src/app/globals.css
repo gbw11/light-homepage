@@ -168,3 +168,19 @@ body {
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
     "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
 }
+
+/*
+ * 모션 축소 요청 존중 (WCAG 2.3.3 · NFR-A11Y).
+ *
+ * 첫 화면(`/`)에서 `/home`으로 넘어갈 때 LIGHT 워드마크가 화면을 가로질러
+ * 움직인다. 큰 요소가 시야를 가로지르는 움직임은 전정기관 이상이 있는
+ * 사용자에게 어지럼을 일으킬 수 있다 — 운영체제에서 "동작 줄이기"를 켠
+ * 사람에게는 움직임 없이 즉시 바뀌게 한다. 기능은 그대로 동작한다.
+ */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

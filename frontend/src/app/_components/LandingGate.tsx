@@ -1,7 +1,15 @@
 "use client";
 
+import { ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
+
+/**
+ * `/`와 `/home`의 LIGHT 워드마크를 잇는 view transition 이름.
+ * **양쪽이 같은 문자열을 써야만** 브라우저가 둘을 같은 것으로 보고 움직임을
+ * 만든다. 오타 하나로 조용히 아무 일도 안 일어나므로 상수로 둔다.
+ */
+export const LIGHT_WORDMARK = "light-wordmark";
 
 const ACROSTIC = [
   { letter: "L", rest: "ive" },
@@ -61,14 +69,23 @@ export function LandingGate() {
         aria-label="메인 화면으로 들어가기"
         className="absolute inset-0 flex flex-col items-center justify-center gap-8 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-[var(--color-accent-on-dark)] md:gap-10"
       >
-        <p aria-hidden className="select-none text-lg font-bold leading-tight md:text-2xl">
-          {ACROSTIC.map(({ letter, rest }) => (
-            <span key={letter} className="block">
-              <span className="text-[var(--color-accent-on-dark)]">{letter}</span>
-              {rest}
-            </span>
-          ))}
-        </p>
+        {/*
+          `/home`의 Hero에 있는 같은 워드마크와 **같은 이름**으로 묶는다.
+          그러면 `/`에서 `/home`으로 넘어갈 때 브라우저가 두 위치를 잇는
+          움직임을 만들어준다 — 가운데에 있던 글자가 Hero의 왼쪽 자리로
+          미끄러지듯 옮겨간다. 같은 것을 보고 있다는 신호다.
+          이름이 양쪽에서 일치해야만 동작한다 (`LIGHT_WORDMARK`).
+        */}
+        <ViewTransition name={LIGHT_WORDMARK}>
+          <p aria-hidden className="select-none text-lg font-bold leading-tight md:text-2xl">
+            {ACROSTIC.map(({ letter, rest }) => (
+              <span key={letter} className="block">
+                <span className="text-[var(--color-accent-on-dark)]">{letter}</span>
+                {rest}
+              </span>
+            ))}
+          </p>
+        </ViewTransition>
 
         {/*
           클릭 대상이라는 걸 알려주는 유일한 단서다. 화면 전체가 버튼인데
