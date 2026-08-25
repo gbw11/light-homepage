@@ -9,7 +9,7 @@ import { PostForm } from "@/components/post/PostForm";
 /**
  * 수정할 글을 불러와 `PostForm`에 넘긴다 (SPEC_API §3.3 → §3.5).
  *
- * 서버 컴포넌트에서 가져오지 않는 이유는 `/my/documents/[slug]`와 같다 —
+ * 서버 컴포넌트에서 가져오지 않는 이유는 `/documents/[slug]`와 같다 —
  * 회원 전용 데이터를 서버에서 prefetch하면 세션이 없어 실패하고, 성공하면
  * 그 내용이 정적 HTML에 구워진다 (docs/DECISIONS.md 2026-08-24).
  * 수정 화면은 회의록·예산안 본문까지 다루므로 더더욱 그렇다.

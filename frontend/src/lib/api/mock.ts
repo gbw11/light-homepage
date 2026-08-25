@@ -336,7 +336,7 @@ const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "at
             { type: "text", text: "사진은 " },
             {
               type: "text",
-              marks: [{ type: "link", attrs: { href: "/my/photos" } }],
+              marks: [{ type: "link", attrs: { href: "/photos" } }],
               text: "사진첩",
             },
             { type: "text", text: "에서 보실 수 있습니다." },

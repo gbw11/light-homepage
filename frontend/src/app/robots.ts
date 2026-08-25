@@ -3,10 +3,17 @@ import type { MetadataRoute } from "next";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 /**
- * 회원(`/my`)·운영(`/admin`) 영역은 검색엔진 색인을 차단한다 (NFR-SEC-29).
- * `next.config.ts`의 `X-Robots-Tag` 헤더와 이중으로 방어한다.
+ * 색인 차단 대상 (NFR-SEC-29). `next.config.ts`의 `X-Robots-Tag` 헤더와
+ * 이중으로 방어하고, 두 목록은 항상 같이 고쳐야 한다.
  *
- * ⚠️ `/photos`·`/bulletins`는 `public/`에 있는 **mock 개발용 자산**이다.
+ * ⚠️ 공개 열람 전환(PM 결정 2026-08-25) 이후에도 **자료 화면의 색인은 계속
+ *    막는다.** "로그인 없이 볼 수 있다"와 "구글 이미지 검색에 얼굴 사진이
+ *    뜬다"는 전혀 다른 문제라, PM이 noindex 유지를 택했다. 그래서 자료 경로
+ *    (`/photos`·`/bulletin`·`/meetings`·`/notices`·`/documents`)가 공개
+ *    라우트가 된 지금도 목록에 그대로 남아 있다.
+ *
+ * ⚠️ `/photos`·`/bulletins`는 `public/`에 있는 **mock 개발용 자산** 경로이기도
+ *    하다 (라우트와 우연히 겹친다).
  *    회원 사진(실제 인물)이 들어 있는데 `public/`은 인증 없이 서빙되므로
  *    색인만이라도 막는다.
  *
@@ -20,7 +27,16 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/my", "/admin", "/photos", "/bulletins"],
+      disallow: [
+        "/my",
+        "/admin",
+        "/photos",
+        "/bulletin",
+        "/bulletins",
+        "/meetings",
+        "/notices",
+        "/documents",
+      ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

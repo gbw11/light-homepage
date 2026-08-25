@@ -274,7 +274,7 @@ export function MeetingUploadForm() {
             열람 기간 확인·수정
           </Link>
           <Link
-            href="/my/meetings"
+            href="/meetings"
             className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] border border-[var(--color-navy-100)] px-6 text-base font-bold transition hover:bg-[var(--color-navy-100)]"
           >
             자료 목록

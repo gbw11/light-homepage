@@ -20,7 +20,7 @@ export const metadata: Metadata = {
  * 권한은 **`L` 이상**이다 (SPEC_API §8.6) — 회원 관리(`T`)와 다르다.
  *
  * ⚠️ **서버에서 prefetch하지 않는다.** 새가족의 이름·연락처가 초기 HTML에
- * 실려 내려가면 안 된다 (`/my/documents`·`/admin/members`와 같은 판단).
+ * 실려 내려가면 안 된다 (`/documents`·`/admin/members`와 같은 판단).
  * 목록은 로그인한 브라우저에서만 조회한다.
  */
 export default function AdminNewcomersPage() {

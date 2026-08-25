@@ -14,6 +14,22 @@ const MENU_LINKS = [
   { href: "/location", label: "오시는 길" },
 ];
 
+/**
+ * 자료 화면 — 공개 열람 전환(PM 결정 2026-08-25)으로 로그인 없이 볼 수 있게
+ * 되면서, 여기가 **유일한 진입 경로**가 됐다. 예전에는 `/my` 홈의 타일이
+ * 그 역할을 했지만 지금 `/my`는 로그인한 사람의 개인 화면이다.
+ *
+ * 회의록(`/documents`)도 넣는다 — 예산안 탭만 임원에게 보이고 회의록 자체는
+ * 공개다. 색인은 계속 막혀 있으므로(robots.ts) 검색으로는 여전히 안 나온다.
+ */
+const RESOURCE_LINKS = [
+  { href: "/bulletin", label: "주보" },
+  { href: "/photos", label: "사진첩" },
+  { href: "/notices", label: "공지" },
+  { href: "/meetings", label: "월례회 자료" },
+  { href: "/documents", label: "회의록" },
+];
+
 const MENU_ID = "site-menu";
 
 /** WIREFRAME.md 공통 헤더/메뉴 · §11 `/my` 진입점 */
@@ -34,7 +50,7 @@ export function Header() {
    * 메뉴는 화면 전체를 덮는 불투명 패널이다 — 즉 시각적으로는 모달이므로
    * 키보드에도 모달처럼 동작해야 한다 (NFR-A11Y-06 / -09).
    * 포커스 트랩·Escape 규칙은 라이트박스와 같은 패턴을 쓴다
-   * (`app/my/photos/[id]/_components/Lightbox.tsx`) — 같은 동작이 화면마다
+   * (`app/photos/[id]/_components/Lightbox.tsx`) — 같은 동작이 화면마다
    * 다르게 느껴지지 않게 한다.
    */
   useEffect(() => {
@@ -156,6 +172,22 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 className="inline-flex min-h-11 items-center py-2 text-lg font-bold"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          <hr className="my-6 border-[var(--color-navy-100)]" />
+
+          <nav aria-label="자료" className="flex flex-col gap-1">
+            <h2 className="mb-1 text-sm font-bold text-[var(--color-gray-400)]">자료</h2>
+            {RESOURCE_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex min-h-11 items-center py-1 text-base font-bold"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {link.label}

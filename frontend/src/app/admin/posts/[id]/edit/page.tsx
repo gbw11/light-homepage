@@ -5,7 +5,7 @@ import { PostEditLoader } from "./_components/PostEditLoader";
 export const metadata: Metadata = {
   // 관리 화면은 검색 결과에 나올 이유가 없다 (권한이 있어야 열리는 화면).
   // 제목도 정적으로 둔다 — `generateMetadata`에서 글을 조회하면 회의록·예산안
-  // 제목이 권한 판단 전에 서버에서 렌더된다 (`/my/documents/[slug]`와 같은 판단).
+  // 제목이 권한 판단 전에 서버에서 렌더된다 (`/documents/[slug]`와 같은 판단).
   title: "글 수정 | LIGHT",
   robots: { index: false, follow: false },
 };

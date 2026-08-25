@@ -20,7 +20,7 @@ export const metadata: Metadata = {
  *
  * ⚠️ **서버에서 prefetch하지 않는다** — 회원 이름·연락처가 초기 HTML에
  * 실려 내려가면 안 된다. 목록은 로그인한 브라우저에서만 조회한다
- * (`/my/documents`와 같은 판단).
+ * (`/documents`와 같은 판단).
  */
 export default function AdminMembersPage() {
   return (
