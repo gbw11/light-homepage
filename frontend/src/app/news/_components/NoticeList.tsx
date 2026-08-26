@@ -6,6 +6,19 @@ import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import type { PostSummary } from "@/types/api";
 
+/** 목록과 스켈레톤이 같은 구분선·간격을 써야 로딩 후 다시 움직이지 않는다 */
+const NOTICE_LIST = "divide-y divide-[var(--color-navy-100)]";
+
+/**
+ * 스켈레톤에 그릴 줄 수.
+ *
+ * ⚠️ 여기는 **정확히 맞출 수 없는 경우**다 — 공지 수는 서버가 정하고(분류 2개 ×
+ * 기본 20건) 화면은 응답 전까지 알 수 없다. 실제보다 적게 잡으면 늘어나면서,
+ * 많이 잡으면 줄어들면서 움직인다. 6은 "한 화면에 흔히 보이는 공지 수"로,
+ * 아무것도 예약하지 않는 것(한 줄)보다 확실히 낫다는 선이다.
+ */
+const SKELETON_ROWS = 6;
+
 /** 임시저장(`publish: false`) 글은 `publishedAt`이 null이다 (SPEC_API §3.4) */
 function formatDate(iso: string | null): string {
   if (!iso) return "임시저장";
@@ -40,11 +53,7 @@ export function NoticeList() {
   const error = publicQuery.error ?? memberQuery.error;
 
   if (isLoading) {
-    return (
-      <Section className="pt-8">
-        <p className="text-[var(--color-gray-400)]">불러오는 중...</p>
-      </Section>
-    );
+    return <NoticeListSkeleton />;
   }
 
   if (isError) {
@@ -73,7 +82,7 @@ export function NoticeList() {
 
   return (
     <Section className="pt-8">
-      <ul className="divide-y divide-[var(--color-navy-100)]">
+      <ul className={NOTICE_LIST}>
         {items.map((item) => (
           <li key={item.id}>
             <Link
@@ -94,6 +103,23 @@ export function NoticeList() {
                 {formatDate(item.publishedAt)}
               </span>
             </Link>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
+/** 목록이 도착하기 전 자리를 잡아두는 줄들 (`SKELETON_ROWS` 주석 참고) */
+function NoticeListSkeleton() {
+  return (
+    <Section className="pt-8">
+      <ul className={NOTICE_LIST} aria-hidden="true">
+        {Array.from({ length: SKELETON_ROWS }, (_, i) => (
+          // 실제 줄과 같은 `py-4` + 24px 본문 높이
+          <li key={i} className="flex items-center justify-between gap-4 py-4">
+            <span className="h-6 w-1/2 rounded bg-[var(--color-navy-100)]/60" />
+            <span className="h-5 w-10 shrink-0 rounded bg-[var(--color-navy-100)]/40" />
           </li>
         ))}
       </ul>

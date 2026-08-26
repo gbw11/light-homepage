@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { BulletinAdminBar } from "./BulletinAdminBar";
-import { BulletinViewer } from "./BulletinViewer";
+import { BulletinViewer, BulletinViewerSkeleton } from "./BulletinViewer";
 import { PastBulletinList } from "./PastBulletinList";
 
 /** 최신 주보 쿼리 키 */
@@ -37,7 +37,8 @@ export function BulletinScreen() {
   });
 
   if (latestQuery.isLoading) {
-    return <p className="text-[var(--color-gray-400)]">불러오는 중...</p>;
+    // 한 줄 텍스트를 두면 뷰어가 도착할 때 아래가 통째로 밀린다 (CLS 0.278)
+    return <BulletinViewerSkeleton />;
   }
 
   if (latestQuery.isError) {
@@ -83,7 +84,8 @@ export function BulletinScreen() {
             : "주보를 불러오지 못했습니다."}
         </p>
       ) : (
-        <p className="text-[var(--color-gray-400)]">불러오는 중...</p>
+        // 지난 주보를 고른 직후에도 같은 자리를 유지한다
+        <BulletinViewerSkeleton />
       )}
 
       <div className="mt-12">

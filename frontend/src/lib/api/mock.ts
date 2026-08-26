@@ -18,6 +18,7 @@ import type {
   NewcomerRecord,
   Photo,
   Role,
+  Sermon,
   StorageUsage,
   UploadCommitResult,
   UploadIssueInput,
@@ -617,6 +618,40 @@ function bulletinOf(entry: (typeof BULLETIN_DATES)[number]): Bulletin {
  *
  * 상태 3가지가 모두 필요하다 — 화면이 SCHEDULED/OPEN/CLOSED를 다르게 보여야 한다.
  */
+/**
+ * mock 설교 목록 — 8편(12개 페이지 크기보다 적어 `hasNext: false`가 되므로,
+ * "더 보기"를 눌러볼 수 있게 **14편**을 둔다).
+ * 날짜는 주일(일요일) 기준으로 역순.
+ */
+const MOCK_SERMONS: Sermon[] = [
+  "오늘, 다시 시작하는 믿음",
+  "은혜 위에 서다",
+  "함께 걷는 믿음의 길",
+  "소망을 심는 사람",
+  "작은 자를 세우시는 하나님",
+  "다시 사랑으로",
+  "광야에서 배우는 것",
+  "기다림의 훈련",
+  "네 이웃을 네 몸같이",
+  "말씀 앞에 서는 아침",
+  "두려움을 지나서",
+  "함께 지는 짐",
+  "감사의 자리",
+  "빛으로 부르심",
+].map((title, i) => {
+  // 2026-08-17(월)에서 매주 일요일로 거슬러 올라간다
+  const base = new Date("2026-08-16T05:00:00Z");
+  base.setUTCDate(base.getUTCDate() - i * 7);
+  return {
+    id: `mock-sermon-${i + 1}`,
+    title,
+    publishedAt: base.toISOString(),
+    youtubeUrl: "https://www.youtube.com/@light4402",
+    // 실제로 존재하지 않는 영상 id — 썸네일은 뜨지 않는다 (위 주석 참고)
+    thumbnailUrl: `https://i.ytimg.com/vi/mock-sermon-${i + 1}/hqdefault.jpg`,
+  };
+});
+
 const MEETINGS: MeetingSummary[] = [
   {
     id: "3",
@@ -1733,6 +1768,25 @@ export const mockApi: Api = {
 
       const all = scenario() === "empty" ? [] : ADMIN_NEWCOMERS;
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
+    },
+  },
+  sermons: {
+    /**
+     * mock 설교 목록. 화면에 있던 더미 배열을 여기로 옮겼다 — 화면이 자기
+     * 데이터를 들고 있으면 API가 붙는 날 화면도 같이 고쳐야 한다.
+     *
+     * ⚠️ `thumbnailUrl`은 **실제 YouTube CDN 주소가 아니다.** 존재하지 않는
+     * 영상 id로 만든 주소라 이미지가 뜨지 않는다 — 화면이 썸네일 로드 실패를
+     * 처리해야 한다는 뜻이고, 그게 의도다. 가짜 이미지를 넣으면 실서비스에서
+     * 깨질 자리를 mock이 가려준다.
+     */
+    async list({ page = 0, size = 12 } = {}): Promise<Page<Sermon>> {
+      await delay();
+      throwIfScenario();
+
+      const all: Sermon[] = scenario() === "empty" ? [] : MOCK_SERMONS;
+      const items = all.slice(page * size, (page + 1) * size);
+      return { items, page, size, hasNext: (page + 1) * size < all.length };
     },
   },
   bulletins: {
