@@ -56,8 +56,11 @@ Jenkins 관리 → Credentials → System → Global
 | ID | 종류 | 용도 |
 |---|---|---|
 | `github-pat` | **Username with password** | 저장소 clone + 커밋 상태 보고 (Username: GitHub 아이디, Password: PAT) |
-| `render-deploy-hook` | Secret text | Render 배포 트리거 URL |
 | `db-test-password` | Secret text | 테스트용 Postgres 비밀번호 |
+
+⚠️ ~~`render-deploy-hook`~~은 **여기에 등록하지 않습니다** (2026-08-26).
+Jenkins는 배포를 하지 않고, 훅은 GitHub 저장소 시크릿 `RENDER_DEPLOY_HOOK`에
+있습니다 (`docs/CICD.md` §5.2 · `infra/render/README.md` §1⑤).
 
 ⚠️ **시크릿을 `Jenkinsfile`이나 이 저장소에 하드코딩하지 않습니다.** `credentials()`로만 참조합니다.
 
@@ -163,6 +166,6 @@ head가 될 수 있으므로, 이 설정이 다시 켜지지 않도록 유지해
 |---|---|
 | Jenkins | 로컬 Docker, `http://localhost:8090` |
 | NodeJS 툴 | `node20`, `node22` 둘 다 등록 |
-| Credentials | `github-pat` ✅, `db-test-password` ✅, `render-deploy-hook` ⏳ 미등록 (Render 배포 설정 시 등록 필요) |
+| Credentials | `github-pat` ✅, `db-test-password` ✅ (`render-deploy-hook`은 2026-08-26에 **불필요해짐** — 배포가 Actions로 이관) |
 | Multibranch Pipeline | `light-homepage` 생성 완료, 전 브랜치 CI green |
-| 미해결 | Render Deploy Hook 발급 전까지 CD(배포) 단계는 동작하지 않음 (`docs/CICD.md` §5.2) |
+| CD(배포) | **Jenkins가 하지 않습니다** — 2026-08-26에 GitHub Actions로 이관 (`docs/CICD.md` §3.2). Jenkins는 CI 검증 전용 |

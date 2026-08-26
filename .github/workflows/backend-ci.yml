@@ -7,9 +7,11 @@ on:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
   push:
-    branches: [develop, main, backend_develop, server_develop]
+    # feat/* 에서도 돌려야 머지 전에 결과를 알 수 있다 (docs/CICD.md §1.1)
+    branches: [develop, main, backend_develop, server_develop, 'feat/**']
     paths:
       - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
 
 jobs:
   build:
@@ -17,6 +19,12 @@ jobs:
     defaults:
       run:
         working-directory: backend
+
+    # deploy 잡이 "검증을 실제로 했는지" 알아야 한다.
+    # guard가 건너뛴 빌드는 초록불이지만 아무것도 검증하지 않은 것이므로,
+    # 그 상태로 배포하면 테스트 게이트가 없는 배포가 된다.
+    outputs:
+      skipped: ${{ steps.guard.outputs.skip }}
 
     services:
       postgres:
@@ -34,32 +42,86 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      # backend/는 아직 Gradle 프로젝트가 없다 (W0 초기화 전).
+      # 워크플로 파일만 바뀐 커밋에서 빨간 X가 뜨면 머지 게이트가 무의미해지므로
+      # 프로젝트가 생기기 전까지는 건너뛴다. (docs/CICD.md §4)
+      - name: Check if Gradle project exists
+        id: guard
+        working-directory: .
+        run: |
+          if [ -f backend/gradlew ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::backend/gradlew 없음 → 백엔드 검증 건너뜀 (프로젝트 초기화 전)"
+          fi
+
+      - uses: actions/setup-java@v5
+        if: steps.guard.outputs.skip != 'true'
         with:
           java-version: '21'
           distribution: temurin
           cache: gradle
 
       - name: Grant execute permission for gradlew
+        if: steps.guard.outputs.skip != 'true'
         run: chmod +x ./gradlew
 
       # ★ 인가 테스트 매트릭스가 여기서 돌아야 한다.
       #   권한 회귀를 사람의 기억으로 막을 수는 없다.
       - name: Build & Test
+        if: steps.guard.outputs.skip != 'true'
         run: ./gradlew build
         env:
           SPRING_PROFILES_ACTIVE: test
           DATABASE_URL: jdbc:postgresql://localhost:5432/light_test
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
-          # 테스트 전용 더밍 시킬릿 (운원 값 아님) — allowlist-secret
+          # 테스트 전용 더미 시크릿 (운영 값 아님) — allowlist-secret
           JWT_SECRET: ci-test-secret-key-at-least-256-bits-long-for-hmac-sha256!!  # allowlist-secret
 
       - name: Upload test report on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
+        if: failure() && steps.guard.outputs.skip != 'true'
+        uses: actions/upload-artifact@v5
         with:
           name: test-report
           path: backend/build/reports/tests/
+
+  # ─────────────────────────────────────────────────────────────
+  #  CD — develop에 머지되면 Render로 배포한다
+  #
+  #  ⚠️ 왜 Jenkins가 아니라 여기인가 (PM 결정 2026-08-26)
+  #     Jenkins는 PM 로컬 PC에 있어서 PC가 꺼져 있으면 배포가 일어나지 않는다.
+  #     "머지하면 올라간다"가 사람의 PC 상태에 달리면 그건 자동 배포가 아니다.
+  #     Jenkins는 CI 검증·파이프라인 학습 역할로 남는다 (docs/CICD.md §3.2).
+  #
+  #  ⚠️ 왜 main이 아니라 develop인가 (PM 결정 2026-08-26)
+  #     아직 공개 사용자가 없고 BE가 막 개발을 시작했다. BE의 평소 흐름
+  #     (feat/be-* → backend_develop → develop)에서 바로 서버에 반영되는 편이
+  #     확인 주기가 짧다. 공개 시점에 main으로 옮긴다 (docs/CICD.md §5.1).
+  #     ⚠️ Render Free 750시간/월은 **서비스 하나를 24시간** 돌리는 양이다.
+  #        스테이징을 따로 두면 무료 한도를 넘는다 — 그래서 배포 대상은 하나뿐이다.
+  # ─────────────────────────────────────────────────────────────
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    # push일 때만 (PR에서는 배포하지 않는다) + develop + 검증을 실제로 한 빌드
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/develop' &&
+      needs.build.outputs.skipped != 'true'
+    steps:
+      - name: Trigger Render deploy
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK 시크릿이 없습니다."
+            echo "::error::저장소 Settings → Secrets and variables → Actions 에 등록하세요 (infra/render/README.md §2)."
+            exit 1
+          fi
+          # -f: HTTP 4xx/5xx면 실패로 처리한다. 안 붙이면 훅이 죽어도 초록불이 뜬다.
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "::notice::Render 배포를 트리거했습니다. 진행 상황은 Render 대시보드에서 확인하세요."
