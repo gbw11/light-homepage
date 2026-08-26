@@ -13,6 +13,58 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-08-26 — 백엔드 자동 배포: `develop` 머지 → GitHub Actions → Render
+
+**결정**: 백엔드 담당자가 **push하고 머지만 하면 서버에 자동으로 올라가도록** 한다.
+배포 트리거는 **`develop` 브랜치**, 트리거 주체는 **GitHub Actions**다.
+
+- **영역**: 인프라(`server_develop`) + CI/CD. 백엔드 코드 변경 없음
+- **왜 `main`이 아니라 `develop`인가**: 아직 공개 사용자가 없고 BE가 막 개발을
+  시작했다. BE의 평소 흐름(`feat/be-*` → `backend_develop` → `develop`)에서 바로
+  반영되는 편이 확인 주기가 짧다. `main`이면 배포할 때마다 `develop → main` PR을
+  하나 더 머지해야 하는데 지금 단계에서 그 의식은 값을 하지 못한다.
+  **`main`은 "공개된 것"이라는 의미를 유지하고, 공개 시점에 배포 대상을 옮긴다.**
+- **왜 Jenkins가 아니라 Actions인가**: ⚠️ **Jenkins는 PM 로컬 PC에 있다.**
+  PC가 꺼져 있으면 머지해도 배포가 일어나지 않고 나중에 PC를 켜야 반영된다.
+  **자동 배포가 사람의 PC 상태에 달려 있으면 그건 자동이 아니다.**
+  Jenkins는 CI 검증·파이프라인 학습 역할을 그대로 유지한다(변경 경로 감지·
+  시크릿 스캔·병렬 검증은 Actions에 없다). Jenkins를 상시 가동 서버로 옮기면
+  CD를 되가져올 수 있다
+- **폐기되는 기존 설계**: `CICD.md §3.2`의 "Jenkins = CD" 역할 분담과
+  `Jenkinsfile`의 `Deploy` 스테이지. **두 곳에서 트리거하면 같은 커밋이 두 번
+  배포되므로** Jenkinsfile에서는 제거했다
+- **스테이징을 두지 않는다**: Render Free 750시간/월은 **서비스 하나를 24시간**
+  돌리는 양이다. 두 개면 1500시간이라 한도를 넘어 과금된다 — 배포 대상은 하나뿐이다
+- **미확정 사항**: 없음
+- **구현**: `backend/Dockerfile`(신규) · `.github/workflows/backend-ci.yml`의
+  `deploy` 잡 · `Jenkinsfile`(Deploy 제거) · `infra/render/README.md`(PM 설정 절차)
+
+> **PM이 손으로 해야 남는 것**: Neon DB 생성 → Render 서비스 생성 → 환경변수 5개 →
+> **Auto-Deploy Off** → Deploy Hook을 GitHub 시크릿 `RENDER_DEPLOY_HOOK`으로 등록.
+> 절차는 `infra/render/README.md §1`에 순서대로 있다.
+
+---
+
+## 2026-08-26 — 배포 환경변수는 지금 5개만 넣는다 (17개 아님)
+
+**결정**: Render에 **`SPRING_PROFILES_ACTIVE`·`DATABASE_URL`·`DB_USERNAME`·
+`DB_PASSWORD`·`JWT_SECRET` 5개만** 등록한다. Kakao·R2·Mail 관련 12개는 **넣지 않는다.**
+
+- **영역**: 인프라 · 운영
+- **근거**: `application.yml`의 `${...}` 참조를 전수 확인한 결과 코드가 실제로
+  읽는 것은 위 5개뿐이다(`JWT_ACCESS_TTL`·`JWT_REFRESH_TTL`은 기본값이 있다).
+  `ARCHITECTURE.md §9`의 17개 목록은 **최종 형태**를 적어둔 것이지 지금 필요한
+  값이 아니다
+- **왜 미리 넣지 않나**: Kakao 로그인·R2 업로드·메일 발송은 아직 코드가 없다
+  (M2~M4). 미리 넣으면 **쓰지도 않는 서비스의 계정을 먼저 만들고 시크릿을
+  관리하게 된다** — 유출 위험만 앞당기고 얻는 것이 없다
+- **적용 방법**: 각 기능을 구현하는 PR에서 그때 변수를 추가하고,
+  `infra/render/README.md §1③` 목록에도 한 줄 더한다
+- **미확정 사항**: 없음
+- **구현**: `infra/render/README.md` · `docs/BACKEND_DEPLOY.md §4`
+
+---
+
 ## 2026-08-26 — ✅ 운영진 고지 완료: "캡처는 완전히 막을 수 없다"
 
 **결정**: PM이 **운영진(전도사님·임원)에게 "화면 캡처는 기술적으로 완전히 막을 수
