@@ -288,28 +288,58 @@ RLS를 잃었으므로 **이 테스트가 마지막 방어선**입니다. 이것
 void 인가_매트릭스(String method, String path, Role role, int expectedStatus) { ... }
 ```
 
+> ### ⚠️ 2026-08-26 갱신 — 이 표는 권한 모델 전환 이전 값이었습니다
+> 옛 표(열람 대부분 `401`)대로 테스트를 작성하면 **공개돼야 할 열람이 전부 잠긴 채로
+> "통과"합니다.** 아래가 새 기준이고, `SPEC_API §10`과 같은 표입니다.
+
 | 엔드포인트 | GUEST | PENDING | MEMBER | LEADER | PASTOR |
 |---|---|---|---|---|---|
 | `GET /api/posts?category=NOTICE_PUBLIC` | 200 | 200 | 200 | 200 | 200 |
-| `GET /api/posts?category=NOTICE_MEMBER` | 401 | 403 | 200 | 200 | 200 |
-| `GET /api/posts?category=MINUTES` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/posts?category=BUDGET` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/posts/{예산안id}` | 401 | 403 | **404** | 200 | 200 |
+| `GET /api/posts?category=NOTICE_MEMBER` | **200** | **200** | 200 | 200 | 200 |
+| `GET /api/posts?category=MINUTES` | **200** | **200** | **200** | 200 | 200 |
+| `GET /api/posts?category=BUDGET` | 403 | 403 | **403** | 200 | 200 |
+| `GET /api/posts/{회의록id}` | **200** | **200** | **200** | 200 | 200 |
+| `GET /api/posts/{예산안id}` | **404** | **404** | **404** | 200 | 200 |
 | `POST /api/posts` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/bulletins/latest` | 401 | 403 | 200 | 200 | 200 |
+| `GET /api/files/{공개글첨부id}` | **200** | **200** | 200 | 200 | 200 |
+| `GET /api/files/{예산안첨부id}` | **404** | **404** | **404** | 200 | 200 |
+| `GET /api/bulletins/latest` | **200** | **200** | 200 | 200 | 200 |
 | `POST /api/bulletins` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/albums` | 401 | 403 | 200 | 200 | 200 |
+| `GET /api/albums` | **200** | **200** | 200 | 200 | 200 |
+| `GET /api/albums/{id}/photos` | **200** | **200** | 200 | 200 | 200 |
 | `POST /api/uploads:issue` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/photos/{id}/download` | 401 | 403 | 200 | 200 | 200 |
-| `GET /api/meetings/{id}/pages/{n}` (기간 내) | 401 | 403 | 200 | 200 | 200 |
-| `GET /api/meetings/{id}/pages/{n}` (**기간 외**) | 401 | 403 | **403** | 200 | 200 |
+| `GET /api/photos/{id}/download` | **200** | **200** | 200 | 200 | 200 |
+| `POST /api/photos/{id}/report` | **200** | **200** | 200 | 200 | 200 |
+| `DELETE /api/photos/{id}` | 401 | 403 | **403** | 200 | 200 |
+| `GET /api/meetings` | **200** | **200** | 200 | 200 | 200 |
+| `GET /api/meetings/{id}/pages/{n}` (기간 내) | **200** | **200** | 200 | 200 | 200 |
+| `GET /api/meetings/{id}/pages/{n}` (**기간 외**) | **403** | **403** | **403** | 200 | 200 |
 | `POST /api/meetings` | 401 | 403 | **403** | 200 | 200 |
+| `GET /api/meetings/{id}/views` | 401 | 403 | **403** | 200 | 200 |
+| `GET /api/admin/storage` | 401 | 403 | **403** | 200 | 200 |
+| `GET /api/admin/newcomers` | 401 | 403 | **403** | 200 | 200 |
 | `GET /api/admin/members` | 401 | 403 | 403 | **403** | 200 |
 | `POST /api/admin/members/{id}/approve` | 401 | 403 | 403 | **403** | 200 |
+| `PATCH /api/admin/members/{id}/role` | 401 | 403 | 403 | **403** | 200 |
 | `POST /api/newcomers` | 200 | 200 | 200 | 200 | 200 |
+| `GET /api/sermons` | 200 | 200 | 200 | 200 | 200 |
 
 **굵게 표시된 칸이 실제 사고가 나는 지점입니다.**
 **엔드포인트를 추가하면 이 표에 행을 추가하세요. 표에 없는 보호 엔드포인트는 미완성으로 봅니다.**
+
+### 이 표에서 틀리기 쉬운 4가지
+
+1. **`PENDING`이 `GUEST`보다 권한이 낮으면 안 됩니다.** 전환 전에는 `PENDING`이 열람
+   전부 `403`이었습니다. 그대로 두면 **가입한 사람이 가입 안 한 사람보다 못 보게 됩니다.**
+   공개 열람 행은 `PENDING`도 `200`입니다
+2. **`403`과 `404`를 섞지 마세요.** 예산안 **상세·첨부**는 `404`(존재를 숨김),
+   예산안 **목록**은 `403`(분류의 존재는 이미 공개된 정보)입니다
+3. **쓰기의 `GUEST`는 `401`, `PENDING`·`MEMBER`는 `403`입니다.** 익명은 "로그인하면
+   될 수도 있다", 로그인한 일반 회원은 "로그인해도 안 된다" — FE가 이 둘을 다르게
+   처리합니다(로그인 화면 vs 접근 불가 안내). **여기서 `401`과 `403`을 바꿔 쓰면
+   회원이 로그인 화면으로 튕깁니다**
+4. **월례회 기간 외 `403`은 로그인 여부와 무관합니다.** `LEADER`↑만 통과하고,
+   그 우회는 **세션이 있을 때만** 적용됩니다 — 익명은 `OPEN`인 자료만 볼 수 있습니다
 
 ---
 
@@ -432,6 +462,11 @@ FE가 Next.js `rewrites`로 `/api/**`를 프록시해 **동일 출처**로 만�
 
 ### 9.3 엔드포인트 전체 목록
 
+> ### ⚠️ 2026-08-25 권한 모델 전환 반영본 (2026-08-26 갱신)
+> **열람은 로그인 없이 가능**하고, 로그인은 **올리거나 관리하는 사람의 관문**입니다.
+> 아래 표의 `GUEST`는 전부 이 전환의 결과입니다. 근거: `handoff/2026-08-25-public-read-model.md`
+> · 테스트 기준은 `SPEC_API §10` 인가 매트릭스 (**그 표가 최종 기준입니다**).
+
 **인증**
 | Method | Path | 권한 |
 |---|---|---|
@@ -449,30 +484,31 @@ FE가 Next.js `rewrites`로 `/api/**`를 프록시해 **동일 출처**로 만�
 **게시물**
 | Method | Path | 권한 |
 |---|---|---|
-| GET | `/api/posts?category=&page=&size=` | 분류별 |
-| GET | `/api/posts/{id}` | 분류별 |
+| GET | `/api/posts?category=&page=&size=` | **분류별** — 공지·회의록 `GUEST` / **예산안만 LEADER** |
+| GET | `/api/posts/{id}` | **분류별** — 예산안은 권한 없으면 **404**(존재를 숨김) |
 | POST / PUT / DELETE | `/api/posts` `/api/posts/{id}` | LEADER |
 
 **주보 · 사진**
 | Method | Path | 권한 |
 |---|---|---|
-| GET | `/api/bulletins?page=` · `/api/bulletins/latest` | MEMBER |
+| GET | `/api/bulletins?page=` · `/api/bulletins/latest` | **GUEST** |
 | POST / DELETE | `/api/bulletins` `/api/bulletins/{id}` | LEADER |
-| GET | `/api/albums?page=` | MEMBER |
+| GET | `/api/albums?page=` | **GUEST** |
 | POST / DELETE | `/api/albums` `/api/albums/{id}` | LEADER |
-| GET | `/api/albums/{id}/photos?cursor=&size=` | MEMBER |
+| GET | `/api/albums/{id}/photos?cursor=&size=` | **GUEST** |
 | POST | `/api/uploads:issue` · `/api/uploads:commit` | LEADER |
 | DELETE | `/api/photos/{id}` | LEADER |
-| GET | `/api/photos/{id}/download` | MEMBER |
-| GET | `/api/albums/{id}/download?ids=` (ZIP, **최대 30장**) | MEMBER |
-| GET | `/api/files/{attachmentId}` | 게시물 권한 상속 |
+| GET | `/api/photos/{id}/download` | **GUEST** |
+| POST | `/api/photos/{id}/report` | **GUEST** — 익명 신고 허용 |
+| ~~GET~~ | ~~`/api/albums/{id}/download?ids=` (ZIP)~~ | ❌ **폐기 — 만들지 마세요** |
+| GET | `/api/files/{attachmentId}` | 게시물 권한 상속 → **예산안 첨부만 LEADER**(없으면 404) |
 
 **월례회**
 | Method | Path | 권한 |
 |---|---|---|
-| GET | `/api/meetings` | MEMBER |
-| GET | `/api/meetings/{id}` | MEMBER (기간 외 403) |
-| GET | `/api/meetings/{id}/pages/{no}` | MEMBER (기간 외 403) |
+| GET | `/api/meetings` | **GUEST** |
+| GET | `/api/meetings/{id}` | **GUEST** (기간 외 403) |
+| GET | `/api/meetings/{id}/pages/{no}` | **GUEST** (기간 외 403 · 워터마크는 세션 유무로 두 갈래) |
 | POST | `/api/meetings` (multipart PDF) | LEADER |
 | PATCH | `/api/meetings/{id}/window` | LEADER |
 | DELETE | `/api/meetings/{id}` | LEADER |
@@ -487,6 +523,14 @@ FE가 Next.js `rewrites`로 `/api/**`를 프록시해 **동일 출처**로 만�
 | GET | `/api/admin/storage` | LEADER |
 | GET | `/api/admin/newcomers` | LEADER |
 | POST | `/api/newcomers` | GUEST |
+| GET | `/api/sermons?page=&size=` | **GUEST** — 🙏 신규(YouTube 프록시, `SPEC_API §9.2`) |
+
+> ⚠️ **`L`(임원)의 월례회 기간 무관 열람은 로그인 세션이 있을 때만입니다.**
+> 익명 요청에는 적용되지 않습니다 — 익명은 `status === "OPEN"`인 자료만 볼 수 있습니다.
+>
+> ⚠️ **`PENDING`이 `GUEST`보다 권한이 낮아지면 안 됩니다.** 전환 전 매트릭스는 `P`를
+> 열람 전부 `403`으로 두고 있었는데, 그대로 두면 **가입한 사람이 가입 안 한 사람보다
+> 못 보게 됩니다.**
 
 ---
 
