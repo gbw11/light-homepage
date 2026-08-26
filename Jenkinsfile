@@ -210,27 +210,19 @@ pipeline {
     }
 
     // ────────────────────────────────────────────────
-    // CD — main 브랜치이고 모든 검증을 통과했을 때만
-    // ⚠️ Render의 Auto-Deploy는 반드시 꺼둘 것 (docs/CICD.md §5.2)
-    //    켜져 있으면 테스트를 기다리지 않고 push 즉시 배포된다.
+    // ⚠️ CD(배포)는 여기에 없다 — 2026-08-26에 GitHub Actions로 옮겼다.
+    //
+    // Jenkins는 PM 로컬 PC에 있다. PC가 꺼져 있으면 배포가 일어나지 않으므로
+    // "머지하면 서버에 올라간다"가 성립하지 않는다. 자동 배포가 사람의 PC
+    // 상태에 달려 있으면 그건 자동이 아니다.
+    //
+    // 지금 배포는 `.github/workflows/backend-ci.yml`의 `deploy` 잡이 한다
+    // (develop push + 검증 통과 시 Render Deploy Hook 호출).
+    // 두 곳에서 트리거하면 같은 커밋이 두 번 배포되므로 여기서는 하지 않는다.
+    //
+    // 근거: docs/CICD.md §3.2 · §5 · docs/DECISIONS.md 2026-08-26
+    // Jenkins가 상시 가동 서버(Oracle Cloud)로 이전하면 다시 가져올 수 있다.
     // ────────────────────────────────────────────────
-    stage('Deploy') {
-      when { branch 'main' }
-      steps {
-        script {
-          if (env.BE_CHANGED == 'true') {
-            withCredentials([string(credentialsId: 'render-deploy-hook', variable: 'HOOK')]) {
-              sh 'curl -fsS -X POST "$HOOK" > /dev/null'
-            }
-            echo '백엔드 배포 트리거 (Render)'
-          } else {
-            echo '백엔드 변경 없음 → 배포 생략'
-          }
-          // 프론트엔드는 Vercel의 GitHub 연동이 자동 배포한다 (Jenkins 개입 불필요)
-          echo '프론트엔드는 Vercel이 자동 배포합니다'
-        }
-      }
-    }
   }
 
   // ────────────────────────────────────────────────
