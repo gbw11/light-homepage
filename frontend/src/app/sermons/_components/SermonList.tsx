@@ -10,6 +10,12 @@ import type { Sermon } from "@/types/api";
 /** 한 번에 12편 — 3열 그리드에서 4줄로 떨어진다 */
 const PAGE_SIZE = 12;
 
+/**
+ * 목록과 로딩 스켈레톤이 **같은 격자**를 써야 한다 —
+ * 다르면 로딩이 끝나는 순간 레이아웃이 다시 움직인다.
+ */
+const SERMON_GRID = "grid gap-6 md:grid-cols-3";
+
 /** `2026-08-16T05:00:00Z` → `2026. 8. 16.` */
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -71,11 +77,7 @@ export function SermonList() {
     });
 
   if (isLoading) {
-    return (
-      <Section className="pt-0">
-        <p className="text-[var(--color-gray-400)]">불러오는 중...</p>
-      </Section>
-    );
+    return <SermonListSkeleton />;
   }
 
   if (isError) {
@@ -100,7 +102,7 @@ export function SermonList() {
 
   return (
     <Section className="pt-0">
-      <ul className="grid gap-6 md:grid-cols-3">
+      <ul className={SERMON_GRID}>
         {sermons.map((sermon) => (
           <li key={sermon.id}>
             <a
@@ -130,6 +132,36 @@ export function SermonList() {
           </Button>
         </div>
       )}
+    </Section>
+  );
+}
+
+/**
+ * 목록이 도착하기 전 자리를 잡아두는 카드들.
+ *
+ * ⚠️ 이 화면은 **CLS 0.537로 사이트에서 가장 심했다.** 설교 목록을 하드코딩에서
+ * API 조회로 바꾸면서(PR #70) 로딩 표시가 "불러오는 중..." 한 줄로 남았는데,
+ * 그 한 줄이 카드 12개로 바뀌는 순간 아래가 통째로 밀려났다.
+ * 카드 수가 많아 밀리는 거리도 그만큼 컸다.
+ *
+ * `PAGE_SIZE`만큼 그린다 — 첫 응답이 정확히 그 수만큼 오므로(마지막 페이지가
+ * 아니라면) 예약과 실제가 어긋나지 않는다.
+ */
+function SermonListSkeleton() {
+  return (
+    <Section className="pt-0">
+      <ul className={SERMON_GRID} aria-hidden="true">
+        {Array.from({ length: PAGE_SIZE }, (_, i) => (
+          <li key={i}>
+            {/* 썸네일과 같은 16:9 */}
+            <div className="aspect-video rounded-[var(--radius-card)] bg-[var(--color-navy-100)]/50" />
+            {/* 제목 — 기본 크기(줄높이 24px), 실제는 `mt-3` */}
+            <div className="mt-3 h-6 w-5/6 rounded bg-[var(--color-navy-100)]/60" />
+            {/* 날짜 — `text-sm`(줄높이 20px), 실제는 `mt-1` */}
+            <div className="mt-1 h-5 w-1/3 rounded bg-[var(--color-navy-100)]/40" />
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }

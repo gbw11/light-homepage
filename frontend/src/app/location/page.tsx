@@ -52,7 +52,8 @@ export default function LocationPage() {
 
         <p className="mt-6 text-base font-bold">{ADDRESS}</p>
 
-        <div className="mt-4 rounded-[var(--radius-card)] bg-[var(--color-red-500)]/10 p-4 text-[var(--color-red-500)]">
+        {/* 대비 근거는 `welcome/page.tsx`의 같은 블록 주석 참고 */}
+        <div className="mt-4 rounded-[var(--radius-card)] border border-[var(--color-red-500)] bg-[var(--color-red-500)]/10 p-4 font-bold">
           ⚠️ 청년예배는 <strong>드림센터 4층</strong>입니다.
         </div>
 
