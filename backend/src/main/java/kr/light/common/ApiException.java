@@ -56,6 +56,11 @@ public class ApiException extends RuntimeException {
         return new ApiException(ErrorCode.STORAGE_LIMIT, message, null);
     }
 
+    /** 동일 IP의 과도한 제출 (SPEC_API.md §9.1) */
+    public static ApiException rateLimited() {
+        return new ApiException(ErrorCode.RATE_LIMITED, ErrorCode.RATE_LIMITED.defaultMessage(), null);
+    }
+
     public static ApiException duplicate(String field, String message) {
         return new ApiException(ErrorCode.DUPLICATE, message, field);
     }

@@ -76,6 +76,18 @@ public class SecurityConfig {
             "/api/posts/**"
     };
 
+    /**
+     * 조회가 아닌데도 열어두는 경로 (POST 한정).
+     *
+     * <p>새가족 등록은 비로그인 포함 누구나 부를 수 있는 유일한 쓰기
+     * 엔드포인트다 (인가 매트릭스 {@code POST /newcomers} 전 역할 통과).
+     * 스팸 방어는 필터가 아니라 {@code NewcomerService}가 honeypot·동의 검증·
+     * rate limit으로 한다.
+     */
+    private static final String[] PUBLIC_POST_PATHS = {
+            "/api/newcomers"
+    };
+
     private final ObjectMapper objectMapper;
 
     @Bean
@@ -94,6 +106,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_PATHS).permitAll()
+                        .requestMatchers(HttpMethod.POST, PUBLIC_POST_PATHS).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint())
