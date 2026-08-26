@@ -8,6 +8,12 @@ import type { AlbumSummary } from "@/types/api";
 /** 앨범 목록 쿼리 키 — 앨범 생성 후 무효화할 때 같은 키를 쓴다 */
 export const ALBUMS_QUERY_KEY = ["albums"] as const;
 
+/**
+ * 목록 그리드와 로딩 스켈레톤이 **같은 격자**를 써야 한다.
+ * 다르면 로딩이 끝나는 순간 레이아웃이 다시 움직인다 — 예약한 의미가 없어진다.
+ */
+const ALBUM_GRID = "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3";
+
 /** `2026-08-19` → `8/19` (WIREFRAME §13-1의 "8/19 · 47장" 표기) */
 function formatEventDate(date: string): string {
   const [, month, day] = date.split("-");
@@ -22,7 +28,7 @@ export function AlbumList() {
   });
 
   if (isLoading) {
-    return <p className="text-[var(--color-gray-400)]">불러오는 중...</p>;
+    return <AlbumListSkeleton />;
   }
 
   if (isError) {
@@ -40,10 +46,46 @@ export function AlbumList() {
   }
 
   return (
-    <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <ul className={ALBUM_GRID}>
       {items.map((album) => (
         <li key={album.id}>
           <AlbumCard album={album} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * 로딩 중 자리를 잡아두는 카드들.
+ *
+ * ⚠️ 예전에는 여기가 "불러오는 중..." 한 줄이었다. 앨범 데이터는
+ * 클라이언트에서 가져오므로, 그 한 줄이 카드 그리드로 바뀌는 순간
+ * 아래 내용이 통째로(푸터까지) 밀려났다 — Lighthouse CLS 0.246.
+ * 카드와 **같은 격자·같은 비율**로 미리 그려서 그 이동을 없앤다.
+ *
+ * 6개인 이유: `lg`에서 3열 × 2줄이라 첫 화면을 채우면서도,
+ * 실제 앨범이 그보다 적을 때 과하게 길어지지 않는 선이다.
+ */
+function AlbumListSkeleton() {
+  return (
+    <ul className={ALBUM_GRID} aria-hidden="true">
+      {Array.from({ length: 6 }, (_, i) => (
+        <li
+          key={i}
+          className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-navy-100)]"
+        >
+          <div className="aspect-[4/3] bg-[var(--color-navy-100)]/40" />
+          {/*
+            높이는 `AlbumCard`의 두 줄과 같아야 한다 —
+            제목은 기본 크기(16px · 줄높이 24px = `h-6`),
+            날짜는 `text-sm`(14px · 줄높이 20px = `h-5`).
+            한쪽이라도 어긋나면 로딩이 끝날 때 그만큼 다시 움직인다.
+          */}
+          <div className="p-4">
+            <div className="h-6 w-2/3 rounded bg-[var(--color-navy-100)]/60" />
+            <div className="mt-1 h-5 w-1/3 rounded bg-[var(--color-navy-100)]/40" />
+          </div>
         </li>
       ))}
     </ul>

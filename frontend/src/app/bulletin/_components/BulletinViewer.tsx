@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { Bulletin } from "@/types/api";
+import { usePinchZoom } from "@/lib/gesture/usePinchZoom";
 
 /**
  * 스와이프로 인정할 최소 가로 이동량(px).
@@ -10,6 +11,24 @@ import type { Bulletin } from "@/types/api";
  * 같은 제스처가 화면마다 다르게 느껴지지 않게 한다.
  */
 const SWIPE_THRESHOLD = 50;
+
+/**
+ * 주보가 도착하기 전에 잡아둘 기본 비율 — A4 세로(1:1.414).
+ *
+ * 주보는 A4 문서를 스캔한 것이라 이 비율이 기본이다 (mock도 1448×2048 = 1:1.414).
+ * 월례회 뷰어도 같은 이유로 `[aspect-ratio:1/1.414]`를 쓴다.
+ * 실제 주보가 도착하면 그 장의 `width`/`height`로 정확히 다시 잡는다.
+ */
+const A4_PORTRAIT = "1 / 1.414";
+
+/**
+ * 뷰어가 차지할 **가로 크기**. "가로 100%"와 "높이가 80vh가 되는 가로" 중 작은 쪽.
+ * 이러면 이미지가 실제로 그려질 크기와 상자가 같아진다.
+ */
+function viewerWidth(ratio: string): string {
+  const [w, h] = ratio.split("/").map((v) => v.trim());
+  return `min(100%, calc(80vh * ${w} / ${h}))`;
+}
 
 /** 입력 중인 곳에서는 화살표 키를 가로채지 않는다 */
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -43,14 +62,15 @@ function bulletinLabel(serviceDate: string): string {
  *   주 내용이 뷰어 하나뿐이라, 뷰어에 포커스를 맞춰야만 동작하는 편보다
  *   바로 넘어가는 편이 실제 사용(주일 아침에 폰으로 열기)에 맞다.
  *
- * ⚠️ 핀치 줌: 라이트박스와 같은 판단으로 **커스텀 제스처를 구현하지 않았다.**
- * 뷰포트에 `user-scalable=no`가 없어 브라우저 기본 핀치 줌이 그대로 동작한다 —
- * 반쪽짜리 제스처 핸들러가 기본 동작까지 망치는 쪽이 더 나쁘다.
- * WIREFRAME §12의 "핀치 줌"은 이 기본 동작으로 충족한다.
+ * 핀치 줌·팬·더블탭 확대는 `usePinchZoom`이 맡는다 (FR-BUL-03, 2026-08-25 구현).
+ * 라이트박스와 **같은 훅을 쓰므로 두 화면의 제스처가 어긋나지 않는다.**
+ * 주보는 글자가 작아서 이미지만 확대하는 제스처가 특히 필요하다 — 페이지
+ * 전체 확대로는 헤더·페이저까지 커져서 확대한 채로 장을 넘길 수 없다.
  */
 export function BulletinViewer({ bulletin }: { bulletin: Bulletin }) {
   const [index, setIndex] = useState(0);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const zoom = usePinchZoom();
 
   const pages = bulletin.pages;
   const total = pages.length;
@@ -59,13 +79,16 @@ export function BulletinViewer({ bulletin }: { bulletin: Bulletin }) {
   const hasPrev = index > 0;
   const hasNext = index < total - 1;
 
+  /** 장을 넘길 때 확대를 푼다 — 남아 있으면 다음 장이 엉뚱한 위치에서 잘린다 */
   const goPrev = useCallback(() => {
+    zoom.reset();
     setIndex((i) => Math.max(0, i - 1));
-  }, []);
+  }, [zoom]);
 
   const goNext = useCallback(() => {
+    zoom.reset();
     setIndex((i) => Math.min(total - 1, i + 1));
-  }, [total]);
+  }, [total, zoom]);
 
   useEffect(() => {
     if (total <= 1) return;
@@ -89,20 +112,44 @@ export function BulletinViewer({ bulletin }: { bulletin: Bulletin }) {
 
   return (
     <div>
+      {/*
+        이미지가 로드되기 **전에** 이 상자의 크기가 정해져야 한다 — 크기를
+        이미지가 정하면 로드 전 0으로 접혀 있다가 펴지면서 아래를 밀어낸다.
+
+        ⚠️ 다만 이 화면의 CLS를 만든 **주범은 이게 아니었다.** 주보 데이터
+        자체를 클라이언트에서 가져오므로, 뷰어가 나타나기 전까지 자리가
+        비어 있는 것이 훨씬 컸다 — 그건 `BulletinScreen`의 스켈레톤이 맡는다.
+        (여기만 고쳤을 때 CLS는 0.278 → 0.279로 그대로였다.)
+      */}
       <div
-        className="relative flex items-center justify-center overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-[var(--color-navy-100)]/30"
+        style={
+          // 서버가 치수를 안 주거나 0이면 예약을 포기하고 예전처럼 동작한다
+          // (틀린 비율로 예약하는 것이 예약을 안 하는 것보다 나쁘다)
+          page.width > 0 && page.height > 0
+            ? {
+                aspectRatio: `${page.width} / ${page.height}`,
+                width: viewerWidth(`${page.width} / ${page.height}`),
+              }
+            : { maxHeight: "80vh" }
+        }
+        className="relative mx-auto flex items-center justify-center overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-[var(--color-navy-100)]/30"
         onTouchStart={(e) => {
-          // 손가락 2개 이상 = 핀치 → 브라우저 기본 동작에 맡기고 스와이프 판정을 포기한다
+          zoom.handlers.onTouchStart(e);
+          // 손가락 2개 이상 = 핀치 → 스와이프 판정을 포기하고 확대에 맡긴다
           if (e.touches.length !== 1) {
             touchStart.current = null;
             return;
           }
           touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }}
+        onTouchMove={zoom.handlers.onTouchMove}
         onTouchEnd={(e) => {
+          zoom.handlers.onTouchEnd(e);
           const start = touchStart.current;
           touchStart.current = null;
           if (!start || e.touches.length > 0) return;
+          // 확대 중에는 가로 이동이 '장 넘기기'가 아니라 '이미지 밀기'다
+          if (zoom.isZoomed) return;
 
           const end = e.changedTouches[0];
           const dx = end.clientX - start.x;
@@ -112,6 +159,7 @@ export function BulletinViewer({ bulletin }: { bulletin: Bulletin }) {
           if (dx > 0) goPrev();
           else goNext();
         }}
+        onDoubleClick={zoom.handlers.onDoubleClick}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- 실서비스 URL은 R2 presigned(만료·서명 포함)라 next/image 최적화 대상이 아니다 (SPEC_API §5.1) */}
         <img
@@ -123,7 +171,9 @@ export function BulletinViewer({ bulletin }: { bulletin: Bulletin }) {
           // 큰 이미지를 바로 보여주는 화면이므로 지연 로딩하지 않는다 (FR-BUL-03)
           loading="eager"
           fetchPriority="high"
-          className="max-h-[80vh] w-auto max-w-full object-contain"
+          style={zoom.style}
+          // 상자가 이미 정확한 크기다 — 이미지는 그 안을 채우기만 한다
+          className="h-full w-full object-contain"
         />
 
         {/* 1장짜리 주보(mock의 2026-08-10)에는 페이저를 아예 두지 않는다 */}
@@ -199,6 +249,36 @@ export function BulletinViewer({ bulletin }: { bulletin: Bulletin }) {
           내려받습니다.
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * 주보가 도착하기 전 뷰어 자리를 잡아두는 스켈레톤.
+ *
+ * ⚠️ **이 화면 CLS(0.278)의 주범이 여기였다.** 주보 데이터를 클라이언트에서
+ * 가져오는데(공개 열람 전환 후에도 그대로 뒀다 — 서버에서 부르면 백엔드 없는
+ * 환경에서 정적 생성이 멈춘다) 로딩 표시가 **"불러오는 중..." 한 줄**이었다.
+ * 그 한 줄이 뷰어로 바뀌는 순간 아래 내용이 통째로(푸터까지) 밀려났다.
+ *
+ * 뷰어와 **같은 구조·같은 크기**로 그려서 그 이동을 없앤다:
+ * 상자(A4 비율) → 날짜 줄(`mt-4` + 24px) → 다운로드 버튼(`mt-3` + 44px).
+ *
+ * 남는 오차: 여러 장 주보에만 붙는 안내 문단(`mt-2` + 2줄)은 장 수를 알기 전이라
+ * 예약하지 않는다. 그만큼(약 50px)은 로딩이 끝날 때 한 번 움직인다 —
+ * 없애려면 장 수를 미리 알아야 하는데, 그건 이 화면이 가진 정보가 아니다.
+ */
+export function BulletinViewerSkeleton() {
+  return (
+    <div aria-hidden="true">
+      <div
+        style={{ aspectRatio: A4_PORTRAIT, width: viewerWidth(A4_PORTRAIT) }}
+        className="mx-auto rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-[var(--color-navy-100)]/30"
+      />
+      {/* 날짜 줄 — 본문 기본 크기(줄높이 24px) */}
+      <div className="mt-4 h-6 w-40 rounded bg-[var(--color-navy-100)]/60" />
+      {/* 다운로드 버튼 — 실제 버튼과 같은 `min-h-11`(44px) */}
+      <div className="mt-3 h-11 w-40 rounded-[var(--radius-button)] bg-[var(--color-navy-100)]/60" />
     </div>
   );
 }
