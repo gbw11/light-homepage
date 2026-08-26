@@ -9,10 +9,13 @@ import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import com.fasterxml.jackson.databind.JsonNode;
 import kr.light.common.ErrorCode;
 import kr.light.common.ErrorResponse;
+import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -34,6 +37,14 @@ import java.util.Map;
  */
 @Configuration
 public class OpenApiConfig {
+
+    static {
+        // 리치텍스트 본문처럼 "임의의 JSON"인 필드는 DTO에서 JsonNode로 받는다.
+        // 그대로 두면 계약서에 Jackson 내부 타입 이름({@code JsonNode})이 그대로
+        // 새어나가고, 정작 스키마 본문은 비어 있어 FE에게 아무 정보가 없다.
+        // 필드에 @Schema(type = "object")를 달아도 springdoc은 $ref를 우선한다.
+        SpringDocUtils.getConfig().replaceWithSchema(JsonNode.class, new ObjectSchema());
+    }
 
     /**
      * 쿠키 인증 스키마 이름.

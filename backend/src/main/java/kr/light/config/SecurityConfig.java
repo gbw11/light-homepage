@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -31,8 +32,8 @@ import java.nio.charset.StandardCharsets;
  * <p><b>⚠️ 아직 인증이 없다.</b> JWT 발급·검증 필터, 쿠키 처리, 역할 기반
  * 인가 규칙은 전부 M2다 (BACKEND_TASKS.md §10 M2 — "Spring Security 설정 +
  * JWT"). 지금은 <b>열어둔 경로 외에는 전부 막혀 있다</b> — 인증 수단이 없으므로
- * 사실상 아무도 통과하지 못한다. 공개 엔드포인트(`GET /api/posts` ·
- * `POST /api/newcomers`)는 그것을 만드는 시점에 이 목록에 추가한다.
+ * 사실상 아무도 통과하지 못한다. 공개 엔드포인트({@code POST /api/newcomers} 등)는
+ * 그것을 만드는 시점에 아래 목록에 추가한다.
  *
  * <p><b>CSRF를 끈 이유:</b> 세션을 쓰지 않는 stateless API다. 쿠키 방식 JWT의
  * CSRF 방어는 {@code SameSite=Lax} + Origin 헤더 검증으로 하기로 되어 있고
@@ -43,7 +44,11 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    /** 인증 없이 열어두는 경로. 늘어날 때마다 인가 매트릭스에 행을 추가한다 (ARCHITECTURE.md §5.3) */
+    /**
+     * 인증 없이 <b>필터를 통과시키는</b> 경로. 늘어날 때마다 인가 매트릭스에 행을
+     * 추가한다 (ARCHITECTURE.md §5.3).
+     *
+     */
     private static final String[] PUBLIC_PATHS = {
             // 계약서 — FE가 봐야 하므로 열어둔다. 운영에서는 springdoc 자체가 꺼진다.
             "/swagger-ui.html",
@@ -53,6 +58,22 @@ public class SecurityConfig {
             // Render 슬립 방지 핑이 때린다
             "/actuator/health",
             "/actuator/health/**"
+    };
+
+    /**
+     * 조회만 열어두는 경로 (GET 한정).
+     *
+     * <p>{@code POST /api/posts}(작성, LEADER)까지 함께 열리면 안 되므로 메서드를
+     * 나눠서 건다.
+     *
+     * <p>⚠️ <b>"필터를 통과한다"가 "누구나 볼 수 있다"는 뜻은 아니다.</b>
+     * {@code /api/posts}는 공개 공지와 예산안이 같은 경로를 쓴다. 실제 열람 권한은
+     * {@code PostQueryService}의 단일 관문이 category로 판단해 401·403·404를
+     * 던진다. 필터에서 막아버리면 공개 공지까지 함께 막힌다.
+     */
+    private static final String[] PUBLIC_GET_PATHS = {
+            "/api/posts",
+            "/api/posts/**"
     };
 
     private final ObjectMapper objectMapper;
@@ -72,6 +93,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
+                        .requestMatchers(HttpMethod.GET, PUBLIC_GET_PATHS).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint())
