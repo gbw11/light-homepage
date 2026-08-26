@@ -115,7 +115,7 @@ Next 16의 요구는 Node 20.9+ 이므로 셋 다 "동작은" 합니다. 문제�
 | Spring Boot | **3.5.x** | Spring Security 6 · Java 21 조합 |
 | Gradle | **Wrapper** (`./gradlew`) | 로컬에 Gradle을 따로 깔지 않습니다. 버전이 저장소에 고정됨 |
 | jjwt | **0.12.6** | 0.11 → 0.12에서 API가 크게 바뀜. 예제 복붙 시 주의 |
-| springdoc-openapi | **2.6.0** | Boot 3.x용. 1.x는 Boot 2 전용 |
+| springdoc-openapi | **2.8.13** | Boot 3.5(Spring 6.2)용. 1.x는 Boot 2 전용. ⚠️ **2.6.0은 Spring 6.2에서 깨진다** — `ControllerAdviceBean(Object)` 생성자가 사라져 컨트롤러가 하나라도 있으면 `/v3/api-docs`가 500 |
 | AWS SDK for Java | **BOM 2.28.0** | R2(S3 호환). v1 SDK 아님 |
 | Apache PDFBox | **3.0.3** | 월례회 변환. 2.x와 API 다름 |
 | PostgreSQL 드라이버 | Boot 관리 버전 | 직접 고정하지 않음 |
