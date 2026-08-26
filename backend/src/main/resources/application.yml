@@ -51,8 +51,22 @@ management:
         enabled: true
 
 springdoc:
+  # FE와의 계약서 (ARCHITECTURE.md §6.1). 운영에서는 아래 prod 문서에서 끈다.
+  api-docs:
+    path: /v3/api-docs
+  # ⚠️ 끄지 않으면 "경로에서 참조되지 않은 스키마"가 통째로 지워진다. 우리는
+  #    컨트롤러가 생기기 전에도 에러 봉투 형태를 FE에게 보여줘야 하므로 끈다
+  #    (OpenApiConfig 참고).
+  remove-broken-reference-definitions: false
   swagger-ui:
     path: /swagger-ui.html
+    # 태그·엔드포인트를 알파벳순으로 고정한다. 컨트롤러를 추가할 때마다 순서가
+    # 뒤바뀌면 FE가 "뭐가 달라졌지"를 매번 다시 훑어야 한다.
+    tags-sorter: alpha
+    operations-sorter: alpha
+    # 열었을 때 전부 펼쳐져 있으면 스크롤이 길다. 목록만 보이게.
+    doc-expansion: none
+    display-request-duration: true
 
 app:
   jwt:
