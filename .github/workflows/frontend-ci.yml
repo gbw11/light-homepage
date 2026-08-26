@@ -7,9 +7,11 @@ on:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
   push:
-    branches: [develop, main, frontend_develop, server_develop]
+    # feat/* 에서도 돌려야 머지 전에 결과를 알 수 있다 (docs/CICD.md §1.1)
+    branches: [develop, main, frontend_develop, server_develop, 'feat/**']
     paths:
       - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
 
 jobs:
   build:
@@ -18,11 +20,11 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22        # Next 16은 Node 20.9+ 필요
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -33,9 +35,18 @@ jobs:
         run: npm run lint
 
       - name: Type check
-        run: npx tsc --noEmit
+        run: npm run type-check
 
-      - name: Build
+      - name: Build (mock)
         run: npm run build
         env:
           NEXT_PUBLIC_USE_MOCK: '1'
+
+      # 실제 배포는 mock=0으로 빌드된다. mock 빌드만 검증하면 서버 컴포넌트가
+      # 백엔드를 호출하려다 정적 생성이 터지는 부류의 버그를 못 잡는다
+      # (실제로 /my/notices에서 발생해 배포 빌드가 실패했다).
+      # 백엔드 없이도 통과해야 한다 — 빌드 시점에 백엔드에 의존하면 안 된다.
+      - name: Build (실제 배포 설정 — 백엔드 없이)
+        run: npm run build
+        env:
+          NEXT_PUBLIC_USE_MOCK: '0'

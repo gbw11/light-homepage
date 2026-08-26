@@ -40,7 +40,7 @@
                     └────────────────┬────────────────┘
                                      │ HTTPS
                     ┌────────────────▼────────────────┐
-                    │      Vercel — Next.js 15        │
+                    │      Vercel — Next.js 16        │
                     │                                 │
                     │  [공개 영역]  완전 정적(SSG)     │
                     │   / /about /worship /welcome    │
@@ -88,13 +88,13 @@
 ### 2.1 프론트엔드
 | 레이어 | 선택 |
 |---|---|
-| 프레임워크 | Next.js 15 (App Router) |
+| 프레임워크 | Next.js 16 (App Router · Turbopack 기본) |
 | 언어 | TypeScript (strict) |
 | 스타일 | Tailwind CSS v4 |
 | 데이터 페칭 | TanStack Query (회원 영역) / 빌드 시 fetch (공개 영역) |
 | 폼 | React Hook Form + Zod |
 | 폰트 | Pretendard (self-host) |
-| PWA | manifest + Serwist |
+| PWA | manifest + **자체 서비스워커** (Serwist 미사용 — 캐싱 정책이 보안 요구사항이라 라이브러리 설정 뒤에 두지 않았다. `DECISIONS.md` 2026-08-24) |
 | 배포 | Vercel |
 
 ### 2.2 백엔드
@@ -842,7 +842,7 @@ backend/src/main/java/kr/light/
 | # | 항목 | 결정 |
 |---|---|---|
 | 1 | 백엔드 | **Spring Boot 3 / Java 21** (BE 학습 목표) |
-| 2 | 프론트엔드 | Next.js 15 — 공개 영역 정적, 회원 영역 클라이언트 렌더 |
+| 2 | 프론트엔드 | Next.js 16 — 공개 영역 정적, 회원 영역 클라이언트 렌더 |
 | 3 | 저장소 | 모노레포 1개 (`frontend/` `backend/` `docs/`) |
 | 4 | 인증 | JWT + httpOnly 쿠키, Next.js rewrites로 동일 출처화 |
 | 5 | 권한 | `@PreAuthorize` + Service 재검사 + **인가 테스트 매트릭스** |
