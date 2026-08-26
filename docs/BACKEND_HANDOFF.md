@@ -30,6 +30,66 @@
 
 ---
 
+## 2026-08-26 — 🚀 배포 자동화 완료: `develop`에 머지하면 서버에 올라갑니다
+
+**상태**: 인프라 쪽 준비는 끝났습니다. **백엔드가 추가로 할 일은 없습니다.**
+PM이 Render 서비스만 만들면(수동 절차) 그때부터 동작합니다.
+
+### 무엇이 바뀌었나
+
+```
+feat/be-*  →  backend_develop  →  develop
+                                     ↓
+                          GitHub Actions (클라우드, 항상 동작)
+                          ├─ Postgres 16 띄우고 ./gradlew build
+                          │   (★ 인가 매트릭스 포함 — 실패하면 배포 안 됨)
+                          └─ ✅ 통과 → Render Deploy Hook ──▶ 🚀 배포
+```
+
+- **`main`이 아니라 `develop`입니다.** 평소 흐름 그대로 머지하면 됩니다
+- **`backend/`가 바뀐 머지만** 배포합니다. 프론트 전용 머지는 백엔드를 건드리지 않습니다
+- 배포 상태는 GitHub Actions 탭과 Render 대시보드에서 봅니다
+
+### `backend/Dockerfile`이 추가됐습니다 (인프라 소유)
+
+`INTEGRATION.md §6.3`이 `backend/Dockerfile`을 `server_develop`에 배정하고 있어
+인프라가 만들었습니다. **`backend/` 안에 있지만 백엔드 소유가 아닙니다** —
+고쳐야 할 일이 생기면 먼저 알려주세요.
+
+`feat/be-schema` 코드로 **실제 빌드·기동까지 확인했습니다**:
+Flyway V1 적용 · 헬스체크 200 · 기동 8.6초 · 메모리 299MB(상한 400MB) · 이미지 442MB.
+
+**바꾸면 안 되는 것 3가지**
+| 항목 | 값 | 이유 |
+|---|---|---|
+| 메모리 | `-Xmx400m` | Render Free 512MB 한도. 늘리려면 호스팅부터 다시 정해야 합니다 |
+| 헬스체크 | `/actuator/health` 200 | Render 헬스체크 + 슬립 방지 핑(10분)이 이걸 씁니다. 무거워지지 않게 유지해 주세요 |
+| 포트 | `${PORT:-8080}` 존중 | Render가 `PORT`로 수신 포트를 지정합니다. 로컬은 8080 그대로입니다 |
+
+### 🙏 요청 — 새 환경변수를 도입하면 알려주세요
+
+지금 Render에 넣는 변수는 **5개뿐입니다**: `SPRING_PROFILES_ACTIVE`·`DATABASE_URL`·
+`DB_USERNAME`·`DB_PASSWORD`·`JWT_SECRET`. `application.yml`이 실제로 참조하는 것이
+그게 전부여서입니다.
+
+Kakao(M2)·R2(M3)·Mail 변수를 코드에 도입하는 PR에서는 **PR 본문에 "새 환경변수:
+`XXX`"를 한 줄 남겨주세요.** 인프라가 Render에 등록해야 기동합니다 —
+**등록 전에 머지되면 배포된 서버가 뜨지 못합니다**(`${XXX}`가 해석되지 않아
+기동 실패). 미리 넣어두지 않는 이유는 `DECISIONS.md` 2026-08-26에 있습니다.
+
+### 참고 — `DATABASE_URL` 형식
+
+`application.yml`이 아이디·비밀번호를 따로 받으므로 **JDBC 형식**이어야 합니다.
+Neon이 주는 `postgres://user:pass@host/db` 형식을 그대로 넣으면 기동에 실패합니다.
+
+```
+jdbc:postgresql://ep-xxxx.ap-southeast-1.aws.neon.tech/light?sslmode=require
+```
+
+로컬에서 컨테이너로 확인하는 절차는 `docs/BACKEND_DEPLOY.md §5`에 있습니다.
+
+---
+
 ## 2026-08-25 — 🙏 `[CONTRACT]` 신규 요청: 설교 목록 API (`GET /api/sermons`)
 
 **상태**: FE는 mock으로 화면을 완성했다. 계약만 정해지면 `NEXT_PUBLIC_USE_MOCK=0`
