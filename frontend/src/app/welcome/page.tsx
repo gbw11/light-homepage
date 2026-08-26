@@ -47,7 +47,15 @@ export default function WelcomePage() {
       </Section>
 
       <Section title="① 드림센터를 찾아오세요" className="pt-0">
-        <div className="rounded-[var(--radius-card)] bg-[var(--color-red-500)]/10 p-4 text-[var(--color-red-500)]">
+        {/*
+          경고 신호는 테두리가 지고, 글자는 기본 색으로 둔다.
+          `--color-red-500`을 글자로 쓰면 이 틴트(#f1ddd2) 위에서 4.25:1로
+          WCAG AA(4.5:1)에 미달한다 — 토큰은 페이지 배경(#f6f1e4) 위 4.94:1
+          기준으로 검증됐는데, 이 블록만 `/10` 틴트로 다른 표면을 만들어
+          그만큼 깎아먹었다. 기본 글자색이면 11.81:1이다.
+          `PostForm`·`MeetingUploadForm`의 경고 블록이 이미 이 형태다.
+        */}
+        <div className="rounded-[var(--radius-card)] border border-[var(--color-red-500)] bg-[var(--color-red-500)]/10 p-4 font-bold">
           ⚠️ 청년예배는 본당이 아니라 <strong>드림센터 4층</strong>입니다.
         </div>
 
