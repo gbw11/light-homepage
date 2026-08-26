@@ -23,12 +23,12 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  * 통과하지 않는 예외가 생기면 그 엔드포인트만 다른 모양으로 응답하게 되고,
  * FE의 공통 파서가 깨진다.
  *
- * <p><b>⚠️ 아직 덮지 못하는 구간:</b> Spring Security 필터 체인에서 발생하는
+ * <p><b>⚠️ 여기로 오지 않는 구간:</b> Spring Security 필터 체인에서 발생하는
  * 401·403은 {@code ExceptionTranslationFilter}가 처리하므로 이 어드바이스에
- * 도달하지 않는다. {@code AuthenticationEntryPoint}·{@code AccessDeniedHandler}를
- * 붙여야 하는데 그것은 SecurityConfig와 함께 M2에서 한다. 아래 두 핸들러는
- * 메서드 보안(@PreAuthorize)에서 던져져 컨트롤러 호출 안에서 잡히는 경우를
- * 위한 것이다.
+ * 도달하지 않는다. 그쪽은 {@code SecurityConfig}의
+ * {@code AuthenticationEntryPoint}·{@code AccessDeniedHandler}가 같은 봉투를
+ * 만든다. 아래 두 핸들러는 메서드 보안(@PreAuthorize)에서 던져져 컨트롤러 호출
+ * 안에서 잡히는 경우를 위한 것이다 — <b>양쪽 형태가 어긋나지 않게 함께 고칠 것.</b>
  */
 @Slf4j
 @RestControllerAdvice
