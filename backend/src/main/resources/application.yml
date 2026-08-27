@@ -14,6 +14,26 @@ spring:
       #   (BACKEND_TASKS.md §2.2)
       maximum-pool-size: 3
       connection-timeout: 20000
+      # ── 아래 3줄: Neon 자동 정지와 풀의 상호작용 (2026-08-27 인프라) ──────
+      #   Neon은 약 5분 유휴 시 컴퓨트를 정지한다. 그게 "월 $0"의 전제다
+      #   (docs/COST_GUARDRAILS.md §3.2). 그런데 기본값 그대로는 풀이 그 전제를 깬다.
+      #
+      # ★ keepalive-time: 0 — **커넥션 유지 핑을 끈다.**
+      #   HikariCP 6.3.3의 기본값은 0이 아니라 **2분**이다(`DEFAULT_KEEPALIVE_TIME`).
+      #   즉 유휴 커넥션에 2분마다 쿼리를 보낸다 → Neon의 유휴 타이머가 계속
+      #   초기화되어 **컴퓨트가 한 번도 정지하지 않는다.** 핑 경로를
+      #   /actuator/health/alive로 옮겨 막은 것과 **똑같은 누수를 풀이 다시 만든다.**
+      #   ⚠️ 이 사고는 증상이 없다 — 화면·API·테스트 전부 정상으로 보인다.
+      keepalive-time: 0
+      # ★ minimum-idle: 0 — 유휴 시 풀을 0까지 비운다.
+      #   기본값은 maximum-pool-size와 같아서(음수 → maxPoolSize로 보정) 풀이
+      #   **고정 크기**로 동작한다. 그러면 커넥션 3개가 영구히 남고, 아래
+      #   idle-timeout도 "fixed size pool이라 효과 없음" 경고와 함께 무시된다.
+      minimum-idle: 0
+      # ★ idle-timeout: 4분 — Neon이 정지(약 5분)하기 **전에** 풀을 비운다.
+      #   정지 후에 비우면 죽은 커넥션이 풀에 남아, 실제 사용자 요청의 첫 쿼리가
+      #   검증 실패 → 폐기 → 재연결을 거치며 느려진다. 미리 비워 그 경로를 없앤다.
+      idle-timeout: 240000
 
   jpa:
     # 스키마의 주인은 Flyway다. Hibernate가 손대지 않는다.
@@ -35,9 +55,41 @@ spring:
       write-dates-as-timestamps: false
     default-property-inclusion: always
 
+  lifecycle:
+    # graceful shutdown이 진행 중인 요청을 기다리는 최대 시간. 기본값은 30초인데,
+    # Render는 SIGTERM 후 약 30초 뒤 SIGKILL한다 — 기본값이면 **정확히 강제 종료
+    # 시한과 같아서** 기다리다 그대로 죽을 수 있다. 20초로 여유를 남긴다.
+    timeout-per-shutdown-phase: 20s
+
 server:
   # ★ 8080 고정. 바꾸면 FE의 next.config.ts 프록시가 통째로 어긋난다 (TOOLCHAIN.md §6)
   port: 8080
+
+  # ★ 재배포 때 처리 중인 요청을 끊지 않는다. Render 배포가 지금 잦다.
+  #   Spring Boot 3.5부터는 이 값이 이미 기본값(GRACEFUL)이다 — 그래도 명시한다.
+  #   기본값에 의존하면 버전이 올라가며 조용히 바뀔 수 있고, 이건 눈에 보이지 않는
+  #   방식으로 깨진다(요청이 그냥 사라진다). alive 헬스 그룹과 같은 이유다.
+  #   ⚠️ Dockerfile의 `exec java`가 없으면(= java가 PID 1이 아니면) 이 설정은
+  #      한 번도 실행되지 않는다. 둘은 같이 봐야 한다.
+  shutdown: graceful
+
+  compression:
+    # ★ 응답 압축. 목록 JSON(공지·사진첩)이 가장 큰 응답이고, 교회 사이트 방문자
+    #   대부분은 모바일 회선이다. 기본 mime-types에 application/json이 이미
+    #   들어 있고 기준 크기도 2KB라, 켜는 것만으로 목록 응답에 적용된다.
+    #   (작은 응답 — /actuator/health/alive 같은 것 — 은 2KB 미만이라 압축하지 않는다.)
+    enabled: true
+
+  tomcat:
+    threads:
+      # ★ 기본 200개는 512MB·0.1 CPU 인스턴스에 과하다. 스레드마다 스택이 붙어
+      #   **힙 밖 메모리**를 먹는데, 힙 상한이 이미 400m이라 여유가 없다
+      #   (Dockerfile의 -Xmx 주석).
+      #   그리고 위 maximum-pool-size가 3이라 **DB를 쓰는 동시 처리량은 이미 3으로
+      #   제한돼 있다** — 스레드 200개는 그 앞에서 대기만 늘린다.
+      max: 20
+      # 기동 시 미리 만드는 스레드도 10개 → 5개. 콜드스타트에서 덜 만든다.
+      min-spare: 5
 
 management:
   endpoints:

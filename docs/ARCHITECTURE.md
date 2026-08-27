@@ -679,6 +679,8 @@ Spring Boot는 상시 실행 프로세스가 필요해서, 서버리스인 Verce
 - 750시간 중 **744시간을 쓴다(99.2%)** — 여유가 6시간뿐이라 서비스를 하나라도 더 만들면 초과다
 - ⚠️ **공개 사이트가 백엔드에 의존하지 않는 설계(§1.3)가 여기서 값을 한다.** 백엔드가 슬립·장애여도 전도용 공개 페이지는 정상. 영향은 회원 영역 첫 진입 지연뿐
 - 메모리 512MB → `-Xmx400m`. 서버에서 이미지 변환을 하지 않는 이유(§4.1)
+  - ⚠️ **2026-08-27 보강.** 힙 400MB + 힙 밖(메타스페이스·코드캐시·스레드 스택) 약 180MB면 **합계가 이미 512MB를 넘는다.** 힙이 실제로 400MB까지 차면 `Exited with status 137`로 죽는다 — 지금 안 죽는 이유는 힙을 그만큼 쓰지 않아서다(실측 299MB). `-Xmx`는 M4의 PDF→이미지 변환 때문에 낮추지 않고, **힙 밖을 줄였다**(Tomcat 스레드 200→20 · SerialGC 고정). 근거와 경고선은 [`COST_GUARDRAILS.md §5`](COST_GUARDRAILS.md)
+- **콜드스타트**(30~60초)를 줄이는 쪽도 손봤다 — `-Xms`가 없으면 초기 힙이 **8MB**(컨테이너 메모리의 1/64)라, Spring 기동이 그 안에서 힙 확장과 young GC를 수십 번 반복한다. `-Xms128m`으로 없앴다. 상세는 `infra/render/README.md §5`
 
 ### 8.2 데이터베이스
 **Neon 무료** (PostgreSQL 0.5GB). 유휴 시 자동 정지되나 재개가 빠르다.
@@ -688,6 +690,8 @@ Spring Boot는 상시 실행 프로세스가 필요해서, 서버리스인 Verce
 > 있어서 **자동 정지가 한 번도 걸리지 않는 구조였다.** 핑 대상을 DB를 건드리지
 > 않는 `/actuator/health/alive`로 옮겨 전제를 복구했다. 상세와 재발 방지 장치는
 > [`COST_GUARDRAILS.md §3.2`](COST_GUARDRAILS.md)에 있다.
+
+> ⚠️ **2026-08-27 보강 — 같은 누수가 한 군데 더 있었다.** 핑 경로를 옮겨도 **커넥션 풀이 Neon을 계속 깨우고 있었다.** HikariCP의 `keepaliveTime` 기본값이 0이 아니라 **2분**이고, `minimumIdle` 기본값이 `maximumPoolSize`와 같아 풀이 **고정 크기**라 비워지지 않는다. `keepalive-time: 0` · `minimum-idle: 0` · `idle-timeout: 240000`으로 고쳤고 `DataSourcePoolConfigTest`가 고정한다. 상세는 [`COST_GUARDRAILS.md §3.2`](COST_GUARDRAILS.md)
 
 - ⚠️ 무료 티어는 **연결 수 제한**이 있다 → HikariCP `maximum-pool-size: 3~5`. 기본값(10)이면 연결 고갈이 난다
 - 대안: Supabase Postgres (500MB, 단 7일 무활동 시 프로젝트 일시정지)

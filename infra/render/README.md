@@ -313,6 +313,58 @@ curl localhost:8080/actuator/health         # → {"status":"UP"}  (DB 포함)
 | 항목 | 내용 |
 |---|---|
 | **첫 배포는 백엔드가 `develop`에 들어온 뒤** | 지금 `develop`의 `backend/`에는 `README.md`와 `Dockerfile`뿐입니다. BE가 `backend_develop → develop`을 머지해야 배포할 것이 생깁니다 |
-| **메모리 400MB 상한** | `Dockerfile`의 `-Xmx400m`. Render Free 512MB 한도라 임의로 못 늘립니다. 늘리려면 호스팅부터 다시 정해야 합니다 (`ARCHITECTURE.md §8.1`) |
+| **메모리 400MB 상한** | `Dockerfile`의 `-Xmx400m`. Render Free 512MB 한도라 임의로 못 늘립니다. 늘리려면 호스팅부터 다시 정해야 합니다 (`ARCHITECTURE.md §8.1`). ⚠️ 힙 400m + 힙 밖 약 180m은 **이미 512MB를 넘습니다** — §5 참고 |
+| **★ 최적화 설정 (2026-08-27)** | 콜드스타트·재배포·메모리·Neon 풀. 아래 §5에 무엇을 왜 넣었는지 있습니다 |
 | **배포 브랜치를 main으로 옮길 때** | 공개 시점에 ①Render 서비스의 Branch를 `main`으로 ②`backend-ci.yml`의 `deploy` 잡 조건을 `refs/heads/main`으로. 두 곳을 같이 바꿔야 합니다 |
-| **월례회 PDF 변환(M4)** | 이미지에 폰트(`fontconfig`·`ttf-dejavu`)를 미리 넣어뒀습니다. 폰트가 없으면 PDFBox가 렌더링 시점에 죽는데, 그 시점이 "임원이 자료를 올리는 순간"이라 가장 늦게 발견됩니다 |
+| **월례회 PDF 변환(M4)** | 이미지에 폰트(`fontconfig`·`ttf-dejavu`)를 미리 넣어뒀습니다. 폰트가 없으면 PDFBox가 렌더링 시점에 죽는데, 그 시점이 "임원이 자료를 올리는 순간"이라 가장 늦게 발견됩니다. ⚠️ **다만 DejaVu에는 한글 글리프가 없습니다** — M4에서 한글 PDF는 "죽지는 않고 □□□로 나옵니다". 그때 한글 폰트를 추가해야 합니다 |
+
+---
+
+## 5. 최적화 설정 — 무엇을 왜 넣었는가 (2026-08-27)
+
+배포는 성공했지만 **새벽 슬립 후 첫 방문자가 30~60초를 기다립니다.** 그리고
+지금 배포가 잦아서 재배포 중 요청이 끊길 수 있고, 512MB는 여유가 없습니다.
+비용을 늘리지 않고 손볼 수 있는 것만 골랐습니다.
+
+| 우선순위 | 무엇 | 어디 | 기대 효과 |
+|---|---|---|---|
+| ① 콜드스타트 | `-Xms128m` | `Dockerfile` | ⚠️ **-Xms가 없으면 초기 힙이 8MB**입니다. Spring 기동이 그 안에서 힙 확장·young GC를 수십 번 반복합니다 |
+| ① 콜드스타트 | `min-spare: 5` | `application.yml` | 기동 시 만드는 스레드 10 → 5 |
+| ② 요청 유실 | `timeout-per-shutdown-phase: 20s` | `application.yml` | 기본값 30초는 **Render의 강제 종료 시한과 같습니다** |
+| ② 요청 유실 | `shutdown: graceful` (명시) | `application.yml` | Boot 3.5부터 기본값이지만, 깨지면 요청이 소리 없이 사라집니다 |
+| ③ 메모리 | `threads.max: 20` (기본 200) | `application.yml` | 스레드 스택은 **힙 밖** 메모리입니다 |
+| ③ 메모리 | `-XX:+UseSerialGC` | `Dockerfile` | JVM은 CPU 개수로 GC를 고릅니다 — 2 CPU가 되면 조용히 G1로 넘어갑니다 |
+| ④ **과금** | `keepalive-time: 0` 외 2줄 | `application.yml` | ★ **커넥션 풀이 Neon을 상시 가동시키고 있었습니다** — `../../docs/COST_GUARDRAILS.md §3.2` |
+| ⑤ 응답 크기 | `compression.enabled: true` | `application.yml` | 목록 JSON. 기본 mime-types에 `application/json`이 이미 있습니다 |
+
+> ### ⚠️ `-Xmx400m`은 여유가 없습니다 — 늘릴 수 없을 뿐 아니라 이미 빡빡합니다
+>
+> 힙 400MB + 힙 밖(메타스페이스·코드캐시·스레드 스택) 약 180MB면 **합계가
+> 512MB를 넘습니다.** 힙이 정말 400MB까지 차면 `Exited with status 137`로
+> 죽습니다. 지금 안 죽는 이유는 힙을 그만큼 쓰지 않아서일 뿐입니다(실측 299MB).
+>
+> **`-Xmx`를 낮추지 않은 이유**: M4의 PDF→페이지 이미지 변환이 힙을 씁니다.
+> 낮추면 그쪽이 막힙니다. 대신 **힙 밖을 줄였고**(스레드·GC),
+> `../../docs/COST_GUARDRAILS.md §5`의 월례 확인에 **메모리 420MB 경고선**을
+> 넣었습니다.
+
+> ### ⚠️ 효과 수치는 아직 실측이 아닙니다
+>
+> 2026-08-27 시점에 **로컬 Docker 데몬이 꺼져 있어** 이미지 빌드·기동 시간·
+> 메모리를 다시 재지 못했습니다. 설정값이 실제로 적용되는지는 Spring 바인딩까지
+> 확인했지만, **8.6초가 몇 초가 되는지는 배포 후 Render → Metrics / Logs로
+> 확인해야 합니다.** 확인하면 §2의 실측표에 추가하세요.
+>
+> 배포 후 볼 것:
+> ```bash
+> # 재배포 중에도 응답이 끊기지 않는지 (graceful shutdown 확인)
+> curl -s -o /dev/null -w "%{http_code}\n" https://light-homepage.onrender.com/actuator/health/alive
+>
+> # 압축이 실제로 걸리는지 (2KB 넘는 응답에만 걸립니다)
+> curl -s -H "Accept-Encoding: gzip" -D - -o /dev/null \
+>   "https://light-homepage.onrender.com/api/posts?category=NOTICE_PUBLIC"
+> # → content-encoding: gzip  (글이 없어 응답이 2KB 미만이면 안 붙는 게 정상)
+> ```
+>
+> 그리고 **Neon → Compute 그래프에 빈 구간이 생겼는지**가 ④가 실제로 막혔다는
+> 유일한 증거입니다.
