@@ -120,6 +120,41 @@ MAIL_API_KEY / NOTIFY_EMAIL
 
 ---
 
+## 개발용 시드 계정 (`local` 프로필 전용)
+
+가입 → 승인 흐름을 매번 손으로 밟지 않아도 되게, 역할별 계정을 자동으로 만듭니다.
+**최초 전도사는 API로 만들 수 없으므로**(역할 변경은 `MEMBER ↔ LEADER`만) 이것이 유일한 방법입니다.
+
+`application-local.yml`에 넣으세요 — 이 파일은 `.gitignore` 대상입니다:
+
+```yaml
+app:
+  seed:
+    enabled: true
+    password: <원하는 비밀번호>     # ★ 커밋되는 파일에 쓰지 마세요
+```
+
+기동하면 세 계정이 **승인된 상태로** 생깁니다:
+
+| 이메일 | 역할 | 마을 |
+|---|---|---|
+| `pastor@light.local` | `PASTOR` | 1 |
+| `leader@light.local` | `LEADER` | 2 |
+| `member@light.local` | `MEMBER` | 3 |
+
+비밀번호는 셋 다 위에서 정한 값입니다. 이미 있으면 다시 만들지 않고, 기존 비밀번호도 덮지 않습니다.
+
+**안전장치 3겹** — 운영에서 돌면 비밀번호를 아는 관리자 계정이 인터넷에 열립니다:
+
+1. `@Profile("local")` — prod·test에서는 빈이 만들어지지 않음
+2. `prod` 프로필이 함께 켜져 있으면 **기동 중단** (`local,prod` 같은 실수를 잡음)
+3. `enabled` 기본값 `false`, 비밀번호 기본값 없음
+
+⚠️ **배포 전 체크리스트에 "시드 계정 비밀번호 변경 또는 삭제"가 있습니다**
+(`ARCHITECTURE.md §13` · `SPEC_NONFUNCTIONAL.md`). 운영 이관 시 반드시 처리하세요.
+
+---
+
 ## 로컬 DB
 
 ```bash
