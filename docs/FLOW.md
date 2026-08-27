@@ -70,7 +70,7 @@
 
 | 서비스 | 역할 | 주소 |
 |---|---|---|
-| **Vercel** | 프론트엔드 (사용자가 보는 화면) | ⚠️ 연결 상태 미확인 |
+| **Vercel** | 프론트엔드 (사용자가 보는 화면) | ⬜ 배포 준비 — 절차: [`infra/vercel/`](../infra/vercel/README.md) |
 | **Render** | 백엔드 API 서버 | `light-homepage.onrender.com` |
 | **Neon** | PostgreSQL | Singapore |
 | **GitHub Actions** | CI + 배포 트리거 | 클라우드, 항상 동작 |
@@ -185,6 +185,10 @@ Health Check /actuator/health/alive 가 200이면 라이브
 ### [8] 사용자에게 보이기
 
 **사용자가 보는 것은 Vercel이고, Render는 그 뒤에서 JSON을 준다.**
+
+> ⬜ **2026-08-27 현재 Vercel에 배포된 적이 없다.** 설정 절차는
+> [`../infra/vercel/README.md`](../infra/vercel/README.md)에 있다.
+> 🔴 배포 후 **실인물 사진이 배포되지 않았는지 curl로 확인**해야 한다(그 문서 §2②).
 
 ```
 브라우저 → Vercel (Next.js)
