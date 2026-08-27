@@ -177,7 +177,7 @@ FE는 Vercel Hobby(무료)에 올린다. 결제 수단 없이 쓸 수 있어 1�
 
 | 항목 | 값 |
 |---|---|
-| URL | `https://<서비스명>.onrender.com/actuator/health/alive` (§3.2 — 틀리면 Neon이 샌다) |
+| URL | `https://light-homepage.onrender.com/actuator/health/alive` (§3.2 — 틀리면 Neon이 샌다) |
 | 스케줄 | `*/10 6-23 * * *` (월 약 3,348회) |
 | Timezone | **`Asia/Seoul`** — 기본값 UTC로 두면 주일 예배 시간에 슬립한다 |
 
@@ -268,7 +268,7 @@ Class B 읽기)에도 한도가 있는데, 지금 설계에 그걸 세는 장치
 > 받지 않는다.** 훅 호출 성공은 "배포가 시작됐다"까지만 보증한다는 뜻이다.
 >
 > 그래서 배포 후 확인은 **훅 결과가 아니라 실제 응답**으로 한다:
-> `curl -i https://<서비스명>.onrender.com/actuator/health/alive` → `200 {"status":"UP"}`
+> `curl -i https://light-homepage.onrender.com/actuator/health/alive` → `200 {"status":"UP"}`
 
 > ⚠️ **"카드가 등록돼 있지 않다"가 이 설계의 전부다.** 나머지는 서비스가 멈추지
 > 않게 하는 편의 장치다. 카드를 등록하는 순간 이 문서의 1차 방어가 사라진다.
