@@ -1,6 +1,7 @@
 package kr.light.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.light.auth.JwtAuthenticationFilter;
 import kr.light.common.ErrorCode;
 import kr.light.common.ErrorResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,12 +10,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 
 import java.nio.charset.StandardCharsets;
 
@@ -41,6 +50,7 @@ import java.nio.charset.StandardCharsets;
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -85,10 +95,18 @@ public class SecurityConfig {
      * rate limit으로 한다.
      */
     private static final String[] PUBLIC_POST_PATHS = {
-            "/api/newcomers"
+            "/api/newcomers",
+            // 인증을 얻기 위한 경로는 인증 없이 열려야 한다 (SPEC_API.md §2.1~§2.4).
+            // ⚠️ /api/auth/** 로 뭉뚱그리지 않는다. 그러면 나중에 추가될
+            //    PATCH /api/auth/me(권한 M)·DELETE /api/auth/me까지 함께 열린다.
+            "/api/auth/signup",
+            "/api/auth/login",
+            "/api/auth/refresh",
+            "/api/auth/logout"
     };
 
     private final ObjectMapper objectMapper;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -111,7 +129,48 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint())
                         .accessDeniedHandler(accessDeniedHandler()))
+                // 인가 판단(AuthorizationFilter) 전에 SecurityContext가 채워져 있어야 한다.
+                // UsernamePasswordAuthenticationFilter 자리에 끼우는 것이 관례다.
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+
+    /**
+     * 역할 계층 — 상위가 하위를 포함한다 (ARCHITECTURE.md §5.1).
+     *
+     * <p>이걸 걸어야 {@code hasRole('LEADER')} 하나로 PASTOR까지 통과한다. 없으면
+     * 엔드포인트마다 상위 역할을 일일이 나열해야 하고, 빠뜨리면 전도사가 임원
+     * 기능을 못 쓴다.
+     *
+     * <p><b>⚠️ PENDING은 계층에 넣지 않는다.</b> 넣으면 미승인 회원이 MEMBER
+     * 권한을 물려받는다. PENDING은 "아직 아무것도 아님"이지 최하위 회원이 아니다.
+     */
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.withDefaultRolePrefix()
+                .role("PASTOR").implies("LEADER")
+                .role("LEADER").implies("MEMBER")
+                .build();
+    }
+
+    /** 메서드 보안(@PreAuthorize)에서도 위 계층이 적용되게 한다 */
+    @Bean
+    public MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy roleHierarchy) {
+        DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+        handler.setRoleHierarchy(roleHierarchy);
+        return handler;
+    }
+
+    /**
+     * BCrypt (BACKEND_TASKS.md §4 — {@code members.password_hash}).
+     *
+     * <p>salt가 해시 문자열에 포함되므로 별도 컬럼이 필요 없다. 강도는 기본값(10)을
+     * 쓴다 — Render 무료 인스턴스가 512MB·저사양이라 올리면 로그인이 눈에 띄게
+     * 느려진다.
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     /**

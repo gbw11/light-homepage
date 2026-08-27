@@ -65,4 +65,43 @@ public class Member {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    // ── 생성 ──────────────────────────────────────────────────
+
+    /**
+     * 이메일 가입 (SPEC_API.md §2.1).
+     *
+     * <p><b>역할은 항상 {@link Role#PENDING}으로 시작한다.</b> 호출자가 역할을
+     * 정하게 두면 가입 요청에 role을 실어 보내는 것만으로 승격이 된다.
+     *
+     * @param passwordHash 이미 BCrypt로 해싱된 값. <b>평문을 넘기지 말 것.</b>
+     */
+    public static Member signUpWithEmail(String name, String email, String passwordHash,
+                                         String phone, String village) {
+        return Member.builder()
+                .name(name)
+                .email(email)
+                .passwordHash(passwordHash)
+                .phone(phone)
+                .village(village)
+                .role(Role.PENDING)
+                .build();
+    }
+
+    // ── 조회 ──────────────────────────────────────────────────
+
+    /**
+     * 실명·연락처·마을이 모두 채워졌는가 (SPEC_API.md §2.2 {@code profileComplete}).
+     *
+     * <p>이메일 가입은 셋 다 필수라 항상 true다. <b>카카오 가입에서 갈린다</b> —
+     * 카카오는 닉네임만 주므로 실명·연락처·마을을 따로 받아야 하고, 그 전까지
+     * FE가 {@code /signup/complete}로 보낸다 (SPEC_API.md §2.7·§2.8).
+     */
+    public boolean isProfileComplete() {
+        return hasText(name) && hasText(phone) && hasText(village);
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
 }
