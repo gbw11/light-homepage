@@ -33,7 +33,7 @@
 light-homepage/
 ├─ frontend/     Next.js 16 + TypeScript + Tailwind v4  ← FE 단독 소유
 ├─ backend/      Spring Boot 3 + Java 21              ← BE 단독 소유
-├─ infra/        Jenkins 등 인프라 구성                  ← server_develop 소유
+├─ infra/        Jenkins · Render · Neon 인프라 구성      ← server_develop 소유
 ├─ docs/         기획·설계 문서                          ← 공동
 ├─ .github/      GitHub Actions CI · PR 템플릿
 └─ Jenkinsfile   Jenkins 파이프라인 정의
@@ -127,6 +127,7 @@ cd frontend && npm run dev               # → localhost:3000
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 시스템 설계 — 스택·데이터·API·보안 |
 | [WORKPLAN.md](docs/WORKPLAN.md) | 일정·시간 산정·역할 분담 |
 | [CICD.md](docs/CICD.md) | Jenkins CI/CD 설계 · 머지 게이트 |
+| [**FLOW.md**](docs/FLOW.md) | **★ 전체 흐름 — 브랜치를 파는 것부터 사용자 화면까지 한 장** |
 | [**COST_GUARDRAILS.md**](docs/COST_GUARDRAILS.md) | **과금 방지 설계 — 외부 서비스를 추가하기 전에 읽습니다** |
 
 **명세서**
