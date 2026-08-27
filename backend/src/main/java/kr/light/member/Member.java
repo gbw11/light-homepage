@@ -88,6 +88,48 @@ public class Member {
                 .build();
     }
 
+    // ── 상태 변경 ─────────────────────────────────────────────
+
+    /**
+     * 가입 승인 (SPEC_API.md §8.2).
+     *
+     * <p>누가 언제 승인했는지 남긴다 — 승인은 되돌리기 어렵고 사고가 나면
+     * 반드시 추적 대상이 된다. 감사로그와 별개로 회원 행에도 남겨,
+     * 로그를 뒤지지 않아도 회원 목록에서 바로 보이게 한다.
+     *
+     * <p><b>이미 승인된 회원을 다시 승인하지 않는다.</b> 두 번째 호출이
+     * {@code approvedAt}을 덮으면 최초 승인 시각이라는 기록이 사라진다.
+     */
+    public void approve(Member approver, Instant at) {
+        if (role != Role.PENDING) {
+            throw new IllegalStateException("승인 대기 상태가 아니다: " + role);
+        }
+        this.role = Role.MEMBER;
+        this.approvedAt = at;
+        this.approvedBy = approver;
+    }
+
+    /**
+     * 역할 변경 (SPEC_API.md §8.4).
+     *
+     * <p>⚠️ <b>{@code MEMBER ↔ LEADER}만 허용한다</b> (FR-ADM-04). PENDING을
+     * 여기로 끌어올리면 {@link #approve}가 남기는 승인 기록을 건너뛰게 되고,
+     * PASTOR 부여를 API로 열면 전도사 계정이 조용히 늘어나는 사고가 가능해진다.
+     * 전도사 임명이 필요하면 DB에서 직접 한다 — 드물고, 되돌리기 어려운 일이다.
+     */
+    public void changeRole(Role newRole) {
+        if (!isAssignableRole(role) || !isAssignableRole(newRole)) {
+            throw new IllegalStateException(
+                    "MEMBER↔LEADER만 변경할 수 있다: %s → %s".formatted(role, newRole));
+        }
+        this.role = newRole;
+    }
+
+    /** API로 오갈 수 있는 역할인가 */
+    public static boolean isAssignableRole(Role role) {
+        return role == Role.MEMBER || role == Role.LEADER;
+    }
+
     // ── 조회 ──────────────────────────────────────────────────
 
     /**
