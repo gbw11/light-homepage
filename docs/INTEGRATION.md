@@ -490,7 +490,7 @@ NEXT_PUBLIC_USE_MOCK=1        # BE 미구현 구간은 1, 실연동 시 0
 ```
 ```bash
 # 운영 (Vercel 환경변수)
-API_ORIGIN=https://light-api.onrender.com
+API_ORIGIN=https://light-homepage.onrender.com        # 2026-08-27 실제 배포 주소
 NEXT_PUBLIC_USE_MOCK=0
 ```
 
