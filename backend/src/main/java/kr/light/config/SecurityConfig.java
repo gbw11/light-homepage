@@ -1,6 +1,8 @@
 package kr.light.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.light.auth.JwtAuthenticationFilter;
+import kr.light.common.AuthorizationFailures;
 import kr.light.common.ErrorCode;
 import kr.light.common.ErrorResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,38 +11,61 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 
 import java.nio.charset.StandardCharsets;
 
 /**
- * Security 설정 — <b>M1 최소판</b>.
+ * Security 설정.
  *
- * <p>목적은 두 가지뿐이다.
+ * <p>하는 일은 네 가지다.
  * <ol>
- *   <li>Swagger UI를 열어 FE가 계약서를 볼 수 있게 한다. 설정이 없으면 Boot
- *       기본 정책이 모든 경로를 막아 {@code /swagger-ui.html}이 401이 된다.</li>
- *   <li>필터 체인에서 나가는 401·403도 계약된 봉투 형태로 만든다
- *       (SPEC_API.md §1.1).</li>
+ *   <li>공개 경로를 연다 — 열지 않으면 Boot 기본 정책이 전부 막는다</li>
+ *   <li>{@code JwtAuthenticationFilter}로 쿠키의 액세스 토큰을 읽어 인증을 세운다</li>
+ *   <li>역할 계층({@link #roleHierarchy()})을 걸어 {@code @PreAuthorize} 하나로
+ *       상위 역할까지 통과하게 한다</li>
+ *   <li>필터 체인에서 나가는 401·403을 계약된 봉투로 만든다 (SPEC_API.md §1.1)</li>
  * </ol>
  *
- * <p><b>⚠️ 아직 인증이 없다.</b> JWT 발급·검증 필터, 쿠키 처리, 역할 기반
- * 인가 규칙은 전부 M2다 (BACKEND_TASKS.md §10 M2 — "Spring Security 설정 +
- * JWT"). 지금은 <b>열어둔 경로 외에는 전부 막혀 있다</b> — 인증 수단이 없으므로
- * 사실상 아무도 통과하지 못한다. 공개 엔드포인트({@code POST /api/newcomers} 등)는
- * 그것을 만드는 시점에 아래 목록에 추가한다.
- *
  * <p><b>CSRF를 끈 이유:</b> 세션을 쓰지 않는 stateless API다. 쿠키 방식 JWT의
- * CSRF 방어는 {@code SameSite=Lax} + Origin 헤더 검증으로 하기로 되어 있고
- * (ARCHITECTURE.md §6.3), 그 구현도 M2다.
+ * CSRF 방어는 {@code SameSite=Lax}(→ {@code AuthCookies})와 Origin 헤더 검증으로
+ * 한다 (ARCHITECTURE.md §6.3). <b>Origin 검증은 아직 없다</b> — 남은 M2 항목이다.
+ *
+ * <h2>보호 엔드포인트를 만들 때 (ARCHITECTURE.md §5.2 — 2층 방어)</h2>
+ *
+ * <p>여기 {@code PUBLIC_*_PATHS}에 넣지 않으면 로그인은 강제된다. 하지만
+ * <b>"로그인했다"와 "권한이 있다"는 다르다.</b> 역할이 필요한 엔드포인트에는
+ * 컨트롤러 메서드에 {@code @PreAuthorize}를 직접 단다.
+ *
+ * <pre>
+ * &#64;PreAuthorize("isAuthenticated()")   // 로그인만 — PENDING도 통과
+ * &#64;PreAuthorize("hasRole('MEMBER')")   // 승인된 회원 이상 (PENDING 차단)
+ * &#64;PreAuthorize("hasRole('LEADER')")   // 임원 이상 — 계층상 PASTOR도 통과
+ * &#64;PreAuthorize("hasRole('PASTOR')")   // 전도사만
+ * </pre>
+ *
+ * <p><b>⚠️ 그리고 서비스 계층에서 한 번 더 검사한다.</b> {@code @PreAuthorize}는
+ * "이 역할이면 이 엔드포인트를 부를 수 있다"까지만 본다. "이 사람이 <b>이
+ * 리소스</b>를 볼 수 있는가"는 컨트롤러가 알 수 없다 — 그건
+ * {@code PostQueryService} 같은 단일 관문의 몫이다. 한 층만으로는 부족하다.
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -85,10 +110,18 @@ public class SecurityConfig {
      * rate limit으로 한다.
      */
     private static final String[] PUBLIC_POST_PATHS = {
-            "/api/newcomers"
+            "/api/newcomers",
+            // 인증을 얻기 위한 경로는 인증 없이 열려야 한다 (SPEC_API.md §2.1~§2.4).
+            // ⚠️ /api/auth/** 로 뭉뚱그리지 않는다. 그러면 나중에 추가될
+            //    PATCH /api/auth/me(권한 M)·DELETE /api/auth/me까지 함께 열린다.
+            "/api/auth/signup",
+            "/api/auth/login",
+            "/api/auth/refresh",
+            "/api/auth/logout"
     };
 
     private final ObjectMapper objectMapper;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -111,7 +144,48 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint())
                         .accessDeniedHandler(accessDeniedHandler()))
+                // 인가 판단(AuthorizationFilter) 전에 SecurityContext가 채워져 있어야 한다.
+                // UsernamePasswordAuthenticationFilter 자리에 끼우는 것이 관례다.
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+
+    /**
+     * 역할 계층 — 상위가 하위를 포함한다 (ARCHITECTURE.md §5.1).
+     *
+     * <p>이걸 걸어야 {@code hasRole('LEADER')} 하나로 PASTOR까지 통과한다. 없으면
+     * 엔드포인트마다 상위 역할을 일일이 나열해야 하고, 빠뜨리면 전도사가 임원
+     * 기능을 못 쓴다.
+     *
+     * <p><b>⚠️ PENDING은 계층에 넣지 않는다.</b> 넣으면 미승인 회원이 MEMBER
+     * 권한을 물려받는다. PENDING은 "아직 아무것도 아님"이지 최하위 회원이 아니다.
+     */
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.withDefaultRolePrefix()
+                .role("PASTOR").implies("LEADER")
+                .role("LEADER").implies("MEMBER")
+                .build();
+    }
+
+    /** 메서드 보안(@PreAuthorize)에서도 위 계층이 적용되게 한다 */
+    @Bean
+    public MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy roleHierarchy) {
+        DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+        handler.setRoleHierarchy(roleHierarchy);
+        return handler;
+    }
+
+    /**
+     * BCrypt (BACKEND_TASKS.md §4 — {@code members.password_hash}).
+     *
+     * <p>salt가 해시 문자열에 포함되므로 별도 컬럼이 필요 없다. 강도는 기본값(10)을
+     * 쓴다 — Render 무료 인스턴스가 512MB·저사양이라 올리면 로그인이 눈에 띄게
+     * 느려진다.
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     /**
@@ -130,14 +204,20 @@ public class SecurityConfig {
     /**
      * 역할 부족 → 403.
      *
+     * <p><b>⚠️ 승인 대기 회원은 {@code FORBIDDEN}이 아니라 {@code PENDING_APPROVAL}이다.</b>
+     * 둘 다 403이지만 FE의 행동이 다르다 — {@code PENDING_APPROVAL}을 받으면
+     * "어느 화면에 있든 {@code /pending}으로" 보낸다 (SPEC_API.md §12.3).
+     * 그냥 {@code FORBIDDEN}을 주면 미승인 회원이 "권한 없음" 안내만 보고
+     * 자기가 <b>승인을 기다리는 중</b>이라는 사실을 알 방법이 없다.
+     *
      * <p>⚠️ 여기까지 왔다는 것은 "리소스는 있는데 권한이 없다"를 알려주는
      * 것이다. 존재를 숨겨야 하는 리소스(예산안 등)는 필터가 아니라 서비스
      * 계층에서 404로 만들어야 한다 (ARCHITECTURE.md §5.2).
      */
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
-        return (request, response, deniedException) ->
-                writeError(response, ErrorCode.FORBIDDEN);
+        return (request, response, deniedException) -> writeError(response,
+                AuthorizationFailures.codeFor(SecurityContextHolder.getContext().getAuthentication()));
     }
 
     private void writeError(HttpServletResponse response, ErrorCode code) throws java.io.IOException {
