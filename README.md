@@ -127,6 +127,7 @@ cd frontend && npm run dev               # → localhost:3000
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 시스템 설계 — 스택·데이터·API·보안 |
 | [WORKPLAN.md](docs/WORKPLAN.md) | 일정·시간 산정·역할 분담 |
 | [CICD.md](docs/CICD.md) | Jenkins CI/CD 설계 · 머지 게이트 |
+| [**COST_GUARDRAILS.md**](docs/COST_GUARDRAILS.md) | **과금 방지 설계 — 외부 서비스를 추가하기 전에 읽습니다** |
 
 **명세서**
 

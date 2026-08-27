@@ -43,12 +43,26 @@ management:
   endpoints:
     web:
       exposure:
-        # Render 슬립 방지 핑(cron-job.org)이 때리는 엔드포인트
+        # health만 연다. 아래 alive 그룹(/actuator/health/alive)이 슬립 방지 핑
+        # 대상이고, /actuator/health 자체는 사람이 진단할 때 쓴다.
         include: health
   endpoint:
     health:
       probes:
         enabled: true
+      group:
+        # ★ 슬립 방지 핑 전용 그룹 — DB를 건드리지 않는다.
+        #
+        #   /actuator/health 에는 Spring이 DataSource 인디케이터를 자동으로 붙인다.
+        #   10분 핑이 그쪽을 때리면 Neon 컴퓨트가 영구히 깨어 있게 되어 무료
+        #   컴퓨트 한도를 넘긴다 — "월 $0" 전제가 깨진다
+        #   (docs/COST_GUARDRAILS.md §3.2).
+        #
+        #   include를 명시하는 이유: 기본 liveness 그룹 구성(livenessState)에
+        #   의존하면 Spring Boot 버전이 올라가며 조용히 바뀔 수 있다.
+        #   HealthProbeTest가 이 구성을 고정한다.
+        alive:
+          include: ping
 
 springdoc:
   # FE와의 계약서 (ARCHITECTURE.md §6.1). 운영에서는 아래 prod 문서에서 끈다.
