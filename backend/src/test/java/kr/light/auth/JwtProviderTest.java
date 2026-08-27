@@ -28,7 +28,15 @@ class JwtProviderTest {
     private final JwtProperties properties = new JwtProperties(SECRET, 1800, 1209600);
     private final JwtProvider provider = new JwtProvider(properties);
 
-    private final Instant now = Instant.parse("2026-08-27T00:00:00Z");
+    /**
+     * ⚠️ 고정 시각을 쓰지 않는다.
+     *
+     * <p>{@code JwtProvider.parse}는 검증에 <b>시스템 시계</b>를 쓴다(jjwt 내부).
+     * 발급 시각만 과거로 고정해두면, 실제 시계가 그 시각 + TTL을 지나는 순간
+     * 멀쩡한 테스트가 만료로 깨진다 — 실제로 그렇게 깨졌다. 발급도 "지금"으로
+     * 맞춰야 두 시계가 어긋나지 않는다.
+     */
+    private final Instant now = Instant.now();
 
     // ── 유효 ──────────────────────────────────────────────────
 

@@ -3,9 +3,7 @@ package kr.light.auth;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import kr.light.common.ApiException;
 import kr.light.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -146,12 +145,12 @@ public class AuthController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
     })
+    // ⚠️ hasRole('MEMBER')가 아니라 isAuthenticated()다. 승인 대기(PENDING) 회원도
+    //    자기 정보는 볼 수 있어야 한다 — 못 보면 자기가 어떤 상태인지 확인할
+    //    방법이 없다 (SPEC_API.md §2.5 "권한 로그인").
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
     public ApiResponse<MeResponse> me(@AuthenticationPrincipal AuthPrincipal principal) {
-        if (principal == null) {
-            // 필터는 요청을 거절하지 않는다. 여기까지 왔는데 주체가 없으면 미인증이다.
-            throw ApiException.unauthorized();
-        }
         return ApiResponse.of(authService.me(principal.memberId()));
     }
 

@@ -2,6 +2,7 @@ package kr.light.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.light.auth.JwtAuthenticationFilter;
+import kr.light.common.AuthorizationFailures;
 import kr.light.common.ErrorCode;
 import kr.light.common.ErrorResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,6 +17,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -28,25 +30,38 @@ import org.springframework.security.access.expression.method.MethodSecurityExpre
 import java.nio.charset.StandardCharsets;
 
 /**
- * Security 설정 — <b>M1 최소판</b>.
+ * Security 설정.
  *
- * <p>목적은 두 가지뿐이다.
+ * <p>하는 일은 네 가지다.
  * <ol>
- *   <li>Swagger UI를 열어 FE가 계약서를 볼 수 있게 한다. 설정이 없으면 Boot
- *       기본 정책이 모든 경로를 막아 {@code /swagger-ui.html}이 401이 된다.</li>
- *   <li>필터 체인에서 나가는 401·403도 계약된 봉투 형태로 만든다
- *       (SPEC_API.md §1.1).</li>
+ *   <li>공개 경로를 연다 — 열지 않으면 Boot 기본 정책이 전부 막는다</li>
+ *   <li>{@code JwtAuthenticationFilter}로 쿠키의 액세스 토큰을 읽어 인증을 세운다</li>
+ *   <li>역할 계층({@link #roleHierarchy()})을 걸어 {@code @PreAuthorize} 하나로
+ *       상위 역할까지 통과하게 한다</li>
+ *   <li>필터 체인에서 나가는 401·403을 계약된 봉투로 만든다 (SPEC_API.md §1.1)</li>
  * </ol>
  *
- * <p><b>⚠️ 아직 인증이 없다.</b> JWT 발급·검증 필터, 쿠키 처리, 역할 기반
- * 인가 규칙은 전부 M2다 (BACKEND_TASKS.md §10 M2 — "Spring Security 설정 +
- * JWT"). 지금은 <b>열어둔 경로 외에는 전부 막혀 있다</b> — 인증 수단이 없으므로
- * 사실상 아무도 통과하지 못한다. 공개 엔드포인트({@code POST /api/newcomers} 등)는
- * 그것을 만드는 시점에 아래 목록에 추가한다.
- *
  * <p><b>CSRF를 끈 이유:</b> 세션을 쓰지 않는 stateless API다. 쿠키 방식 JWT의
- * CSRF 방어는 {@code SameSite=Lax} + Origin 헤더 검증으로 하기로 되어 있고
- * (ARCHITECTURE.md §6.3), 그 구현도 M2다.
+ * CSRF 방어는 {@code SameSite=Lax}(→ {@code AuthCookies})와 Origin 헤더 검증으로
+ * 한다 (ARCHITECTURE.md §6.3). <b>Origin 검증은 아직 없다</b> — 남은 M2 항목이다.
+ *
+ * <h2>보호 엔드포인트를 만들 때 (ARCHITECTURE.md §5.2 — 2층 방어)</h2>
+ *
+ * <p>여기 {@code PUBLIC_*_PATHS}에 넣지 않으면 로그인은 강제된다. 하지만
+ * <b>"로그인했다"와 "권한이 있다"는 다르다.</b> 역할이 필요한 엔드포인트에는
+ * 컨트롤러 메서드에 {@code @PreAuthorize}를 직접 단다.
+ *
+ * <pre>
+ * &#64;PreAuthorize("isAuthenticated()")   // 로그인만 — PENDING도 통과
+ * &#64;PreAuthorize("hasRole('MEMBER')")   // 승인된 회원 이상 (PENDING 차단)
+ * &#64;PreAuthorize("hasRole('LEADER')")   // 임원 이상 — 계층상 PASTOR도 통과
+ * &#64;PreAuthorize("hasRole('PASTOR')")   // 전도사만
+ * </pre>
+ *
+ * <p><b>⚠️ 그리고 서비스 계층에서 한 번 더 검사한다.</b> {@code @PreAuthorize}는
+ * "이 역할이면 이 엔드포인트를 부를 수 있다"까지만 본다. "이 사람이 <b>이
+ * 리소스</b>를 볼 수 있는가"는 컨트롤러가 알 수 없다 — 그건
+ * {@code PostQueryService} 같은 단일 관문의 몫이다. 한 층만으로는 부족하다.
  */
 @Configuration
 @EnableWebSecurity
@@ -189,14 +204,20 @@ public class SecurityConfig {
     /**
      * 역할 부족 → 403.
      *
+     * <p><b>⚠️ 승인 대기 회원은 {@code FORBIDDEN}이 아니라 {@code PENDING_APPROVAL}이다.</b>
+     * 둘 다 403이지만 FE의 행동이 다르다 — {@code PENDING_APPROVAL}을 받으면
+     * "어느 화면에 있든 {@code /pending}으로" 보낸다 (SPEC_API.md §12.3).
+     * 그냥 {@code FORBIDDEN}을 주면 미승인 회원이 "권한 없음" 안내만 보고
+     * 자기가 <b>승인을 기다리는 중</b>이라는 사실을 알 방법이 없다.
+     *
      * <p>⚠️ 여기까지 왔다는 것은 "리소스는 있는데 권한이 없다"를 알려주는
      * 것이다. 존재를 숨겨야 하는 리소스(예산안 등)는 필터가 아니라 서비스
      * 계층에서 404로 만들어야 한다 (ARCHITECTURE.md §5.2).
      */
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
-        return (request, response, deniedException) ->
-                writeError(response, ErrorCode.FORBIDDEN);
+        return (request, response, deniedException) -> writeError(response,
+                AuthorizationFailures.codeFor(SecurityContextHolder.getContext().getAuthentication()));
     }
 
     private void writeError(HttpServletResponse response, ErrorCode code) throws java.io.IOException {
