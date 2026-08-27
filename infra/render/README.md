@@ -7,7 +7,8 @@
 담당: PM/인프라 (`server_develop`)
 관련: [`../../docs/BACKEND_DEPLOY.md`](../../docs/BACKEND_DEPLOY.md)(백엔드 규약) ·
 [`../../docs/CICD.md`](../../docs/CICD.md) §5(CD 설계) ·
-[`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) §8(호스팅 선택 근거)
+[`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) §8(호스팅 선택 근거) ·
+[`../../docs/COST_GUARDRAILS.md`](../../docs/COST_GUARDRAILS.md)(★ 과금 방지 설계)
 
 ---
 
@@ -31,6 +32,15 @@ develop  ──▶ GitHub Actions
 ---
 
 ## 1. 순서대로 — 최초 1회
+
+> ### ⚠️ ⓪ 먼저 — 어느 서비스에도 **카드를 등록하지 마세요**
+>
+> Neon·Render 모두 결제 수단 없이 무료 플랜을 쓸 수 있습니다. **결제 수단이
+> 없으면 한도를 넘겨도 과금이 아니라 서비스 정지로 나타납니다** — 그게
+> 이 프로젝트의 1차 방어입니다 (`../../docs/COST_GUARDRAILS.md §0`).
+>
+> 가입 과정에서 카드를 요구하는 화면이 나오면 **멈추고 확인하세요.** 무료
+> 한도가 있어도 카드를 요구하는 서비스는 채택 대상이 아닙니다.
 
 ### ① Neon에서 DB부터 만듭니다 (Render보다 먼저)
 
@@ -73,7 +83,7 @@ https://render.com → New → **Web Service** → 이 저장소 연결
 | Dockerfile Path | `backend/Dockerfile` |
 | Region | **Singapore** (Neon과 같은 리전에 두어야 왕복이 짧습니다) |
 | Instance Type | **Free** |
-| Health Check Path | `/actuator/health` |
+| Health Check Path | **`/actuator/health/alive`** ← ⚠️ `/actuator/health`가 아님 (`../../docs/COST_GUARDRAILS.md §3.2`) |
 
 ### ③ 환경 변수 — **지금은 5개면 됩니다**
 
@@ -132,19 +142,35 @@ GitHub 저장소 → Settings → Secrets and variables → Actions
 Render Free는 **15분 유휴 시 슬립**하고, 깨어날 때 JVM 콜드스타트가 30~60초 걸립니다.
 
 https://cron-job.org (무료) → 새 작업
-- URL: `https://<서비스명>.onrender.com/actuator/health`
+- URL: `https://<서비스명>.onrender.com/actuator/health/alive`
 - 주기: **10분**
 
+> ### ⚠️ 경로를 `/actuator/health`로 두면 안 됩니다
+>
+> `/actuator/health`는 **DB 상태까지 확인합니다.** 10분마다 그쪽을 때리면
+> Neon(DB)이 **한 번도 자동 정지되지 않아** 무료 컴퓨트 한도를 넘깁니다.
+> `/actuator/health/alive`는 DB를 건드리지 않습니다
+> (`../../docs/COST_GUARDRAILS.md §3.2`).
+>
+> 이 실수는 **아무 증상이 없습니다** — 사이트도 API도 정상으로 보이고,
+> Neon 사용량으로만 드러납니다.
+
 > 750시간/월 = 서비스 하나를 24시간 켜두는 양입니다. 핑을 넣어도 한도 안에 있습니다.
-> **그래서 스테이징 서버를 따로 둘 수 없습니다** — 두 개면 1500시간이라 한도를 넘습니다.
+> 다만 **여유가 6시간뿐입니다**(744/750). **그래서 스테이징 서버를 따로 둘 수
+> 없습니다** — 두 개면 1,488시간이라 한도를 넘습니다.
 
 ---
 
 ## 2. 확인
 
 ```bash
+# 슬립 방지 핑·Render 헬스체크가 쓰는 경로 (DB를 건드리지 않습니다)
+curl -i https://<서비스명>.onrender.com/actuator/health/alive
+# → HTTP 200  {"status":"UP"}
+
+# DB까지 확인하는 진단용 경로 — 사람이 필요할 때만 부릅니다
 curl -i https://<서비스명>.onrender.com/actuator/health
-# → HTTP 200  {"status":"UP","groups":["liveness","readiness"]}
+# → HTTP 200  {"status":"UP","groups":[...]}
 ```
 
 `{"status":"UP"}`이 나오면 끝입니다. 그다음부터는 BE가 `develop`에 머지할 때마다
@@ -172,7 +198,8 @@ docker run --rm --network light-local -p 8080:8080 \
   -e JWT_SECRET="$(openssl rand -base64 48)" \
   light-api
 
-curl localhost:8080/actuator/health
+curl localhost:8080/actuator/health/alive   # → {"status":"UP"}  (DB 미접근)
+curl localhost:8080/actuator/health         # → {"status":"UP"}  (DB 포함)
 ```
 
 > 이 절차는 2026-08-26에 실제로 돌려서 확인했습니다 — Flyway V1 적용,

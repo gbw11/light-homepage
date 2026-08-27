@@ -201,6 +201,21 @@ docker exec light-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 **5개 영구 브랜치 + `feat/*` 브랜치가 자동으로 감지되어 각각 파이프라인이 생성됩니다.**
 `feat/*`에서도 CI가 돌아야 **머지 전에** 결과를 알 수 있습니다. 이것이 §1.1 흐름의 전제입니다.
 
+> ### 무료 분을 아끼는 장치 2개
+>
+> ⚠️ **Private 저장소라 Actions 실행 시간이 무료 분(2,000분/월)에서 차감됩니다.**
+> Public 저장소와 다릅니다.
+>
+> | 장치 | 효과 |
+> |---|---|
+> | `paths` 필터 | `frontend/**` 변경은 Backend CI를 돌리지 않습니다(그 반대도) |
+> | `concurrency` 취소 | 같은 브랜치·PR에 새 커밋이 오면 앞의 실행을 취소합니다 |
+>
+> `concurrency`에서 **`develop`은 취소하지 않습니다** — `deploy` 잡이 Render 훅을
+> 호출하는 중에 끊기면 배포가 트리거됐는지 알 수 없는 상태가 됩니다.
+>
+> 사용량과 경고선은 [`COST_GUARDRAILS.md §3.1`](COST_GUARDRAILS.md)에 있습니다.
+
 ### 3.6 파이프라인 단계
 
 ```
