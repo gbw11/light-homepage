@@ -335,7 +335,7 @@ curl localhost:8080/actuator/health         # → {"status":"UP"}  (DB 포함)
 | ③ 메모리 | `threads.max: 20` (기본 200) | `application.yml` | 스레드 스택은 **힙 밖** 메모리입니다 |
 | ③ 메모리 | `-XX:+UseSerialGC` | `Dockerfile` | JVM은 CPU 개수로 GC를 고릅니다 — 2 CPU가 되면 조용히 G1로 넘어갑니다 |
 | ④ **과금** | `keepalive-time: 0` 외 2줄 | `application.yml` | ★ **커넥션 풀이 Neon을 상시 가동시키고 있었습니다** — `../../docs/COST_GUARDRAILS.md §3.2` |
-| ⑤ 응답 크기 | `compression.enabled: true` | `application.yml` | 목록 JSON. 기본 mime-types에 `application/json`이 이미 있습니다 |
+| ⑤ 응답 크기 | `compression.enabled: true` | `application.yml` | ⚠️ **효과가 확인되지 않았습니다 — 아래 실측 참고** |
 
 > ### ⚠️ `-Xmx400m`은 여유가 없습니다 — 늘릴 수 없을 뿐 아니라 이미 빡빡합니다
 >
@@ -360,11 +360,34 @@ curl localhost:8080/actuator/health         # → {"status":"UP"}  (DB 포함)
 > # 재배포 중에도 응답이 끊기지 않는지 (graceful shutdown 확인)
 > curl -s -o /dev/null -w "%{http_code}\n" https://light-homepage.onrender.com/actuator/health/alive
 >
-> # 압축이 실제로 걸리는지 (2KB 넘는 응답에만 걸립니다)
 > curl -s -H "Accept-Encoding: gzip" -D - -o /dev/null \
 >   "https://light-homepage.onrender.com/api/posts?category=NOTICE_PUBLIC"
-> # → content-encoding: gzip  (글이 없어 응답이 2KB 미만이면 안 붙는 게 정상)
 > ```
 >
 > 그리고 **Neon → Compute 그래프에 빈 구간이 생겼는지**가 ④가 실제로 막혔다는
 > 유일한 증거입니다.
+
+### 2026-08-27 배포 후 실측 (최적화 적용분)
+
+| 확인 | 결과 | 해석 |
+|---|---|---|
+| `/actuator/health/alive` | 200 / **0.58초** | 정상 |
+| `/actuator/health` (DB 포함) | 200 / **1.37초** | ⚠️ **예상된 대가입니다** — `minimum-idle: 0`으로 유휴 시 풀을 비우므로 첫 DB 쿼리가 커넥션을 새로 맺습니다. Neon을 자동 정지시키기 위해 지불하는 비용입니다 |
+
+> ### ⚠️ ⑤ 응답 압축은 우리 설정의 효과인지 확인되지 않았습니다
+>
+> `Content-Encoding: gzip`은 붙지만 **우리 설정 때문이 아닐 가능성이 높습니다.**
+>
+> | 응답 | 크기 | gzip |
+> |---|---|---|
+> | `/api/posts` (`application/json`) | 약 55B | ✅ 붙음 |
+> | `/actuator/health/alive` (actuator vendor 타입) | 약 15B | ❌ 안 붙음 |
+>
+> **둘 다 2KB 미만인데 결과가 갈립니다.** Spring 압축은 기본 2KB 기준이라
+> **둘 다 압축하지 않아야 합니다.** content-type으로 갈리는 이 패턴은
+> **Render 앞단의 Cloudflare** 동작과 일치합니다(응답 헤더 `Server: cloudflare`).
+>
+> → `compression.enabled: true`는 **실질적으로 no-op일 수 있습니다.** 해롭지는
+> 않지만 이득을 주장할 근거가 없습니다. **2KB를 넘는 실데이터가 생긴 뒤 다시
+> 측정해야** 확정됩니다.
+
