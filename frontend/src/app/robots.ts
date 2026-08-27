@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 /**
  * 색인 차단 대상 (NFR-SEC-29). `next.config.ts`의 `X-Robots-Tag` 헤더와
@@ -12,15 +12,18 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
  *    (`/photos`·`/bulletin`·`/meetings`·`/documents`)가 공개
  *    라우트가 된 지금도 목록에 그대로 남아 있다.
  *
- * ⚠️ `/photos`·`/bulletins`는 `public/`에 있는 **mock 개발용 자산** 경로이기도
- *    하다 (라우트와 우연히 겹친다).
- *    회원 사진(실제 인물)이 들어 있는데 `public/`은 인증 없이 서빙되므로
- *    색인만이라도 막는다.
+ * ⚠️ mock 개발용 사진 자산은 **2026-08-27에 `public/` 밖으로 옮겼다**
+ *    (`frontend/mock-assets/`). `/mock-assets/*` route handler가 배포에서
+ *    404를 주므로, 이제 색인 차단이 아니라 **코드가 막는다**
+ *    (PM 결정 2026-08-27, 1안 — `docs/DECISIONS.md`).
  *
- *    **이것만으로는 부족하다** — robots는 크롤러에게 부탁하는 것일 뿐,
- *    URL을 아는 사람의 직접 접근은 막지 못한다. 실서비스는 사진을 R2
- *    presigned URL(만료됨)로 서빙하므로 이 자산이 배포에 포함되면 안 된다.
- *    `docs/DECISIONS.md` 2026-08-24 "mock 사진 자산 배포 제외" 항목 참고.
+ *    🔴 그 전에 쓰던 `.vercelignore`(2안)는 **동작하지 않았다** — Git 연동
+ *    배포에서 `/photos/retreat-2026/thumb/p001.webp`가 200으로 서빙되는 것을
+ *    실측했다. robots·헤더는 크롤러에게 부탁하는 것일 뿐 직접 접근을 막지
+ *    못하므로, 그것들만 믿으면 안 된다.
+ *
+ *    `/bulletins`는 `public/`에 남아 있다 — "PLACEHOLDER" 생성물이고 개인정보가
+ *    아니다. 색인만 막는다.
  */
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -33,6 +36,7 @@ export default function robots(): MetadataRoute.Robots {
         "/photos",
         "/bulletin",
         "/bulletins",
+        "/mock-assets",
         "/meetings",
         "/documents",
       ],

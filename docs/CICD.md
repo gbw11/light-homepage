@@ -211,6 +211,10 @@ docker exec light-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 > | `paths` 필터 | `frontend/**` 변경은 Backend CI를 돌리지 않습니다(그 반대도) |
 > | `concurrency` 취소 | 같은 브랜치·PR에 새 커밋이 오면 앞의 실행을 취소합니다 |
 >
+> ⚠️ **`secret-scan.yml`은 `paths` 필터가 없습니다** — 시크릿은 어느 파일에든
+> 들어갈 수 있어서 모든 변경에서 돌아야 합니다. 그래서 이 워크플로만 예외입니다
+> (2026-08-27 Jenkins에서 이관 — [`COST_GUARDRAILS.md §3.1`](COST_GUARDRAILS.md)).
+>
 > `concurrency`에서 **`develop`은 취소하지 않습니다** — `deploy` 잡이 Render 훅을
 > 호출하는 중에 끊기면 배포가 트리거됐는지 알 수 없는 상태가 됩니다.
 >
