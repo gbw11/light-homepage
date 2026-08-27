@@ -706,7 +706,7 @@ Spring Boot는 상시 실행 프로세스가 필요해서, 서버리스인 Verce
 
 ### 프론트엔드 (Vercel)
 ```
-API_ORIGIN=https://light-api.onrender.com   # 서버 전용, rewrites 대상
+API_ORIGIN=https://light-homepage.onrender.com   # 서버 전용, rewrites 대상 (2026-08-27 실제 배포 주소)
 NEXT_PUBLIC_SITE_URL=https://...
 ```
 ⚠️ `API_ORIGIN`에 `NEXT_PUBLIC_`을 붙이지 않는다. 프록시는 서버에서만 이뤄진다.

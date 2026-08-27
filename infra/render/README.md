@@ -163,7 +163,7 @@ https://cron-job.org (무료) → 새 작업
 
 | 항목 | 값 |
 |---|---|
-| URL | `https://<서비스명>.onrender.com/actuator/health/alive` |
+| URL | `https://light-homepage.onrender.com/actuator/health/alive` |
 | 스케줄 | **`*/10 6-23 * * *`** (10분마다, 06:00~23:59만) |
 | **Timezone** | **`Asia/Seoul`** ← ⚠️ 아래 참고 |
 
@@ -205,21 +205,53 @@ https://cron-job.org (무료) → 새 작업
 
 ## 2. 확인
 
+> ### ✅ 2026-08-27 배포 성공 — 아래는 실측값입니다
+>
+> **서비스 주소: `https://light-homepage.onrender.com`**
+>
+> 서비스 이름과 주소가 같습니다(Render가 접미사를 붙이지 않았습니다).
+
 ```bash
 # 슬립 방지 핑·Render 헬스체크가 쓰는 경로 (DB를 건드리지 않습니다)
-curl -i https://<서비스명>.onrender.com/actuator/health/alive
+curl -i https://light-homepage.onrender.com/actuator/health/alive
 # → HTTP 200  {"status":"UP"}
 
 # DB까지 확인하는 진단용 경로 — 사람이 필요할 때만 부릅니다
-curl -i https://<서비스명>.onrender.com/actuator/health
-# → HTTP 200  {"status":"UP","groups":[...]}
+curl -i https://light-homepage.onrender.com/actuator/health
+# → HTTP 200  {"status":"UP","groups":["alive","liveness","readiness"]}
 ```
+
+### 2026-08-27 실측 결과 전체
+
+| 경로 | 실측 | 뜻 |
+|---|---|---|
+| `/actuator/health/alive` | **200** `{"status":"UP"}` | 핑 대상이 열려 있음 — **인증 없이** 통과 |
+| `/actuator/health` | **200** `groups:["alive","liveness","readiness"]` | ★ **DB까지 UP** — `DATABASE_URL` JDBC 형식·SSL·비밀번호·Flyway 전부 통과 |
+| `/api/posts?category=NOTICE_PUBLIC` | **200** `{"items":[],...}` | ★ HTTP → 서비스 → Neon 읽기 전 구간 동작 (글이 없어 빈 배열) |
+| `/api/posts?category=NOTICE_MEMBER` | 401 | 인가 정상 |
+| `/api/posts?category=BUDGET` | 401 | 인가 정상 (`PostAuthorizationTest:68` 익명 = `UNAUTHORIZED`) |
+| `/` | 401 | 정상 — Spring Security 기본 설정 |
+| `/swagger-ui.html` · `/v3/api-docs` | 404 | 정상 — `prod`에서 계약서를 공개하지 않습니다 |
+| `/actuator/env` | 401 | 정상 — `include: health`만 노출 |
+| 응답 헤더 | `x-render-origin-server: Render` | suspend 상태가 아님 |
+
+> ⚠️ **`category` 값을 주의하세요.** `NOTICE`가 아니라 **`NOTICE_PUBLIC`**입니다
+> (`PostCategory.java`). 틀리면 `400 VALIDATION_ERROR`가 옵니다 — 서버 문제로
+> 오해하기 쉽습니다.
 
 `{"status":"UP"}`이 나오면 끝입니다. 그다음부터는 BE가 `develop`에 머지할 때마다
 자동으로 올라갑니다.
 
-**루트(`/`)가 401을 주는 것은 정상입니다** — Spring Security 기본 설정이라
-BE가 인증을 구현하면서 바뀝니다.
+> ### 이번 배포가 실패했던 원인 (기록)
+>
+> 첫 배포 시도는 **failed deploy**였습니다. 원인은 이 문서였습니다 —
+> `Dockerfile Path`를 `backend/Dockerfile`로 안내했는데, Render는 그 값을
+> **Root Directory 기준**으로 해석해 `backend/backend/Dockerfile`을 찾습니다
+> (§1② 참고). **`Dockerfile`로 고치고 재배포하니 통과했습니다.** 첫 빌드는
+> 캐시가 없어 약 5분 걸렸습니다.
+>
+> ⚠️ 그 사이 GitHub Actions의 `deploy` 잡은 **두 번 모두 초록불**이었습니다.
+> 훅 호출까지만 하기 때문입니다 (§2.5).
 
 ---
 
