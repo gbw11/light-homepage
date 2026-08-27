@@ -130,7 +130,7 @@ openssl rand -base64 48
 > 쓰지도 않는 서비스의 계정을 미리 만들고 시크릿을 관리하게 됩니다.
 > **각 기능을 구현하는 시점에 그때 추가하세요.**
 
-### ④ ★ Auto-Deploy 끄기
+### ④ ★ Auto-Deploy 끄기  ✅ 2026-08-27 확인 완료
 
 Render 서비스 → Settings → **Auto-Deploy: `Off`**
 
