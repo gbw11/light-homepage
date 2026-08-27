@@ -134,6 +134,52 @@ management:
 > 재시작 루프에 빠지는 것이 더 나쁘고, 공개 사이트는 백엔드에 의존하지 않는다
 > (`ARCHITECTURE.md §1.3`). DB 상태는 `/actuator/health`로 사람이 확인한다.
 
+#### ★ 2026-08-27 — 같은 누수가 **한 군데 더** 있었다 (커넥션 풀)
+
+핑 경로를 옮겨 "HTTP 요청이 DB를 깨우는" 길은 막았다. 그런데 **커넥션 풀이
+같은 일을 하고 있었다.** 핑과 무관하게, 서버가 깨어 있는 동안 계속.
+
+HikariCP 6.3.3의 기본값 두 개가 겹친 결과다 (바이트코드로 확인 —
+`DEFAULT_KEEPALIVE_TIME` · `HikariConfig.validateNumerics`):
+
+| 기본값 | 실제 동작 |
+|---|---|
+| `keepaliveTime` = **2분** (0이 아니다) | 유휴 커넥션에 **2분마다 쿼리를 보낸다** |
+| `minimumIdle` = `maximumPoolSize` (음수 → 보정) | 풀이 **고정 크기 3개**라 절대 비워지지 않는다 |
+
+```
+서버 기동 → 풀에 커넥션 3개 → 2분마다 keepalive 쿼리 → Neon 유휴 타이머 계속 초기화
+        → 자동 정지가 한 번도 걸리지 않음 → 서버가 깨어 있는 558h/월 = Neon도 558h
+```
+
+`idleTimeout`(기본 10분)이 이걸 막아줄 것 같지만 아니다 — 고정 크기 풀에서는
+HikariCP가 `"idleTimeout has been set but has no effect because the pool is
+operating as a fixed size pool."`을 남기고 **무시한다.**
+
+**고친 방법** (`application.yml`):
+
+```yaml
+spring.datasource.hikari:
+  keepalive-time: 0      # ★ 커넥션 유지 핑을 끈다 — 이게 Neon을 깨우던 것
+  minimum-idle: 0        # 풀을 0까지 비운다 (기본값은 고정 크기)
+  idle-timeout: 240000   # 4분 — Neon 자동 정지(약 5분)보다 먼저 비운다
+```
+
+**부수 효과가 하나 더 있다 — 첫 쿼리 실패/지연이 사라진다.** 정지 후에 풀을
+비우면 죽은 커넥션이 남아, 실제 사용자 요청의 첫 쿼리가 `검증 실패 → 폐기 →
+재연결`을 거친다. 미리 비우면 그 경로 자체가 없다.
+
+**사람이 기억하지 않게 고정했다** —
+`backend/src/test/java/kr/light/config/DataSourcePoolConfigTest.java`가
+`keepalive-time != 0`이나 `minimum-idle != 0`이면 CI에서 실패한다. `prod` 문서가
+이 값을 되살리는 경우까지 본다. `HealthProbeTest`와 같은 성격의 장치다 —
+**깨져도 아무 증상이 없기 때문에** 테스트가 유일한 감지 수단이다.
+
+> ⚠️ **교훈**: "핑이 DB를 건드리지 않는다"만으로는 부족하다. **애플리케이션이
+> 주기적으로 DB에 보내는 것이 또 없는지**를 봐야 한다. 앞으로 스케줄러
+> (`@Scheduled` 배치 — 예: §3.6의 `PENDING` 사진 정리)를 추가할 때 같은 질문을
+> 다시 해야 한다: **이게 Neon을 깨우는가?**
+
 **저장 용량** 0.5GB는 메타데이터 전용이라 여유가 크다. 사진·파일은 R2에 있고
 DB에는 경로와 메타만 들어간다.
 
@@ -281,8 +327,22 @@ Class B 읽기)에도 한도가 있는데, 지금 설계에 그걸 세는 장치
 |---|---|---|
 | GitHub → Billing → Actions | 사용 분 | 1,400분(70%) |
 | Render → 서비스 → Metrics | 인스턴스 시간 (정상 558h) | **650시간** |
+| Render → 서비스 → Metrics | **메모리** (정상 약 300MB / 512MB) | **420MB** — 아래 참고 |
 | Neon → 프로젝트 → Usage | 저장 용량 · 컴퓨트 시간 | 0.4GB · 한도의 70% |
+| Neon → 프로젝트 → Compute | ★ **컴퓨트가 실제로 정지하는지** (그래프에 빈 구간이 있는지) | 빈 구간이 없으면 §3.2 누수 |
 | (M3 이후) R2 → Metrics | 저장 · Class A/B 연산 | 8GB · 700K |
+
+> ### ⚠️ 메모리 경고선이 420MB인 이유 — `-Xmx400m`은 여유가 없다
+>
+> 힙 상한 400MB + 힙 밖 메모리(메타스페이스·코드캐시·스레드 스택) 약 180MB면
+> **합계가 512MB를 넘는다.** 즉 힙이 실제로 400MB까지 차면 과금이 아니라
+> `Exited with status 137`(OOM)로 죽는다. 지금 안 죽는 이유는 힙을 그만큼 쓰지
+> 않아서일 뿐이다(2026-08-26 실측 총 299MB).
+>
+> 그래서 2026-08-27에 **힙 밖 메모리를 줄이는 쪽으로** 손봤다 —
+> Tomcat 스레드 200→20(스택이 스레드마다 붙는다) · SerialGC 고정(G1은 힙 밖
+> 보조 자료구조가 더 붙는다). **`-Xmx`는 건드리지 않았다** — 낮추면 M4의
+> PDF→이미지 변환이 힙에서 막힌다.
 
 경고선에 닿으면 **기능을 줄여서 맞춘다.** `WORKPLAN.md §1`이 "$0 제약, 기능
 축소 없음 — 기간으로 조정"이라고 했으므로, 초과가 임박하면 **일정을 늦추는 것이
@@ -298,10 +358,14 @@ Class B 읽기)에도 한도가 있는데, 지금 설계에 그걸 세는 장치
 |---|---|---|
 | `alive` 헬스 그룹 | `backend/.../application.yml` | 핑이 Neon 컴퓨트를 상시 가동 |
 | `HealthProbeTest` | `backend/src/test/.../config/` | 위 구성이 조용히 되돌아가는 것 |
+| **`keepalive-time: 0`** | `application.yml` | ★ **커넥션 풀이 Neon을 상시 가동** (§3.2) |
+| **`minimum-idle: 0` · `idle-timeout: 240000`** | `application.yml` | 풀이 고정 크기라 비워지지 않는 것 |
+| **`DataSourcePoolConfigTest`** | `backend/src/test/.../config/` | 위 3줄이 조용히 되돌아가는 것 |
 | `concurrency` 취소 | `.github/workflows/*.yml` | 무의미해진 CI 실행이 분을 먹는 것 |
 | `paths` 필터 | `.github/workflows/*.yml` | 무관한 변경으로 CI가 도는 것 |
 | `deploy` 잡의 guard | `backend-ci.yml` | 검증 없는 빌드가 배포되는 것 |
 | `-Xmx400m` | `backend/Dockerfile` | Render 512MB 초과 |
+| `server.tomcat.threads.max: 20` | `application.yml` | 스레드 스택이 힙 밖 메모리를 먹는 것 |
 | `maximum-pool-size: 3` | `application.yml` | Neon 연결 수 한도 초과 |
 | `STORAGE_LIMIT` 409 | `common/ErrorCode.java` | R2 10GB 초과 (M3에 연결) |
 
@@ -321,12 +385,21 @@ Class B 읽기)에도 한도가 있는데, 지금 설계에 그걸 세는 장치
   핑이 깨워두고 있다는 뜻이다.
   ⚠️ 첫 측정은 **재배포가 중간에 끼어들어 무효**였다 — 새 인스턴스가 뜬 직후라
   핑이 없어도 웜인 구간이었다. 측정 전 배포가 없어야 유효한 시험이 된다
+- ★ **HikariCP 6.3.3의 `keepaliveTime` 기본값이 2분**이라는 것 (§3.2) —
+  `HikariConfig` 바이트코드의 `DEFAULT_KEEPALIVE_TIME`, 그리고 실제 바인딩 결과
+  (`new HikariConfig().getKeepaliveTime()` → `120000`)로 확인
+- `minimumIdle` 기본값이 `maximumPoolSize`로 보정된다는 것 (`validateNumerics`)
+- `DataSourcePoolConfigTest` 5개 전부 통과 (DB 없이 도는 테스트라 로컬에서 실행됨)
 
 **대시보드에서 사람이 확인해야 하는 것**
 - 각 서비스의 **현재** 무료 한도 수치 — 공급자들이 무료 플랜 조건을 자주 바꾼다.
   특히 **Neon의 컴퓨트 시간 한도**와 **R2의 결제 수단 요구 여부**는 이 문서를
   쓴 시점의 이해이므로 §4 체크리스트에서 실물로 확인한다
 - 계정에 결제 수단이 등록돼 있는지 (저장소에서는 알 수 없다)
+- ⚠️ **Neon의 자동 정지 시간이 실제로 5분인지** — §3.2의 `idle-timeout: 240000`은
+  "5분보다 먼저 비운다"를 노린 값이다. 대시보드에서 다른 값이면 그보다 짧게 맞춘다
+- ⚠️ **§3.2를 고친 뒤 Neon 컴퓨트 그래프에 실제로 빈 구간이 생겼는지** — 이게
+  누수가 정말 막혔다는 유일한 증거다. 저장소에서는 확인할 수 없다
 
 ---
 
