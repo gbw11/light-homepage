@@ -9,8 +9,11 @@
 #  규약: docs/BACKEND_DEPLOY.md · 서비스 세팅: infra/render/README.md
 #  전제: Render Free(메모리 512MB) · Java 21 · Gradle Wrapper 8.14.3
 #
-#  Render 설정: Root Directory `backend` / Dockerfile Path `backend/Dockerfile`
+#  Render 설정: Root Directory `backend` / Dockerfile Path `Dockerfile`
 #  → 빌드 컨텍스트가 `backend/`이므로 아래 COPY 경로는 전부 그 기준이다.
+#  ⚠️ Dockerfile Path는 **Root Directory 기준**이다. `backend/Dockerfile`로
+#     적으면 `backend/backend/Dockerfile`을 찾아 빌드가 즉시 실패한다
+#     (2026-08-27에 실제로 겪었다 — infra/render/README.md §1②).
 # ─────────────────────────────────────────────────────────────
 
 # ── 1단계: 빌드 ──────────────────────────────────────────────

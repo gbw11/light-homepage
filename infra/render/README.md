@@ -80,10 +80,28 @@ https://render.com → New → **Web Service** → 이 저장소 연결
 | Language / Runtime | **Docker** |
 | Branch | **`develop`** ← ⚠️ main 아님 (`CICD.md §5.1`) |
 | Root Directory | `backend` |
-| Dockerfile Path | `backend/Dockerfile` |
+| Dockerfile Path | **`Dockerfile`** ← ⚠️ `backend/Dockerfile` 아님 (아래 참고) |
 | Region | **Singapore** (Neon과 같은 리전에 두어야 왕복이 짧습니다) |
 | Instance Type | **Free** |
 | Health Check Path | **`/actuator/health/alive`** ← ⚠️ `/actuator/health`가 아님 (`../../docs/COST_GUARDRAILS.md §3.2`) |
+
+> ### ⚠️ Dockerfile Path는 **Root Directory 기준**입니다 (경로를 두 번 쓰면 실패)
+>
+> Render 문서가 명시합니다 — "All of the following settings operate relative to
+> the root directory: … **Dockerfile path**, Docker build context directory."
+>
+> | Root Directory | Dockerfile Path | 실제로 찾는 경로 | 결과 |
+> |---|---|---|---|
+> | `backend` | `backend/Dockerfile` | `backend/backend/Dockerfile` | ❌ **빌드 즉시 실패** |
+> | `backend` | **`Dockerfile`** | `backend/Dockerfile` | ✅ |
+> | (비움) | `backend/Dockerfile` | `backend/Dockerfile` | ⚠️ 파일은 찾지만 **빌드 컨텍스트가 저장소 루트**가 되어 `COPY gradlew …`가 실패합니다 |
+>
+> **Root Directory를 `backend`로 두는 것이 맞습니다** — `backend/Dockerfile`의
+> `COPY` 경로가 전부 `backend/` 기준으로 쓰여 있어서, 빌드 컨텍스트가
+> `backend/`여야 합니다.
+>
+> 🔴 **2026-08-27 정정**: 이 표가 이전에는 `backend/Dockerfile`로 적혀 있었습니다.
+> 그대로 설정하면 배포가 실패합니다.
 
 ### ③ 환경 변수 — **지금은 5개면 됩니다**
 
@@ -142,8 +160,18 @@ GitHub 저장소 → Settings → Secrets and variables → Actions
 Render Free는 **15분 유휴 시 슬립**하고, 깨어날 때 JVM 콜드스타트가 30~60초 걸립니다.
 
 https://cron-job.org (무료) → 새 작업
-- URL: `https://<서비스명>.onrender.com/actuator/health/alive`
-- 주기: **10분**
+
+| 항목 | 값 |
+|---|---|
+| URL | `https://light-homepage.onrender.com/actuator/health/alive` |
+| 스케줄 | **`*/10 6-23 * * *`** (10분마다, 06:00~23:59만) |
+| **Timezone** | **`Asia/Seoul`** ← ⚠️ 아래 참고 |
+
+> ### ⚠️ Timezone을 반드시 `Asia/Seoul`로 바꾸세요
+>
+> cron-job.org의 기본값은 **UTC**입니다. 그대로 두면 `6-23`이 UTC 기준이 되어
+> **한국 시간 15:00~08:59**에 핑이 돕니다 — 정확히 사람들이 안 쓰는 시간에
+> 깨우고, **주일 오전 예배 시간(09~12시)에 슬립합니다.**
 
 > ### ⚠️ 경로를 `/actuator/health`로 두면 안 됩니다
 >
@@ -155,29 +183,102 @@ https://cron-job.org (무료) → 새 작업
 > 이 실수는 **아무 증상이 없습니다** — 사이트도 API도 정상으로 보이고,
 > Neon 사용량으로만 드러납니다.
 
-> 750시간/월 = 서비스 하나를 24시간 켜두는 양입니다. 핑을 넣어도 한도 안에 있습니다.
-> 다만 **여유가 6시간뿐입니다**(744/750). **그래서 스테이징 서버를 따로 둘 수
-> 없습니다** — 두 개면 1,488시간이라 한도를 넘습니다.
+> ### 왜 24시간이 아니라 06:00~24:00인가 (PM 결정 2026-08-27)
+>
+> | 방식 | 월 사용 | 여유 | 대가 |
+> |---|---|---|---|
+> | 24시간 상시 | 744h | **6h** ⚠️ | 없음 |
+> | **06:00~24:00** ★ | **558h** | **192h** | 새벽 첫 방문자만 콜드스타트 |
+>
+> 한도는 **750 인스턴스시간/월**입니다. 24시간 가동은 744시간(99.2%)이라
+> 여유가 6시간뿐인데, **배포할 때 새 인스턴스와 기존 인스턴스가 잠깐 겹쳐
+> 도는 시간**이 여기에 쌓입니다. 한도를 넘기면 (카드가 없으므로) 과금이 아니라
+> **서비스가 정지**됩니다 — **"상시"를 노린 설정이 월말에 서비스를 멈추게 하는**
+> 셈입니다.
+>
+> 교회 사이트라 새벽 트래픽은 사실상 0이고, **06:00 핑이 사람들이 오기 전에
+> 서버를 깨워둡니다.** 상세는 `../../docs/COST_GUARDRAILS.md §3.3`.
+
+> **그래서 스테이징 서버를 따로 둘 수 없습니다** — 두 개면 한도를 넘습니다.
 
 ---
 
 ## 2. 확인
 
+> ### ✅ 2026-08-27 배포 성공 — 아래는 실측값입니다
+>
+> **서비스 주소: `https://light-homepage.onrender.com`**
+>
+> 서비스 이름과 주소가 같습니다(Render가 접미사를 붙이지 않았습니다).
+
 ```bash
 # 슬립 방지 핑·Render 헬스체크가 쓰는 경로 (DB를 건드리지 않습니다)
-curl -i https://<서비스명>.onrender.com/actuator/health/alive
+curl -i https://light-homepage.onrender.com/actuator/health/alive
 # → HTTP 200  {"status":"UP"}
 
 # DB까지 확인하는 진단용 경로 — 사람이 필요할 때만 부릅니다
-curl -i https://<서비스명>.onrender.com/actuator/health
-# → HTTP 200  {"status":"UP","groups":[...]}
+curl -i https://light-homepage.onrender.com/actuator/health
+# → HTTP 200  {"status":"UP","groups":["alive","liveness","readiness"]}
 ```
+
+### 2026-08-27 실측 결과 전체
+
+| 경로 | 실측 | 뜻 |
+|---|---|---|
+| `/actuator/health/alive` | **200** `{"status":"UP"}` | 핑 대상이 열려 있음 — **인증 없이** 통과 |
+| `/actuator/health` | **200** `groups:["alive","liveness","readiness"]` | ★ **DB까지 UP** — `DATABASE_URL` JDBC 형식·SSL·비밀번호·Flyway 전부 통과 |
+| `/api/posts?category=NOTICE_PUBLIC` | **200** `{"items":[],...}` | ★ HTTP → 서비스 → Neon 읽기 전 구간 동작 (글이 없어 빈 배열) |
+| `/api/posts?category=NOTICE_MEMBER` | 401 | 인가 정상 |
+| `/api/posts?category=BUDGET` | 401 | 인가 정상 (`PostAuthorizationTest:68` 익명 = `UNAUTHORIZED`) |
+| `/` | 401 | 정상 — Spring Security 기본 설정 |
+| `/swagger-ui.html` · `/v3/api-docs` | 404 | 정상 — `prod`에서 계약서를 공개하지 않습니다 |
+| `/actuator/env` | 401 | 정상 — `include: health`만 노출 |
+| 응답 헤더 | `x-render-origin-server: Render` | suspend 상태가 아님 |
+
+> ⚠️ **`category` 값을 주의하세요.** `NOTICE`가 아니라 **`NOTICE_PUBLIC`**입니다
+> (`PostCategory.java`). 틀리면 `400 VALIDATION_ERROR`가 옵니다 — 서버 문제로
+> 오해하기 쉽습니다.
 
 `{"status":"UP"}`이 나오면 끝입니다. 그다음부터는 BE가 `develop`에 머지할 때마다
 자동으로 올라갑니다.
 
-**루트(`/`)가 401을 주는 것은 정상입니다** — Spring Security 기본 설정이라
-BE가 인증을 구현하면서 바뀝니다.
+> ### 이번 배포가 실패했던 원인 (기록)
+>
+> 첫 배포 시도는 **failed deploy**였습니다. 원인은 이 문서였습니다 —
+> `Dockerfile Path`를 `backend/Dockerfile`로 안내했는데, Render는 그 값을
+> **Root Directory 기준**으로 해석해 `backend/backend/Dockerfile`을 찾습니다
+> (§1② 참고). **`Dockerfile`로 고치고 재배포하니 통과했습니다.** 첫 빌드는
+> 캐시가 없어 약 5분 걸렸습니다.
+>
+> ⚠️ 그 사이 GitHub Actions의 `deploy` 잡은 **두 번 모두 초록불**이었습니다.
+> 훅 호출까지만 하기 때문입니다 (§2.5).
+
+---
+
+## 2.5 배포가 실패했을 때 — 어디를 보는가
+
+Render 대시보드 → 서비스 → **Events** → 실패한 배포 클릭 → **Logs**.
+**어느 단계에서 멈췄는지**로 원인이 갈립니다.
+
+| 로그에 보이는 것 | 원인 | 고치는 곳 |
+|---|---|---|
+| `failed to read dockerfile` · `no such file or directory` | **Dockerfile Path를 Root Directory 기준으로 안 씀** (§1② 함정) | Render Settings → Dockerfile Path = `Dockerfile` |
+| `COPY gradlew … not found` | Root Directory가 비어 있어 빌드 컨텍스트가 저장소 루트다 | Root Directory = `backend` |
+| `gradlew: not found` · `bad interpreter` | 드문 경우 — `gradlew` 줄바꿈이 CRLF | 저장소에는 LF로 저장돼 있어야 함 |
+| Gradle 컴파일 에러 | 코드 문제 | ⚠️ CI가 통과했다면 여기서 날 이유가 없다. 브랜치를 확인할 것 |
+| `Driver claims to not accept jdbcUrl` | `DATABASE_URL`에 `jdbc:` 접두사가 없음 | Environment (§1①) |
+| 인증 실패 · `password authentication failed` | 아이디·비밀번호가 URL에 남아 있음 | 같음 |
+| 기동은 됐는데 `Health check failed` | Health Check Path가 틀림 | Settings → `/actuator/health/alive` |
+| `Exited with status 137` | 메모리 초과(OOM) | `-Xmx400m`을 낮춰야 하는지 확인 |
+
+> ### ⚠️ 배포 실패는 GitHub Actions에서 초록불로 보입니다
+>
+> `deploy` 잡은 **훅을 호출하는 것까지만** 합니다. Render가 그 뒤에 이미지를
+> 빌드하다 실패해도 Actions는 **success**입니다. 같은 이유로 서비스가
+> `Suspended`여도 훅은 200을 반환합니다
+> (`../../docs/COST_GUARDRAILS.md §4`).
+>
+> **그래서 배포 확인은 훅 결과가 아니라 실제 응답으로 합니다** (§2).
 
 ---
 
