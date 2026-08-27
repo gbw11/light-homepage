@@ -80,10 +80,28 @@ https://render.com → New → **Web Service** → 이 저장소 연결
 | Language / Runtime | **Docker** |
 | Branch | **`develop`** ← ⚠️ main 아님 (`CICD.md §5.1`) |
 | Root Directory | `backend` |
-| Dockerfile Path | `backend/Dockerfile` |
+| Dockerfile Path | **`Dockerfile`** ← ⚠️ `backend/Dockerfile` 아님 (아래 참고) |
 | Region | **Singapore** (Neon과 같은 리전에 두어야 왕복이 짧습니다) |
 | Instance Type | **Free** |
 | Health Check Path | **`/actuator/health/alive`** ← ⚠️ `/actuator/health`가 아님 (`../../docs/COST_GUARDRAILS.md §3.2`) |
+
+> ### ⚠️ Dockerfile Path는 **Root Directory 기준**입니다 (경로를 두 번 쓰면 실패)
+>
+> Render 문서가 명시합니다 — "All of the following settings operate relative to
+> the root directory: … **Dockerfile path**, Docker build context directory."
+>
+> | Root Directory | Dockerfile Path | 실제로 찾는 경로 | 결과 |
+> |---|---|---|---|
+> | `backend` | `backend/Dockerfile` | `backend/backend/Dockerfile` | ❌ **빌드 즉시 실패** |
+> | `backend` | **`Dockerfile`** | `backend/Dockerfile` | ✅ |
+> | (비움) | `backend/Dockerfile` | `backend/Dockerfile` | ⚠️ 파일은 찾지만 **빌드 컨텍스트가 저장소 루트**가 되어 `COPY gradlew …`가 실패합니다 |
+>
+> **Root Directory를 `backend`로 두는 것이 맞습니다** — `backend/Dockerfile`의
+> `COPY` 경로가 전부 `backend/` 기준으로 쓰여 있어서, 빌드 컨텍스트가
+> `backend/`여야 합니다.
+>
+> 🔴 **2026-08-27 정정**: 이 표가 이전에는 `backend/Dockerfile`로 적혀 있었습니다.
+> 그대로 설정하면 배포가 실패합니다.
 
 ### ③ 환경 변수 — **지금은 5개면 됩니다**
 
@@ -202,6 +220,33 @@ curl -i https://<서비스명>.onrender.com/actuator/health
 
 **루트(`/`)가 401을 주는 것은 정상입니다** — Spring Security 기본 설정이라
 BE가 인증을 구현하면서 바뀝니다.
+
+---
+
+## 2.5 배포가 실패했을 때 — 어디를 보는가
+
+Render 대시보드 → 서비스 → **Events** → 실패한 배포 클릭 → **Logs**.
+**어느 단계에서 멈췄는지**로 원인이 갈립니다.
+
+| 로그에 보이는 것 | 원인 | 고치는 곳 |
+|---|---|---|
+| `failed to read dockerfile` · `no such file or directory` | **Dockerfile Path를 Root Directory 기준으로 안 씀** (§1② 함정) | Render Settings → Dockerfile Path = `Dockerfile` |
+| `COPY gradlew … not found` | Root Directory가 비어 있어 빌드 컨텍스트가 저장소 루트다 | Root Directory = `backend` |
+| `gradlew: not found` · `bad interpreter` | 드문 경우 — `gradlew` 줄바꿈이 CRLF | 저장소에는 LF로 저장돼 있어야 함 |
+| Gradle 컴파일 에러 | 코드 문제 | ⚠️ CI가 통과했다면 여기서 날 이유가 없다. 브랜치를 확인할 것 |
+| `Driver claims to not accept jdbcUrl` | `DATABASE_URL`에 `jdbc:` 접두사가 없음 | Environment (§1①) |
+| 인증 실패 · `password authentication failed` | 아이디·비밀번호가 URL에 남아 있음 | 같음 |
+| 기동은 됐는데 `Health check failed` | Health Check Path가 틀림 | Settings → `/actuator/health/alive` |
+| `Exited with status 137` | 메모리 초과(OOM) | `-Xmx400m`을 낮춰야 하는지 확인 |
+
+> ### ⚠️ 배포 실패는 GitHub Actions에서 초록불로 보입니다
+>
+> `deploy` 잡은 **훅을 호출하는 것까지만** 합니다. Render가 그 뒤에 이미지를
+> 빌드하다 실패해도 Actions는 **success**입니다. 같은 이유로 서비스가
+> `Suspended`여도 훅은 200을 반환합니다
+> (`../../docs/COST_GUARDRAILS.md §4`).
+>
+> **그래서 배포 확인은 훅 결과가 아니라 실제 응답으로 합니다** (§2).
 
 ---
 
