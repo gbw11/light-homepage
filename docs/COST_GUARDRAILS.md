@@ -79,6 +79,10 @@
 **2차 가드**
 - `paths` 필터 — `frontend/**` 변경은 Backend CI를 돌리지 않고, 그 반대도 같다
   (이미 적용, `docs/CICD.md §1.1`)
+- ⚠️ **예외 1개**: `secret-scan.yml`은 `paths` 필터가 없다 — 시크릿은 어느
+  파일에든 들어갈 수 있다. 2026-08-27에 Jenkins에서 이관했다(PM PC가 꺼져 있으면
+  검사가 아예 돌지 않는 문제). **월 사용 분이 늘어난다** — 실행당 1분 과금이고
+  모든 push·PR에서 돌므로, 다음 달 §5 확인에서 실제 증가폭을 본다
 - **`concurrency` 취소** — 같은 브랜치·PR에 새 커밋이 오면 앞의 실행을 취소한다.
   ⚠️ `develop`은 취소하지 않는다: `deploy` 잡이 Render 훅을 호출하는 중에 끊기면
   배포가 트리거됐는지 알 수 없는 상태가 된다
@@ -399,6 +403,7 @@ Class B 읽기)에도 한도가 있는데, 지금 설계에 그걸 세는 장치
 | **`DataSourcePoolConfigTest`** | `backend/src/test/.../config/` | 위 3줄이 조용히 되돌아가는 것 |
 | `concurrency` 취소 | `.github/workflows/*.yml` | 무의미해진 CI 실행이 분을 먹는 것 |
 | `paths` 필터 | `.github/workflows/*.yml` | 무관한 변경으로 CI가 도는 것 |
+| **`secret-scan.yml`** | `.github/workflows/` | 시크릿이 커밋되는 것 — **PC가 꺼져도 돈다** |
 | `deploy` 잡의 guard | `backend-ci.yml` | 검증 없는 빌드가 배포되는 것 |
 | `-Xmx400m` | `backend/Dockerfile` | Render 512MB 초과 |
 | `server.tomcat.threads.max: 20` | `application.yml` | 스레드 스택이 힙 밖 메모리를 먹는 것 |

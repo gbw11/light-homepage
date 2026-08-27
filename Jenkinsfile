@@ -60,44 +60,18 @@ pipeline {
     }
 
     // ────────────────────────────────────────────────
-    // 시크릿 스캔 — pre-push 훅을 폐기한 대체 장치 (docs/CICD.md §1.3)
-    // ⚠️ 여기서 걸리면 이미 push된 상태다. 해당 키는 즉시 재발급해야 한다.
-    //    허용이 필요한 줄에는 allowlist-secret 주석을 붙인다.
+    // ⚠️ Secret Scan은 여기에 없다 — 2026-08-27에 GitHub Actions로 옮겼다.
+    //
+    // Jenkins는 PM 로컬 PC에 있다. PC가 꺼져 있으면 시크릿 검사가 한 번도 돌지
+    // 않는데, 그 사실이 아무 신호 없이 지나간다. 실제로 2026-08-27에 하루 종일
+    // Jenkins가 돌지 않아 시크릿 감지가 통째로 비어 있었다.
+    // 사람의 PC 상태에 달린 방어는 방어가 아니다 — CD를 옮긴 것과 같은 이유다.
+    //
+    // 지금은 `.github/workflows/secret-scan.yml`이 한다 (모든 브랜치 push + PR).
+    // 두 곳에 두면 정규식을 두 곳에서 관리하게 되므로 여기서는 하지 않는다.
+    //
+    // 근거: docs/CICD.md §1.3 · docs/DECISIONS.md 2026-08-27
     // ────────────────────────────────────────────────
-    stage('Secret Scan') {
-      steps {
-        sh '''
-          set -u
-          fail=0
-
-          # 1. 커밋되면 안 되는 파일 (.env.example 등 템플릿 파일은 의도적으로 커밋되므로 예외)
-          banned=$(git ls-files | grep -E \\
-            '(^|/)\\.env($|\\.)|application-local\\.yml|application-secret\\.yml|application-prod\\.yml|\\.pem$|\\.p12$|id_rsa' \\
-            | grep -vE '\\.env\\.(example|sample|template)$' \\
-            || true)
-          if [ -n "$banned" ]; then
-            echo "✗ 커밋되면 안 되는 파일:"
-            printf '%s\\n' "$banned" | sed 's/^/    /'
-            fail=1
-          fi
-
-          # 2. 시크릿 값 패턴 (allowlist-secret 주석이 있는 줄은 예외)
-          hits=$(git grep -nE \\
-            "(JWT_SECRET[[:space:]]*[:=][[:space:]]*[\\"']?[A-Za-z0-9+/_-]{16,}|R2_SECRET_ACCESS_KEY[[:space:]]*[:=][[:space:]]*[\\"']?[A-Za-z0-9+/_-]{16,}|KAKAO_CLIENT_SECRET[[:space:]]*[:=][[:space:]]*[\\"']?[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9]{16,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|postgres(ql)?://[^:]+:[^@[:space:]]+@)" \\
-            -- . ':(exclude)docs/*' 2>/dev/null | grep -v 'allowlist-secret' | head -20 || true)
-          if [ -n "$hits" ]; then
-            echo "✗ 시크릿으로 보이는 값:"
-            printf '%s\\n' "$hits" | cut -c1-140 | sed 's/^/    /'
-            echo "  → 값을 즉시 재발급하고 환경변수로 옮기세요"
-            fail=1
-          fi
-
-          [ "$fail" -eq 0 ] || exit 1
-          echo "✓ 시크릿 검사 통과"
-        '''
-      }
-    }
-
     // ────────────────────────────────────────────────
     stage('Verify') {
       parallel {
