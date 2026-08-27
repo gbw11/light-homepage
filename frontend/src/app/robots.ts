@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 /**
  * 색인 차단 대상 (NFR-SEC-29). `next.config.ts`의 `X-Robots-Tag` 헤더와
