@@ -70,11 +70,11 @@
 
 | 서비스 | 역할 | 주소 |
 |---|---|---|
-| **Vercel** | 프론트엔드 (사용자가 보는 화면) | ⚠️ 연결 상태 미확인 |
+| **Vercel** | 프론트엔드 (사용자가 보는 화면) | ⬜ 배포 준비 — 절차: [`infra/vercel/`](../infra/vercel/README.md) |
 | **Render** | 백엔드 API 서버 | `light-homepage.onrender.com` |
 | **Neon** | PostgreSQL | Singapore |
 | **GitHub Actions** | CI + 배포 트리거 | 클라우드, 항상 동작 |
-| **cron-job.org** | 슬립 방지 핑 | ✅ 가동 (2026-08-27 검증) |
+| **cron-job.org** | 슬립 방지 핑 | ⏸️ **개발 단계 중지** (동작 검증 완료) |
 
 전부 무료 플랜이고, **왜 무료로 유지되는지와 그 장치**는
 [`COST_GUARDRAILS.md`](COST_GUARDRAILS.md)에 있다.
@@ -186,6 +186,10 @@ Health Check /actuator/health/alive 가 200이면 라이브
 
 **사용자가 보는 것은 Vercel이고, Render는 그 뒤에서 JSON을 준다.**
 
+> ⬜ **2026-08-27 현재 Vercel에 배포된 적이 없다.** 설정 절차는
+> [`../infra/vercel/README.md`](../infra/vercel/README.md)에 있다.
+> 🔴 배포 후 **실인물 사진이 배포되지 않았는지 curl로 확인**해야 한다(그 문서 §2②).
+
 ```
 브라우저 → Vercel (Next.js)
               │  next.config.ts 의 rewrites
@@ -200,9 +204,16 @@ Health Check /actuator/health/alive 가 200이면 라이브
 - Render 주소를 브라우저로 직접 열면 `/`는 **401**이다. API 서버라 화면이 없다 —
   정상이다
 
-### [9] 상시 가동
+### [9] 상시 가동 — ⏸️ **개발 단계에는 꺼둔다**
 
 Render Free는 **15분 유휴 시 슬립**하고 깨어날 때 30~60초 걸린다.
+
+> ⏸️ **2026-08-27 현재 핑은 꺼져 있다.** 접속하는 사람이 PM·BE뿐이라, 월 558시간을
+> "아무도 안 쓰는데 깨어 있는 상태"로 쓸 이유가 없다. **FE·BE를 실제로 연결하는
+> 시점(`NEXT_PUBLIC_USE_MOCK=0`)에 다시 켠다**
+> ([`COST_GUARDRAILS.md §3.5`](COST_GUARDRAILS.md)).
+>
+> ⚠️ 그동안 **API 응답이 갑자기 느려 보이면 서버가 죽은 게 아니라 깨어나는 중**이다.
 
 | 항목 | 값 |
 |---|---|
@@ -280,7 +291,7 @@ FE가 `NEXT_PUBLIC_USE_MOCK=1`이면 백엔드를 호출하지 않는다. 백엔
 | 첫 Docker 빌드 | 약 5분 (캐시 없음) |
 | JVM 기동 | 8.6초 · 메모리 299MB / 상한 400MB · 이미지 442MB (2026-08-26 로컬) |
 | Actions 사용 | 2026-08 기준 222회 / 약 236분 (한도 2,000분) |
-| **슬립 방지 핑 동작** | ✅ **23분 무접촉 후 `200 / 0.246초`** — 임계 15분을 넘겼는데도 웜 |
+| **슬립 방지 핑 동작** | ✅ **23분 무접촉 후 `200 / 0.246초`** — 임계 15분을 넘겼는데도 웜. ⏸️ 검증 후 개발 단계 동안 껐다 |
 
 > ⚠️ **`category` 값은 `NOTICE`가 아니라 `NOTICE_PUBLIC`이다** (`PostCategory.java`).
 > 틀리면 `400 VALIDATION_ERROR`가 오는데 서버 문제로 오해하기 쉽다.
