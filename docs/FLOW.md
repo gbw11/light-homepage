@@ -74,7 +74,7 @@
 | **Render** | 백엔드 API 서버 | `light-homepage.onrender.com` |
 | **Neon** | PostgreSQL | Singapore |
 | **GitHub Actions** | CI + 배포 트리거 | 클라우드, 항상 동작 |
-| **cron-job.org** | 슬립 방지 핑 | ⬜ 등록 진행 중 |
+| **cron-job.org** | 슬립 방지 핑 | ✅ 가동 (2026-08-27 검증) |
 
 전부 무료 플랜이고, **왜 무료로 유지되는지와 그 장치**는
 [`COST_GUARDRAILS.md`](COST_GUARDRAILS.md)에 있다.
@@ -278,6 +278,7 @@ FE가 `NEXT_PUBLIC_USE_MOCK=1`이면 백엔드를 호출하지 않는다. 백엔
 | 첫 Docker 빌드 | 약 5분 (캐시 없음) |
 | JVM 기동 | 8.6초 · 메모리 299MB / 상한 400MB · 이미지 442MB (2026-08-26 로컬) |
 | Actions 사용 | 2026-08 기준 222회 / 약 236분 (한도 2,000분) |
+| **슬립 방지 핑 동작** | ✅ **23분 무접촉 후 `200 / 0.246초`** — 임계 15분을 넘겼는데도 웜 |
 
 > ⚠️ **`category` 값은 `NOTICE`가 아니라 `NOTICE_PUBLIC`이다** (`PostCategory.java`).
 > 틀리면 `400 VALIDATION_ERROR`가 오는데 서버 문제로 오해하기 쉽다.
