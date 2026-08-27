@@ -103,6 +103,23 @@
 판정을 했다. **그 전제가 핑 설계와 정면으로 충돌한다** — 자동 정지가 한 번도
 걸리지 않는다.
 
+### `/actuator/health`를 때리는 경로는 **셋**이었다
+
+하나만 고쳐도 나머지가 Neon을 깨워둔다. 셋 다 막아야 의미가 있다.
+
+| # | 누가 | 주기 | 막은 방법 | 확인 |
+|---|---|---|---|---|
+| 1 | **cron-job.org 슬립 방지 핑** | 10분 | 핑 URL을 `/actuator/health/alive`로 | ✅ 2026-08-27 |
+| 2 | **HikariCP 커넥션 풀 keepalive** | **2분** | `keepalive-time: 0` (§아래) | ✅ CI 테스트로 고정 |
+| 3 | **Render 자체 헬스체크** | 상시 | Health Check Path를 `/actuator/health/alive`로 | ✅ 2026-08-27 |
+
+⚠️ **2번은 코드를 읽어야만 보인다** — HikariCP 6.3.3의 기본값이 0이 아니라 2분이다.
+⚠️ **3번은 배포 성공으로 판별되지 않는다** — 예전 값도 200을 주므로 배포는 통과한다.
+
+**셋 다 증상이 없다.** 화면·API·테스트가 전부 정상으로 보이고, Neon 사용량으로만
+드러난다.
+
+
 **고친 방법** — 핑 전용 헬스 그룹을 만들어 DB를 빼놨다.
 
 ```yaml
@@ -285,19 +302,38 @@ Class B 읽기)에도 한도가 있는데, 지금 설계에 그걸 세는 장치
 
 코드로 강제할 수 없는 것들이다. **한 번 해두면 1차 방어가 완성된다.**
 
-- [ ] **GitHub** → Settings → Billing → **결제 수단이 등록돼 있지 않은지 확인.**
-      등록돼 있다면 Actions **지출 한도가 $0**인지 확인한다 (기본값 $0)
-- [ ] **Render** → Account → Billing → **카드 미등록 · Free 플랜만**
-- [ ] **Neon** → Settings → Billing → **카드 미등록 · Free 플랜**
-- [ ] **Neon** → 프로젝트 → Compute → **자동 정지(autosuspend)가 켜져 있는지**
-      확인 (§3.2를 고쳤으므로 이제 실제로 정지가 걸린다)
-- [ ] **Vercel** → Settings → Billing → **카드 미등록 · Hobby**
-- [ ] **Render 서비스** → Settings → **Health Check Path = `/actuator/health/alive`**
-- [ ] **Render 서비스** → Settings → **Auto-Deploy = `Off`** (트리거는 Actions 하나뿐)
-- [ ] **★ Render 서비스가 `Suspended` 상태가 아닌지 확인** — 아래 참고
-- [ ] **cron-job.org** → URL `.../actuator/health/alive` · 스케줄 `*/10 6-23 * * *` ·
-      **Timezone `Asia/Seoul`** (§3.5)
-- [ ] Cloudflare 계정을 **아직 만들지 않는다** (§3.6 결정 전)
+**★ 1차 방어 — 결제 수단 (2026-08-27 PM 확인 완료)**
+
+- [x] **GitHub** → Settings → Billing → **결제 수단 미등록** ✅
+- [x] **Render** → Account → Billing → **카드 미등록 · Free** ✅
+- [x] **Neon** → Settings → Billing → **카드 미등록 · Free** ✅
+- [x] **Vercel** → Settings → Billing → **카드 미등록 · Hobby** ✅
+- [x] Cloudflare 계정을 **아직 만들지 않았다** (§3.6 결정 전) ✅
+
+> **이 네 개가 이 문서의 전부다.** 카드가 없으면 공급자는 청구할 수 없다.
+> 2026-08-27 시점에 **어느 서비스에도 결제 수단이 등록돼 있지 않다.**
+
+**2차 방어 — 설정**
+
+- [x] **Render 서비스** → Settings → **Auto-Deploy = `Off`** ✅ (2026-08-27 확인)
+      — `NFR-OPS-05`. 켜져 있으면 테스트를 기다리지 않는 배포 경로가 생긴다
+- [x] **Render 서비스가 `Suspended`가 아님** ✅ — 실측 확인
+      (`/actuator/health/alive` → 200. 아래 참고)
+- [x] **cron-job.org** 등록·동작 ✅ — 10분 간격 실행 이력 확인 ·
+      **실행 시각이 한국시간**으로 표시됨(Timezone `Asia/Seoul` 검증) ·
+      23분 무접촉 후 웜 응답으로 실제 효과까지 확인 (§7)
+
+- [x] **Render 서비스** → Settings → **Health Check Path = `/actuator/health/alive`** ✅
+      (2026-08-27 확인) — ⚠️ 이건 **배포 성공으로 판별되지 않는다.** 예전 값
+      (`/actuator/health`)도 200을 주므로 배포는 통과하는데, 그 경로는 DB를
+      확인하므로 **Render의 주기적 헬스체크가 Neon을 깨워둔다.** 눈으로 확인해야
+      하는 항목이었다
+
+**아직 확인되지 않은 것 1건 — 시간이 필요하다**
+
+- [ ] **Neon** → 프로젝트 → Compute → **컴퓨트 그래프에 빈 구간이 생겼는지**
+      ⚠️ §3.2에서 막은 **누수 3건의 효과가 여기서만 드러난다.** 며칠 뒤 확인한다.
+      이게 실제로 막혔다는 유일한 증거다
 
 > ### ⚠️ Suspended 상태는 배포 성공과 구별되지 않는다
 >
@@ -391,11 +427,20 @@ Class B 읽기)에도 한도가 있는데, 지금 설계에 그걸 세는 장치
 - `minimumIdle` 기본값이 `maximumPoolSize`로 보정된다는 것 (`validateNumerics`)
 - `DataSourcePoolConfigTest` 5개 전부 통과 (DB 없이 도는 테스트라 로컬에서 실행됨)
 
-**대시보드에서 사람이 확인해야 하는 것**
+**대시보드에서 확인 완료 (2026-08-27, PM)**
+- ✅ **어느 서비스에도 결제 수단이 등록돼 있지 않다** (GitHub·Render·Neon·Vercel).
+  저장소에서는 알 수 없는 것이고, **이 설계의 1차 방어 전체가 여기 걸려 있다**
+- ✅ **Render Auto-Deploy = `Off`** (`NFR-OPS-05`)
+- ✅ **Render Health Check Path = `/actuator/health/alive`** — 이걸로 **누수 3번째
+  경로가 닫혔다**(핑 · 커넥션 풀 · Render 자체 헬스체크)
+- ✅ **cron-job.org 실행 이력이 10분 간격으로 쌓이고, 시각이 한국시간으로 표시된다**
+  → Timezone `Asia/Seoul` 검증. 실제 효과는 §7 위 항목(23분 무접촉 웜 응답)으로 확인
+
+**대시보드에서 아직 확인해야 하는 것**
 - 각 서비스의 **현재** 무료 한도 수치 — 공급자들이 무료 플랜 조건을 자주 바꾼다.
   특히 **Neon의 컴퓨트 시간 한도**와 **R2의 결제 수단 요구 여부**는 이 문서를
-  쓴 시점의 이해이므로 §4 체크리스트에서 실물로 확인한다
-- 계정에 결제 수단이 등록돼 있는지 (저장소에서는 알 수 없다)
+  쓴 시점의 이해다
+- ⚠️ **§3.2를 고친 뒤 Neon 컴퓨트 그래프에 빈 구간이 생겼는지** — 며칠 뒤 확인
 - ⚠️ **Neon의 자동 정지 시간이 실제로 5분인지** — §3.2의 `idle-timeout: 240000`은
   "5분보다 먼저 비운다"를 노린 값이다. 대시보드에서 다른 값이면 그보다 짧게 맞춘다
 - ⚠️ **§3.2를 고친 뒤 Neon 컴퓨트 그래프에 실제로 빈 구간이 생겼는지** — 이게
