@@ -28,6 +28,80 @@
 
 ---
 
+## 0.5 최초 관리자(PASTOR) 계정 만들기 — DB를 만들 때 한 번
+
+> **PM 결정 2026-08-27 — D안: 정상 가입 후 `role`만 UPDATE**
+> (`../../docs/DECISIONS.md`)
+
+### 왜 이 절차가 필요한가
+
+| 사실 | 근거 |
+|---|---|
+| 가입은 **항상 `role=PENDING`** | `AuthService` — "가입 결과는 항상 role=PENDING이다" |
+| 승인 API는 **`PASTOR`(T) 권한** | `SPEC_API §8.1~8.4` · 인가 매트릭스 `401/403/403/403/200` |
+| DB에 시드 계정 **없음** | `V1__init.sql` — INSERT 없음, `role` DEFAULT `'PENDING'` |
+
+**→ PASTOR가 0명이면 아무도 아무것도 승인할 수 없다.** 전도사님이 가입해도
+PENDING이고, 승인해 줄 사람이 없다.
+
+### 왜 D안인가 (다른 안을 쓰지 않는 이유)
+
+- **BCrypt 해시를 만들지 않는다** — 가입 화면을 거치면 앱이 만든다
+  (`SecurityConfig:188` `BCryptPasswordEncoder()`)
+- **시크릿을 생산하지 않는다** — 저장소·마이그레이션·환경변수에 아무것도 남지 않는다
+- **비밀번호를 본인이 정한다** — 관리자가 정해서 전달하고 나중에 바꾸게 하는 과정이 없다
+- **코드 변경이 없다** — 부트스트랩 경로가 운영에 영구히 남지 않는다
+
+### 절차
+
+**① 전도사님이 화면에서 정상 가입한다**
+
+`/signup`에서 평소처럼 가입한다 → `role=PENDING`, `password_hash`는 앱이 BCrypt로 저장.
+
+> ⚠️ **가입 폼이 "소속 마을"을 필수로 요구한다** (`SignupRequest` —
+> `^([1-9]|newcomer)$`). 전도사는 마을 소속이 아닐 수 있는데 폼이 강제하므로
+> **아무 값이나 골라야 한다.** 아래 ②에서 함께 정리한다.
+
+**② Neon 콘솔(SQL Editor)에서 한 줄**
+
+```sql
+UPDATE members
+   SET role        = 'PASTOR',
+       approved_at = now(),
+       village     = NULL          -- ①의 임시 마을값 정리. 실제로 마을 소속이면 이 줄을 지운다
+ WHERE email = '전도사님이 가입에 쓴 이메일';
+```
+
+실행 후 `UPDATE 1`이 나와야 한다. `UPDATE 0`이면 이메일이 다르다 —
+`SELECT id, email, name, role FROM members;`로 확인한다.
+
+**③ 🔴 반드시 다시 로그인한다**
+
+**`role`은 JWT 클레임에 담긴다** (`JwtProvider` — `CLAIM_ROLE = "role"`, 요청마다
+DB를 다시 읽지 않는다). ②를 실행해도 **이미 발급된 토큰은 계속 `PENDING`**이다.
+
+→ 로그아웃 후 다시 로그인하면 `PASTOR` 권한 토큰이 발급된다.
+
+### 확인
+
+로그인 후 `/admin/members`가 열리면 끝이다 (FE 가드가 `RequirePastor`).
+그 화면에서 이후 가입자를 직접 승인할 수 있다.
+
+```bash
+# 또는 API로 직접
+curl -i https://light-homepage.onrender.com/api/admin/members?status=PENDING   -H "Cookie: <로그인 후 쿠키>"
+# → 200 (403이면 ③ 재로그인을 안 한 것이다)
+```
+
+### 이 절차를 다시 해야 하는 때
+
+**DB를 새로 만들었을 때만이다.** 한 번 만들면 다시 0명이 될 수 없다 —
+`SPEC_API §8.4`가 **마지막 `PASTOR` 강등을 `VALIDATION_ERROR`로 막는다**
+("아무도 회원을 승인할 수 없게 되는 것을 방지"). 즉 이 교착은 **초기 1회만**
+존재한다.
+
+---
+
 ## 1. 수단은 두 가지다
 
 | 수단 | 무엇 | 사람이 할 일 | 상태 |
