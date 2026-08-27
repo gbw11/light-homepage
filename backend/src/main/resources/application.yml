@@ -92,6 +92,13 @@ app:
     #    켜두면 개발 중 로그인이 통째로 안 된다. 운영(https)에서는 아래 prod
     #    문서가 true로 덮는다 — 끄고 배포하면 토큰이 평문 http로 샐 수 있다.
     secure-cookie: false
+  seed:
+    # 개발용 시드 계정 (local 프로필 전용). 기본은 꺼둔다.
+    # ★ password를 여기에 쓰지 않는다 — 커밋되는 파일이다.
+    #   application-local.yml(gitignore됨)이나 SEED_PASSWORD로 준다.
+    #   (INTEGRATION.md §2 · ARCHITECTURE.md §13 배포 전 체크리스트)
+    enabled: false
+    password: ${SEED_PASSWORD:}
 
 ---
 # ─────────────────────────────────────────────────────────────
