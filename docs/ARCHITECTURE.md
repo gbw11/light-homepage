@@ -40,7 +40,7 @@
                     └────────────────┬────────────────┘
                                      │ HTTPS
                     ┌────────────────▼────────────────┐
-                    │      Vercel — Next.js 15        │
+                    │      Vercel — Next.js 16        │
                     │                                 │
                     │  [공개 영역]  완전 정적(SSG)     │
                     │   / /about /worship /welcome    │
@@ -88,13 +88,13 @@
 ### 2.1 프론트엔드
 | 레이어 | 선택 |
 |---|---|
-| 프레임워크 | Next.js 15 (App Router) |
+| 프레임워크 | Next.js 16 (App Router · Turbopack 기본) |
 | 언어 | TypeScript (strict) |
 | 스타일 | Tailwind CSS v4 |
 | 데이터 페칭 | TanStack Query (회원 영역) / 빌드 시 fetch (공개 영역) |
 | 폼 | React Hook Form + Zod |
 | 폰트 | Pretendard (self-host) |
-| PWA | manifest + Serwist |
+| PWA | manifest + **자체 서비스워커** (Serwist 미사용 — 캐싱 정책이 보안 요구사항이라 라이브러리 설정 뒤에 두지 않았다. `DECISIONS.md` 2026-08-24) |
 | 배포 | Vercel |
 
 ### 2.2 백엔드
@@ -313,6 +313,10 @@ photos/{albumId}/{photoId}/thumb.webp    640px q80 (~80KB)   그리드 열람용
 - **80% 경고 · 95%에서 업로드 차단** (조용히 과금되는 것보다 낫다)
 - 앨범/사진 삭제 시 **R2 객체도 삭제** — 누락되면 용량이 조용히 샌다
 - 커밋되지 않은 `PENDING` 사진 정리 배치 (§7.3)
+
+⚠️ **위 가드는 저장 용량만 막는다.** R2는 **연산 횟수**(Class A 쓰기 1M/월 · Class B 읽기)에도 한도가 있고, presigned URL 발급이 Class A에 해당한다 — 재시도 루프 같은 버그로 조용히 늘어날 수 있는데 세는 장치가 없다.
+
+⚠️ **더 큰 문제: R2는 무료 한도가 있어도 활성화에 결제 수단을 요구한다.** 그러면 "결제 수단이 없으므로 과금이 불가능하다"는 1차 방어가 성립하지 않는다. **M3 착수 전 PM 결정 사항**이며 선택지는 [`COST_GUARDRAILS.md §3.6`](COST_GUARDRAILS.md)에 정리했다. 결정 전까지 **Cloudflare 계정을 만들지 않는다.**
 
 ### 4.4 접근 제어
 R2 버킷은 완전 비공개. 모든 접근은 Spring이 발급한 **presigned URL(10분)** 로만.
@@ -658,6 +662,8 @@ FE                                    BE
 
 Spring Boot는 상시 실행 프로세스가 필요해서, 서버리스인 Vercel과 달리 무료로 돌리기가 까다롭다. **여기서 비용이 새면 프로젝트 전제가 깨진다.**
 
+> 이 절은 **무엇을 쓸지 고른 근거**다. 그 선택이 실제로 어떻게 강제되는지(결제 수단 미등록·지출 한도 $0·코드로 막은 것)는 [`COST_GUARDRAILS.md`](COST_GUARDRAILS.md)에 있다.
+
 ### 8.1 백엔드 호스팅
 | 옵션 | 무료 | 문제 | 판단 |
 |---|---|---|---|
@@ -668,12 +674,21 @@ Spring Boot는 상시 실행 프로세스가 필요해서, 서버리스인 Verce
 
 **결정: Render Free.**
 - 750시간 = 31일 → **한 서비스를 24시간 켜두는 것이 무료 한도 안에 들어간다**
-- 슬립 방지: `cron-job.org`(무료)로 10분마다 `/actuator/health` 핑 → 콜드스타트 회피
+- 슬립 방지: `cron-job.org`(무료)로 10분마다 **`/actuator/health/alive`** 핑 → 콜드스타트 회피.
+  ⚠️ `/actuator/health`(DB 포함)를 때리면 Neon이 자동 정지되지 않아 무료 컴퓨트 한도를 넘긴다 (§8.2 · `COST_GUARDRAILS.md §3.2`)
+- 750시간 중 **744시간을 쓴다(99.2%)** — 여유가 6시간뿐이라 서비스를 하나라도 더 만들면 초과다
 - ⚠️ **공개 사이트가 백엔드에 의존하지 않는 설계(§1.3)가 여기서 값을 한다.** 백엔드가 슬립·장애여도 전도용 공개 페이지는 정상. 영향은 회원 영역 첫 진입 지연뿐
 - 메모리 512MB → `-Xmx400m`. 서버에서 이미지 변환을 하지 않는 이유(§4.1)
 
 ### 8.2 데이터베이스
 **Neon 무료** (PostgreSQL 0.5GB). 유휴 시 자동 정지되나 재개가 빠르다.
+
+> ⚠️ **2026-08-27 정정.** "유휴 시 자동 정지"를 근거로 무료 판정을 했는데, §8.1의
+> 슬립 방지 핑이 `/actuator/health`(DB 상태 포함)를 10분마다 때리도록 설계돼
+> 있어서 **자동 정지가 한 번도 걸리지 않는 구조였다.** 핑 대상을 DB를 건드리지
+> 않는 `/actuator/health/alive`로 옮겨 전제를 복구했다. 상세와 재발 방지 장치는
+> [`COST_GUARDRAILS.md §3.2`](COST_GUARDRAILS.md)에 있다.
+
 - ⚠️ 무료 티어는 **연결 수 제한**이 있다 → HikariCP `maximum-pool-size: 3~5`. 기본값(10)이면 연결 고갈이 난다
 - 대안: Supabase Postgres (500MB, 단 7일 무활동 시 프로젝트 일시정지)
 
@@ -842,7 +857,7 @@ backend/src/main/java/kr/light/
 | # | 항목 | 결정 |
 |---|---|---|
 | 1 | 백엔드 | **Spring Boot 3 / Java 21** (BE 학습 목표) |
-| 2 | 프론트엔드 | Next.js 15 — 공개 영역 정적, 회원 영역 클라이언트 렌더 |
+| 2 | 프론트엔드 | Next.js 16 — 공개 영역 정적, 회원 영역 클라이언트 렌더 |
 | 3 | 저장소 | 모노레포 1개 (`frontend/` `backend/` `docs/`) |
 | 4 | 인증 | JWT + httpOnly 쿠키, Next.js rewrites로 동일 출처화 |
 | 5 | 권한 | `@PreAuthorize` + Service 재검사 + **인가 테스트 매트릭스** |

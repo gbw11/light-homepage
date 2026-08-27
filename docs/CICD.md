@@ -1,6 +1,6 @@
 # CI/CD 설계 — Jenkins
 
-- 문서 버전: v2.0
+- 문서 버전: **v2.1** (2026-08-26 — CD를 GitHub Actions로 이관 · 배포 브랜치 `develop`)
 - 담당: `server_develop` (서버 배포·인프라)
 - 관련: [`INTEGRATION.md`](INTEGRATION.md) §6 브랜치 전략 · §10 CI
 
@@ -130,9 +130,23 @@ GitHub Actions가 이미 설정돼 있고 무료·운영 부담 0입니다. Jenk
 
 | | GitHub Actions | Jenkins |
 |---|---|---|
-| 역할 | **PR 검증** (항상 동작) | **CI 상세 + CD(배포)** |
-| 장점 | 운영 부담 0, PC 꺼져도 동작 | 학습, 배포 제어, 파이프라인 시각화 |
-| 트리거 | PR 생성·갱신 | push (폴링 또는 webhook) |
+| 역할 | **검증 + CD(배포)** | **CI 상세 검증** (배포는 하지 않음) |
+| 장점 | 운영 부담 0, **PC 꺼져도 동작** | 학습, 파이프라인 시각화, 변경 경로 감지 |
+| 트리거 | push · PR | push (5분 폴링) |
+
+> ### ⚠️ 2026-08-26 변경 — CD가 Jenkins에서 Actions로 넘어갔습니다
+>
+> 원래 설계는 Jenkins가 CD를 맡는 것이었습니다(학습 목적). 그런데 **Jenkins는 PM
+> 로컬 PC에 있습니다.** PC가 꺼져 있으면 머지해도 배포가 일어나지 않고, 나중에
+> PC를 켜야 반영됩니다. **자동 배포가 사람의 PC 상태에 달려 있으면 그건 자동이
+> 아닙니다.**
+>
+> 그래서 배포 트리거만 Actions로 옮겼습니다. Jenkins는 **CI 검증과 파이프라인
+> 학습**이라는 원래 가치를 그대로 유지합니다 — 변경 경로 감지·시크릿 스캔·
+> 병렬 검증은 Actions에 없는 것들입니다.
+>
+> **Jenkins를 상시 가동 서버(Oracle Cloud, §3.1)로 옮기면 CD를 되가져올 수 있습니다.**
+> 그때는 이 결정을 다시 봐야 합니다.
 
 > **Jenkins가 로컬 PC에 있는 동안은 Actions를 반드시 남겨둡니다** — PC가 꺼진 상태로 작업하는
 > 상대방에게 검증 수단이 없어지고, 그러면 머지 게이트(§4)가 무너집니다.
@@ -162,9 +176,11 @@ docker exec light-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 | ID | 종류 | 용도 |
 |---|---|---|
-| `github-pat` | Secret text | 저장소 clone + 커밋 상태 보고 (`repo`, `status` 스코프) |
-| `render-deploy-hook` | Secret text | Render 배포 트리거 URL |
+| `github-pat` | **Username with password** | 저장소 clone + 커밋 상태 보고 (Username: GitHub 아이디, Password: PAT) |
 | `db-test-password` | Secret text | 테스트용 Postgres 비밀번호 |
+
+⚠️ ~~`render-deploy-hook`~~은 **더 이상 Jenkins에 등록하지 않습니다** (2026-08-26).
+배포 훅은 GitHub 저장소 시크릿 `RENDER_DEPLOY_HOOK`으로 옮겼습니다 (§5.2).
 
 ⚠️ **시크릿을 Jenkinsfile에 하드코딩하지 않습니다.** `credentials()`로만 참조합니다.
 
@@ -184,6 +200,21 @@ docker exec light-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 **5개 영구 브랜치 + `feat/*` 브랜치가 자동으로 감지되어 각각 파이프라인이 생성됩니다.**
 `feat/*`에서도 CI가 돌아야 **머지 전에** 결과를 알 수 있습니다. 이것이 §1.1 흐름의 전제입니다.
+
+> ### 무료 분을 아끼는 장치 2개
+>
+> ⚠️ **Private 저장소라 Actions 실행 시간이 무료 분(2,000분/월)에서 차감됩니다.**
+> Public 저장소와 다릅니다.
+>
+> | 장치 | 효과 |
+> |---|---|
+> | `paths` 필터 | `frontend/**` 변경은 Backend CI를 돌리지 않습니다(그 반대도) |
+> | `concurrency` 취소 | 같은 브랜치·PR에 새 커밋이 오면 앞의 실행을 취소합니다 |
+>
+> `concurrency`에서 **`develop`은 취소하지 않습니다** — `deploy` 잡이 Render 훅을
+> 호출하는 중에 끊기면 배포가 트리거됐는지 알 수 없는 상태가 됩니다.
+>
+> 사용량과 경고선은 [`COST_GUARDRAILS.md §3.1`](COST_GUARDRAILS.md)에 있습니다.
 
 ### 3.6 파이프라인 단계
 
@@ -205,11 +236,11 @@ Secret Scan             시크릿 패턴 검사 (allowlist-secret 주석은 예�
 Quality Gate            하나라도 실패하면 여기서 중단
   ↓
 Report to GitHub        커밋에 ✅/❌ 표시   ← 머지 게이트의 근거
-  ↓
-Deploy                  main 브랜치일 때만
-  · Render 배포 훅 호출
-  · Vercel은 GitHub 연동으로 자동 배포
 ```
+
+⚠️ **Jenkins에는 Deploy 스테이지가 없습니다** (2026-08-26 제거). 배포는
+GitHub Actions가 합니다 — §3.2와 §5를 보세요. 두 곳에서 트리거하면 같은 커밋이
+두 번 배포됩니다.
 
 CI용 더미 시크릿은 해당 줄에 `allowlist-secret` 주석을 붙여 예외 처리합니다.
 ⚠️ 실제 시크릿에는 붙이지 않습니다 — "공개돼도 무해하다"를 명시적으로 선언하는 용도입니다.
@@ -220,8 +251,15 @@ CI용 더미 시크릿은 해당 줄에 `allowlist-secret` 주석을 붙여 예�
 |---|---|---|
 | `feat/*` | ✅ 전체 | ✕ |
 | `frontend_develop` `backend_develop` `server_develop` | ✅ 전체 | ✕ |
-| `develop` | ✅ 전체 | ✕ (원하면 스테이징 추가) |
-| **`main`** | ✅ 전체 | **✅ 운영 배포** |
+| **`develop`** | ✅ 전체 | **✅ 백엔드 배포 (Render)** |
+| `main` | ✅ 전체 | ✕ (공개 시점에 여기로 옮긴다) |
+
+⚠️ **배포 대상은 `backend/`가 바뀐 머지뿐입니다.** 프론트 전용 머지는 백엔드를
+재배포하지 않습니다. 프론트는 Vercel이 GitHub 연동으로 따로 배포합니다.
+
+⚠️ **스테이징을 따로 둘 수 없습니다.** Render Free 750시간/월은 **서비스 하나를
+24시간** 돌리는 양입니다. 두 개면 1500시간이라 한도를 넘어 과금됩니다
+(`ARCHITECTURE.md §8.1`). 그래서 배포 대상은 언제나 하나입니다.
 
 ---
 
@@ -255,26 +293,72 @@ GitHub 브랜치 보호에서 **CI 상태 체크를 필수(required status check
 
 ## 5. CD — 배포 자동화
 
+### 5.0 ⚠️ 첫 공개 배포 전 필수 확인
+
+| # | 항목 | 왜 |
+|---|---|---|
+| 1 | **`frontend/public/photos/`·`public/bulletins/` mock 자산을 운영 번들에서 제외** | `public/`은 **인증 없이 정적 서빙**된다. 얼굴이 식별되는 실제 인물 사진 47장이 `/photos/retreat-2026/...`로 누구나 접근 가능해진다. `robots.txt`·`X-Robots-Tag`는 색인만 막고 직접 접근은 막지 못한다. 실서비스는 R2 presigned URL을 쓰므로 이 자산이 운영에 필요하지 않다 — `docs/DECISIONS.md` 2026-08-24 항목의 3가지 해결안 중 택일 |
+| 2 | **Vercel에 `API_ORIGIN` 환경변수 설정** | 없으면 서버 렌더링 시 백엔드 호출이 실패해 공개 공지가 초기 HTML에 안 들어간다 → 검색 유입 손실 (M1의 핵심 가치). ⚠️ `NEXT_PUBLIC_` 접두사를 붙이지 않는다 (NFR-SEC-22) |
+| 3 | **`NEXT_PUBLIC_USE_MOCK=0` 확인** | mock으로 배포되면 가짜 데이터가 그대로 공개된다 |
+| 4 | **`NEXT_PUBLIC_SITE_URL`을 실제 도메인으로** | OG 태그·sitemap의 절대 URL이 localhost로 나간다 |
+
+> 1번은 **개인정보 문제**라 다른 항목보다 우선순위가 높다. 배포 후에 발견하면
+> 이미 크롤링·캐싱됐을 수 있다.
+
 ### 5.1 배포 대상
 
 | 대상 | 트리거 | 방식 |
 |---|---|---|
-| 프론트엔드 (Vercel) | `main` push | **Vercel의 GitHub 연동이 자동 처리** — Jenkins 개입 불필요 |
-| 백엔드 (Render) | `main` push + 테스트 통과 | Jenkins가 **Deploy Hook URL 호출** |
+| 프론트엔드 (Vercel) | `main` push | **Vercel의 GitHub 연동이 자동 처리** — CI 개입 불필요 |
+| 백엔드 (Render) | **`develop` push + `backend/` 변경 + 테스트 통과** | **GitHub Actions**가 Deploy Hook 호출 |
 | DB 마이그레이션 | 백엔드 시작 시 | Flyway 자동 실행 |
+
+```
+feat/be-*  →  backend_develop  →  develop
+                                     ↓
+                          GitHub Actions (클라우드, 항상 동작)
+                          ├─ Postgres 띄우고 build + test
+                          │   (★ 인가 매트릭스 포함)
+                          └─ ✅ 통과 → Render Deploy Hook ──▶ 🚀
+```
+
+**왜 `main`이 아니라 `develop`인가** (PM 결정 2026-08-26)
+
+아직 공개 사용자가 없고 백엔드가 막 개발을 시작했습니다. BE의 평소 흐름에서
+바로 서버에 반영되는 편이 확인 주기가 짧습니다. `main`을 배포 대상으로 두면
+배포할 때마다 `develop → main` PR을 하나 더 머지해야 하는데, 지금 단계에서는
+그 의식이 값을 하지 못합니다.
+
+**`main`은 "공개된 것"이라는 의미를 유지합니다.** 공개 시점에 배포 대상을
+`main`으로 옮기며, 그때 **두 곳을 같이** 바꿔야 합니다:
+1. Render 서비스의 Branch 설정
+2. `.github/workflows/backend-ci.yml`의 `deploy` 잡 조건 (`refs/heads/develop` → `refs/heads/main`)
+
+**구현**: `.github/workflows/backend-ci.yml`의 `deploy` 잡.
+`build` 잡이 `skipped` 출력을 내보내고, deploy는 **검증을 실제로 한 빌드에서만**
+동작합니다 — guard가 건너뛴 빌드는 초록불이어도 아무것도 검증하지 않은 것이라
+그 상태로 배포하면 테스트 게이트가 없는 배포가 됩니다.
 
 ### 5.2 Render Deploy Hook
 
-Render 대시보드 → Settings → Deploy Hook에서 URL을 발급받아 Jenkins credential(`render-deploy-hook`)로 등록합니다.
+Render 대시보드 → Settings → Deploy Hook에서 URL을 발급받아
+**GitHub 저장소 시크릿 `RENDER_DEPLOY_HOOK`**으로 등록합니다
+(Jenkins credential이 아닙니다 — 2026-08-26에 옮겨졌습니다).
 
-```groovy
-// main 브랜치 + 테스트 통과 시에만
-withCredentials([string(credentialsId: 'render-deploy-hook', variable: 'HOOK')]) {
-  sh 'curl -fsS -X POST "$HOOK"'
-}
+```
+저장소 Settings → Secrets and variables → Actions → New repository secret
+  Name: RENDER_DEPLOY_HOOK
 ```
 
-⚠️ Render의 자동 배포(Auto-Deploy)는 **꺼두세요.** 켜두면 Jenkins 테스트를 기다리지 않고 push 즉시 배포됩니다. **테스트를 통과한 커밋만 배포되게 하려면 Jenkins가 유일한 트리거여야 합니다.**
+시크릿이 없으면 배포 잡이 **명시적으로 실패**합니다(조용히 넘어가지 않습니다).
+훅 호출은 `curl -fsS`라 4xx/5xx도 실패로 잡힙니다 — `-f` 없이 쓰면 훅이 죽어도
+초록불이 뜹니다.
+
+⚠️ Render의 자동 배포(Auto-Deploy)는 **반드시 꺼두세요.** 켜두면 테스트를
+기다리지 않고 push 즉시 배포됩니다. **테스트를 통과한 커밋만 배포되게 하려면
+트리거가 하나여야 합니다.**
+
+설정 절차 전체는 [`../infra/render/README.md`](../infra/render/README.md)에 있습니다.
 
 ### 5.3 배포 순서 (계약 변경 시)
 
@@ -283,7 +367,8 @@ withCredentials([string(credentialsId: 'render-deploy-hook', variable: 'HOOK')])
 호환 추가:        순서 무관
 ```
 
-Vercel이 자동 배포되므로, 비호환 변경 시에는 **프론트엔드 머지를 백엔드 배포 확인 이후로** 미룹니다.
+백엔드는 `develop` 머지 시점에, 프론트는 `main` 머지 시점에 배포됩니다.
+백엔드가 먼저 나가는 구조라 비호환 변경의 기본 순서와 맞습니다.
 
 ---
 
@@ -367,7 +452,7 @@ infra/jenkins/
 | 커밋마다 테스트 | Jenkins Multibranch (모든 브랜치 자동 감지) | ✅ |
 | 테스트 실패 시 업로드 차단 | **포기.** `feat/*`에는 깨진 커밋을 허용한다 (§1) | — |
 | **테스트 실패 시 통합 차단** | **CI 상태 + 머지 규칙** | ⚠️ 무료 플랜은 기술적 강제 불가 |
-| 배포 자동화 | Jenkins → Render 훅 / Vercel 자동 | ✅ |
+| 배포 자동화 | **Actions → Render 훅** / Vercel 자동 | ✅ (Render 서비스 생성 후 동작) |
 | 시크릿 유출 방지 | `.gitignore` + CI 스캔 + 리뷰 | ⚠️ 노출 시 키 재발급이 유일한 복구 |
 | 통합 브랜치 직접 push 차단 | 팀 규칙 | ⚠️ 기술적 강제 없음 |
 
