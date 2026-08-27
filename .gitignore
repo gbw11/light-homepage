@@ -52,3 +52,9 @@ backend/src/main/resources/application-prod.yml
 node_modules/
 *.swp
 *~
+
+# DB 덤프 — ⚠️ 개인정보다 (members · newcomer_requests). 절대 커밋하지 않는다.
+#   백업·복원 절차: infra/neon/README.md §3
+*.dump
+*.sql.gz
+light-[0-9]*.sql
