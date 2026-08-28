@@ -316,7 +316,7 @@ photos/{albumId}/{photoId}/thumb.webp    640px q80 (~80KB)   그리드 열람용
 
 ⚠️ **위 가드는 저장 용량만 막는다.** R2는 **연산 횟수**(Class A 쓰기 1M/월 · Class B 읽기)에도 한도가 있고, presigned URL 발급이 Class A에 해당한다 — 재시도 루프 같은 버그로 조용히 늘어날 수 있는데 세는 장치가 없다.
 
-⚠️ **더 큰 문제: R2는 무료 한도가 있어도 활성화에 결제 수단을 요구한다.** 그러면 "결제 수단이 없으므로 과금이 불가능하다"는 1차 방어가 성립하지 않는다. **M3 착수 전 PM 결정 사항**이며 선택지는 [`COST_GUARDRAILS.md §3.6`](COST_GUARDRAILS.md)에 정리했다. 결정 전까지 **Cloudflare 계정을 만들지 않는다.**
+⚠️ **더 큰 문제: R2는 무료 한도가 있어도 활성화에 결제 수단을 요구한다.** 그러면 "결제 수단이 없으므로 과금이 불가능하다"는 1차 방어가 성립하지 않는다. **M3 착수 전 PM 결정 사항**이며 선택지는 [`COST_GUARDRAILS.md §3.6`](../ops/COST_GUARDRAILS.md)에 정리했다. 결정 전까지 **Cloudflare 계정을 만들지 않는다.**
 
 ### 4.4 접근 제어
 R2 버킷은 완전 비공개. 모든 접근은 Spring이 발급한 **presigned URL(10분)** 로만.
@@ -662,7 +662,7 @@ FE                                    BE
 
 Spring Boot는 상시 실행 프로세스가 필요해서, 서버리스인 Vercel과 달리 무료로 돌리기가 까다롭다. **여기서 비용이 새면 프로젝트 전제가 깨진다.**
 
-> 이 절은 **무엇을 쓸지 고른 근거**다. 그 선택이 실제로 어떻게 강제되는지(결제 수단 미등록·지출 한도 $0·코드로 막은 것)는 [`COST_GUARDRAILS.md`](COST_GUARDRAILS.md)에 있다.
+> 이 절은 **무엇을 쓸지 고른 근거**다. 그 선택이 실제로 어떻게 강제되는지(결제 수단 미등록·지출 한도 $0·코드로 막은 것)는 [`COST_GUARDRAILS.md`](../ops/COST_GUARDRAILS.md)에 있다.
 
 ### 8.1 백엔드 호스팅
 | 옵션 | 무료 | 문제 | 판단 |
@@ -679,7 +679,7 @@ Spring Boot는 상시 실행 프로세스가 필요해서, 서버리스인 Verce
 - 750시간 중 **744시간을 쓴다(99.2%)** — 여유가 6시간뿐이라 서비스를 하나라도 더 만들면 초과다
 - ⚠️ **공개 사이트가 백엔드에 의존하지 않는 설계(§1.3)가 여기서 값을 한다.** 백엔드가 슬립·장애여도 전도용 공개 페이지는 정상. 영향은 회원 영역 첫 진입 지연뿐
 - 메모리 512MB → `-Xmx400m`. 서버에서 이미지 변환을 하지 않는 이유(§4.1)
-  - ⚠️ **2026-08-27 보강.** 힙 400MB + 힙 밖(메타스페이스·코드캐시·스레드 스택) 약 180MB면 **합계가 이미 512MB를 넘는다.** 힙이 실제로 400MB까지 차면 `Exited with status 137`로 죽는다 — 지금 안 죽는 이유는 힙을 그만큼 쓰지 않아서다(실측 299MB). `-Xmx`는 M4의 PDF→이미지 변환 때문에 낮추지 않고, **힙 밖을 줄였다**(Tomcat 스레드 200→20 · SerialGC 고정). 근거와 경고선은 [`COST_GUARDRAILS.md §5`](COST_GUARDRAILS.md)
+  - ⚠️ **2026-08-27 보강.** 힙 400MB + 힙 밖(메타스페이스·코드캐시·스레드 스택) 약 180MB면 **합계가 이미 512MB를 넘는다.** 힙이 실제로 400MB까지 차면 `Exited with status 137`로 죽는다 — 지금 안 죽는 이유는 힙을 그만큼 쓰지 않아서다(실측 299MB). `-Xmx`는 M4의 PDF→이미지 변환 때문에 낮추지 않고, **힙 밖을 줄였다**(Tomcat 스레드 200→20 · SerialGC 고정). 근거와 경고선은 [`COST_GUARDRAILS.md §5`](../ops/COST_GUARDRAILS.md)
 - **콜드스타트**(30~60초)를 줄이는 쪽도 손봤다 — `-Xms`가 없으면 초기 힙이 **8MB**(컨테이너 메모리의 1/64)라, Spring 기동이 그 안에서 힙 확장과 young GC를 수십 번 반복한다. `-Xms128m`으로 없앴다. 상세는 `infra/render/README.md §5`
 
 ### 8.2 데이터베이스
@@ -689,9 +689,9 @@ Spring Boot는 상시 실행 프로세스가 필요해서, 서버리스인 Verce
 > 슬립 방지 핑이 `/actuator/health`(DB 상태 포함)를 10분마다 때리도록 설계돼
 > 있어서 **자동 정지가 한 번도 걸리지 않는 구조였다.** 핑 대상을 DB를 건드리지
 > 않는 `/actuator/health/alive`로 옮겨 전제를 복구했다. 상세와 재발 방지 장치는
-> [`COST_GUARDRAILS.md §3.2`](COST_GUARDRAILS.md)에 있다.
+> [`COST_GUARDRAILS.md §3.2`](../ops/COST_GUARDRAILS.md)에 있다.
 
-> ⚠️ **2026-08-27 보강 — 같은 누수가 한 군데 더 있었다.** 핑 경로를 옮겨도 **커넥션 풀이 Neon을 계속 깨우고 있었다.** HikariCP의 `keepaliveTime` 기본값이 0이 아니라 **2분**이고, `minimumIdle` 기본값이 `maximumPoolSize`와 같아 풀이 **고정 크기**라 비워지지 않는다. `keepalive-time: 0` · `minimum-idle: 0` · `idle-timeout: 240000`으로 고쳤고 `DataSourcePoolConfigTest`가 고정한다. 상세는 [`COST_GUARDRAILS.md §3.2`](COST_GUARDRAILS.md)
+> ⚠️ **2026-08-27 보강 — 같은 누수가 한 군데 더 있었다.** 핑 경로를 옮겨도 **커넥션 풀이 Neon을 계속 깨우고 있었다.** HikariCP의 `keepaliveTime` 기본값이 0이 아니라 **2분**이고, `minimumIdle` 기본값이 `maximumPoolSize`와 같아 풀이 **고정 크기**라 비워지지 않는다. `keepalive-time: 0` · `minimum-idle: 0` · `idle-timeout: 240000`으로 고쳤고 `DataSourcePoolConfigTest`가 고정한다. 상세는 [`COST_GUARDRAILS.md §3.2`](../ops/COST_GUARDRAILS.md)
 
 - ⚠️ 무료 티어는 **연결 수 제한**이 있다 → HikariCP `maximum-pool-size: 3~5`. 기본값(10)이면 연결 고갈이 난다
 - 대안: Supabase Postgres (500MB, 단 7일 무활동 시 프로젝트 일시정지)

@@ -13,10 +13,10 @@
 
 | # | 파일 | 시간 | 왜 지금 읽는가 | 읽고 나면 알아야 할 것 |
 |---|---|---|---|---|
-| 1 | [`../README.md`](../README.md) | 5분 | 프로젝트가 뭔지·저장소가 어떻게 생겼는지 | 3개 영역(공개·회원·운영), 브랜치 4단 구조 |
-| 2 | [**`INTEGRATION.md`**](INTEGRATION.md) ★ | **25분** | **협업 규칙. 여기를 어기면 상대 작업이 막힙니다** | `*_develop`에서 직접 작업 금지 · 계약 변경 절차 · 소유권 |
-| 3 | [**`TOOLCHAIN.md`**](TOOLCHAIN.md) ★ | 15분 | 설치할 것과 버전. **여기부터 손을 움직입니다** | Java 21 Temurin · Postgres 16 · 포트 8080 고정 |
-| 4 | [**`../backend/README.md`**](../backend/README.md) ★ | 15분 | 프로젝트 초기화 설정값 그대로 들어 있음 | start.spring.io 설정 · 의존성 · 무료 인프라 제약 |
+| 1 | [`../README.md`](../../README.md) | 5분 | 프로젝트가 뭔지·저장소가 어떻게 생겼는지 | 3개 영역(공개·회원·운영), 브랜치 4단 구조 |
+| 2 | [**`INTEGRATION.md`**](../ops/INTEGRATION.md) ★ | **25분** | **협업 규칙. 여기를 어기면 상대 작업이 막힙니다** | `*_develop`에서 직접 작업 금지 · 계약 변경 절차 · 소유권 |
+| 3 | [**`TOOLCHAIN.md`**](../ops/TOOLCHAIN.md) ★ | 15분 | 설치할 것과 버전. **여기부터 손을 움직입니다** | Java 21 Temurin · Postgres 16 · 포트 8080 고정 |
+| 4 | [**`../backend/README.md`**](../../backend/README.md) ★ | 15분 | 프로젝트 초기화 설정값 그대로 들어 있음 | start.spring.io 설정 · 의존성 · 무료 인프라 제약 |
 | 5 | [**`BACKEND_TASKS.md`**](BACKEND_TASKS.md) ★ | **20분** | **당신의 작업 지시서. 이것만 읽어도 작업 가능하게 썼습니다** | 마일스톤별 체크리스트 · 인가 매트릭스 · 월례회 |
 
 > ★ 표시 4개가 핵심입니다. 시간이 없으면 **2 → 4 → 5** 순으로 읽으세요.
@@ -27,8 +27,8 @@
 
 | # | 파일 | 시간 | 언제 필요한가 |
 |---|---|---|---|
-| 6 | [**`SPEC_API.md`**](SPEC_API.md) ★ | 25분 | **FE와의 계약서.** 엔드포인트 만들기 직전에 해당 절만 펴 보면 됩니다. 처음엔 §1(공통 규약)만 정독 |
-| 7 | [`CICD.md`](CICD.md) | 15분 | 첫 push 전에. "왜 push는 막지 않고 머지를 막는가"가 핵심 |
+| 6 | [**`SPEC_API.md`**](../spec/SPEC_API.md) ★ | 25분 | **FE와의 계약서.** 엔드포인트 만들기 직전에 해당 절만 펴 보면 됩니다. 처음엔 §1(공통 규약)만 정독 |
+| 7 | [`CICD.md`](../ops/CICD.md) | 15분 | 첫 push 전에. "왜 push는 막지 않고 머지를 막는가"가 핵심 |
 
 ---
 
@@ -36,13 +36,13 @@
 
 | 파일 | 언제 |
 |---|---|
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) (48KB) | **§5 권한 · §7.7 월례회 · §9 환경변수 · §13 보안 체크리스트** 4개 절만 지금 보고, 나머지는 해당 기능 만들 때 |
-| [`SPEC_FUNCTIONAL.md`](SPEC_FUNCTIONAL.md) | 기능 하나를 구현하기 직전, 그 기능의 수용 기준 확인용 |
-| [`SPEC_NONFUNCTIONAL.md`](SPEC_NONFUNCTIONAL.md) | M4 보안·성능 마감 때 |
-| [`PLAN.md`](PLAN.md) | "왜 이런 요구가 나왔는지" 배경이 궁금할 때 |
-| [`WORKPLAN.md`](WORKPLAN.md) | 일정·시간 산정이 궁금할 때 (§1.5는 지금 볼 것 — M1에 여유 46h가 있고 그걸 어디 쓸지 적혀 있습니다) |
-| [`WIREFRAME.md`](WIREFRAME.md) (58KB) | ❌ **읽지 않아도 됩니다.** FE가 무엇을 만드는지 궁금할 때만 |
-| [`../infra/jenkins/README.md`](../infra/jenkins/README.md) | Jenkins를 직접 띄울 때 |
+| [`ARCHITECTURE.md`](../spec/ARCHITECTURE.md) (48KB) | **§5 권한 · §7.7 월례회 · §9 환경변수 · §13 보안 체크리스트** 4개 절만 지금 보고, 나머지는 해당 기능 만들 때 |
+| [`SPEC_FUNCTIONAL.md`](../spec/SPEC_FUNCTIONAL.md) | 기능 하나를 구현하기 직전, 그 기능의 수용 기준 확인용 |
+| [`SPEC_NONFUNCTIONAL.md`](../spec/SPEC_NONFUNCTIONAL.md) | M4 보안·성능 마감 때 |
+| [`PLAN.md`](../spec/PLAN.md) | "왜 이런 요구가 나왔는지" 배경이 궁금할 때 |
+| [`WORKPLAN.md`](../spec/WORKPLAN.md) | 일정·시간 산정이 궁금할 때 (§1.5는 지금 볼 것 — M1에 여유 46h가 있고 그걸 어디 쓸지 적혀 있습니다) |
+| [`WIREFRAME.md`](../spec/WIREFRAME.md) (58KB) | ❌ **읽지 않아도 됩니다.** FE가 무엇을 만드는지 궁금할 때만 |
+| [`../infra/jenkins/README.md`](../../infra/jenkins/README.md) | Jenkins를 직접 띄울 때 |
 
 ---
 
@@ -73,7 +73,7 @@ git checkout -b feat/be-init        # ★ backend_develop에서 직접 작업하
 → **인가 테스트 매트릭스**([`BACKEND_TASKS.md`](BACKEND_TASKS.md) §6)가 마지막 방어선이고, **기능 코드보다 우선순위가 높습니다.**
 
 **2. 계약을 조용히 바꾸지 마세요.**
-응답 형태·에러 코드·필드명을 바꾸면 FE 작업이 통째로 어긋납니다. 절차는 [`INTEGRATION.md`](INTEGRATION.md) §5, 비호환 변경은 `[CONTRACT]` PR + 상대 승인.
+응답 형태·에러 코드·필드명을 바꾸면 FE 작업이 통째로 어긋납니다. 절차는 [`INTEGRATION.md`](../ops/INTEGRATION.md) §5, 비호환 변경은 `[CONTRACT]` PR + 상대 승인.
 
 **3. 1시간 룰.**
 혼자 1시간 넘게 막히면 프론트 담당자에게 공유하세요. 하루 4시간 예산에서 1시간은 25%입니다.

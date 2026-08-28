@@ -3,10 +3,10 @@
 **보내는 쪽**: 프론트엔드 · **받는 쪽**: 백엔드
 **대상**: 인가 매트릭스 전반 (`SPEC_API §3` · `§5` · `§6` · `§7`)
 **관련 PR**: [#65 `[CONTRACT]`](https://github.com/gbw11/light-homepage/pull/65) → `develop` 머지 완료
-**배경 결정**: `docs/DECISIONS.md` 2026-08-25 "권한 모델 전환"
+**배경 결정**: `docs/records/DECISIONS.md` 2026-08-25 "권한 모델 전환"
 
 > 이 문서는 **BE가 바로 착수할 수 있게 정리한 실행용 브리핑**이다.
-> 전체 이력은 `docs/BACKEND_HANDOFF.md`에 시간순으로 쌓여 있다.
+> 전체 이력은 `docs/backend/BACKEND_HANDOFF.md`에 시간순으로 쌓여 있다.
 
 > ## ⚠️ 2026-08-28 — 이 문서의 `§2`가 **부분 철회 제안**을 받았다
 >

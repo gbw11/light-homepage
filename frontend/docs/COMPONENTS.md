@@ -80,7 +80,7 @@ presigned URL에 `next/image`를 쓰지 않는 이유:
 ```
 
 above-the-fold 이미지에만 `eager`를 주고, 나머지는 기본값(lazy)에 맡긴다.
-Lighthouse 90+ 예산이 있으므로(`docs/WORKPLAN.md` 품질 게이트) 화면 밖
+Lighthouse 90+ 예산이 있으므로(`docs/spec/WORKPLAN.md` 품질 게이트) 화면 밖
 이미지를 eager로 올리지 않는다.
 
 근거: `node_modules/next/dist/docs/01-app/03-api-reference/02-components/image.md`
@@ -102,5 +102,5 @@ Lighthouse 90+ 예산이 있으므로(`docs/WORKPLAN.md` 품질 게이트) 화�
 
 `public/photos/`의 사진은 **얼굴이 식별되는 실제 인물**이다. 공개(검색 색인)
 페이지에는 쓰지 않는다 — 근거와 예외(공개 허용 3장)는
-`docs/DECISIONS.md` "수련회 실사진 공개 페이지 적용 범위" 항목에 있다.
+`docs/records/DECISIONS.md` "수련회 실사진 공개 페이지 적용 범위" 항목에 있다.
 크롭·확대로 특정 인물이 식별되게 만드는 것도 포함해서 금지다.

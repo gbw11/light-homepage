@@ -5,7 +5,7 @@ package kr.light.member;
  * Spring Security의 RoleHierarchy로 ROLE_MEMBER &lt; ROLE_LEADER &lt; ROLE_PASTOR를
  * 선언하면 @PreAuthorize("hasRole('LEADER')") 하나로 상위 역할까지 통과한다.
  *
- * @see <a href="file:../../../../../../../docs/ARCHITECTURE.md">ARCHITECTURE.md §5.1</a>
+ * @see <a href="file:../../../../../../../docs/spec/ARCHITECTURE.md">ARCHITECTURE.md §5.1</a>
  */
 public enum Role {
     /** 가입했으나 미승인. 회원 API 전부 차단 */

@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * {@code /actuator/health}에는 Spring이 DataSource 인디케이터를 자동으로 붙인다.
  * cron-job.org가 10분마다 그쪽을 때리면 Neon 컴퓨트가 한 번도 자동 정지되지
  * 않아 무료 컴퓨트 한도를 넘고, 그러면 프로젝트 전제("월 $0")가 깨진다
- * (docs/COST_GUARDRAILS.md §3.2).
+ * (docs/ops/COST_GUARDRAILS.md §3.2).
  *
  * <p>⚠️ <b>이 사고는 조용히 일어난다.</b> 핑이 DB를 깨우고 있어도 화면·API·
  * 테스트는 전부 정상으로 보이고, 청구서나 서비스 정지로만 드러난다. 그래서

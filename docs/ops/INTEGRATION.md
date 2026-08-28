@@ -189,7 +189,7 @@ export const api = process.env.NEXT_PUBLIC_USE_MOCK === '1' ? mockApi : realApi;
 ### 5.2 비호환 변경 절차
 ```
 1. 변경이 필요하다고 판단 → 즉시 상대에게 공유 (메시지 1줄이라도)
-2. 합의 → docs/ARCHITECTURE.md §6.2 또는 BACKEND_TASKS.md §9.3 수정
+2. 합의 → docs/spec/ARCHITECTURE.md §6.2 또는 BACKEND_TASKS.md §9.3 수정
 3. PR 제목에 [CONTRACT] 태그 → 상대 승인 필수
 4. 양쪽이 각자 코드 수정
 ```
@@ -258,7 +258,7 @@ git checkout frontend_develop
 >
 > `server_develop`이 다루는 범위:
 > - **호스팅**: Render 서비스 설정 · Dockerfile · JVM 옵션 · 헬스체크 핑(cron-job.org)
-> - **데이터베이스**: Neon 프로젝트 · 연결 문자열 · 백업·복원 절차 → [`infra/neon/README.md`](../infra/neon/README.md)
+> - **데이터베이스**: Neon 프로젝트 · 연결 문자열 · 백업·복원 절차 → [`infra/neon/README.md`](../../infra/neon/README.md)
 > - **스토리지**: Cloudflare R2 버킷 · CORS · 수명주기 정책
 > - **배포 파이프라인**: CI 워크플로 · Vercel 프로젝트 설정
 > - **환경변수 관리**: 목록 문서화 · 로테이션 절차 (값 자체는 커밋 금지)

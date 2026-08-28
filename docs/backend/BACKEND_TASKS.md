@@ -435,7 +435,7 @@ POST /api/uploads:commit ─────────▶ 5. status=COMMITTED, siz
 
 ## 9. API 명세
 
-> 📋 **요청/응답 JSON까지 포함한 전체 명세는 [`SPEC_API.md`](SPEC_API.md)에 있습니다.**
+> 📋 **요청/응답 JSON까지 포함한 전체 명세는 [`SPEC_API.md`](../spec/SPEC_API.md)에 있습니다.**
 > 이 절은 요약이며, 구현 시에는 SPEC_API.md를 기준으로 하세요.
 
 계약서는 **Swagger UI**입니다 (`springdoc-openapi`를 M1 초반에 붙여주세요 → `localhost:8080/swagger-ui.html`).
