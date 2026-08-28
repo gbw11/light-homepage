@@ -82,13 +82,17 @@ const nextConfig: NextConfig = {
       },
       {
         /**
-         * mock 개발용 사진·주보 자산. `public/`은 인증 없이 서빙되므로
-         * 최소한 색인은 막는다.
+         * mock 개발용 자산. 색인만 막는다.
          *
-         * ⚠️ 헤더로는 **직접 접근을 막을 수 없다.** 실제 방어는 이 자산을
-         *    운영 배포에 포함하지 않는 것이다 — `docs/DECISIONS.md` 참고.
+         * ⚠️ 헤더로는 **직접 접근을 막을 수 없다.** 실제 방어는 사진 자산을
+         *    `public/` 밖(`frontend/mock-assets/`)에 두고 `/mock-assets/*`
+         *    route handler가 **배포에서 404를 주는 것**이다
+         *    (PM 결정 2026-08-27, 1안 — `docs/DECISIONS.md`).
+         *
+         * `bulletins`는 `public/`에 남아 있다 — "PLACEHOLDER" 문구가 찍힌
+         * 생성물이고 개인정보가 아니다 (`mock.ts` 주보 mock 주석에서 확인).
          */
-        source: "/(photos|bulletins)/:path*",
+        source: "/(mock-assets|bulletins)/:path*",
         headers: noindex,
       },
     ];

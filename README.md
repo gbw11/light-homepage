@@ -33,7 +33,7 @@
 light-homepage/
 ├─ frontend/     Next.js 16 + TypeScript + Tailwind v4  ← FE 단독 소유
 ├─ backend/      Spring Boot 3 + Java 21              ← BE 단독 소유
-├─ infra/        Jenkins · Render · Neon 인프라 구성      ← server_develop 소유
+├─ infra/        Jenkins · Render · Neon · Vercel 구성    ← server_develop 소유
 ├─ docs/         기획·설계 문서                          ← 공동
 ├─ .github/      GitHub Actions CI · PR 템플릿
 └─ Jenkinsfile   Jenkins 파이프라인 정의
@@ -64,6 +64,27 @@ git checkout -b feat/be-jwt-auth     # ← 여기서 작업
 ```
 
 머지 흐름: `feat/*` → `*_develop` → `develop` → `main`
+
+> ### 🔴 `main`은 **일부러** 뒤처져 있습니다 — 배포 설정에 쓰지 마세요
+>
+> `main`은 **마일스톤 릴리스만** 받습니다. M1이 아직 릴리스되지 않았으므로
+> `main`은 `develop`보다 **283커밋 뒤처진 상태가 정상**입니다.
+> 앞당기지 마세요 — 앞당기면 "릴리스됐다"는 거짓 신호가 됩니다.
+>
+> **⚠️ 그래서 어떤 배포 설정도 `main`을 가리켜서는 안 됩니다.**
+> 2026-08-28에 Vercel **Production Branch가 `main`으로 설정돼 있어서**
+> 프론트엔드 프로덕션이 **13커밋 동안 동결**됐습니다. 실인물 사진을 제거한
+> 수정(#94)이 배포되지 않은 채 "고쳐졌다"고 기록됐습니다
+> (`infra/vercel/README.md §2⓪`).
+>
+> | 배포 대상 | 가리켜야 하는 브랜치 |
+> |---|---|
+> | Vercel (프론트엔드) | **`develop`** |
+> | Render (백엔드) | **`develop`** — Actions가 훅을 호출 (`docs/CICD.md §5.1`) |
+>
+> **새 배포 대상을 붙일 때는 그 설정 화면에서 브랜치 값을 눈으로 확인하세요.**
+> 문서에 적혀 있다는 것은 설정이 그렇다는 증거가 아닙니다 — 위 사고에서
+> `infra/vercel/README.md`에는 처음부터 `develop`이라고 적혀 있었습니다.
 
 ---
 

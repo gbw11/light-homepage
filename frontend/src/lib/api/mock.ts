@@ -519,8 +519,13 @@ const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "at
 
 // ── 사진첩 mock (SPEC_API §6) ──────────────────────────────
 /**
- * 실제 수련회 사진 47장을 `public/photos/retreat-2026/`에 최적화해 넣어뒀다
- * (원본 277MB → 7.3MB, WebP, **EXIF 제거**).
+ * 실제 수련회 사진 47장을 `frontend/mock-assets/photos/retreat-2026/`에 최적화해
+ * 넣어뒀다 (원본 277MB → 7.3MB, WebP, **EXIF 제거**).
+ *
+ * ⚠️ **`public/`이 아니다.** `public/`은 인증 없이 정적 서빙되므로 얼굴이 식별되는
+ *    사진이 URL로 새어나간다. `/mock-assets/*` route handler가 **개발 환경에서만**
+ *    서빙한다 (PM 결정 2026-08-27, 1안). 배포에서는 404다 —
+ *    **배포된 데모에서 사진첩 이미지가 안 보이는 것은 의도된 것이다.**
  *
  * ⚠️ 실서비스에서 이 URL은 **R2 presigned URL**이 된다 (SPEC_API §6.4).
  *    mock은 정적 경로를 쓰므로 만료·서명이 없다 — 통합 시 URL 형태가 바뀌는 것을
@@ -547,8 +552,8 @@ function retreatPhoto(index: number): Photo {
 
   return {
     id: `${901 + index}`,
-    thumbUrl: `/photos/retreat-2026/thumb/${slug}.webp`,
-    viewUrl: `/photos/retreat-2026/view/${slug}.webp`,
+    thumbUrl: `/mock-assets/photos/retreat-2026/thumb/${slug}.webp`,
+    viewUrl: `/mock-assets/photos/retreat-2026/view/${slug}.webp`,
     width,
     height,
     takenAt,
