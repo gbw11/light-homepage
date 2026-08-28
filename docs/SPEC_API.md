@@ -1,6 +1,6 @@
 # API 명세서 — LIGHT
 
-- 문서 버전: **v1.1** (2026-08-26 — 권한 모델 전환 반영)
+- 문서 버전: **v1.2** (2026-08-28 — §13 출석부 신규 · §10 매트릭스에 출석부 행. ⚠️ 로그인·권한 재설계 반영은 별도 버전으로 온다 — `handoff/2026-08-28-auth-roster-model.md` §9 확정 대기)
 - Base URL: `/api` (Next.js `rewrites`로 Spring에 프록시 → **동일 출처**)
 - 이 문서의 역할: **FE와 BE의 유일한 접점.** W0에서 이 문서를 합의한 뒤 각자 작업한다
 - 구현되면 **Swagger UI**(`/swagger-ui.html`)가 살아있는 계약서가 되고, 이 문서는 합의 기준으로 남는다
@@ -811,6 +811,11 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 | `PATCH /admin/members/{id}/role` | 401 | 403 | 403 | **403** | 200 |
 | `POST /newcomers` | 200 | 200 | 200 | 200 | 200 |
 | `GET /sermons` | 200 | 200 | 200 | 200 | 200 |
+| `GET /attendance/sessions` (§13 신규) | 401 | 403 | **403** | 200 | 200 |
+| `POST /attendance/sessions` | 401 | 403 | **403** | 200 | 200 |
+| `GET /attendance/sessions/{id}` | 401 | 403 | **403** | 200 | 200 |
+| `PUT /attendance/sessions/{id}/entries` | 401 | 403 | **403** | 200 | 200 |
+| `DELETE /attendance/sessions/{id}` | 401 | 403 | **403** | 200 | 200 |
 
 **굵게 표시된 칸이 실제 사고가 나는 지점입니다.**
 엔드포인트를 추가하면 이 표에 행을 추가합니다. **표에 없는 보호 엔드포인트는 미완성으로 봅니다.**
@@ -838,6 +843,7 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 | **M2** | `/auth/*` 전체 · `POST/PUT/DELETE /posts` · `/admin/members/*` |
 | **M3** | `/bulletins/*` · `/albums/*` · `/photos/*` · `/uploads:*` · `/admin/storage` |
 | **M4** | `/meetings/*` · `/attachments` · `/files/{id}` · `/admin/newcomers` · `/photos/{id}/report` |
+| **미배정** | `/attendance/*` (§13) — 로그인·권한 재설계 확정 후. `member_roster` 의존 |
 
 ---
 
@@ -863,6 +869,116 @@ API 401 → POST /api/auth/refresh 1회 시도
 
 ### 12.3 `PENDING_APPROVAL` 처리
 회원 API가 이 코드를 반환하면 **어느 화면에 있든 `/pending`으로** 보냅니다.
+
+---
+
+## 13. 출석부 (`/api/attendance`) — 신규 2026-08-28
+
+> ### 상태: **FE 선행(mock 완료) — BE 미구현 · 착수 보류**
+>
+> `SPEC_FUNCTIONAL §9`에서 제외했던 기능을 **2026-08-28 결정으로 편입**했다
+> (범위 결정은 `handoff/2026-08-28-auth-roster-model.md §7·§9-E` ·
+> `DECISIONS.md` 2026-08-28). FE가 mock으로 화면을 완성하며 이 계약을
+> 구체화했다 — **BE는 로그인·권한 재설계(§9 결정 7건)가 확정된 뒤 착수한다.**
+> 신규 엔드포인트 추가는 호환 변경이므로 알림으로 충분하다(`INTEGRATION.md §5.1`) —
+> `BACKEND_HANDOFF.md` 2026-08-28 항목이 그 알림이다.
+>
+> ⚠️ **`member_roster` 테이블(재설계 §6.1)에 의존한다.** 출결 대상은
+> 계정(member)이 아니라 **명단**이다 — 계정을 만들지 않은 교인도 체크한다.
+> 명단 스키마가 확정되기 전에는 이 절을 구현할 수 없다.
+
+권한은 **전부 `L`(임원) 이상**이다. 본인 출결 조회(`GET /attendance/me`)와
+마을별 통계(`GET /attendance/stats`)는 **1차 범위에서 제외**했다 (§9-E 권장안).
+
+### 13.0 공통 — 상태 값
+
+`status`: `PRESENT`(출석) \| `LATE`(지각) \| `ABSENT`(결석) \| `EXCUSED`(공결)
+
+- ⚠️ **`null`(기록 없음)은 `ABSENT`와 다르다.** 아무도 체크하지 않은 사람과
+  결석으로 기록된 사람을 화면과 집계가 구별해야 한다
+- ⚠️ 출석 기록은 "누가 교회에 안 나왔는지"의 기록이다 — **예산안과 같은 급의
+  민감 정보**로 다룬다. 응답에 전화번호 등 불필요한 개인정보를 싣지 않는다
+
+### 13.1 `GET /api/attendance/sessions?page=&size=`
+권한 `L` · 날짜 내림차순
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "as-2", "date": "2026-08-24", "type": "SUNDAY_SERVICE",
+        "title": "주일예배",
+        "checkedCount": 4, "presentCount": 3, "rosterCount": 15
+      }
+    ],
+    "page": 0, "size": 20, "hasNext": false
+  }
+}
+```
+- `checkedCount`(상태가 기록된 인원, 값 무관) · `presentCount`(`PRESENT` 인원) ·
+  `rosterCount`(active 명단 전체) — 목록 화면이 "체크 4/15" 진행 상태를
+  회차마다 상세 조회 없이 보여주기 위한 집계다
+- `type`: `SUNDAY_SERVICE` \| `ETC` (값 목록은 BE 합의 대상 — §7 예시에는
+  `SUNDAY_SERVICE`만 있었다)
+
+### 13.2 `POST /api/attendance/sessions`
+권한 `L`
+```json
+// 요청
+{ "date": "2026-08-30", "type": "SUNDAY_SERVICE", "title": "주일예배" }
+```
+```json
+// 201
+{ "data": { "id": "as-3" } }
+```
+
+| 실패 | code | 상황 |
+|---|---|---|
+| 날짜 형식 오류 (`YYYY-MM-DD` 아님) | `VALIDATION_ERROR` (`field: "date"`) | |
+| 이름이 빈 값 | `VALIDATION_ERROR` (`field: "title"`) | |
+| **같은 날짜 + 같은 종류가 이미 있음** | `DUPLICATE` (409) | 실수로 회차가 둘 생기면 출결이 갈라진다 |
+
+### 13.3 `GET /api/attendance/sessions/{id}`
+권한 `L` · 회차 + **명단 전원**의 출결
+```json
+{
+  "data": {
+    "id": "as-2", "date": "2026-08-24", "type": "SUNDAY_SERVICE", "title": "주일예배",
+    "entries": [
+      { "rosterId": "r01", "name": "강OO", "village": "1", "status": "PRESENT" },
+      { "rosterId": "r05", "name": "정OO", "village": "2", "status": null }
+    ]
+  }
+}
+```
+- `entries`는 **명단 전원**이다 (체크된 사람만이 아니라). 정렬은
+  마을(숫자, `newcomer`는 뒤) → 이름 — 체크 화면이 마을 단위로 도는 것을 전제한다
+- 없는 id는 `NOT_FOUND`
+
+### 13.4 `PUT /api/attendance/sessions/{id}/entries`
+권한 `L` · `204`
+```json
+// 요청 — ⚠️ 배열이 곧 본문이다 (envelope 없음)
+[
+  { "rosterId": "r05", "status": "PRESENT" },
+  { "rosterId": "r06", "status": "ABSENT" }
+]
+```
+
+⚠️ **전체 교체가 아니라 upsert다.** 보낸 항목만 덮고 나머지는 그대로 둔다.
+두 임원이 동시에 서로 다른 마을을 체크하는 것이 정상 흐름이라, 전체 교체로
+구현하면 서로의 기록을 덮어쓴다. FE도 이 전제로 **변경분만** 보낸다.
+
+| 실패 | code | 상황 |
+|---|---|---|
+| 명단에 없는 `rosterId` | `VALIDATION_ERROR` (`field: "rosterId"`) | |
+| 없는 회차 | `NOT_FOUND` | |
+
+### 13.5 `DELETE /api/attendance/sessions/{id}`
+권한 `L` · `204` · 출결 기록까지 삭제
+
+FE는 1차에서 삭제 버튼을 두지 않았다 (실수 삭제 비용 > 기능 가치 —
+필요해지면 확인 절차와 함께 붙인다). API 계층(`real.ts`)에는 준비돼 있다.
 
 ---
 
