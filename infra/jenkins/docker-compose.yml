@@ -5,7 +5,7 @@
 # 초기 비밀번호:
 #   docker exec light-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 #
-# 설정 안내: docs/CICD.md §3.3
+# 설정 안내: docs/ops/CICD.md §3.3
 #
 # ⚠️ 포트 8090을 쓰는 이유: Spring Boot가 8080을 사용하므로 충돌을 피한다.
 

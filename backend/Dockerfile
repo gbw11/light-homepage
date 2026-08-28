@@ -6,7 +6,7 @@
 #        ⚠️ 백엔드 담당자가 여기를 고쳐야 할 일이 생기면 먼저 알려주세요 —
 #        메모리 상한·포트는 프로젝트 전제라 임의로 바꿀 수 없습니다.
 #
-#  규약: docs/BACKEND_DEPLOY.md · 서비스 세팅: infra/render/README.md
+#  규약: docs/backend/BACKEND_DEPLOY.md · 서비스 세팅: infra/render/README.md
 #  전제: Render Free(메모리 512MB) · Java 21 · Gradle Wrapper 8.14.3
 #
 #  Render 설정: Root Directory `backend` / Dockerfile Path `Dockerfile`

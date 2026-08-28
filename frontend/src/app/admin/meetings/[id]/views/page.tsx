@@ -13,7 +13,7 @@ export const metadata: Metadata = {
  *
  * ⚠️ 회원 개인정보(누가·언제·어디까지 봤는지)를 모아 보여주는 화면이라
  * **서버에서 미리 가져오지 않는다** — 세션이 없어 실패하고, 성공하면 그
- * 명단이 정적 HTML에 구워진다 (docs/DECISIONS.md 2026-08-24).
+ * 명단이 정적 HTML에 구워진다 (docs/records/DECISIONS.md 2026-08-24).
  * 인가는 서버가 최종 판단한다 (WORKPLAN §5.1).
  */
 export default async function MeetingViewsPage({

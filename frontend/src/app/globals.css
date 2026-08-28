@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 /*
- * 디자인 토큰 — docs/ARCHITECTURE.md §11
+ * 디자인 토큰 — docs/spec/ARCHITECTURE.md §11
  *
  * 톤: 베이지(배경) + 그린(강조) — 로고가 나뭇잎이라 그린을 브랜드 강조색으로
- * 쓴다 (PM 결정, docs/DECISIONS.md 2026-08-21 "디자인 톤: 베이지 + 그린").
+ * 쓴다 (PM 결정, docs/records/DECISIONS.md 2026-08-21 "디자인 톤: 베이지 + 그린").
  *
  * ⚠️ 변수 이름은 이전 팔레트(네이비/옐로우) 그대로 유지한다 — 이미 여러
  * 페이지·컴포넌트가 이 이름들을 참조하므로, 값만 바꾸는 것이 그 파일들을

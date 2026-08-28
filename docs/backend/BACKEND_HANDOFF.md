@@ -10,13 +10,13 @@
 
 - `@/lib/api` mock으로 화면을 먼저 완성했고, 백엔드가 이 계약대로 구현하면
   바로 연동되는 API가 생겼을 때 (엔드포인트·요청/응답 필드가 확정됨)
-- 기존 `docs/SPEC_API.md` 계약과 다르게 구현해야 했던 지점 (계약 변경 필요)
+- 기존 `docs/spec/SPEC_API.md` 계약과 다르게 구현해야 했던 지점 (계약 변경 필요)
 - 프론트 라우트가 새로 생겨서, 백엔드가 리다이렉트·CORS·쿠키 도메인 등에서
   신경 써야 할 경우
 - 인가 매트릭스(`ARCHITECTURE.md §5.3`)에 새로 추가돼야 할 행
 
 **단순 UI/디자인 변경, 정적 콘텐츠 수정처럼 백엔드와 무관한 작업은 여기에
-기록하지 않는다** — 그런 항목은 `docs/DECISIONS.md`(PM 결정 기록)로 간다.
+기록하지 않는다** — 그런 항목은 `docs/records/DECISIONS.md`(PM 결정 기록)로 간다.
 
 ## 처리 순서
 
@@ -35,7 +35,7 @@
 **상태**: 🟡 **제안 단계.** 결정 7건이 확정되기 전에는 착수하지 않습니다.
 **⚠️ 이미 착수한 부분이 있으면 먼저 브리핑 `§1`을 봐주세요.**
 
-전체 내용: [`docs/handoff/2026-08-28-auth-roster-model.md`](handoff/2026-08-28-auth-roster-model.md)
+전체 내용: [`docs/handoff/2026-08-28-auth-roster-model.md`](../handoff/2026-08-28-auth-roster-model.md)
 (메타모스트 붙여넣기용 축약본: `handoff/2026-08-28-auth-roster-model-MATTERMOST.md`)
 
 요약하면 넷입니다.
@@ -68,7 +68,7 @@
 **상태**: 참고용입니다. 백엔드가 할 일은 없습니다.
 
 지금은 아직 실사용자가 없고 접속하는 사람이 PM·BE뿐이라, cron-job.org 슬립
-방지 핑(`docs/CICD.md §5` · `infra/render/README.md §1-⑥`)을 **당분간 꺼둡니다.**
+방지 핑(`docs/ops/CICD.md §5` · `infra/render/README.md §1-⑥`)을 **당분간 꺼둡니다.**
 
 - **이유**: 핑을 켜두면 06:00~23:59 동안 558시간/월을 "아무도 안 쓰는데 깨어있는
   상태"로 소모합니다. 개발 단계엔 그럴 필요가 없고, Render 750시간/월 한도에
@@ -261,7 +261,7 @@ git checkout feat/be-jwt-auth
 git merge origin/develop     # 충돌 없음 — 확인했습니다
 ```
 
-동기화로 받게 되는 것: `HealthProbeTest` · `docs/COST_GUARDRAILS.md` ·
+동기화로 받게 되는 것: `HealthProbeTest` · `docs/ops/COST_GUARDRAILS.md` ·
 아래 2026-08-27 항목 · CI `concurrency` 설정.
 
 ### ③ 동기화 후 테스트를 전체로 한 번 돌려주세요
@@ -433,7 +433,7 @@ Neon이 주는 `postgres://user:pass@host/db` 형식을 그대로 넣으면 기�
 jdbc:postgresql://ep-xxxx.ap-southeast-1.aws.neon.tech/light?sslmode=require
 ```
 
-로컬에서 컨테이너로 확인하는 절차는 `docs/BACKEND_DEPLOY.md §5`에 있습니다.
+로컬에서 컨테이너로 확인하는 절차는 `docs/backend/BACKEND_DEPLOY.md §5`에 있습니다.
 
 ---
 
@@ -607,7 +607,7 @@ API 경로(`/api/**`)는 변동 없습니다.
 
 ## 2026-08-25 — 성능 스윕: 백엔드가 알아두면 좋은 트래픽 패턴 변화 (계약 변경 없음)
 
-**상태**: FE 성능 최적화(`feat/fe-perf-sweep`, `docs/PERF_SWEEP_2026-08-25.md`)
+**상태**: FE 성능 최적화(`feat/fe-perf-sweep`, `docs/records/PERF_SWEEP_2026-08-25.md`)
 로 API 계약은 그대로지만, **요청이 오는 패턴**이 달라진다.
 
 1. ~~`GET /api/posts?category=NOTICE_PUBLIC` — 서버 간(빌드/ISR) 호출이 생긴다.~~
@@ -1213,7 +1213,7 @@ URL의 쿼리스트링이 매번 바뀌어서 Next 이미지 옵티마이저가 
 
 ## 2026-08-24 — M2 인증 기반(auth-core) mock API — 백엔드가 그대로 구현하면 되는 계약
 
-**상태**: 계약 변경 없음. 아래 엔드포인트는 이미 `docs/SPEC_API.md §2`에
+**상태**: 계약 변경 없음. 아래 엔드포인트는 이미 `docs/spec/SPEC_API.md §2`에
 정의된 계약 그대로 프론트 mock(`frontend/src/lib/api/mock.ts`)과
 real(`frontend/src/lib/api/real.ts`)에 구현해뒀다. 백엔드가 이 그대로
 만들면 `NEXT_PUBLIC_USE_MOCK=0`으로 바꾸는 것만으로 연동된다.
@@ -1233,7 +1233,7 @@ real(`frontend/src/lib/api/real.ts`)에 구현해뒀다. 백엔드가 이 그대
 | `DELETE /api/auth/me` | `/my/profile` 회원 탈퇴 | `SPEC_API.md §2.13` |
 
 - **왜 필요한지**: M2(인증·회원) 마일스톤 전체가 이 계약에 의존한다
-  (`docs/WORKPLAN.md` §6 M2).
+  (`docs/spec/WORKPLAN.md` §6 M2).
 - **아직 안 붙인 것**: `GET /api/auth/kakao/authorize`·`kakao/callback`
   (302 리다이렉트 엔드포인트)은 실제 백엔드 라우트로 직접 이동하는
   `<a href="/api/auth/kakao/authorize">` 링크만 걸어뒀다 — `Api` 타입에
@@ -1254,7 +1254,7 @@ real(`frontend/src/lib/api/real.ts`)에 구현해뒀다. 백엔드가 이 그대
 
 ## 2026-08-24 — `/my/profile` 내 정보 화면 — 백엔드가 그대로 구현하면 되는 계약
 
-**상태**: 계약 변경 없음. 아래 3개는 이미 `docs/SPEC_API.md`에 있는 계약과
+**상태**: 계약 변경 없음. 아래 3개는 이미 `docs/spec/SPEC_API.md`에 있는 계약과
 동일하게 프론트 mock(`frontend/src/lib/api/mock.ts`)을 구현해뒀다. 백엔드가
 이 그대로 만들면 `NEXT_PUBLIC_USE_MOCK=0`으로 바꾸는 것만으로 연동된다.
 
@@ -1275,7 +1275,7 @@ real(`frontend/src/lib/api/real.ts`)에 구현해뒀다. 백엔드가 이 그대
 
 ## 2026-08-24 — M2 내부 공지 mock API — 백엔드가 그대로 구현하면 되는 계약
 
-**상태**: 계약 변경 없음. `docs/SPEC_API.md §3.1/§3.2/§3.3`에 이미 정의된
+**상태**: 계약 변경 없음. `docs/spec/SPEC_API.md §3.1/§3.2/§3.3`에 이미 정의된
 `NOTICE_MEMBER` 분류를 프론트 mock(`frontend/src/lib/api/mock.ts`)에
 데이터로 채워 `/my/notices`(내부 공지 통합 목록)를 구현했다.
 
@@ -1301,7 +1301,7 @@ real(`frontend/src/lib/api/real.ts`)에 구현해뒀다. 백엔드가 이 그대
 
 ## 2026-08-21 — M1 공개 영역 mock API — 백엔드가 그대로 구현하면 되는 계약
 
-**상태**: 계약 변경 없음. 아래 3개는 이미 `docs/SPEC_API.md`에 있는 계약과
+**상태**: 계약 변경 없음. 아래 3개는 이미 `docs/spec/SPEC_API.md`에 있는 계약과
 동일하게 프론트 mock(`frontend/src/lib/api/mock.ts`)을 구현해뒀다. 백엔드가
 이 그대로 만들면 `NEXT_PUBLIC_USE_MOCK=0`으로 바꾸는 것만으로 연동된다.
 

@@ -2,8 +2,8 @@
 
 > 대상: 백엔드 담당자. `backend/`에 Spring 프로젝트를 만들 때 이 규약을
 > 지키면, 별도 협의 없이 바로 Render에 Docker로 배포할 수 있습니다.
-> 배경: [`ARCHITECTURE.md §8.1`](ARCHITECTURE.md) · [`CICD.md §5`](CICD.md) ·
-> Render 서비스 세팅 절차는 [`../infra/render/README.md`](../infra/render/README.md)
+> 배경: [`ARCHITECTURE.md §8.1`](../spec/ARCHITECTURE.md) · [`CICD.md §5`](../ops/CICD.md) ·
+> Render 서비스 세팅 절차는 [`../infra/render/README.md`](../../infra/render/README.md)
 > (인프라 담당 소유, 백엔드는 여기 규약만 지키면 됩니다).
 
 ---
@@ -27,7 +27,7 @@
 
 ## 2. Dockerfile
 
-실제 파일: [`../backend/Dockerfile`](../backend/Dockerfile) (템플릿은 제거됐습니다)
+실제 파일: [`../backend/Dockerfile`](../../backend/Dockerfile) (템플릿은 제거됐습니다)
 
 | 항목 | 값 | 이유 |
 |---|---|---|
@@ -126,4 +126,4 @@ feat/be-*  →  backend_develop  →  develop  ──▶ Actions(build+test) ─
 - 백엔드 쪽에서 배포 스크립트를 만들 필요가 없습니다
 
 Render 서비스 생성·환경변수·Deploy Hook 등록은 인프라(PM) 몫입니다
-([`infra/render/README.md`](../infra/render/README.md)).
+([`infra/render/README.md`](../../infra/render/README.md)).

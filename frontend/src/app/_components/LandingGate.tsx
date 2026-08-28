@@ -37,7 +37,7 @@ const ACROSTIC = [
  * 배경 사진은 순수 장식이라 `alt=""`로 두고, 워드마크는 실제 DOM 텍스트로
  * 남긴다. 스크림(`--color-navy-900` 70%)은 사진 없이 단색이던 때와 명도가
  * 거의 같아 기존 텍스트 대비가 유지된다.
- * 사진 선정 근거: `docs/DECISIONS.md` "수련회 실사진 공개 페이지 적용 범위"(초상권).
+ * 사진 선정 근거: `docs/records/DECISIONS.md` "수련회 실사진 공개 페이지 적용 범위"(초상권).
  */
 export function LandingGate() {
   return (

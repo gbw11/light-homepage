@@ -2,10 +2,10 @@
 
 **소유: 백엔드 담당자** (프론트엔드는 이 디렉터리를 수정하지 않습니다)
 
-> 👋 **처음 오셨다면 → [`../docs/ONBOARDING_BACKEND.md`](../docs/ONBOARDING_BACKEND.md)** (어떤 파일을 어떤 순서로 읽을지)
-> 📋 **작업 지시서: [`../docs/BACKEND_TASKS.md`](../docs/BACKEND_TASKS.md)**
-> 이 문서만 읽어도 작업할 수 있게 정리돼 있습니다. 먼저 [`../docs/INTEGRATION.md`](../docs/INTEGRATION.md)를 읽어주세요.
-> ⚙️ 설치할 도구와 버전은 [`../docs/TOOLCHAIN.md`](../docs/TOOLCHAIN.md) — **Java 21 Temurin · Postgres 16 · 포트 8080 고정**
+> 👋 **처음 오셨다면 → [`../docs/backend/ONBOARDING_BACKEND.md`](../docs/backend/ONBOARDING_BACKEND.md)** (어떤 파일을 어떤 순서로 읽을지)
+> 📋 **작업 지시서: [`../docs/backend/BACKEND_TASKS.md`](../docs/backend/BACKEND_TASKS.md)**
+> 이 문서만 읽어도 작업할 수 있게 정리돼 있습니다. 먼저 [`../docs/ops/INTEGRATION.md`](../docs/ops/INTEGRATION.md)를 읽어주세요.
+> ⚙️ 설치할 도구와 버전은 [`../docs/ops/TOOLCHAIN.md`](../docs/ops/TOOLCHAIN.md) — **Java 21 Temurin · Postgres 16 · 포트 8080 고정**
 
 ---
 
@@ -178,7 +178,7 @@ docker run -d --name light-db -p 5432:5432 \
 
 **1. DB 방어선이 없습니다.**
 초기 설계는 Supabase + RLS였습니다. 그 구조에서는 코드에서 `where`를 빠뜨려도 DB가 막아줬지만, Spring이 단일 계정으로 접속하는 지금은 **그 방어선이 없습니다.**
-→ **인가 테스트 매트릭스**([`../docs/BACKEND_TASKS.md`](../docs/BACKEND_TASKS.md) §6)가 마지막 방어선이며, 기능 코드보다 우선순위가 높습니다.
+→ **인가 테스트 매트릭스**([`../docs/backend/BACKEND_TASKS.md`](../docs/backend/BACKEND_TASKS.md) §6)가 마지막 방어선이며, 기능 코드보다 우선순위가 높습니다.
 
 **2. 게시물 조회는 단일 관문을 통과시킵니다.**
 ```java
@@ -198,8 +198,8 @@ Controller가 받은 `category`를 그대로 신뢰하지 마세요. 상세 조�
 ---
 
 ## 참고
-- **첫날 읽기 순서**: [`../docs/ONBOARDING_BACKEND.md`](../docs/ONBOARDING_BACKEND.md)
-- **작업 지시서**: [`../docs/BACKEND_TASKS.md`](../docs/BACKEND_TASKS.md)
-- **협업 규칙**: [`../docs/INTEGRATION.md`](../docs/INTEGRATION.md)
-- **도구 버전**: [`../docs/TOOLCHAIN.md`](../docs/TOOLCHAIN.md)
-- 상세 설계: [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
+- **첫날 읽기 순서**: [`../docs/backend/ONBOARDING_BACKEND.md`](../docs/backend/ONBOARDING_BACKEND.md)
+- **작업 지시서**: [`../docs/backend/BACKEND_TASKS.md`](../docs/backend/BACKEND_TASKS.md)
+- **협업 규칙**: [`../docs/ops/INTEGRATION.md`](../docs/ops/INTEGRATION.md)
+- **도구 버전**: [`../docs/ops/TOOLCHAIN.md`](../docs/ops/TOOLCHAIN.md)
+- 상세 설계: [`../docs/spec/ARCHITECTURE.md`](../docs/spec/ARCHITECTURE.md)
