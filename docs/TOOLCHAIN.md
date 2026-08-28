@@ -16,6 +16,8 @@ FE와 BE는 **다른 언어·다른 프로세스·다른 배포**입니다. 서�
 | "네 브랜치 머지하니까 빌드가 깨졌다" | 로컬에서만 되는 문법·API를 쓴 것 |
 | "Flyway 마이그레이션이 CI에서만 실패한다" | 로컬 Postgres ≠ CI Postgres |
 | "gradlew가 실행이 안 된다 (`bad interpreter`)" | 개행이 CRLF로 체크아웃됨 |
+| "테스트가 **전부** `ClassNotFoundException`으로 죽는다" | **저장소 경로에 한글** + Gradle 워커 인코딩 (→ §4.5) |
+| "테스트가 전부 `FlywaySqlException`/`ConnectException`" | 로컬 테스트 DB가 안 떠 있음 (→ §4.5) |
 
 **원칙: 로컬 = GitHub Actions = Jenkins = 운영. 네 곳의 버전이 같아야 합니다.**
 한 곳만 다르면 그 곳이 통과 여부를 결정하게 되고, CI를 믿을 수 없게 됩니다.
@@ -125,6 +127,52 @@ Next 16의 요구는 Node 20.9+ 이므로 셋 다 "동작은" 합니다. 문제�
 - `gradle/wrapper/`, `gradlew`, `gradlew.bat`을 **반드시 커밋**합니다 (없으면 CI가 돌지 않습니다)
 - `gradlew`는 **LF 개행**이어야 합니다 — `.gitattributes`가 강제하고 있으니 건드리지 마세요
 - 의존성 버전을 올릴 때는 §8 절차를 따릅니다
+
+---
+
+## 4.5 로컬에서 `./gradlew test`를 돌리기 — PM PC 실측 (2026-08-28)
+
+CI는 postgres:16 서비스를 알아서 띄우지만(`backend-ci.yml`), 로컬은 두 가지를
+직접 맞춰야 합니다. **둘 다 증상이 코드 문제처럼 보입니다** — 실제로 오늘
+"머지된 develop이 깨졌나?"를 의심하며 진단을 시작했는데, 둘 다 환경이었습니다.
+(최종 확인: **192개 테스트 전부 통과.**)
+
+### ① 저장소 경로에 한글이 있으면 테스트 워커가 죽는다
+
+PM PC의 저장소 경로는 `C:UsersSSAFYDesktoplight홈페이지`다. 이 경로에서
+`./gradlew test`를 돌리면 **컴파일은 되는데 46개 클래스 전부
+`ClassNotFoundException`**으로 죽는다.
+
+- **원인**: Windows 시스템 코드페이지(CP949)와 Gradle 데몬/테스트 워커 사이의
+  경로 인코딩 불일치. 워커가 클래스패스의 한글 디렉터리를 못 읽는다
+- **검증**: 같은 코드·같은 DB를 ASCII 경로에 복사하면 전부 통과한다 (실측)
+- **해법**: 시스템 코드페이지에 인코딩을 **맞춘다** (UTF-8로 올리는 게 아니라):
+
+```bash
+GRADLE_OPTS="-Dfile.encoding=MS949 -Dsun.jnu.encoding=MS949" ./gradlew test
+```
+
+⚠️ `-Dfile.encoding=UTF-8`은 **반대로 더 깨뜨린다** — 실측으로 확인했다.
+직관과 반대다: 문제는 인코딩이 "낡아서"가 아니라 **양쪽이 달라서**이므로,
+시스템 쪽(CP949)에 맞추는 것이 답이다.
+
+### ② 로컬 테스트 DB — `light-db` 컨테이너를 재사용한다
+
+`application-test.yml`의 기본값은 `localhost:5432/light_test`(user `postgres`)를
+기대하지만, 이 PC에는 이미 `light-db` 컨테이너(user **`light`**)가 5432를 점유하고
+있다. 컨테이너를 하나 더 띄우지 말고 재사용한다:
+
+```bash
+# 1) light_test DB가 없으면 만든다 (1회)
+docker exec light-db psql -U light -c "CREATE DATABASE light_test"
+
+# 2) 계정을 env로 덮어서 테스트 실행
+GRADLE_OPTS="-Dfile.encoding=MS949 -Dsun.jnu.encoding=MS949" DATABASE_URL="jdbc:postgresql://localhost:5432/light_test" DB_USERNAME=light DB_PASSWORD=local ./gradlew test
+```
+
+⚠️ Docker Desktop이 꺼져 있으면 `ConnectException`으로 전멸한다 — 코드 탓이
+아니다. **로컬에서 원인을 판단하기 어려우면 CI 결과를 믿는다** — CI는 이 두
+문제가 구조적으로 없다 (리눅스 + ASCII 경로 + postgres 서비스).
 
 ---
 
