@@ -40,6 +40,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
     private final JwtProperties jwtProperties;
 
     /**
@@ -135,6 +136,54 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, AuthCookies.expireAccess(secureCookie).toString())
                 .header(HttpHeaders.SET_COOKIE, AuthCookies.expireRefresh(secureCookie).toString())
                 .build();
+    }
+
+    @Operation(summary = "비밀번호 재설정 요청",
+            description = """
+                    등록된 이메일로 1회용 재설정 링크를 보냅니다.
+
+                    ⚠️ **가입 여부와 무관하게 항상 `204`입니다.** 없는 이메일이든 카카오 전용
+                    계정이든 응답이 같습니다 — 구분해서 알려주면 "이 이메일이 가입돼 있다"가
+                    새어나가 계정 열거에 쓰입니다 (SPEC_API.md §2.9).
+
+                    재요청하면 **이전 링크는 즉시 무효**가 됩니다. 살아 있는 링크는 항상 하나입니다.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "204", description = "요청 접수 — 계정 존재 여부를 알려주지 않는다"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR")
+    })
+    @PostMapping("/password/reset-request")
+    public ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
+        passwordResetService.requestReset(request.email(), Instant.now());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "새 비밀번호 설정",
+            description = """
+                    메일로 받은 토큰으로 비밀번호를 바꿉니다. 토큰은 **1회용이고 만료**됩니다
+                    (기본 30분, NFR-SEC-08).
+
+                    ⚠️ **성공하면 그 회원의 모든 기기에서 로그아웃됩니다.** 재설정하는 상황은
+                    대개 계정이 남의 손에 있을지도 모른다는 뜻이라, 기존 세션을 살려두면
+                    비밀번호를 바꾼 의미가 사라집니다.
+
+                    없는 토큰·이미 쓴 토큰·만료된 토큰은 **전부 같은 `401`**입니다.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "204", description = "변경 완료 — 모든 기기 로그아웃됨"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
+    })
+    @PostMapping("/password/reset")
+    public ResponseEntity<Void> confirmPasswordReset(
+            @Valid @RequestBody PasswordResetConfirmRequest request) {
+        passwordResetService.confirmReset(request.token(), request.password(), Instant.now());
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "내 정보",

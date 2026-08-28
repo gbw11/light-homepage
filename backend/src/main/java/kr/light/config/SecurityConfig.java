@@ -117,7 +117,10 @@ public class SecurityConfig {
             "/api/auth/signup",
             "/api/auth/login",
             "/api/auth/refresh",
-            "/api/auth/logout"
+            "/api/auth/logout",
+            // 비밀번호를 잊은 사람은 로그인할 수 없다 — 인증을 요구하면 모순이다
+            "/api/auth/password/reset-request",
+            "/api/auth/password/reset"
     };
 
     private final ObjectMapper objectMapper;
