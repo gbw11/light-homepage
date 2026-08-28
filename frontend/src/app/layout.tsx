@@ -6,13 +6,13 @@ import { QueryProvider } from "@/components/providers/QueryProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
 import { InstallBanner } from "@/components/pwa/InstallBanner";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * ⚠️ 폰트: Pretendard를 `public/fonts/`에 self-host하고 `next/font/local`로
  *    교체할 예정이다 (frontend/README.md). 지금은 시스템 폰트 스택을 쓴다.
  */
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
