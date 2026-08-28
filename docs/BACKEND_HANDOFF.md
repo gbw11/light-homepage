@@ -30,6 +30,185 @@
 
 ---
 
+## 2026-08-28 — 🟡 로그인·권한 재설계 제안 (명단 기반 인증 + 출석부) — **검토 요청, 아직 계약 아님**
+
+**상태**: 🟡 **제안 단계.** 결정 7건이 확정되기 전에는 착수하지 않습니다.
+**⚠️ 이미 착수한 부분이 있으면 먼저 브리핑 `§1`을 봐주세요.**
+
+전체 내용: [`docs/handoff/2026-08-28-auth-roster-model.md`](handoff/2026-08-28-auth-roster-model.md)
+(메타모스트 붙여넣기용 축약본: `handoff/2026-08-28-auth-roster-model-MATTERMOST.md`)
+
+요약하면 넷입니다.
+
+1. **인증 방식 교체** — 이메일 회원가입(`§2.1`)·카카오(`§2.6~2.7`)·complete-profile
+   (`§2.8`)·이메일 비번 재설정(`§2.9~2.10`)을 폐기하고, **엑셀 회원 명단을 DB로
+   옮겨 이름·생년월일·전화번호를 대조**하는 방식으로 갑니다. 신규:
+   `POST /auth/verify-roster` → `POST /auth/register` → `POST /auth/login`(`loginId` 기반)
+2. **⚠️ 계약 변경 — 2026-08-25 "열람은 공개"를 부분 철회합니다.**
+   **사진첩(`§6.1` `§6.4` `§6.7`)과 월례회(`§7.1~7.3`) 열람이 익명 허용 →
+   `M` 회원 전용으로 되돌아갑니다.** 공개 공지·주보·설교는 공개 유지,
+   `§6.8` ZIP 폐기도 유지입니다. **`§10` 인가 매트릭스 전면 갱신 대상**
+3. **DB 신규** — `member_roster`(명단)를 `member`(계정)와 **분리**해서 둡니다.
+   계정을 안 만든 교인도 출석 체크 대상이어야 하기 때문입니다
+4. **출석부는 기존 스펙에 아예 없습니다** — `SPEC_API`·`SPEC_FUNCTIONAL`·`WIREFRAME`
+   어디에도 없어서 브리핑 `§7`에 초안만 뒀습니다. 별도 확정이 필요합니다
+
+⚠️ **PM 원안("아이디=이름, 비밀번호=생년월일")은 그대로 구현하지 않습니다.**
+동명이인 아이디 충돌 · 지인이면 아는 정보가 비밀번호가 되는 문제 · 대조 API가
+교인 명단 조회기가 되는 문제 때문입니다. **대안은 대조 통과 즉시 본인이 아이디·
+비밀번호를 직접 설정**하는 것으로, 브리핑 `§4`에 근거와 함께 적었습니다.
+
+⚠️ **작업 순서 주의**: 권한을 바꾸기 **전에** `BACKEND_TASKS.md §6` 인가 테스트
+매트릭스를 먼저 고쳐야 합니다. 2026-08-26에 이 순서를 놓쳐 사고가 날 뻔했습니다.
+
+---
+
+## 2026-08-27 — ℹ️ 개발 단계 동안 슬립 방지 핑을 꺼둡니다
+
+**상태**: 참고용입니다. 백엔드가 할 일은 없습니다.
+
+지금은 아직 실사용자가 없고 접속하는 사람이 PM·BE뿐이라, cron-job.org 슬립
+방지 핑(`docs/CICD.md §5` · `infra/render/README.md §1-⑥`)을 **당분간 꺼둡니다.**
+
+- **이유**: 핑을 켜두면 06:00~23:59 동안 558시간/월을 "아무도 안 쓰는데 깨어있는
+  상태"로 소모합니다. 개발 단계엔 그럴 필요가 없고, Render 750시간/월 한도에
+  여유를 남겨두는 편이 낫습니다(`COST_GUARDRAILS.md §3.3` — 한도를 넘기면 과금이
+  아니라 서비스 정지입니다).
+- **영향**: 15분간 요청이 없으면 서버가 자동으로 슬립합니다. 다음 요청 때
+  **콜드스타트 30~60초**가 걸립니다 — API 응답이 갑자기 느려 보이면 서버가 죽은
+  게 아니라 깨어나는 중일 가능성이 큽니다.
+- **실사용자 오픈 시점에 다시 켭니다.** 그때까지는 테스트 중 지연을 감수하는
+  것으로 정했습니다.
+
+---
+
+## 2026-08-27 — 🙏 `application.yml` 승인 요청 2번째: 서버 최적화 8줄 + 테스트 1개
+
+**상태**: 급하지 않습니다. **거부하셔도 배포는 그대로 돌아갑니다** — 전부
+성능·비용 설정이고 기능 동작을 바꾸는 건 없습니다. 다만 **①번은 과금 문제**라
+가능하면 받아주시면 좋겠습니다.
+
+브랜치: `feat/infra-server-optimization`
+
+### 무엇을 왜 바꿨나 — 4건
+
+#### ① ★ `spring.datasource.hikari` 3줄 — **과금 누수를 하나 더 찾았습니다**
+
+```yaml
+keepalive-time: 0        # 신규
+minimum-idle: 0          # 신규
+idle-timeout: 240000     # 신규 (4분)
+```
+
+오전에 `alive` 헬스 그룹으로 "핑이 DB를 깨우는" 길을 막았는데(아래 항목),
+**커넥션 풀이 같은 일을 하고 있었습니다.**
+
+| HikariCP 6.3.3 기본값 | 실제 동작 |
+|---|---|
+| `keepaliveTime` = **2분** (0이 아닙니다) | 유휴 커넥션에 2분마다 쿼리를 보냅니다 |
+| `minimumIdle` = `maximumPoolSize` | 풀이 **고정 크기 3개**라 절대 비워지지 않습니다 |
+
+둘이 겹치면 **서버가 깨어 있는 동안(월 558시간) Neon 컴퓨트도 계속 깨어
+있습니다.** Neon 무료 컴퓨트 한도는 그보다 훨씬 작습니다.
+
+> `idleTimeout`(기본 10분)이 막아줄 것 같은데 안 됩니다 — 고정 크기 풀에서는
+> HikariCP가 `"idleTimeout has been set but has no effect because the pool is
+> operating as a fixed size pool."`을 남기고 무시합니다.
+
+**부수 효과 하나가 더 있습니다 (BE 쪽에 반가운 것)**: Neon이 정지하면 풀에 죽은
+커넥션이 남아, 실제 사용자 요청의 첫 쿼리가 `검증 실패 → 폐기 → 재연결`을
+거치며 느려집니다. **Neon이 정지하기 전에 풀을 비워** 그 경로 자체를 없앴습니다.
+
+⚠️ **트레이드오프**: 4분 이상 요청이 없으면 다음 요청이 커넥션을 새로 맺습니다
+(연결 수립 + Neon 재개). 하지만 **그 시점에는 Neon이 어차피 정지 상태**라 비용이
+같고, `connection-timeout: 20000`이 이미 그걸 감당합니다.
+
+#### ② `server.shutdown` · `spring.lifecycle.timeout-per-shutdown-phase`
+
+```yaml
+server.shutdown: graceful                        # 신규 (명시)
+spring.lifecycle.timeout-per-shutdown-phase: 20s # 신규
+```
+
+원래 "graceful shutdown이 없어서 재배포 때 요청이 끊긴다"고 보고 시작했는데,
+**확인해보니 Spring Boot 3.5부터 `server.shutdown` 기본값이 이미 `GRACEFUL`**
+이었습니다(`ServerProperties` 바이트코드 확인). 그래서 실제 위험은 다른 데
+있었습니다 — **타임아웃 기본값이 30초이고 Render의 SIGTERM→SIGKILL 여유도 약
+30초**입니다. 기다리다 그대로 강제 종료될 수 있어 20초로 줄였습니다.
+
+`shutdown: graceful`은 기본값이어도 **명시**했습니다. 이건 깨질 때 **요청이 그냥
+사라지는 방식**으로 깨져서 눈에 안 보입니다 — `alive` 헬스 그룹을 `include`로
+명시한 것과 같은 이유입니다.
+
+#### ③ `server.tomcat.threads` · `server.compression`
+
+```yaml
+server.tomcat.threads.max: 20       # 기본 200
+server.tomcat.threads.min-spare: 5  # 기본 10
+server.compression.enabled: true    # 기본 false
+```
+
+- **스레드**: 기본 200개는 512MB·0.1 CPU 인스턴스에 과합니다. 스레드마다 스택이
+  붙어 **힙 밖 메모리**를 먹는데, `-Xmx400m` + 힙 밖 약 180MB면 이미 512MB를
+  넘습니다. 그리고 **`maximum-pool-size: 3`이라 DB를 쓰는 동시 처리량은 이미
+  3으로 제한돼 있습니다** — 스레드 200개는 그 앞에서 대기만 늘립니다
+- **압축**: 기본 `mime-types`에 `application/json`이 이미 있고 기준 크기도 2KB라,
+  켜는 것만으로 목록 응답(공지·사진첩)에 적용됩니다. 모바일 회선에서 체감이 큽니다
+
+⚠️ **한 가지 확인 부탁**: 동시 요청이 20개를 넘길 만한 엔드포인트가 M2~M4
+계획에 있으면 알려주세요. 넘치면 거절되지 않고 `accept-count`(기본 100)에
+큐로 쌓이지만, 대기가 길어지는 건 사실입니다.
+
+#### ④ 테스트 1개를 새로 넣었습니다 (`src/test/java`)
+
+`backend/src/test/java/kr/light/config/DataSourcePoolConfigTest.java`
+
+**`HealthProbeTest`와 완전히 같은 성격입니다** — 지키는 것이 기능이 아니라
+비용이고, **깨져도 아무 증상이 없어서** 테스트가 유일한 감지 수단입니다.
+①의 3줄이 되돌아가거나 `prod` 문서가 되살리면 CI에서 실패합니다.
+
+> `@SpringBootTest`를 쓰지 않았습니다 — **DB 없이 돌아갑니다.** 그래서 Postgres가
+> 없는 로컬에서도 이 가드만 따로 돌려볼 수 있습니다:
+> `./gradlew test --tests "*DataSourcePoolConfigTest"`
+>
+> 그리고 바인딩된 결과가 아니라 **`application.yml`의 모든 문서**를 훑기 때문에,
+> `prod` 문서에서 되살리는 경우까지 봅니다. 테스트 파일이 BE 소유 영역이라
+> **위치·이름이 마음에 안 드시면 옮기거나 이름을 바꿔주세요** — 내용만 남으면 됩니다.
+
+### 인프라 파일에서 같이 바꾼 것 (승인 불필요, 참고용)
+
+`backend/Dockerfile`의 `JAVA_OPTS`:
+
+```
+이전: -Xmx400m -Djava.awt.headless=true
+이후: -Xms128m -Xmx400m -XX:+UseSerialGC -Djava.awt.headless=true
+```
+
+- `-Xms128m`: ⚠️ `-Xms`가 없으면 **초기 힙이 8MB**입니다(컨테이너 메모리의 1/64,
+  실측 `InitialHeapSize = 8388608`). Spring 기동이 그 안에서 힙 확장과 young GC를
+  수십 번 반복하고, 0.1 CPU에서는 그게 그대로 콜드스타트 대기 시간입니다
+- `-XX:+UseSerialGC`: JVM은 **CPU 개수로 GC를 고릅니다** — 실측으로 1 CPU면
+  SerialGC, **2 CPU면 G1**입니다. 지금 Render Free에서는 이미 SerialGC라
+  현상 유지지만, Render가 CPU 노출을 바꾸면 조용히 G1로 넘어갑니다
+- ⚠️ **`-Xmx400m`은 건드리지 않았습니다.** 낮추면 M4의 PDF→이미지 변환이 힙에서
+  막힐 수 있습니다. 대신 힙 밖(스레드·GC)을 줄였습니다
+
+### 제가 검증한 것 / 못 한 것 — 정직하게
+
+| 항목 | 결과 |
+|---|---|
+| `./gradlew compileJava compileTestJava` | ✅ BUILD SUCCESSFUL |
+| `DataSourcePoolConfigTest` 5개 | ✅ 전부 PASSED (DB 불필요) |
+| 새 설정이 **실제로 바인딩되는지** | ✅ `ServerProperties`·`HikariConfig`에 직접 바인딩해 값 확인 |
+| `application.yml` 멀티 문서 파싱 | ✅ 2문서 · `prod`가 새 설정을 덮어쓰지 않음 |
+| `./gradlew test` 전체 | ❌ **못 돌렸습니다** — 로컬에 Postgres가 없어 `@SpringBootTest`가 전부 `PSQLException`으로 실패합니다. **CI에서 확인해주세요** |
+| 이미지 빌드 · 기동 시간 · 메모리 실측 | ❌ **Docker 데몬이 꺼져 있어 못 했습니다.** 효과 수치는 전부 추정입니다 |
+
+**그래서 ③의 확인은 배포 후 Render Metrics로 해야 합니다.** 기동 시간이
+8.6초에서 얼마나 줄었는지, 메모리가 299MB에서 어떻게 바뀌었는지요.
+
+---
+
 ## 2026-08-27 — 🙏 `feat/be-jwt-auth`를 올리기 전에, 순서대로 4건
 
 **상태**: 확인은 PM이 이미 끝냈습니다 — **충돌 없고, 새로 등록할 환경변수도
