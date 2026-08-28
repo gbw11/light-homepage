@@ -322,7 +322,7 @@ Render 무료 인스턴스는 15분 유휴 시 슬립되고 JVM 콜드스타트�
 | NFR-OPS-03 | CI에서 인가 테스트 실행 | 권한 회귀 차단 |
 | NFR-OPS-04 | 테스트 실패 시 배포 중단 | Jenkins Quality Gate |
 | NFR-OPS-05 | Render Auto-Deploy **비활성** | 테스트 통과한 커밋만 배포 |
-| NFR-OPS-06 | DB 백업 | 일 1회 (Neon 기본 또는 수동 덤프) — 절차: [`infra/neon/README.md`](../infra/neon/README.md) |
+| NFR-OPS-06 | DB 백업 | 일 1회 (Neon 기본 또는 수동 덤프) — 절차: [`infra/neon/README.md`](../../infra/neon/README.md) |
 | NFR-OPS-07 | 방문 통계 | GA4 (M4) |
 | NFR-OPS-08 | 배포 이력 추적 | Jenkins 빌드 번호 ↔ 커밋 |
 | NFR-OPS-09 | 장애 시 연락 체계 | 담당자 2명 + 교역자 |

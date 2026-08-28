@@ -30,7 +30,7 @@
 - **`backend/**` 수정** — 백엔드는 별도 담당자 소유 (`README.md` 브랜치 전략).
   프론트 작업 중 백엔드 코드를 고쳐야 할 필요가 생기면, 고치지 않고 요구사항을
   정리해서 사용자(PM)에게 전달한다.
-- **루트 공유 파일 수정** (`Jenkinsfile`, `docs/CICD.md` 등 `server_develop`
+- **루트 공유 파일 수정** (`Jenkinsfile`, `docs/ops/CICD.md` 등 `server_develop`
   소유 영역) — 프론트 작업 범위 밖.
 - **파괴적 git 작업** — `push --force`, `reset --hard`, 브랜치/원격 삭제,
   다른 사람의 커밋 amend. (`server_develop` 브랜치가 저장소 설정 때문에

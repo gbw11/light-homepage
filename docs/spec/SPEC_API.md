@@ -5,13 +5,13 @@
 - 이 문서의 역할: **FE와 BE의 유일한 접점.** W0에서 이 문서를 합의한 뒤 각자 작업한다
 - 구현되면 **Swagger UI**(`/swagger-ui.html`)가 살아있는 계약서가 되고, 이 문서는 합의 기준으로 남는다
 
-> ⚠️ **비호환 변경은 조용히 하지 않습니다.** PR 제목에 `[CONTRACT]`를 붙이고 상대 승인을 받습니다 ([`INTEGRATION.md §5`](INTEGRATION.md))
+> ⚠️ **비호환 변경은 조용히 하지 않습니다.** PR 제목에 `[CONTRACT]`를 붙이고 상대 승인을 받습니다 ([`INTEGRATION.md §5`](../ops/INTEGRATION.md))
 
 > ### ⚠️ 2026-08-25 권한 모델 전환 — 이 문서의 권한 표기는 아래 규칙이 우선합니다
 >
 > PM 결정으로 **열람은 로그인 없이 가능**해졌고, 로그인은 **올리거나 관리하는 사람의 관문**이 됐습니다.
 > 아래 §2~§8의 개별 `권한` 줄은 전환 결과를 반영해 갱신했습니다. 근거와 전체 맥락:
-> [`handoff/2026-08-25-public-read-model.md`](handoff/2026-08-25-public-read-model.md) · `DECISIONS.md` 2026-08-25
+> [`handoff/2026-08-25-public-read-model.md`](../handoff/2026-08-25-public-read-model.md) · `DECISIONS.md` 2026-08-25
 >
 > 요약하면 세 가지입니다.
 > 1. **열람 엔드포인트 12개가 익명 허용**으로 바뀌었습니다 (`§3.2` `§3.3` `§4.2` `§5.1~5.3` `§6.1` `§6.4` `§6.7` `§6.10` `§7.1~7.3`)
@@ -982,4 +982,4 @@ FE는 1차에서 삭제 버튼을 두지 않았다 (실수 삭제 비용 > 기�
 
 ---
 
-관련 문서: 기능 요구는 [`SPEC_FUNCTIONAL.md`](SPEC_FUNCTIONAL.md) · 비기능 요구는 [`SPEC_NONFUNCTIONAL.md`](SPEC_NONFUNCTIONAL.md) · 협업 규칙은 [`INTEGRATION.md`](INTEGRATION.md)
+관련 문서: 기능 요구는 [`SPEC_FUNCTIONAL.md`](SPEC_FUNCTIONAL.md) · 비기능 요구는 [`SPEC_NONFUNCTIONAL.md`](SPEC_NONFUNCTIONAL.md) · 협업 규칙은 [`INTEGRATION.md`](../ops/INTEGRATION.md)

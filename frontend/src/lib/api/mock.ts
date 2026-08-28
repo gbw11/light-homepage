@@ -40,7 +40,7 @@ import type { Api } from "./types";
 /**
  * 백엔드 없이 화면을 완성하기 위한 mock.
  *
- * ★ 성공 경로만 만들면 통합 때 무너진다 (docs/INTEGRATION.md).
+ * ★ 성공 경로만 만들면 통합 때 무너진다 (docs/ops/INTEGRATION.md).
  *   실패 케이스를 반드시 함께 넣는다: 401 · 403 · PENDING_APPROVAL ·
  *   STORAGE_LIMIT · 업로드 실패 · 빈 목록.
  *
@@ -1369,7 +1369,7 @@ export const mockApi: Api = {
       }
 
       /*
-        ★ 실패 케이스 (docs/INTEGRATION.md — 성공 경로만 만들면 통합 때 무너진다).
+        ★ 실패 케이스 (docs/ops/INTEGRATION.md — 성공 경로만 만들면 통합 때 무너진다).
         `?mock=upload-fail`이면 photoId 4의 배수만 실패시킨다. 전부 실패시키면
         "부분 실패 재시도"(FR-PHO-08)를 확인할 수 없다 — 정확히 이 UI가 존재하는
         이유가 243장 중 2장이 실패하는 상황이다.

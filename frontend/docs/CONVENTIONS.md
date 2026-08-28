@@ -57,7 +57,7 @@ export const api: Api =
 - 서버 상태(API로 가져오는 데이터)는 **TanStack Query**로 관리한다. `useState` +
   `useEffect`로 직접 페칭하지 않는다.
 - 폼 상태는 **react-hook-form + zod**로 관리한다. zod 스키마는 백엔드 계약
-  (`docs/SPEC_API.md`)과 필드명·검증 규칙을 맞춘다.
+  (`docs/spec/SPEC_API.md`)과 필드명·검증 규칙을 맞춘다.
 
 ---
 

@@ -1,12 +1,12 @@
 # Vercel 배포 설정 — 프론트엔드를 URL로 열기
 
 **사용자가 실제로 보는 것은 이쪽입니다.** Render는 그 뒤에서 JSON을 줍니다
-([`../../docs/FLOW.md`](../../docs/FLOW.md) `[8]`).
+([`../../docs/ops/FLOW.md`](../../docs/ops/FLOW.md) `[8]`).
 
 담당: PM/인프라 (`server_develop`)
 관련: [`../render/README.md`](../render/README.md)(백엔드) ·
-[`../../docs/COST_GUARDRAILS.md`](../../docs/COST_GUARDRAILS.md)(과금 방지) ·
-[`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) §9(환경변수)
+[`../../docs/ops/COST_GUARDRAILS.md`](../../docs/ops/COST_GUARDRAILS.md)(과금 방지) ·
+[`../../docs/spec/ARCHITECTURE.md`](../../docs/spec/ARCHITECTURE.md) §9(환경변수)
 
 ---
 
@@ -43,7 +43,7 @@
 >
 > Vercel Hobby는 결제 수단 없이 쓸 수 있습니다. **결제 수단이 없으면 한도를
 > 넘겨도 과금이 아니라 중단으로 나타납니다** — 이 프로젝트의 1차 방어입니다
-> ([`../../docs/COST_GUARDRAILS.md §0`](../../docs/COST_GUARDRAILS.md)).
+> ([`../../docs/ops/COST_GUARDRAILS.md §0`](../../docs/ops/COST_GUARDRAILS.md)).
 
 ### ① 프로젝트 생성
 
@@ -349,7 +349,7 @@ Vercel  fail  "GitHub couldn't verify an account for the commit."
 
 > ### ⚠️ 이게 위험한 이유는 빌드 실패 자체가 아닙니다
 >
-> `docs/CICD.md §4`가 **"CI ❌면 머지하지 않는다"**를 실질 게이트로 삼고 있습니다.
+> `docs/ops/CICD.md §4`가 **"CI ❌면 머지하지 않는다"**를 실질 게이트로 삼고 있습니다.
 > **항상 빨간 체크가 하나 있으면 사람이 체크를 무시하기 시작합니다.**
 > 그러면 진짜 실패도 함께 무시됩니다.
 >

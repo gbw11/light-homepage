@@ -24,7 +24,7 @@
 - [ ] 본당 정확한 주소 확인 (드림센터와 별개 건물, 아직 ❓)
 - [ ] 드림센터 외관·입구 사진 확보 (교회에서 촬영 필요, 대체 불가)
 - [ ] Render 서비스 실제 생성 + Deploy Hook 등록 (배포 직전 단계)
-- [ ] 백엔드 진행 상황에 맞춰 `docs/BACKEND_HANDOFF.md` 확인·전달
+- [ ] 백엔드 진행 상황에 맞춰 `docs/backend/BACKEND_HANDOFF.md` 확인·전달
 
 ---
 

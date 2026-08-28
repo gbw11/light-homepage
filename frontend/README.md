@@ -32,7 +32,7 @@ npm i @tanstack/react-query react-hook-form zod
 **PWA는 의존성 없이 구현했습니다 (M4)** — Serwist/next-pwa를 쓰지 않습니다.
 캐싱 정책이 성능 편의가 아니라 보안 요구사항(FR-MEM-03)이라, 라이브러리 설정 대신
 직접 읽고 감사할 수 있는 파일로 뒀습니다. 근거는
-[`docs/DECISIONS.md`](../docs/DECISIONS.md) 2026-08-24 "PWA에 의존성을 추가하지 않는다".
+[`docs/records/DECISIONS.md`](../docs/records/DECISIONS.md) 2026-08-24 "PWA에 의존성을 추가하지 않는다".
 
 | 파일 | 역할 |
 |---|---|
@@ -159,6 +159,6 @@ npm run build
 ```
 
 ## 참고
-- 화면 설계: [`../docs/WIREFRAME.md`](../docs/WIREFRAME.md)
-- 협업 규칙: [`../docs/INTEGRATION.md`](../docs/INTEGRATION.md)
-- 디자인 토큰: [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) §11
+- 화면 설계: [`../docs/spec/WIREFRAME.md`](../docs/spec/WIREFRAME.md)
+- 협업 규칙: [`../docs/ops/INTEGRATION.md`](../docs/ops/INTEGRATION.md)
+- 디자인 토큰: [`../docs/spec/ARCHITECTURE.md`](../docs/spec/ARCHITECTURE.md) §11

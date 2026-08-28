@@ -1,8 +1,8 @@
 /**
- * 백엔드 응답 타입 — docs/SPEC_API.md §1 의 공통 규약
+ * 백엔드 응답 타입 — docs/spec/SPEC_API.md §1 의 공통 규약
  *
  * ⚠️ 이 파일은 API 계약이다. 백엔드와 합의 없이 바꾸지 않는다.
- *    비호환 변경은 PR 제목에 [CONTRACT] (docs/INTEGRATION.md §5)
+ *    비호환 변경은 PR 제목에 [CONTRACT] (docs/ops/INTEGRATION.md §5)
  */
 
 /** 에러 코드 — 이 7개만 사용한다 (SPEC_API §1.2) */
@@ -328,7 +328,7 @@ export type BulletinPage = {
  * 설교 영상 한 편 (FR-PUB-09).
  *
  * ⚠️ **[CONTRACT] 스펙에 없는 신규 엔드포인트다** — 백엔드 합의 필요
- * (`docs/BACKEND_HANDOFF.md` 2026-08-25 항목).
+ * (`docs/backend/BACKEND_HANDOFF.md` 2026-08-25 항목).
  *
  * YouTube Data API를 **백엔드가 프록시한다.** 브라우저에서 직접 부르지 않는
  * 이유는 하나뿐이다: **API 키를 클라이언트에 실을 수 없다.** `NEXT_PUBLIC_`으로

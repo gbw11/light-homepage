@@ -1,6 +1,6 @@
 # 인계 브리핑 (`docs/handoff/`)
 
-`docs/BACKEND_HANDOFF.md`는 **시간순 로그**다 — 프론트 작업 중 백엔드가 알아야 할
+`docs/backend/BACKEND_HANDOFF.md`는 **시간순 로그**다 — 프론트 작업 중 백엔드가 알아야 할
 내용이 생길 때마다 위에 쌓인다. 길어지면 "지금 내가 뭘 해야 하는가"를 뽑아내기
 어렵다.
 

@@ -235,7 +235,7 @@ docker run -d --name light-db -p 5432:5432 \
 | 에러 코드 | 7개 집합만: `UNAUTHORIZED · FORBIDDEN · NOT_FOUND · VALIDATION_ERROR · PENDING_APPROVAL · STORAGE_LIMIT · DUPLICATE` | BE |
 | ID 직렬화 | **문자열** (`"123"`) — JS Number 정밀도 | BE |
 | 날짜 | ISO-8601 · 시각은 UTC + `Z` | BE |
-| 계약서 | [`SPEC_API.md`](SPEC_API.md) + Swagger UI | 공동 |
+| 계약서 | [`SPEC_API.md`](../spec/SPEC_API.md) + Swagger UI | 공동 |
 
 **양쪽 동시 실행 (통합 시점)**
 ```bash

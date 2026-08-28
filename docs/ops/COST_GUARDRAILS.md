@@ -78,7 +78,7 @@
 
 **2차 가드**
 - `paths` 필터 — `frontend/**` 변경은 Backend CI를 돌리지 않고, 그 반대도 같다
-  (이미 적용, `docs/CICD.md §1.1`)
+  (이미 적용, `docs/ops/CICD.md §1.1`)
 - ⚠️ **예외 1개**: `secret-scan.yml`은 `paths` 필터가 없다 — 시크릿은 어느
   파일에든 들어갈 수 있다. 2026-08-27에 Jenkins에서 이관했다(PM PC가 꺼져 있으면
   검사가 아예 돌지 않는 문제). **월 사용 분이 늘어난다** — 실행당 1분 과금이고
@@ -233,7 +233,7 @@ DB에는 경로와 메타만 들어간다.
 ### 3.4 Vercel — Hobby 플랜의 조건을 알아둘 것
 
 FE는 Vercel Hobby(무료)에 올린다. 결제 수단 없이 쓸 수 있어 1차 차단이 성립한다.
-설정 절차는 [`../infra/vercel/README.md`](../infra/vercel/README.md).
+설정 절차는 [`../infra/vercel/README.md`](../../infra/vercel/README.md).
 
 ⚠️ **Hobby 플랜은 상업적 사용을 허용하지 않는다.** 교회 홈페이지는 비상업으로
 보는 것이 일반적이지만, **온라인 헌금·결제·광고가 붙는 순간 조건이 달라진다.**
@@ -480,5 +480,5 @@ Class B 읽기)에도 한도가 있는데, 지금 설계에 그걸 세는 장치
 - `ARCHITECTURE.md §4`·`§8` — 무엇을 쓸지 고른 근거
 - `WORKPLAN.md §1` — "$0 제약, 기능 축소 없음 (기간으로 조정)"
 - `infra/render/README.md` — Render 설정 절차
-- `docs/CICD.md §1.1`·`§5` — CI 트리거·CD 설계
-- `docs/DECISIONS.md` 2026-08-27 — 이 설계의 PM 결정
+- `docs/ops/CICD.md §1.1`·`§5` — CI 트리거·CD 설계
+- `docs/records/DECISIONS.md` 2026-08-27 — 이 설계의 PM 결정
