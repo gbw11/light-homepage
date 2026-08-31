@@ -358,9 +358,13 @@ Vercel  fail  "GitHub couldn't verify an account for the commit."
 
 ### 처리 방법 — Ignored Build Step
 
-Vercel 프로젝트 → **Settings → Git → Ignored Build Step**에 조건을 넣어
-**`frontend/` 변경이 없으면 빌드를 건너뛰게** 합니다. 그러면 백엔드 전용 PR에서는
-Vercel 체크가 아예 생기지 않습니다.
+**적용 완료 (2026-08-31)**: 대시보드가 아니라 저장소의
+**`frontend/vercel.json` → `ignoreCommand`**로 넣었습니다. 저장소에 있으면
+설정이 코드 리뷰를 거치고 이력이 남으며, 대시보드 로그인 없이도 관리됩니다.
+(vercel.json의 ignoreCommand가 대시보드 설정보다 우선합니다.)
+
+동작: **`frontend/` 변경이 없으면 빌드를 건너뜁니다.** 그러면 백엔드 전용
+PR에서는 Vercel 체크가 아예 생기지 않습니다.
 
 Root Directory가 `frontend`이므로, 그 디렉터리에 변경이 있는지만 봅니다:
 
