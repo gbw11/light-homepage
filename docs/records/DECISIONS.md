@@ -13,6 +13,62 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-08-31 — BE PR의 Vercel X는 **조건부로 무시한다** (backend_develop 한정 · develop 머지는 merge commit 유지)
+
+**결정**: BE PR(→`backend_develop`)에 뜨는 Vercel X는 무시하고 머지해도 된다.
+BE 쪽 AI의 "X 떠도 상관없다" 조언을 PM이 실측 검증해 **조건부로 승인**한 것.
+
+- **영역**: 워크플로우 규칙 (코드 변경 없음)
+- **X의 실제 사유 (PR #112에서 실측)**: `Git author kdy1668 must have access to the
+  project on Vercel` — 빌드 실패가 아니라 **Hobby 플랜이 비소유자 author의 배포
+  생성을 거부**한 것. author 체크가 배포 생성 전에 걸리므로 `vercel.json`의
+  ignoreCommand(8/31 앞 항목)로도 이 X는 사라지지 않는다
+- **실배포가 안전한 근거**: `backend_develop → develop` 머지는 PM이 **merge
+  commit**으로 수행 → develop 머지 커밋 author = PM(gongtiger1011) → author 체크
+  통과. 최근 develop 머지 5건 모두 PM author로 확인
+- **유지해야 하는 조건 3가지**:
+  ① `backend_develop → develop`은 계속 **merge commit** — squash로 바꾸면 develop
+  커밋 author가 kdy1668이 되어 실서비스 배포까지 실패한다 (BE PR→backend_develop의
+  squash는 그대로 둬도 됨)
+  ② 무시는 **BE PR에서만** — FE PR의 Vercel X는 진짜 빌드 실패 신호
+  ③ 근본 해결(kdy1668을 Vercel 프로젝트에 초대)은 Pro 팀 플랜(유료) 필요 → 안 한다
+- **함께 처리됨**: 8/28 커밋 4건의 author 이메일(`kdy1668@naver.com`)이 GitHub
+  미등록이던 문제는 BE가 이메일 등록으로 해결 완료(커밋이 kdy1668 계정에 소급
+  연결됨을 API로 확인). 재발 방지로 BE 로컬 `git config user.email`도 정리 요청함
+
+---
+
+## 2026-08-31 — 🔴 로그인·권한 재설계 **확정**: 명단 대조 가입 · 즉시 MEMBER · 열람 M 복귀
+
+**결정**: 2026-08-28 브리핑의 결정 7건에 BE가 답했고, PM이 비호환 변경 2건을 합의해
+**재설계가 확정됐다.** 스펙 3종(v1.3/v1.3/v1.8)에 반영 완료.
+
+- **영역**: 인증 전체(FE+BE) + 게시물·사진첩·월례회 열람 권한 + 관리자 화면
+- **결정 7건**: A=사용자 지정 아이디 로그인 · **B=즉시 MEMBER(승인 폐지)** · C=비번
+  초기화 T만 · D=내부공지·회의록 열람 M · E=출석부 권장안 · **F=카카오 유지** ·
+  G=rate limit 응답은 일반 실패와 동일
+- **비호환 변경 2건 합의** (`[CONTRACT]`): `POST /auth/login`·`GET /auth/me` 응답에서
+  **`village` 제거** · **`ErrorCode.PENDING_APPROVAL` 제거** — FE도 함께 걷어낸다
+- **B를 권장안(PENDING→승인)과 다르게 정한 근거**: 대조 필드가 이름+생년월일+전화번호
+  셋에 동명이인 접미사까지 요구되어 우연 통과 난이도가 브리핑 가정보다 높다. 선점
+  위험은 **복구 절차**로 받는다 — 전도사가 명단 전화번호로 본인 확인 후
+  `DELETE /admin/members/{id}`(계정 삭제+명단 `claimed_at` 해제) → 재가입.
+  v1.2까지 "타협 불가"였던 승인 조항을 **의도적으로 뒤집은 것**이므로
+  `SPEC_FUNCTIONAL §2.1`에 그 사실을 남겼다
+- **F를 권장안(폐기)과 다르게 정한 근거**: ① 이메일을 안 받으므로 "비번 잊음"의
+  유일한 자력 수단이 카카오 로그인이다 ② FE에 이미 구현돼 있다. 단 카카오만으로
+  가입 불가(명단 대조 필수) — FE 문구 "3초 만에 시작" 폐기
+- **동명이인**: 명단이 이름 뒤 소문자 알파벳으로 구분(`김도연a`), 가입 시 접미사
+  포함 입력·글자 그대로 비교, **저장·표시 모두 접미사 그대로**
+- **미확정 (BE 확인 대기, FE는 가정으로 선행)**: ① 카카오 가입 경로의
+  registrationToken 전달 방식 ② register 201의 세션 자동 발급 여부 ③ 명단 마을
+  컬럼 유무 ④ 가입 2단계 개인정보 동의 체크 필요 여부(처리방침 확정과 함께)
+- **구현**: `SPEC_API.md` v1.3 · `SPEC_FUNCTIONAL.md` v1.3 · `WIREFRAME.md` v1.8 ·
+  브리핑 배너 갱신. FE 재작업은 PR 6개로 진행(계획: 로그인·가입·재설정·권한
+  게이트·회원 관리 — `BACKEND_HANDOFF.md` 2026-08-31 참조)
+
+---
+
 ## 2026-08-31 — 항상 빨간 CI 체크 두 갈래를 없앤다: **Vercel Ignored Build Step은 vercel.json으로, Jenkins는 커스텀 이미지로**
 
 **결정**: 8/28 머지 PR 4건(#100·#102·#103·#104)에 붙어 있던 빨간 체크의 원인을
