@@ -493,3 +493,73 @@ export type NewcomerSubmission = {
   /** 스팸 방지용 hidden 필드 — 값이 있으면 봇으로 간주 */
   honeypot?: string;
 };
+
+// ── 출석부 (신규) ──────────────────────────────────────────
+
+/**
+ * ⚠️ **[CONTRACT] 출석부는 `SPEC_API.md`에 아직 없다.**
+ * `docs/handoff/2026-08-28-auth-roster-model.md §7` **초안**을 그대로 옮긴
+ * 것이고, §9-E 확정 시 별도 브리핑으로 계약이 된다. 그 전까지 백엔드 합의
+ * 없이 이 블록에 필드를 늘리지 않는다.
+ *
+ * ⚠️ **출결 대상은 계정(member)이 아니라 명단(member_roster)이다** — 계정을
+ * 만들지 않은 교인도 출석은 체크한다 (§7). 그래서 키가 `rosterId`다.
+ *
+ * ⚠️ 출석 데이터는 "누가 교회에 안 나왔는지"의 기록이다 — 예산안과 같은 급의
+ * 민감 정보로 다룬다. 응답에 전화번호 등 불필요한 개인정보를 싣지 않는다 (§7).
+ */
+export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
+
+/** §7 예시는 SUNDAY_SERVICE 하나만 보여준다. 그 외 모임은 ETC로 묶는다 (합의 대상) */
+export type AttendanceSessionType = "SUNDAY_SERVICE" | "ETC";
+
+/** 회차 목록 한 줄 — `GET /attendance/sessions` (권한 `L`) */
+export type AttendanceSessionSummary = {
+  id: string;
+  /** "YYYY-MM-DD" — 시간이 아니라 날짜다 (회차는 하루 단위) */
+  date: string;
+  type: AttendanceSessionType;
+  title: string;
+  /** 상태가 기록된 인원 (PRESENT든 ABSENT든) — 목록에서 "얼마나 체크했나"를 보여준다 */
+  checkedCount: number;
+  /** PRESENT 인원 */
+  presentCount: number;
+  /** 명단(active) 전체 인원 */
+  rosterCount: number;
+};
+
+/** 회차 상세의 한 사람 — 명단 기준이라 계정 없는 교인도 들어 있다 */
+export type AttendanceEntry = {
+  rosterId: string;
+  name: string;
+  village: Village;
+  /** null = 아직 체크하지 않음 (ABSENT와 다르다 — "기록 없음") */
+  status: AttendanceStatus | null;
+};
+
+/** `GET /attendance/sessions/{id}` — 회차 + 명단 전원의 출결 (권한 `L`) */
+export type AttendanceSessionDetail = {
+  id: string;
+  date: string;
+  type: AttendanceSessionType;
+  title: string;
+  /** 마을 → 이름 순 정렬. 체크 화면이 마을 단위로 도는 것을 전제한다 */
+  entries: AttendanceEntry[];
+};
+
+/** `POST /attendance/sessions` 요청 본문 */
+export type AttendanceSessionInput = {
+  date: string;
+  type: AttendanceSessionType;
+  title: string;
+};
+
+/**
+ * `PUT /attendance/sessions/{id}/entries` 요청 본문의 원소.
+ * ⚠️ **전체 교체가 아니라 upsert다** (§7) — 화면은 **손댄 사람만** 보낸다.
+ * 두 임원이 동시에 다른 마을을 체크할 때 서로를 덮어쓰지 않기 위한 규약이다.
+ */
+export type AttendanceEntryInput = {
+  rosterId: string;
+  status: AttendanceStatus;
+};
