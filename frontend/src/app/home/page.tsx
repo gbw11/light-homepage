@@ -30,7 +30,7 @@ const CTA_SECONDARY =
  * 공개 페이지에 쓸 수 있는 실사진 3장.
  * `public/photos/retreat-2026/`의 47장은 얼굴이 식별되므로 회원 전용이고,
  * 공개 페이지에는 얼굴 비식별(실루엣·뒷모습·군중) 사진 3장만 쓴다.
- * 근거: docs/DECISIONS.md "수련회 실사진 공개 페이지 적용 범위", docs/PLAN.md §4.7.
+ * 근거: docs/records/DECISIONS.md "수련회 실사진 공개 페이지 적용 범위", docs/spec/PLAN.md §4.7.
  * 원본이 모두 16:9라서 컨테이너도 16:9로 맞춘다 — 크롭으로 특정 인물이
  * 확대되는 일을 막기 위한 의도적 선택이다.
  */

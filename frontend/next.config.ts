@@ -6,7 +6,7 @@ import type { NextConfig } from "next";
  * 브라우저는 항상 자기 출처(localhost:3000)로 요청하므로
  *   · CORS 설정이 불필요하고
  *   · httpOnly 쿠키가 서드파티 쿠키가 되지 않는다.
- * 설계: docs/ARCHITECTURE.md · docs/SPEC_API.md §1
+ * 설계: docs/spec/ARCHITECTURE.md · docs/spec/SPEC_API.md §1
  *
  * ⚠️ API_ORIGIN은 서버 전용이다. NEXT_PUBLIC_ 접두사를 붙이지 않는다.
  */
@@ -87,7 +87,7 @@ const nextConfig: NextConfig = {
          * ⚠️ 헤더로는 **직접 접근을 막을 수 없다.** 실제 방어는 사진 자산을
          *    `public/` 밖(`frontend/mock-assets/`)에 두고 `/mock-assets/*`
          *    route handler가 **배포에서 404를 주는 것**이다
-         *    (PM 결정 2026-08-27, 1안 — `docs/DECISIONS.md`).
+         *    (PM 결정 2026-08-27, 1안 — `docs/records/DECISIONS.md`).
          *
          * `bulletins`는 `public/`에 남아 있다 — "PLACEHOLDER" 문구가 찍힌
          * 생성물이고 개인정보가 아니다 (`mock.ts` 주보 mock 주석에서 확인).

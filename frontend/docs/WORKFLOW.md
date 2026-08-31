@@ -53,8 +53,8 @@ npm run dev           # 브라우저에서 직접 렌더 확인 (mock 모드 기
 | 단계 | 행동 |
 |---|---|
 | 단위 하나 완료 (검증 통과) | 그 자리에서 커밋 |
-| 기능 전체(여러 단위) 완료 | [`../../docs/TESTING.md`](../../docs/TESTING.md) 체크리스트로 최종 확인 → push |
-| push 후 | Jenkins/GitHub Actions CI 결과 확인 (`docs/CICD.md` §4 — ❌면 머지하지 않음) |
+| 기능 전체(여러 단위) 완료 | [`../../docs/ops/TESTING.md`](../../docs/ops/TESTING.md) 체크리스트로 최종 확인 → push |
+| push 후 | Jenkins/GitHub Actions CI 결과 확인 (`docs/ops/CICD.md` §4 — ❌면 머지하지 않음) |
 
 `frontend_develop`에 직접 커밋하지 않는다 — `feat/fe-*` 브랜치에서 작업하고 PR로
 올린다 (`README.md` 브랜치 전략).
@@ -65,8 +65,8 @@ npm run dev           # 브라우저에서 직접 렌더 확인 (mock 모드 기
 
 - 검증 루프에서 실패 → **그 단위 안에서** 고친다. 원인이 이전 단위에 있다면
   그 단위로 되돌아가서 고친 뒤 다시 앞으로 진행한다 (건너뛰지 않는다).
-- 스펙 자체가 모호하거나 [`SPEC_FUNCTIONAL.md`](../../docs/SPEC_FUNCTIONAL.md)/
-  [`WIREFRAME.md`](../../docs/WIREFRAME.md)와 충돌한다면, 코드로 임의로
+- 스펙 자체가 모호하거나 [`SPEC_FUNCTIONAL.md`](../../docs/spec/SPEC_FUNCTIONAL.md)/
+  [`WIREFRAME.md`](../../docs/spec/WIREFRAME.md)와 충돌한다면, 코드로 임의로
   때우지 않고 **먼저 PM(사용자)에게 확인**한다.
 
 ---
@@ -77,7 +77,7 @@ npm run dev           # 브라우저에서 직접 렌더 확인 (mock 모드 기
 
 | 기준 | 우선순위 |
 |---|---|
-| 신뢰도 | `docs/SPEC_API.md`(백엔드 계약) > `SPEC_FUNCTIONAL.md`/`WIREFRAME.md`(기획 스펙) > 과거 대화·메모리(참고용, 항상 최신 문서로 재확인) |
+| 신뢰도 | `docs/spec/SPEC_API.md`(백엔드 계약) > `SPEC_FUNCTIONAL.md`/`WIREFRAME.md`(기획 스펙) > 과거 대화·메모리(참고용, 항상 최신 문서로 재확인) |
 | 최신성 | 코드(실제 구현) > 문서 > 기억. 문서와 코드가 다르면 **먼저 어느 쪽이 최신인지 확인**하고, 애매하면 사용자에게 묻는다 |
 | 범위 | 지금 단위에 필요한 문서만 연다 — 관련 없는 스펙 전체를 다 읽고 시작하지 않는다 (`CLAUDE.md` 내비게이션 표가 "언제 읽는가"를 이미 분류해둠) |
 
@@ -101,9 +101,9 @@ npm run dev           # 브라우저에서 직접 렌더 확인 (mock 모드 기
 - 프론트 작업 중 **백엔드 계약이 없거나 모호한 지점**을 만나면: 코드를
   임의로 추측해서 만들지 않고, `@/lib/api` mock으로 먼저 화면을 완성한 뒤
   (`CONVENTIONS.md` §3), 필요한 API 형태(요청/응답 스키마)를 정리한다.
-- **백엔드가 알아야 할 내용은 [`../../docs/BACKEND_HANDOFF.md`](../../docs/BACKEND_HANDOFF.md)에
+- **백엔드가 알아야 할 내용은 [`../../docs/backend/BACKEND_HANDOFF.md`](../../docs/backend/BACKEND_HANDOFF.md)에
   자동으로 기록한다** — PM이 매번 요청하지 않아도, 그런 내용이 생길 때마다
-  적는다 (`docs/DECISIONS.md` 자동 기록과 같은 원칙). 기록 기준은 그 문서
+  적는다 (`docs/records/DECISIONS.md` 자동 기록과 같은 원칙). 기록 기준은 그 문서
   상단에 있다.
 - 인계 항목에 최소한 포함할 것: 엔드포인트 경로(제안), 요청/응답 필드,
   권한 요구사항(`ARCHITECTURE.md §5.3` 인가 매트릭스에 추가할 행), 왜

@@ -1,7 +1,7 @@
 # Jenkins 로컬 구성
 
 이 디렉터리는 **개발 PC에서 Jenkins를 Docker로 띄우는 구성**입니다.
-설계 배경·파이프라인 단계는 [`docs/CICD.md`](../../docs/CICD.md)를 먼저 읽으세요.
+설계 배경·파이프라인 단계는 [`docs/ops/CICD.md`](../../docs/ops/CICD.md)를 먼저 읽으세요.
 
 담당: `server_develop` (서버 배포·인프라)
 
@@ -44,7 +44,7 @@ docker compose down -v           # 볼륨까지 삭제 → Jenkins 설정 전부
 **Global Tool Configuration**에 NodeJS **22.x LTS**를 `node22` 이름으로 등록해야 합니다
 (`Jenkinsfile`이 `tools { nodejs 'node22' }`로 참조합니다).
 
-> ⚠️ 버전 22는 GitHub Actions·개발 PC와 맞춘 값입니다 — [`../../docs/TOOLCHAIN.md`](../../docs/TOOLCHAIN.md) §1.
+> ⚠️ 버전 22는 GitHub Actions·개발 PC와 맞춘 값입니다 — [`../../docs/ops/TOOLCHAIN.md`](../../docs/ops/TOOLCHAIN.md) §1.
 > 여기만 다른 버전으로 등록하면 **Jenkins에서만 깨지는** 빌드가 생깁니다.
 
 ---
@@ -60,7 +60,7 @@ Jenkins 관리 → Credentials → System → Global
 
 ⚠️ ~~`render-deploy-hook`~~은 **여기에 등록하지 않습니다** (2026-08-26).
 Jenkins는 배포를 하지 않고, 훅은 GitHub 저장소 시크릿 `RENDER_DEPLOY_HOOK`에
-있습니다 (`docs/CICD.md` §5.2 · `infra/render/README.md` §1⑤).
+있습니다 (`docs/ops/CICD.md` §5.2 · `infra/render/README.md` §1⑤).
 
 ⚠️ **시크릿을 `Jenkinsfile`이나 이 저장소에 하드코딩하지 않습니다.** `credentials()`로만 참조합니다.
 
@@ -85,7 +85,7 @@ Jenkins는 배포를 하지 않고, 훅은 GitHub 저장소 시크릿 `RENDER_DE
 ```
 
 `main` · `develop` · `*_develop` · `feat/*`가 자동 감지되어 각각 파이프라인이 생성됩니다.
-**`feat/*`에서도 CI가 돌아야 머지 전에 결과를 확인할 수 있습니다** (`docs/CICD.md` §1.1).
+**`feat/*`에서도 CI가 돌아야 머지 전에 결과를 확인할 수 있습니다** (`docs/ops/CICD.md` §1.1).
 
 ---
 
@@ -95,10 +95,10 @@ Jenkins는 배포를 하지 않고, 훅은 GitHub 저장소 시크릿 `RENDER_DE
 |---|---|
 | **docker.sock 마운트** | 파이프라인이 테스트용 Postgres를 띄우기 위해 호스트 Docker를 그대로 씁니다. Jenkins가 호스트 Docker를 완전히 제어하게 되므로 **공개 서버에 올릴 때는 반드시 접근을 제한하세요** |
 | **`user: root`** | 위 docker.sock 접근 때문입니다. 로컬 전용 타협입니다 |
-| **PC가 꺼지면 CI가 멈춥니다** | 그래서 GitHub Actions를 병행 유지합니다 (`docs/CICD.md` §3.2) |
+| **PC가 꺼지면 CI가 멈춥니다** | 그래서 GitHub Actions를 병행 유지합니다 (`docs/ops/CICD.md` §3.2) |
 | **webhook 불가** | 로컬은 외부에서 접근할 수 없어 5분 폴링을 씁니다. 공개 서버로 이전하면 webhook으로 바꿉니다 |
 
-정식 운영으로 넘어갈 때는 **Oracle Cloud Always Free**로 이전합니다 (`docs/CICD.md` §3.1).
+정식 운영으로 넘어갈 때는 **Oracle Cloud Always Free**로 이전합니다 (`docs/ops/CICD.md` §3.1).
 
 ---
 
@@ -160,7 +160,36 @@ delete head branches" **해제**.
 **주의**: `backend_develop`/`frontend_develop`도 향후 `develop`으로의 PR
 head가 될 수 있으므로, 이 설정이 다시 켜지지 않도록 유지해야 합니다.
 
-### 6.5 현재 상태 (2026-08-21 기준)
+### 6.5 ⚠️ `error: This commit cannot be built` — 원인 규명 완료 (2026-08-31)
+
+2026-08-26부터 백엔드·신규 브랜치의 GitHub 커밋 상태가 전부
+`error: This commit cannot be built`로 남던 문제의 원인 두 가지를 규명하고
+고쳤습니다. **테스트 실패가 아니라 Jenkins 실행 환경 문제였습니다.**
+
+1. **docker CLI 부재** — Jenkinsfile의 Backend 스테이지는
+   `docker.image('postgres:16').withRun(...)`으로 테스트 DB를 띄우는데,
+   이 단계는 컨테이너 안에서 `docker` CLI 바이너리를 실행합니다. compose가
+   `docker.sock`을 마운트해도 공식 `jenkins/jenkins` 이미지에는 CLI가 없어
+   `docker: not found`(exit 127)로 즉사했습니다.
+   → **`Dockerfile`**(이 디렉터리)로 CLI를 이미지에 구웠고, compose가
+   `build: .`로 참조합니다. 컨테이너에 수동 설치하면 재생성 때 사라지므로
+   반드시 이미지에 굽습니다.
+
+2. **브리지 네트워크 격리** — Jenkins가 compose 전용 네트워크(172.18.x)에
+   있으면, 파이프라인이 띄운 테스트 DB(기본 bridge, 172.17.x)의 IP로 TCP가
+   막혀 Gradle 테스트가 DB에 붙지 못합니다.
+   → compose에 **`network_mode: bridge`** 추가.
+
+부수 증상: 새 브랜치의 **첫 빌드**는 `GIT_PREVIOUS_SUCCESSFUL_COMMIT`이 없어
+"전체 검증"(FE+BE 모두)으로 돌기 때문에, **docs만 바꾼 브랜치도 Backend
+스테이지에서 같이 죽어** 문서 PR까지 빨간 X가 붙었습니다(#102·#103·#104).
+또한 파이프라인이 예외로 죽으면 GitHub Branch Source가 상태를 `failure`가
+아닌 `error: This commit cannot be built`로 보고해 오해를 키웠습니다.
+
+적용 방법(재구축 시): `cd infra/jenkins && docker compose up -d --build`
+(jenkins_home 볼륨은 유지되므로 설정·잡·크리덴셜은 보존됩니다.)
+
+### 6.6 현재 상태 (2026-08-21 기준)
 
 | 항목 | 상태 |
 |---|---|
@@ -168,4 +197,4 @@ head가 될 수 있으므로, 이 설정이 다시 켜지지 않도록 유지해
 | NodeJS 툴 | `node20`, `node22` 둘 다 등록 |
 | Credentials | `github-pat` ✅, `db-test-password` ✅ (`render-deploy-hook`은 2026-08-26에 **불필요해짐** — 배포가 Actions로 이관) |
 | Multibranch Pipeline | `light-homepage` 생성 완료, 전 브랜치 CI green |
-| CD(배포) | **Jenkins가 하지 않습니다** — 2026-08-26에 GitHub Actions로 이관 (`docs/CICD.md` §3.2). Jenkins는 CI 검증 전용 |
+| CD(배포) | **Jenkins가 하지 않습니다** — 2026-08-26에 GitHub Actions로 이관 (`docs/ops/CICD.md` §3.2). Jenkins는 CI 검증 전용 |

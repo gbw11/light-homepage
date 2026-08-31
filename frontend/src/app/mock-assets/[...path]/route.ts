@@ -10,7 +10,7 @@ import { Readable } from "node:stream";
  * `frontend/mock-assets/photos/retreat-2026/`에는 **얼굴이 식별되는 실제 인물
  * 사진 47장**이 있다. 전에는 `public/photos/`에 있었는데, `public/`은 Next가
  * **인증 없이 정적 서빙**하므로 "회원 사진은 로그인 뒤에 둔다"는 결정이 그
- * 경로로 우회됐다 (`docs/DECISIONS.md` 2026-08-24).
+ * 경로로 우회됐다 (`docs/records/DECISIONS.md` 2026-08-24).
  *
  * 그래서 자산을 `public/` 밖으로 빼고, 이 route handler가 **개발 환경에서만**
  * 서빙한다 — 3안 중 **1안**(PM 결정 2026-08-27).
