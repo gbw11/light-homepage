@@ -21,7 +21,7 @@ import { MyPreviews } from "./_components/MyPreviews";
  *
  * 관리 타일(콘텐츠 작성/회의록)은 LEADER·PASTOR에게만 보이는 UI 편의
  * 기능이다 — 실제 인가는 서버가 한다 (RequireMember와 동일 원칙,
- * docs/WORKPLAN.md §5.1). M4에서 두 타일 모두 활성화됐다 — 회의록은 문서
+ * docs/spec/WORKPLAN.md §5.1). M4에서 두 타일 모두 활성화됐다 — 회의록은 문서
  * 게시판(`/documents` — 회의록·예산안 탭), 콘텐츠 작성은 글 작성 화면
  * (`/admin/posts/new` — WIREFRAME.md §16).
  *

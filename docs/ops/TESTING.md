@@ -29,7 +29,7 @@ NEXT_PUBLIC_USE_MOCK=1 npm run build # mock 모드 빌드 (백엔드 없이도 �
   Testing Library를 추가하고 일정을 재산정해야 한다(`CICD.md §6.2` 참고) —
   지금 당장 필수는 아니다.
 - Node 버전은 로컬·GitHub Actions·Jenkins가 전부 **22**로 통일돼 있다
-  (`docs/TOOLCHAIN.md §1`). `nvm use` 또는 `.nvmrc`로 버전을 맞출 것.
+  (`docs/ops/TOOLCHAIN.md §1`). `nvm use` 또는 `.nvmrc`로 버전을 맞출 것.
 - `.env.local`, `.env.production` 같은 실제 시크릿 파일은 절대 커밋하지 않는다
   (Jenkins Secret Scan이 차단함). `.env.example`/`.sample`/`.template`
   접미사 파일은 템플릿으로 취급되어 예외 처리되므로 안심하고 커밋 가능.
@@ -63,7 +63,7 @@ Jenkinsfile의 `Backend` 스테이지가 `expression { fileExists('backend/gradl
 
 ### 2.2 부트스트랩 시 반드시 넣어야 하는 의존성
 
-`docs/TOOLCHAIN.md`가 명시한 테스트 스택: **JUnit 5 + MockMvc +
+`docs/ops/TOOLCHAIN.md`가 명시한 테스트 스택: **JUnit 5 + MockMvc +
 `spring-security-test`**. `build.gradle`에 아래가 빠지면 인가 매트릭스
 테스트 자체를 작성할 수 없다.
 
