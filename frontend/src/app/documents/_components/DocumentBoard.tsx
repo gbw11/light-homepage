@@ -10,9 +10,10 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import type { PostCategory, PostSummary } from "@/types/api";
 
 /**
- * 이 화면이 다루는 분류. **열람 권한이 서로 다르다** (PM 결정 2026-08-25):
- * 회의록은 공개, 예산안은 임원 이상 — 헌금·지출 내역이 담기기 때문이다.
- * `leaderOnly`가 그 차이를 표시하고, 탭 노출·조회가 모두 이 값을 따른다.
+ * 이 화면이 다루는 분류. **열람 권한이 서로 다르다** (SPEC_API §3.1 v1.3):
+ * 회의록은 회원(페이지 진입을 MemberGate가 막는다), 예산안은 임원 이상 —
+ * 헌금·지출 내역이 담기기 때문이다. `leaderOnly`가 그 차이를 표시하고,
+ * 탭 노출·조회가 모두 이 값을 따른다.
  */
 const TABS = [
   { category: "MINUTES", label: "회의록", leaderOnly: false },
