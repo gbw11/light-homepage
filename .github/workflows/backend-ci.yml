@@ -7,8 +7,10 @@ on:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
   push:
-    # feat/* 에서도 돌려야 머지 전에 결과를 알 수 있다 (docs/ops/CICD.md §1.1)
-    branches: [develop, main, backend_develop, server_develop, 'feat/**']
+    # 작업 브랜치에서도 돌려야 머지 전에 결과를 알 수 있다 (docs/ops/CICD.md §1.1).
+    # 브랜치 이름 규칙(INTEGRATION.md §6.4)의 세 갈래를 모두 커버한다 —
+    # feat/** 만 있던 시절엔 fix/be-* push에서 CI가 아예 돌지 않았다.
+    branches: [develop, main, backend_develop, server_develop, 'feat/**', 'fix/**', 'docs/**']
     paths:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
