@@ -2,11 +2,12 @@ import type {
   AlbumInput,
   BulletinInput,
   ApiEnvelope,
-  CompleteProfileInput,
   LoginInput,
+  RegisterInput,
+  ResetPasswordWithCodeInput,
+  VerifyRosterInput,
   NewcomerSubmission,
   PostInput,
-  SignupInput,
   UploadIssueInput,
 } from "@/types/api";
 import { ApiError } from "./error";
@@ -28,8 +29,18 @@ import type { Api } from "./types";
  * · `/auth/refresh` — 자기 자신을 재귀 호출하게 된다
  * · `/auth/login`   — 여기서의 401은 "토큰 만료"가 아니라 **비밀번호가 틀림**이다.
  *                     리프레시를 시도하면 무의미한 요청이 늘고, 원래 에러가 가려진다
+ * · `/auth/verify-roster` · `/auth/register` · `/auth/password/reset-with-code`
+ *                   — 익명(G) 경로의 401은 "명단 불일치·토큰/코드 만료"다.
+ *                     리프레시가 실패하면 notifySessionExpired()가 로그인으로
+ *                     보내버려, 가입하려던 사용자가 이유 없이 튕긴다
  */
-const NO_REFRESH_PATHS = ["/auth/refresh", "/auth/login"];
+const NO_REFRESH_PATHS = [
+  "/auth/refresh",
+  "/auth/login",
+  "/auth/verify-roster",
+  "/auth/register",
+  "/auth/password/reset-with-code",
+];
 
 /**
  * 진행 중인 리프레시 요청 (single-flight).
@@ -385,13 +396,11 @@ export const realApi: Api = {
       request(`/meetings/${encodeURIComponent(id)}/views`, { query: { page, size } }),
   },
   admin: {
-    members: ({ status, q, page = 0, size = 20 } = {}) =>
-      request("/admin/members", { query: { status, q, page, size } }),
-    approveMember: (id) =>
-      request(`/admin/members/${encodeURIComponent(id)}/approve`, { method: "POST" }),
-    rejectMember: (id, input) =>
-      request(`/admin/members/${encodeURIComponent(id)}/reject`, {
-        method: "POST",
+    members: ({ q, page = 0, size = 20 } = {}) =>
+      request("/admin/members", { query: { q, page, size } }),
+    deleteMember: (id, input) =>
+      request(`/admin/members/${encodeURIComponent(id)}`, {
+        method: "DELETE",
         body: JSON.stringify(input),
       }),
     changeRole: (id, input) =>
@@ -399,6 +408,8 @@ export const realApi: Api = {
         method: "PATCH",
         body: JSON.stringify(input),
       }),
+    issuePasswordResetCode: (id) =>
+      request(`/admin/members/${encodeURIComponent(id)}/password/reset`, { method: "POST" }),
     storage: () => request("/admin/storage"),
     newcomers: ({ page = 0, size = 20 } = {}) =>
       request("/admin/newcomers", { query: { page, size } }),
@@ -435,19 +446,17 @@ export const realApi: Api = {
       `/api/bulletins/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}/download`,
   },
   auth: {
-    signup: (input: SignupInput) =>
-      request("/auth/signup", { method: "POST", body: JSON.stringify(input) }),
+    verifyRoster: (input: VerifyRosterInput) =>
+      request("/auth/verify-roster", { method: "POST", body: JSON.stringify(input) }),
+    register: (input: RegisterInput) =>
+      request("/auth/register", { method: "POST", body: JSON.stringify(input) }),
     login: (input: LoginInput) =>
       request("/auth/login", { method: "POST", body: JSON.stringify(input) }),
     logout: () => request("/auth/logout", { method: "POST" }),
     refresh: () => request("/auth/refresh", { method: "POST" }),
     me: () => request("/auth/me"),
-    completeProfile: (input: CompleteProfileInput) =>
-      request("/auth/complete-profile", { method: "POST", body: JSON.stringify(input) }),
-    passwordResetRequest: (input) =>
-      request("/auth/password/reset-request", { method: "POST", body: JSON.stringify(input) }),
-    passwordResetConfirm: (input) =>
-      request("/auth/password/reset", { method: "POST", body: JSON.stringify(input) }),
+    resetPasswordWithCode: (input: ResetPasswordWithCodeInput) =>
+      request("/auth/password/reset-with-code", { method: "POST", body: JSON.stringify(input) }),
     updateProfile: (input) => request("/auth/me", { method: "PATCH", body: JSON.stringify(input) }),
     changePassword: (input) =>
       request("/auth/password/change", { method: "POST", body: JSON.stringify(input) }),

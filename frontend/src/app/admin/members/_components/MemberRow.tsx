@@ -4,12 +4,10 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import type { AdminMember, Role } from "@/types/api";
-import { villageLabel } from "@/lib/village";
 
 /** WIREFRAME.md §19 — 일반 / 임원 / 전도사 */
 const ROLE_LABEL: Record<Role, string> = {
   GUEST: "비회원",
-  PENDING: "승인 대기",
   MEMBER: "일반",
   LEADER: "임원",
   PASTOR: "전도사",
@@ -55,8 +53,7 @@ export function MemberRow({ member }: { member: AdminMember }) {
     },
   });
 
-  // 승인 대기 회원은 역할 변경 대상이 아니다 — 먼저 승인해야 한다
-  const canChangeRole = member.role !== "PENDING" && member.role !== "GUEST";
+  const canChangeRole = member.role !== "GUEST";
 
   function handleChange(next: string) {
     const role = next as Role;
@@ -80,9 +77,10 @@ export function MemberRow({ member }: { member: AdminMember }) {
   return (
     <div className="py-4">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {/* 이름은 명단의 동명이인 접미사 포함 그대로 (SPEC_API §8.1) */}
         <span className="font-bold">{member.name}</span>
         <span className="text-sm text-[var(--color-gray-400)]">
-          {villageLabel(member.village)}
+          {member.loginId ?? "(카카오)"}
         </span>
         <span className="text-sm font-bold">{ROLE_LABEL[member.role]}</span>
 

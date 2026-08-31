@@ -5,11 +5,10 @@
  *    비호환 변경은 PR 제목에 [CONTRACT] (docs/ops/INTEGRATION.md §5)
  */
 
-/** 에러 코드 — 이 7개만 사용한다 (SPEC_API §1.2) */
+/** 에러 코드 — 이 6개만 사용한다 (SPEC_API §1.2 v1.3 — PENDING_APPROVAL은 [CONTRACT] 제거) */
 export const ERROR_CODES = [
   "UNAUTHORIZED", // 401 로그인 필요
   "FORBIDDEN", // 403 권한 부족
-  "PENDING_APPROVAL", // 403 승인 대기 → /pending
   "NOT_FOUND", // 404 없음 또는 권한이 없어 숨김
   "VALIDATION_ERROR", // 400 입력값 오류 (field에 필드명)
   "STORAGE_LIMIT", // 409 저장 용량 초과
@@ -18,8 +17,8 @@ export const ERROR_CODES = [
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
-/** 역할 — 계단식 상위 포함 (SPEC_API §1.5) */
-export type Role = "GUEST" | "PENDING" | "MEMBER" | "LEADER" | "PASTOR";
+/** 역할 — 계단식 상위 포함 (SPEC_API §1.5 v1.3 — PENDING은 승인 폐지로 소멸) */
+export type Role = "GUEST" | "MEMBER" | "LEADER" | "PASTOR";
 
 /** 성공 응답 */
 export type ApiSuccess<T> = { data: T };
@@ -150,45 +149,65 @@ export type PostDetail = {
   attachments: PostAttachment[];
 };
 
-// ── 인증·회원 (SPEC_API §2) ─────────────────────────────────
+// ── 인증·회원 (SPEC_API §2 v1.3 — 명단 대조 가입 · 즉시 MEMBER) ──────
+/** 마을 — 인증 응답에서는 제거됐고([CONTRACT] 2026-08-31) 월례회 열람 로그에만 남는다 */
 export type Village = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "newcomer";
 
-/** GET /api/auth/me 전체 프로필 (SPEC_API §2.5) */
+/** GET /api/auth/me (SPEC_API §2.6) — email·village·profileComplete·approvedAt은 v1.3에서 제거 */
 export type AuthUser = {
   id: string;
+  /** 명단의 이름 그대로 — 동명이인 접미사 포함 (예: "김도연a") */
   name: string;
-  email: string | null;
+  /** 카카오 가입자면 null */
+  loginId: string | null;
   phone: string;
-  village: Village;
   role: Role;
-  profileComplete: boolean;
-  /** 승인 이전이면 null */
-  approvedAt: string | null;
 };
 
-/** POST /api/auth/login 응답 — me()의 부분집합 (SPEC_API §2.2) */
-export type LoginResult = Pick<AuthUser, "id" | "name" | "village" | "role" | "profileComplete">;
-
-export type SignupInput = {
-  name: string;
-  email: string;
-  password: string;
-  phone: string;
-  village: Village;
-  agreed: boolean;
-};
+/** POST /api/auth/login 응답 — me()의 부분집합 (SPEC_API §2.3) */
+export type LoginResult = Pick<AuthUser, "id" | "name" | "role">;
 
 export type LoginInput = {
-  email: string;
+  loginId: string;
   password: string;
 };
 
-/** 카카오 가입자 추가정보 (SPEC_API §2.8) */
-export type CompleteProfileInput = {
+/** 가입 1단계 — 명단 확인 (SPEC_API §2.1) */
+export type VerifyRosterInput = {
+  /** 동명이인은 명단의 접미사 포함 (예: "김도연a") */
   name: string;
+  /** YYYY-MM-DD */
+  birthDate: string;
   phone: string;
-  village: Village;
-  agreed: boolean;
+};
+
+/** 가입 1단계 응답 — 토큰은 1회용·5분 만료 */
+export type VerifyRosterResult = {
+  registrationToken: string;
+  /** 명단에 적힌 그대로의 이름 */
+  name: string;
+  /** 초 단위 (300) */
+  expiresIn: number;
+};
+
+/** 가입 2단계 — 계정 생성, 즉시 MEMBER (SPEC_API §2.2) */
+export type RegisterInput = {
+  registrationToken: string;
+  loginId: string;
+  password: string;
+};
+
+export type RegisterResult = {
+  id: string;
+  name: string;
+  role: Role;
+};
+
+/** 리셋 코드로 비밀번호 재설정 (SPEC_API §2.9) — 코드는 전도사가 §8.4로 발급 */
+export type ResetPasswordWithCodeInput = {
+  loginId: string;
+  resetCode: string;
+  password: string;
 };
 
 // ── 월례회 (SPEC_API §7) ───────────────────────────────────
@@ -270,18 +289,23 @@ export type MeetingView = {
   maxPageNo: number;
 };
 
-// ── 관리 (SPEC_API §8) ─────────────────────────────────────
+// ── 관리 (SPEC_API §8 v1.3) ─────────────────────────────────
 /** 회원 관리 목록 항목 (SPEC_API §8.1) — 권한 `T` */
 export type AdminMember = {
   id: string;
+  /** 접미사 포함 그대로 (예: "김도연a") */
   name: string;
-  email: string | null;
+  /** 카카오 가입자면 null */
+  loginId: string | null;
   phone: string;
-  village: Village;
   role: Role;
-  profileComplete: boolean;
   createdAt: string;
-  approvedAt: string | null;
+};
+
+/** 비밀번호 리셋 코드 발급 응답 (SPEC_API §8.4) — 권한 `T` */
+export type PasswordResetCode = {
+  resetCode: string;
+  expiresAt: string;
 };
 
 /** 저장 용량 (SPEC_API §8.5) — 권한 `L` */
