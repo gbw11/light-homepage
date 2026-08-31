@@ -13,6 +13,31 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-08-31 — BE PR의 Vercel X는 **조건부로 무시한다** (backend_develop 한정 · develop 머지는 merge commit 유지)
+
+**결정**: BE PR(→`backend_develop`)에 뜨는 Vercel X는 무시하고 머지해도 된다.
+BE 쪽 AI의 "X 떠도 상관없다" 조언을 PM이 실측 검증해 **조건부로 승인**한 것.
+
+- **영역**: 워크플로우 규칙 (코드 변경 없음)
+- **X의 실제 사유 (PR #112에서 실측)**: `Git author kdy1668 must have access to the
+  project on Vercel` — 빌드 실패가 아니라 **Hobby 플랜이 비소유자 author의 배포
+  생성을 거부**한 것. author 체크가 배포 생성 전에 걸리므로 `vercel.json`의
+  ignoreCommand(8/31 앞 항목)로도 이 X는 사라지지 않는다
+- **실배포가 안전한 근거**: `backend_develop → develop` 머지는 PM이 **merge
+  commit**으로 수행 → develop 머지 커밋 author = PM(gongtiger1011) → author 체크
+  통과. 최근 develop 머지 5건 모두 PM author로 확인
+- **유지해야 하는 조건 3가지**:
+  ① `backend_develop → develop`은 계속 **merge commit** — squash로 바꾸면 develop
+  커밋 author가 kdy1668이 되어 실서비스 배포까지 실패한다 (BE PR→backend_develop의
+  squash는 그대로 둬도 됨)
+  ② 무시는 **BE PR에서만** — FE PR의 Vercel X는 진짜 빌드 실패 신호
+  ③ 근본 해결(kdy1668을 Vercel 프로젝트에 초대)은 Pro 팀 플랜(유료) 필요 → 안 한다
+- **함께 처리됨**: 8/28 커밋 4건의 author 이메일(`kdy1668@naver.com`)이 GitHub
+  미등록이던 문제는 BE가 이메일 등록으로 해결 완료(커밋이 kdy1668 계정에 소급
+  연결됨을 API로 확인). 재발 방지로 BE 로컬 `git config user.email`도 정리 요청함
+
+---
+
 ## 2026-08-31 — 🔴 로그인·권한 재설계 **확정**: 명단 대조 가입 · 즉시 MEMBER · 열람 M 복귀
 
 **결정**: 2026-08-28 브리핑의 결정 7건에 BE가 답했고, PM이 비호환 변경 2건을 합의해
