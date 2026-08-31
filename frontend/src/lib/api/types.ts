@@ -1,4 +1,8 @@
 import type {
+  AttendanceEntryInput,
+  AttendanceSessionDetail,
+  AttendanceSessionInput,
+  AttendanceSessionSummary,
   AdminMember,
   AlbumInput,
   AlbumSummary,
@@ -214,6 +218,26 @@ export type Api = {
     storage(): Promise<StorageUsage>;
     /** SPEC_API §8.6 — 권한 `L`. ⚠️ 개인정보, 보유기간 1년 */
     newcomers(params?: { page?: number; size?: number }): Promise<Page<NewcomerRecord>>;
+  };
+  attendance: {
+    /**
+     * ⚠️ **[CONTRACT] 스펙에 없는 신규 영역이다** — 브리핑 §7 초안 기준.
+     * 전부 권한 `L`(임원) 이상. `§9-E` 1차 범위 = 본인 조회 없음(`/attendance/me`
+     * 미구현) + 임원은 전체 열람 — PM이 권장안을 채택했다 (DECISIONS 2026-08-28).
+     */
+    /** `GET /attendance/sessions` — 최신 날짜부터 */
+    sessions(params?: { page?: number; size?: number }): Promise<Page<AttendanceSessionSummary>>;
+    /** `POST /attendance/sessions` */
+    createSession(input: AttendanceSessionInput): Promise<{ id: string }>;
+    /** `GET /attendance/sessions/{id}` — 명단 전원 + 출결 상태 */
+    session(id: string): Promise<AttendanceSessionDetail>;
+    /**
+     * `PUT /attendance/sessions/{id}/entries` — **upsert.** 손댄 항목만 보낸다.
+     * 본문은 §7 예시 그대로 배열이다 (envelope 없음).
+     */
+    saveEntries(id: string, entries: AttendanceEntryInput[]): Promise<void>;
+    /** `DELETE /attendance/sessions/{id}` — 204 */
+    removeSession(id: string): Promise<void>;
   };
   sermons: {
     /**
