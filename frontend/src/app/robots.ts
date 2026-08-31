@@ -15,7 +15,7 @@ import { SITE_URL } from "@/lib/site";
  * ⚠️ mock 개발용 사진 자산은 **2026-08-27에 `public/` 밖으로 옮겼다**
  *    (`frontend/mock-assets/`). `/mock-assets/*` route handler가 배포에서
  *    404를 주므로, 이제 색인 차단이 아니라 **코드가 막는다**
- *    (PM 결정 2026-08-27, 1안 — `docs/DECISIONS.md`).
+ *    (PM 결정 2026-08-27, 1안 — `docs/records/DECISIONS.md`).
  *
  *    🔴 그 전에 쓰던 `.vercelignore`(2안)는 **동작하지 않았다** — Git 연동
  *    배포에서 `/photos/retreat-2026/thumb/p001.webp`가 200으로 서빙되는 것을

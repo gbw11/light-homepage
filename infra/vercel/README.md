@@ -1,12 +1,12 @@
 # Vercel 배포 설정 — 프론트엔드를 URL로 열기
 
 **사용자가 실제로 보는 것은 이쪽입니다.** Render는 그 뒤에서 JSON을 줍니다
-([`../../docs/FLOW.md`](../../docs/FLOW.md) `[8]`).
+([`../../docs/ops/FLOW.md`](../../docs/ops/FLOW.md) `[8]`).
 
 담당: PM/인프라 (`server_develop`)
 관련: [`../render/README.md`](../render/README.md)(백엔드) ·
-[`../../docs/COST_GUARDRAILS.md`](../../docs/COST_GUARDRAILS.md)(과금 방지) ·
-[`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) §9(환경변수)
+[`../../docs/ops/COST_GUARDRAILS.md`](../../docs/ops/COST_GUARDRAILS.md)(과금 방지) ·
+[`../../docs/spec/ARCHITECTURE.md`](../../docs/spec/ARCHITECTURE.md) §9(환경변수)
 
 ---
 
@@ -43,7 +43,7 @@
 >
 > Vercel Hobby는 결제 수단 없이 쓸 수 있습니다. **결제 수단이 없으면 한도를
 > 넘겨도 과금이 아니라 중단으로 나타납니다** — 이 프로젝트의 1차 방어입니다
-> ([`../../docs/COST_GUARDRAILS.md §0`](../../docs/COST_GUARDRAILS.md)).
+> ([`../../docs/ops/COST_GUARDRAILS.md §0`](../../docs/ops/COST_GUARDRAILS.md)).
 
 ### ① 프로젝트 생성
 
@@ -349,7 +349,7 @@ Vercel  fail  "GitHub couldn't verify an account for the commit."
 
 > ### ⚠️ 이게 위험한 이유는 빌드 실패 자체가 아닙니다
 >
-> `docs/CICD.md §4`가 **"CI ❌면 머지하지 않는다"**를 실질 게이트로 삼고 있습니다.
+> `docs/ops/CICD.md §4`가 **"CI ❌면 머지하지 않는다"**를 실질 게이트로 삼고 있습니다.
 > **항상 빨간 체크가 하나 있으면 사람이 체크를 무시하기 시작합니다.**
 > 그러면 진짜 실패도 함께 무시됩니다.
 >
@@ -358,9 +358,13 @@ Vercel  fail  "GitHub couldn't verify an account for the commit."
 
 ### 처리 방법 — Ignored Build Step
 
-Vercel 프로젝트 → **Settings → Git → Ignored Build Step**에 조건을 넣어
-**`frontend/` 변경이 없으면 빌드를 건너뛰게** 합니다. 그러면 백엔드 전용 PR에서는
-Vercel 체크가 아예 생기지 않습니다.
+**적용 완료 (2026-08-31)**: 대시보드가 아니라 저장소의
+**`frontend/vercel.json` → `ignoreCommand`**로 넣었습니다. 저장소에 있으면
+설정이 코드 리뷰를 거치고 이력이 남으며, 대시보드 로그인 없이도 관리됩니다.
+(vercel.json의 ignoreCommand가 대시보드 설정보다 우선합니다.)
+
+동작: **`frontend/` 변경이 없으면 빌드를 건너뜁니다.** 그러면 백엔드 전용
+PR에서는 Vercel 체크가 아예 생기지 않습니다.
 
 Root Directory가 `frontend`이므로, 그 디렉터리에 변경이 있는지만 봅니다:
 

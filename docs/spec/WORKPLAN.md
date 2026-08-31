@@ -231,7 +231,7 @@ BE가 `springdoc-openapi`를 M1 초반에 붙인다. 이후 FE는 `localhost:808
 🤝 **통합 #1** — 새가족 폼·공개 공지 실연동 → **M1 배포**
 > ⏸ **대기 중** — FE는 mock으로 준비 완료(`GET /posts`, `POST /newcomers` 계약대로).
 > BE가 이 2개 엔드포인트를 만들면 `NEXT_PUBLIC_USE_MOCK=0`으로 전환해 바로 검증 가능
-> (`docs/BACKEND_HANDOFF.md` 2026-08-21 항목)
+> (`docs/backend/BACKEND_HANDOFF.md` 2026-08-21 항목)
 
 ### M2 — 인증·회원 기반 (FE 44h · BE 82h) · 누적 ~7.5주 — ✅ **FE 완료 (2026-08-24)** · BE 미착수
 > BE 착수 현황(2026-08-25): 프로젝트 초기화 머지(PR #61) · Flyway 스키마는
@@ -254,7 +254,7 @@ BE가 병목. FE는 여유 시간에 M3 컴포넌트를 선행 착수할 수 있
 🤝 **통합 #2** — 인증 + 프록시(§8.3) → 배포
 > ⏸ **대기 중** — FE는 `SPEC_API.md §2` 계약대로 mock/real 양쪽 구현 완료
 > (401 자동 재시도 포함). BE가 Spring Security·JWT 쿠키를 붙이면 전환 가능
-> (`docs/BACKEND_HANDOFF.md` 2026-08-24 auth-core 항목).
+> (`docs/backend/BACKEND_HANDOFF.md` 2026-08-24 auth-core 항목).
 > **통합 시 최우선 검증 대상**: 액세스 토큰 만료 → 자동 갱신 → 원래 요청 성공.
 > FE 로직은 있지만 실제 401 왕복은 BE 없이 검증할 수 없다
 
@@ -422,9 +422,9 @@ R2로 PUT 직접 전송               │ uploads:commit — COMMITTED + 용량 
 | 2026-08-20 | 저장소 생성: github.com/gbw11/light-homepage (Private, 기본 브랜치 `develop`) |
 | 2026-08-20 | **4단 브랜치 계층** — `develop` 하위에 `frontend_develop`·`backend_develop`·`server_develop`, 작업은 그 하위 `feat/*`에서 |
 | 2026-08-20 | `server_develop` = **서버 배포·인프라 담당** (호스팅·DB·스토리지·CI·환경변수·운영문서) |
-| 2026-08-20 | **Jenkins CI/CD 도입** — GitHub Actions는 PR 검증으로 병행 유지 (docs/CICD.md) |
+| 2026-08-20 | **Jenkins CI/CD 도입** — GitHub Actions는 PR 검증으로 병행 유지 (docs/ops/CICD.md) |
 | 2026-08-20 | ~~pre-push 훅 도입~~ → **폐기.** `--no-verify` 우회·설치 누락·속도 저하로 실효 없음 |
-| 2026-08-20 | **push → CI 검증 → 통과 시 머지** 로 확정. 통제 지점은 push가 아니라 머지 (docs/CICD.md §1) |
+| 2026-08-20 | **push → CI 검증 → 통과 시 머지** 로 확정. 통제 지점은 push가 아니라 머지 (docs/ops/CICD.md §1) |
 | 2026-08-20 | 시크릿 방어는 `.gitignore` + **CI 스캔 스테이지** + 리뷰로 대체 |
 | 2026-08-20 | CI/CD 구축 **19~27h 순증** → 전체 일정 11~13주 → **12~14주** |
 | 2026-08-20 | 프론트엔드 **Next.js 16.3.1 + React 19.2 + Tailwind v4**로 초기화 (문서 기준 15 → 16으로 갱신). Turbopack이 기본이라 `--no-turbopack` 플래그가 없어짐 |
