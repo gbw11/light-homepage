@@ -61,6 +61,8 @@ const DOCUMENT_LINKS: AdminLink[] = [
  */
 const MANAGE_LINKS: AdminLink[] = [
   { label: "회원 관리", href: "/admin/members", note: "전도사님만" },
+  // 출석부는 스펙 밖 신규 화면이다 (브리핑 2026-08-28 §7 초안 · WIREFRAME 미반영)
+  { label: "출석부", href: "/admin/attendance" },
   { label: "새가족 등록 내역", href: "/admin/newcomers" },
 ];
 
