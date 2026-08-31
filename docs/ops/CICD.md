@@ -253,7 +253,7 @@ CI용 더미 시크릿은 해당 줄에 `allowlist-secret` 주석을 붙여 예�
 
 | 브랜치 | 테스트 | 배포 |
 |---|---|---|
-| `feat/*` | ✅ 전체 | ✕ |
+| `feat/*` `fix/*` `docs/*` | ✅ 전체 | ✕ |
 | `frontend_develop` `backend_develop` `server_develop` | ✅ 전체 | ✕ |
 | **`develop`** | ✅ 전체 | **✅ 백엔드 배포 (Render)** |
 | `main` | ✅ 전체 | ✕ (공개 시점에 여기로 옮긴다) |
