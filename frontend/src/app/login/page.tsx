@@ -4,7 +4,7 @@ import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = {
   title: "로그인",
-  description: "LIGHT 이메일·카카오 로그인.",
+  description: "LIGHT 아이디·카카오 로그인.",
 };
 
 /** WIREFRAME.md §10-1 */
