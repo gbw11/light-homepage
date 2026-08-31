@@ -8,7 +8,7 @@
 - [ ] 있음 — 루트 설정·CI 변경 → 상대 승인 필요
 
 ## ✅ CI — ❌가 있으면 머지하지 않습니다
-> 무료 Private 상황이라 기술적 강제가 없습니다. 이것이 사실상의 마지리 게이트입니다 (docs/CICD.md §4)
+> 무료 Private 상황이라 기술적 강제가 없습니다. 이것이 사실상의 마지리 게이트입니다 (docs/ops/CICD.md §4)
 
 - [ ] Jenkins 또는 GitHub Actions가 ✅ 상태
 - [ ] 상태가 보이지 않음 → Jenkins에서 볓드 결과를 도압토 확인함
@@ -30,4 +30,4 @@
 - [ ] Swagger에 반영됨
 
 ## 관련 문서
-<!-- 예: docs/BACKEND_TASKS.md §7 월례회 -->
+<!-- 예: docs/backend/BACKEND_TASKS.md §7 월례회 -->

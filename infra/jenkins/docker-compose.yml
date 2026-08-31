@@ -5,14 +5,23 @@
 # 초기 비밀번호:
 #   docker exec light-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 #
-# 설정 안내: docs/CICD.md §3.3
+# 설정 안내: docs/ops/CICD.md §3.3
 #
 # ⚠️ 포트 8090을 쓰는 이유: Spring Boot가 8080을 사용하므로 충돌을 피한다.
 
 services:
   jenkins:
-    image: jenkins/jenkins:lts-jdk21
+    # ⚠️ 공식 이미지가 아니라 로컬 빌드다 — 공식 jenkins 이미지에는 docker CLI가
+    #    없어서 Backend 스테이지(docker.image().withRun)가 `docker: not found`로
+    #    전부 실패했다 (2026-08-31 규명, README.md §6). Dockerfile이 CLI만 추가한다.
+    #    적용: docker compose up -d --build
+    build: .
+    image: light-jenkins:lts-jdk21-docker-cli
     container_name: light-jenkins
+    # ⚠️ 기본 bridge를 쓴다 — 파이프라인이 docker.sock으로 띄우는 테스트용
+    #    Postgres는 기본 bridge(172.17.x)에 생기는데, compose 전용 네트워크에
+    #    있으면 그 IP로 TCP가 막혀(브리지 간 격리) 백엔드 테스트가 DB에 못 붙는다.
+    network_mode: bridge
     restart: unless-stopped
     user: root                      # docker.sock 접근을 위해 (아래 주의사항 참조)
     ports:

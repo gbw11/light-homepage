@@ -70,7 +70,7 @@
 
 | 서비스 | 역할 | 주소 |
 |---|---|---|
-| **Vercel** | 프론트엔드 (사용자가 보는 화면) | ⬜ 배포 준비 — 절차: [`infra/vercel/`](../infra/vercel/README.md) |
+| **Vercel** | 프론트엔드 (사용자가 보는 화면) | ⬜ 배포 준비 — 절차: [`infra/vercel/`](../../infra/vercel/README.md) |
 | **Render** | 백엔드 API 서버 | `light-homepage.onrender.com` |
 | **Neon** | PostgreSQL | Singapore |
 | **GitHub Actions** | CI + 배포 트리거 | 클라우드, 항상 동작 |
@@ -81,7 +81,7 @@
 
 > ⚠️ **Jenkins는 여섯 번째가 아니다.** PM 로컬 PC에서 돌고 **CI 검증 전용**이다.
 > 배포에는 관여하지 않는다 — PC가 꺼져 있으면 배포가 멈추기 때문이다
-> ([`DECISIONS.md`](DECISIONS.md) 2026-08-26).
+> ([`DECISIONS.md`](../records/DECISIONS.md) 2026-08-26).
 
 ---
 
@@ -141,7 +141,7 @@ cd backend && ./gradlew test        # ⚠️ localhost:5432에 Postgres가 필�
 |---|---|
 | API 계약 변경 | 제목에 **`[CONTRACT]`** + **상대 승인** |
 | 루트 설정·CI 변경 | **상대 승인** |
-| 남의 소유 파일 변경 | 승인 + [`BACKEND_HANDOFF.md`](BACKEND_HANDOFF.md)에 기록 |
+| 남의 소유 파일 변경 | 승인 + [`BACKEND_HANDOFF.md`](../backend/BACKEND_HANDOFF.md)에 기록 |
 | 새 환경변수 도입 | PR 본문에 한 줄 — **등록 전에 머지되면 배포된 서버가 기동에 실패한다** |
 
 ### [5] 통합 브랜치 머지 → [6] `develop` 머지
@@ -178,7 +178,7 @@ Health Check /actuator/health/alive 가 200이면 라이브
 
 - **Dockerfile Path는 Root Directory 기준**이다. `backend/Dockerfile`로 적으면
   `backend/backend/Dockerfile`을 찾아 실패한다 — 2026-08-27에 실제로 겪었다
-  ([`../infra/render/README.md §1②`](../infra/render/README.md))
+  ([`../infra/render/README.md §1②`](../../infra/render/README.md))
 - 첫 빌드는 캐시가 없어 약 5분. 이후 `src`만 바뀐 커밋은 의존성 레이어를 재사용한다
 - **Auto-Deploy는 `Off`** — 트리거가 둘이면 테스트를 기다리지 않는 배포가 생긴다
 
@@ -187,7 +187,7 @@ Health Check /actuator/health/alive 가 200이면 라이브
 **사용자가 보는 것은 Vercel이고, Render는 그 뒤에서 JSON을 준다.**
 
 > ⬜ **2026-08-27 현재 Vercel에 배포된 적이 없다.** 설정 절차는
-> [`../infra/vercel/README.md`](../infra/vercel/README.md)에 있다.
+> [`../infra/vercel/README.md`](../../infra/vercel/README.md)에 있다.
 > 🔴 배포 후 **실인물 사진이 배포되지 않았는지 curl로 확인**해야 한다(그 문서 §2②).
 
 ```
@@ -240,7 +240,7 @@ Render Free는 **15분 유휴 시 슬립**하고 깨어날 때 30~60초 걸린�
 | PR에 체크가 없다 | PR Checks | Jenkins는 5분 폴링. Actions는 경로 필터 |
 | `deploy` 잡이 `skipping` | Actions | 정상 — PR이거나 `develop`이 아니거나 `backend/` 변경 없음 |
 | 배포는 성공인데 서버가 응답 없음 | **Render Events → Logs** | ★ 아래 §4 참고 |
-| Render 빌드 실패 | Render Logs | [`../infra/render/README.md §2.5`](../infra/render/README.md) 진단표 8줄 |
+| Render 빌드 실패 | Render Logs | [`../infra/render/README.md §2.5`](../../infra/render/README.md) 진단표 8줄 |
 | 기동 실패 | Render Logs | `DATABASE_URL`에 `jdbc:` 누락 · 환경변수 미등록 |
 | 첫 요청이 30~60초 | — | 슬립. 핑이 돌고 있는지 확인 |
 | FE에서 API 호출 실패 | Vercel 환경변수 | `API_ORIGIN` 값 · `NEXT_PUBLIC_USE_MOCK` |
@@ -270,7 +270,7 @@ Render Free는 **15분 유휴 시 슬립**하고 깨어날 때 30~60초 걸린�
 **④ CI가 통과했다고 통합이 검증된 것은 아니다**
 CI는 mock 빌드와 단위·인가 테스트까지다. `mock=0` 실왕복, 401→갱신→재시도,
 R2 업로드는 **통합 시점에만 검증 가능**하다
-([`handover/`](handover/)의 최신 문서 참고).
+([`handover/`](../handover/)의 최신 문서 참고).
 
 **⑤ 배포된 것이 곧 사용자에게 보이는 것은 아니다**
 FE가 `NEXT_PUBLIC_USE_MOCK=1`이면 백엔드를 호출하지 않는다. 백엔드를 배포해도
@@ -304,9 +304,9 @@ FE가 `NEXT_PUBLIC_USE_MOCK=1`이면 백엔드를 호출하지 않는다. 백엔
 |---|---|
 | [`INTEGRATION.md`](INTEGRATION.md) | [1]·[5] 브랜치 소유·협업 규칙 |
 | [`CICD.md`](CICD.md) | [3]·[4]·[6] CI 트리거·머지 게이트·CD 설계 |
-| [`../infra/render/README.md`](../infra/render/README.md) | [7]·[9] Render 설정 절차·실패 진단 |
-| [`BACKEND_DEPLOY.md`](BACKEND_DEPLOY.md) | [7] 백엔드 배포 규약 |
+| [`../infra/render/README.md`](../../infra/render/README.md) | [7]·[9] Render 설정 절차·실패 진단 |
+| [`BACKEND_DEPLOY.md`](../backend/BACKEND_DEPLOY.md) | [7] 백엔드 배포 규약 |
 | [`COST_GUARDRAILS.md`](COST_GUARDRAILS.md) | [9] 무료 유지 장치·핑 스케줄 근거 |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | §8 호스팅 선택 근거 · §9 환경변수 |
+| [`ARCHITECTURE.md`](../spec/ARCHITECTURE.md) | §8 호스팅 선택 근거 · §9 환경변수 |
 | [`TESTING.md`](TESTING.md) | [2] 무엇을 어떻게 검증하는가 |
-| [`DECISIONS.md`](DECISIONS.md) | 각 단계가 왜 이렇게 됐는지 |
+| [`DECISIONS.md`](../records/DECISIONS.md) | 각 단계가 왜 이렇게 됐는지 |

@@ -5,11 +5,92 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 나올 때마다 자동으로 추가된다** (`frontend/docs/HARNESS.md` §1 규칙).
 
 목적: 백엔드 담당자를 포함해 이 대화에 없었던 사람도, 왜 화면/기능이 이렇게
-바뀌었는지 나중에 추적할 수 있게 한다. `docs/SPEC_FUNCTIONAL.md`/
-`docs/WIREFRAME.md`의 확정 스펙과는 별개로, **아직 그 문서에 반영되지 않은
+바뀌었는지 나중에 추적할 수 있게 한다. `docs/spec/SPEC_FUNCTIONAL.md`/
+`docs/spec/WIREFRAME.md`의 확정 스펙과는 별개로, **아직 그 문서에 반영되지 않은
 최신 결정**을 여기서 먼저 확인할 수 있다.
 
 형식: 최신 항목이 위에 온다.
+
+---
+
+## 2026-08-31 — 🔴 로그인·권한 재설계 **확정**: 명단 대조 가입 · 즉시 MEMBER · 열람 M 복귀
+
+**결정**: 2026-08-28 브리핑의 결정 7건에 BE가 답했고, PM이 비호환 변경 2건을 합의해
+**재설계가 확정됐다.** 스펙 3종(v1.3/v1.3/v1.8)에 반영 완료.
+
+- **영역**: 인증 전체(FE+BE) + 게시물·사진첩·월례회 열람 권한 + 관리자 화면
+- **결정 7건**: A=사용자 지정 아이디 로그인 · **B=즉시 MEMBER(승인 폐지)** · C=비번
+  초기화 T만 · D=내부공지·회의록 열람 M · E=출석부 권장안 · **F=카카오 유지** ·
+  G=rate limit 응답은 일반 실패와 동일
+- **비호환 변경 2건 합의** (`[CONTRACT]`): `POST /auth/login`·`GET /auth/me` 응답에서
+  **`village` 제거** · **`ErrorCode.PENDING_APPROVAL` 제거** — FE도 함께 걷어낸다
+- **B를 권장안(PENDING→승인)과 다르게 정한 근거**: 대조 필드가 이름+생년월일+전화번호
+  셋에 동명이인 접미사까지 요구되어 우연 통과 난이도가 브리핑 가정보다 높다. 선점
+  위험은 **복구 절차**로 받는다 — 전도사가 명단 전화번호로 본인 확인 후
+  `DELETE /admin/members/{id}`(계정 삭제+명단 `claimed_at` 해제) → 재가입.
+  v1.2까지 "타협 불가"였던 승인 조항을 **의도적으로 뒤집은 것**이므로
+  `SPEC_FUNCTIONAL §2.1`에 그 사실을 남겼다
+- **F를 권장안(폐기)과 다르게 정한 근거**: ① 이메일을 안 받으므로 "비번 잊음"의
+  유일한 자력 수단이 카카오 로그인이다 ② FE에 이미 구현돼 있다. 단 카카오만으로
+  가입 불가(명단 대조 필수) — FE 문구 "3초 만에 시작" 폐기
+- **동명이인**: 명단이 이름 뒤 소문자 알파벳으로 구분(`김도연a`), 가입 시 접미사
+  포함 입력·글자 그대로 비교, **저장·표시 모두 접미사 그대로**
+- **미확정 (BE 확인 대기, FE는 가정으로 선행)**: ① 카카오 가입 경로의
+  registrationToken 전달 방식 ② register 201의 세션 자동 발급 여부 ③ 명단 마을
+  컬럼 유무 ④ 가입 2단계 개인정보 동의 체크 필요 여부(처리방침 확정과 함께)
+- **구현**: `SPEC_API.md` v1.3 · `SPEC_FUNCTIONAL.md` v1.3 · `WIREFRAME.md` v1.8 ·
+  브리핑 배너 갱신. FE 재작업은 PR 6개로 진행(계획: 로그인·가입·재설정·권한
+  게이트·회원 관리 — `BACKEND_HANDOFF.md` 2026-08-31 참조)
+
+---
+
+## 2026-08-31 — 항상 빨간 CI 체크 두 갈래를 없앤다: **Vercel Ignored Build Step은 vercel.json으로, Jenkins는 커스텀 이미지로**
+
+**결정**: 8/28 머지 PR 4건(#100·#102·#103·#104)에 붙어 있던 빨간 체크의 원인을
+규명한 결과 **둘 다 테스트 실패가 아니었다.** 각각 저장소 수준에서 고친다.
+
+- **영역**: 인프라(Vercel 설정 + Jenkins 구성). 앱 코드 변경 없음
+- **Vercel `Deployment was blocked`(#100·#103)**: BE 작성 커밋을 Hobby 플랜이
+  차단한 것(§5.5에 기록돼 있던 알려진 문제). 처리 방법이던 Ignored Build Step을
+  **대시보드 설정이 아니라 `frontend/vercel.json`의 `ignoreCommand`로** 넣는다.
+  저장소에 있으면 코드 리뷰를 거치고 이력이 남으며, 대시보드 로그인 없이 관리된다
+- **실측 완료 (§5.5가 요구한 그 실측)**: frontend/ 변경 없는 커밋 →
+  `Canceled by Ignored Build Step`(초록) · frontend/ 변경 있는 커밋 →
+  `Deployment has completed`. **우려하던 역방향 오작동(프론트 변경이 배포되지
+  않는 경우)은 배제됨**
+- **Jenkins `This commit cannot be built`(#102·#103·#104)**: 공식 jenkins
+  이미지에 docker CLI가 없어 Backend 스테이지가 exit 127로 즉사 + compose 전용
+  네트워크와 기본 bridge 간 격리로 테스트 DB에 TCP 불가. **docker CLI를 구운
+  커스텀 이미지 + `network_mode: bridge`**로 고쳤다 (`infra/jenkins/README.md` §6.5)
+- **왜 지금 하나**: "항상 실패하는 검사는 곧 무시된다"(§5.5·COST_GUARDRAILS §3.1).
+  가짜 빨강에 익숙해지면 진짜 빨강을 놓친다 — 실제로 8/28에 넷 다 빨간 채로
+  머지됐다(머지 판단 자체는 결과적으로 옳았지만, 그 판단을 사람이 매번 해야 했다)
+- **남는 경우**: BE가 frontend/를 건드리는 커밋은 여전히 Vercel이 차단한다(§5.5
+  "남는 경우"). 드물 것으로 보고 발생 시 다시 본다
+- **미확정 사항**: 프로덕션 배포 검증 §2⓪·§2②와 옛 배포 삭제(§2.5)는 여전히
+  PM 브라우저(SSO)가 필요해 미완 — 8/29 할 일이 이월된 상태
+- **구현**: `frontend/vercel.json`(신설) · `infra/vercel/README.md` §5.5 ·
+  `infra/jenkins/Dockerfile`(신설) · `infra/jenkins/docker-compose.yml` ·
+  `infra/jenkins/README.md` §6.5
+
+---
+
+## 2026-08-28 — 출석부 FE 선행 착수: **§9-E는 권장안(1차 = 본인 조회 없음 + 임원은 전체)으로 간다**
+
+**결정**: 로그인·권한 재설계 브리핑의 §9 결정 7건 중 **E(출석부 범위)를
+권장안대로 확정**하고, FE 화면을 mock으로 선행 구현한다. BE는 §9 나머지
+확정(별도 브리핑) 후 착수한다 — "BE 신규 착수 중단" 요청과 모순되지 않는다.
+FE mock은 계약을 강제하지 않고, 확정 시 브리핑에 FE 구체화분을 반영한다.
+
+- **영역**: 프론트엔드 (mock) + 계약 제안 (`BACKEND_HANDOFF.md` 2026-08-28 항목)
+- **1차 범위**: 회차 목록·생성 / 명단 전원 출결 체크(출석·지각·결석·공결) /
+  변경분만 저장(upsert). **본인 조회(`/attendance/me`)·마을별 통계
+  (`/attendance/stats`)·회차 삭제 UI는 1차에서 뺐다** — 요구가 확인된 뒤
+  (API 계층에는 removeSession까지 있음 — 화면만 없다)
+- **저장 방식**: 탭마다 요청하지 않고 로컬에 쌓아 [저장]에서 변경분만 —
+  주일 현장 회선과 upsert 의미론(두 임원 동시 체크) 때문
+- **미확정 사항**: §9의 A~D·F·G (인증 재설계 본체) — BE 검토 대기
+- **구현**: `frontend/src/app/admin/attendance/` · PR은 `feat/fe-attendance-admin`
 
 ---
 
@@ -92,7 +173,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
   **사진첩·월례회 자료 열람이 익명 허용 → 로그인 회원 전용으로 되돌아간다.**
   공개 공지·주보·설교·약도는 공개 유지. `§6.8` ZIP 다운로드 폐기도 유지
 - **스펙 문서 반영 상태**: **아직 어디에도 반영 안 함.** BE 검토용 브리핑만 작성:
-  [`docs/handoff/2026-08-28-auth-roster-model.md`](handoff/2026-08-28-auth-roster-model.md)
+  [`docs/handoff/2026-08-28-auth-roster-model.md`](../handoff/2026-08-28-auth-roster-model.md)
   (+ 메타모스트 붙여넣기용 축약본). 확정되면 `SPEC_API.md` v1.2 + `[CONTRACT]` PR
 - **⚠️ 원안 그대로 구현하지 않기로 한 부분**: "아이디=이름, 비밀번호=생년월일로
   로그인한 뒤 변경"은 세 가지가 깨진다 — ①이름은 유일하지 않다(동명이인 아이디 충돌)
@@ -157,8 +238,8 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
   이미지 빌드·기동 시간·메모리를 다시 재지 못했다. 설정값은 Spring 바인딩까지
   검증했지만 **8.6초 → 몇 초가 되는지는 배포 후에 확인해야 한다**
 - **구현**: `backend/Dockerfile`(JVM 옵션) · `application.yml`(BE 승인 대기 —
-  `docs/BACKEND_HANDOFF.md` 최상단) · `DataSourcePoolConfigTest`(신규) ·
-  `docs/COST_GUARDRAILS.md §3.2`·`§5`·`§6`·`§7` · `infra/render/README.md §4`
+  `docs/backend/BACKEND_HANDOFF.md` 최상단) · `DataSourcePoolConfigTest`(신규) ·
+  `docs/ops/COST_GUARDRAILS.md §3.2`·`§5`·`§6`·`§7` · `infra/render/README.md §4`
 
 > **PM이 손으로 해야 하는 것**: 배포 후 Neon → Compute 그래프에 **빈 구간이
 > 생겼는지** 확인. 그게 ④가 실제로 막혔다는 유일한 증거다. 그리고 Render →
@@ -194,7 +275,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
   `*.md`를 포함해 전 범위로 돈다
 - **미확정 사항**: 없음
 - **구현**: `.github/workflows/secret-scan.yml`(신규) · `Jenkinsfile`(스테이지 제거) ·
-  `docs/CICD.md` · `docs/COST_GUARDRAILS.md §3.1`·`§6` · `docs/FLOW.md`
+  `docs/ops/CICD.md` · `docs/ops/COST_GUARDRAILS.md §3.1`·`§6` · `docs/ops/FLOW.md`
 
 > **검증**: 이관 전 스크립트를 로컬에서 실제로 돌렸다 — 정상 저장소 통과 ·
 > 심어둔 가짜 시크릿 4종(JWT_SECRET · `ghp_` 토큰 · DB URL · PRIVATE KEY) **전부
@@ -329,7 +410,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
   월 약 3,348분으로 **한도 2,000분을 1.7배 넘긴다.** CI가 멈추면 배포도 멈춘다
 - **미확정 사항**: 없음. 다만 새벽 사용이 실제로 관측되면 `5-23,0`(20시간 ·
   620시간)으로 넓힐 여지가 있다
-- **구현**: `infra/render/README.md §1-⑥` · `docs/COST_GUARDRAILS.md §3.3`·`§3.5`
+- **구현**: `infra/render/README.md §1-⑥` · `docs/ops/COST_GUARDRAILS.md §3.3`·`§3.5`
 
 > **PM이 손으로 해야 하는 것**: cron-job.org에 URL·스케줄 등록.
 > ⚠️ **Timezone을 `Asia/Seoul`로 바꿔야 한다** — 기본값 UTC로 두면 한국 시간
@@ -363,7 +444,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
   이미 채택한 서비스이고 "전송량 무료"라는 근거도 타당해서 그냥 버릴 수 없다.
   **M3 착수 전 3안 중 택일**(`COST_GUARDRAILS.md §3.6`). **결정 전까지 Cloudflare
   계정을 만들지 않는다**
-- **구현**: `docs/COST_GUARDRAILS.md`(신규 — 이 설계의 본문) ·
+- **구현**: `docs/ops/COST_GUARDRAILS.md`(신규 — 이 설계의 본문) ·
   `application.yml`(`alive` 헬스 그룹) · `HealthProbeTest`(신규) ·
   `.github/workflows/*.yml`(`concurrency` 취소) · `infra/render/README.md` ·
   `ARCHITECTURE.md §4.3`·`§8.1`·`§8.2` 정정
@@ -422,7 +503,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 - **적용 방법**: 각 기능을 구현하는 PR에서 그때 변수를 추가하고,
   `infra/render/README.md §1③` 목록에도 한 줄 더한다
 - **미확정 사항**: 없음
-- **구현**: `infra/render/README.md` · `docs/BACKEND_DEPLOY.md §4`
+- **구현**: `infra/render/README.md` · `docs/backend/BACKEND_DEPLOY.md §4`
 
 ---
 
@@ -876,7 +957,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 ## 2026-08-24 — 전도사 행에도 역할 드롭다운을 둔다 (와이어프레임과 다름, PM 승인됨)
 
 **결정**: 회원 관리(`/admin/members`)에서 **전도사 행에도 역할 드롭다운을 두고
-`PASTOR`를 배정 가능한 옵션에 포함**한다. `docs/WIREFRAME.md §19`는 전도사 행에
+`PASTOR`를 배정 가능한 옵션에 포함**한다. `docs/spec/WIREFRAME.md §19`는 전도사 행에
 `—`(드롭다운 없음)로 그려져 있으나, 그대로 만들면 **앱 안에서 전도사 인수인계가
 불가능**하다 — 후임을 지정할 방법이 없어 DB를 직접 건드려야 한다.
 
@@ -966,7 +1047,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 검증된다. `next-pwa`는 App Router에서 사실상 미유지 상태다.
 
 - **영역**: 프론트엔드
-- **스펙 문서 반영 상태**: ✅ `docs/ARCHITECTURE.md` §2.1의 "manifest + Serwist"를
+- **스펙 문서 반영 상태**: ✅ `docs/spec/ARCHITECTURE.md` §2.1의 "manifest + Serwist"를
   "manifest + 자체 서비스워커"로 갱신했다
 - **미확정 사항**: 없음
 - **구현**: `frontend/public/sw.js`
@@ -1040,7 +1121,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
    (`BACKEND_HANDOFF.md`에 "임시저장 글을 목록에 내려줄지" 확인 항목으로 기록)
 
 - **영역**: 프론트엔드 + 백엔드 확인 필요 (`publishedAt` nullable, `body` JSON
-  노드 집합 — `docs/BACKEND_HANDOFF.md` 2026-08-24 글 작성 항목)
+  노드 집합 — `docs/backend/BACKEND_HANDOFF.md` 2026-08-24 글 작성 항목)
 - **스펙 문서 반영 상태**: `SPEC_API.md §3.3`은 "리치텍스트 JSON"까지만 정의 —
   위 노드/마크 집합을 명시해두면 좋다. `WIREFRAME.md §16`의 📷(이미지)와
   경고색은 위 결정대로 조정 필요
@@ -1142,10 +1223,10 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 공개 사이트는 검색엔진에 색인되므로, 약 40명의 얼굴이 그대로 드러나는
 사진이 공개 페이지에 올라가면 당사자 동의 없이 무기한 공개되는 것과 같다.
-회원 사진을 로그인 뒤에 두는 원칙은 `docs/PLAN.md` §4.7에 이미 있다.
+회원 사진을 로그인 뒤에 두는 원칙은 `docs/spec/PLAN.md` §4.7에 이미 있다.
 
 - **영역**: 프론트엔드(공개 페이지 이미지) + 자산 관리 정책. 백엔드 영향은
-  사진첩 API 계약뿐이다 (`docs/SPEC_API.md` §6, 별건으로 이미 반영)
+  사진첩 API 계약뿐이다 (`docs/spec/SPEC_API.md` §6, 별건으로 이미 반영)
 - **공개 허용 3장** (`frontend/public/images/`) — 실루엣·뒷모습·군중이라
   개인 식별이 안 되는 것만 골랐다:
   - `worship-hero.webp` (1920×1080) — 어두운 예배 장면, 손 든 실루엣.
@@ -1156,9 +1237,9 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
   (`/`, `/home`, `/welcome`, `/worship`, `/about`, `/location`, `/news`)에
   절대 쓰지 않는다.** 크롭·확대로 특정 인물이 식별되게 만드는 것도 금지 —
   그래서 3장 모두 원본 비율(16:9) 그대로 노출한다
-- **스펙 문서 반영 상태**: `docs/WIREFRAME.md` §1의 "실사진 확보 전까지 Hero는
+- **스펙 문서 반영 상태**: `docs/spec/WIREFRAME.md` §1의 "실사진 확보 전까지 Hero는
   단색 + 워드마크" 서술은 이 결정으로 대체된다 — 아직 문서 갱신 전이고
-  실제 코드가 최신 기준. `docs/PLAN.md` §4.7의 회원 사진 비공개 원칙과는
+  실제 코드가 최신 기준. `docs/spec/PLAN.md` §4.7의 회원 사진 비공개 원칙과는
   충돌 없이 일관된다
 - **미확정 사항**:
   1. **사진에 찍힌 분들이 이 제한적 공개 사용에도 동의했는지 PM 확인 필요.**
@@ -1174,7 +1255,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
   `alt=""` + 스크림), `frontend/src/app/home/page.tsx`(Hero / "우리는" /
   "함께한 순간들" 3곳). Next 16에서 `priority`가 deprecated되어
   above-the-fold는 `loading="eager"` + `fetchPriority="high"`, 나머지는
-  lazy로 뒀다 (Lighthouse 90+ 예산, `docs/WORKPLAN.md` 품질 게이트)
+  lazy로 뒀다 (Lighthouse 90+ 예산, `docs/spec/WORKPLAN.md` 품질 게이트)
 
 ---
 
@@ -1186,7 +1267,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 한눈에 안 보인다.
 
 - **영역**: 협업·Git 운영 규칙 (프론트엔드 브랜치에 한정)
-- **스펙 문서 반영 상태**: ✅ `docs/INTEGRATION.md` §6.7에 정식 반영 완료.
+- **스펙 문서 반영 상태**: ✅ `docs/ops/INTEGRATION.md` §6.7에 정식 반영 완료.
   기존 §6.7에도 "머지된 `feat/*`는 삭제한다"는 규칙 자체는 있었지만, **삭제
   절차가 없었고 "GitHub 자동 삭제 옵션 켜두기"라는 틀린 지시가 함께 있었다**
   (아래 "연관 주의사항" 참고). §6.7과 §2.3 체크리스트를 같이 고쳤다
@@ -1202,7 +1283,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
   대상이 아니다
 - **연관 주의사항**: GitHub 저장소 설정 "Automatically delete head branches"는
   **계속 꺼둔다.** `frontend_develop` 같은 영구 브랜치가 PR head가 될 때
-  자동 삭제되는 사고가 이전에 실제로 발생했다 (`docs/CICD.md` §4 관련)
+  자동 삭제되는 사고가 이전에 실제로 발생했다 (`docs/ops/CICD.md` §4 관련)
 - **미확정 사항**: 없음
 - **구현**: 2026-08-24 M1·M2 완료 시점에 `feat/fe-*` 19개 삭제
   (`feat/fe-auth-core`, `feat/fe-signup-followup`, `feat/fe-password-reset`,
@@ -1218,7 +1299,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 브랜드와 더 맞는다.
 
 - **영역**: 프론트엔드만 (디자인 토큰, `frontend/src/app/globals.css`)
-- **스펙 문서 반영 상태**: `docs/WIREFRAME.md`/`docs/ARCHITECTURE.md`에 명시된
+- **스펙 문서 반영 상태**: `docs/spec/WIREFRAME.md`/`docs/spec/ARCHITECTURE.md`에 명시된
   색상표가 있다면 아직 갱신 전 — 실제 코드(토큰)가 최신 기준
 - **미확정 사항**: 정확한 베이지/그린 색상값(hex)은 PM 확인 없이 임의로
   정함 — 브랜드 가이드가 따로 있으면 알려주면 교체
@@ -1239,7 +1320,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 (PM 확인: "스크롤 콘텐츠는 그대로 두고 새 경로로 이동").
 
 - **영역**: 프론트엔드만. 백엔드 영향 없음 (로그인 기능 자체는 아직 미구현)
-- **스펙 문서 반영 상태**: `docs/WIREFRAME.md` §1(HOME)·이전 결정(아래 "홈 진입
+- **스펙 문서 반영 상태**: `docs/spec/WIREFRAME.md` §1(HOME)·이전 결정(아래 "홈 진입
   스플래시" 항목)을 대체한다. `SPEC_FUNCTIONAL.md` FR-PUB-01의 "상세" 란은
   이 변경을 아직 반영하지 않음 — 다음 스펙 정리 시 갱신 필요
 - **미확정 사항**:
@@ -1260,7 +1341,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 - **영역**: 프론트엔드만 (본당 주소는 여전히 미확정 — `WIREFRAME.md`의 ❓ 유지)
 - **스펙 문서 반영 상태**: 코드(`/location`, `layout.tsx` JSON-LD)에는 반영함.
-  `docs/WIREFRAME.md`/`docs/PLAN.md`에 있는 예시 주소는 아직 갱신 전
+  `docs/spec/WIREFRAME.md`/`docs/spec/PLAN.md`에 있는 예시 주소는 아직 갱신 전
 - **미확정 사항**:
   - 본당 주소(드림센터와 별개 건물)는 여전히 확인 필요
   - 지도 "이미지"는 만들지 못했다 — OpenStreetMap(Nominatim)이 이 도로명
@@ -1299,7 +1380,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 메인 홈 화면(`WIREFRAME.md §1`)이 나타난다.
 
 - **영역**: 프론트엔드만 (백엔드 API 영향 없음)
-- **스펙 문서 반영 상태**: `docs/WIREFRAME.md §1 (HOME)`에는 아직 없음 —
+- **스펙 문서 반영 상태**: `docs/spec/WIREFRAME.md §1 (HOME)`에는 아직 없음 —
   기존 HOME 와이어프레임보다 앞단에 추가되는 진입 레이어. 실제 HOME 구현
   시(WORKPLAN.md M1 "HOME" 태스크) `WIREFRAME.md`에도 정식으로 반영 필요
 - **미확정 사항** (구현 시 임의로 정하지 않고 PM 확인 필요): *(위 새 결정으로

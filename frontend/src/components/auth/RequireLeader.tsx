@@ -26,7 +26,7 @@ export function isLeaderOrAbove(role: Role): boolean {
  * 튕기면 "왜 안 되는지"를 알 수 없기 때문이다.
  *
  * ⚠️ 이건 UI 편의 기능이다. 실제 인가는 서버가 한다 (`RequireMember.tsx`
- * 주석 · docs/WORKPLAN.md §5.1 "메뉴를 숨겼으니 됐다고 판단하지 않는다").
+ * 주석 · docs/spec/WORKPLAN.md §5.1 "메뉴를 숨겼으니 됐다고 판단하지 않는다").
  * 서버는 권한 없는 사용자에게 목록은 `FORBIDDEN`, 상세는 존재 자체를 숨기려
  * `NOT_FOUND`를 돌려준다 (SPEC_API §3.2 · §3.3).
  */

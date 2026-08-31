@@ -26,7 +26,7 @@ export function isPastor(role: Role): boolean {
  * 알 수 없기 때문이다 (`RequireLeader`와 동일한 판단).
  *
  * ⚠️ 이건 UI 편의 기능이다. 실제 인가는 서버가 한다 (`RequireMember.tsx`
- * 주석 · docs/WORKPLAN.md §5.1 "메뉴를 숨겼으니 됐다고 판단하지 않는다").
+ * 주석 · docs/spec/WORKPLAN.md §5.1 "메뉴를 숨겼으니 됐다고 판단하지 않는다").
  * 서버는 §8.1~§8.4에 대해 `T`가 아닌 사용자에게 `FORBIDDEN`을 돌려주므로,
  * 이 게이트를 우회해도 데이터는 나오지 않는다.
  */

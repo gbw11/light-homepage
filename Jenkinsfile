@@ -3,7 +3,7 @@
 // 모든 브랜치(main · develop · *_develop · feat/*)를 자동 감지해 실행한다.
 // 변경된 영역(frontend/ backend/)만 빌드하므로 불필요한 실행이 없다.
 //
-// 설정: docs/CICD.md §3
+// 설정: docs/ops/CICD.md §3
 // ⚠️ CI는 push를 막지 못한다. 통제 지점은 "머지"다 — CI가 ❌면 머지하지 않는다 (§1·§4)
 
 pipeline {
@@ -70,7 +70,7 @@ pipeline {
     // 지금은 `.github/workflows/secret-scan.yml`이 한다 (모든 브랜치 push + PR).
     // 두 곳에 두면 정규식을 두 곳에서 관리하게 되므로 여기서는 하지 않는다.
     //
-    // 근거: docs/CICD.md §1.3 · docs/DECISIONS.md 2026-08-27
+    // 근거: docs/ops/CICD.md §1.3 · docs/records/DECISIONS.md 2026-08-27
     // ────────────────────────────────────────────────
     // ────────────────────────────────────────────────
     stage('Verify') {
@@ -84,7 +84,7 @@ pipeline {
               expression { fileExists('frontend/package.json') }
             }
           }
-          // ⚠️ GitHub Actions(setup-node 22)와 반드시 같은 메이저를 쓴다 (docs/TOOLCHAIN.md §1)
+          // ⚠️ GitHub Actions(setup-node 22)와 반드시 같은 메이저를 쓴다 (docs/ops/TOOLCHAIN.md §1)
           //    한쪽만 다르면 로컬·Actions는 통과하고 Jenkins에서만 깨져 원인 추적에 시간이 든다.
           tools { nodejs 'node22' }   // Jenkins → Global Tool Configuration에 등록
           stages {
@@ -194,7 +194,7 @@ pipeline {
     // (develop push + 검증 통과 시 Render Deploy Hook 호출).
     // 두 곳에서 트리거하면 같은 커밋이 두 번 배포되므로 여기서는 하지 않는다.
     //
-    // 근거: docs/CICD.md §3.2 · §5 · docs/DECISIONS.md 2026-08-26
+    // 근거: docs/ops/CICD.md §3.2 · §5 · docs/records/DECISIONS.md 2026-08-26
     // Jenkins가 상시 가동 서버(Oracle Cloud)로 이전하면 다시 가져올 수 있다.
     // ────────────────────────────────────────────────
   }

@@ -16,7 +16,7 @@ spring:
       connection-timeout: 20000
       # ── 아래 3줄: Neon 자동 정지와 풀의 상호작용 (2026-08-27 인프라) ──────
       #   Neon은 약 5분 유휴 시 컴퓨트를 정지한다. 그게 "월 $0"의 전제다
-      #   (docs/COST_GUARDRAILS.md §3.2). 그런데 기본값 그대로는 풀이 그 전제를 깬다.
+      #   (docs/ops/COST_GUARDRAILS.md §3.2). 그런데 기본값 그대로는 풀이 그 전제를 깬다.
       #
       # ★ keepalive-time: 0 — **커넥션 유지 핑을 끈다.**
       #   HikariCP 6.3.3의 기본값은 0이 아니라 **2분**이다(`DEFAULT_KEEPALIVE_TIME`).
@@ -108,7 +108,7 @@ management:
         #   /actuator/health 에는 Spring이 DataSource 인디케이터를 자동으로 붙인다.
         #   10분 핑이 그쪽을 때리면 Neon 컴퓨트가 영구히 깨어 있게 되어 무료
         #   컴퓨트 한도를 넘긴다 — "월 $0" 전제가 깨진다
-        #   (docs/COST_GUARDRAILS.md §3.2).
+        #   (docs/ops/COST_GUARDRAILS.md §3.2).
         #
         #   include를 명시하는 이유: 기본 liveness 그룹 구성(livenessState)에
         #   의존하면 Spring Boot 버전이 올라가며 조용히 바뀔 수 있다.
