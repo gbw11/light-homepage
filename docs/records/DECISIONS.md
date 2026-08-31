@@ -13,6 +13,29 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-08-31 — (앞 결정 대체) BE 브랜치의 Vercel X는 무시가 아니라 **안 뜨게 만든다** — `git.deploymentEnabled`
+
+**결정**: 바로 아래 "조건부로 무시한다" 결정을 PM이 같은 날 뒤집었다 —
+"무시하는 규칙"은 사람이 매번 판단해야 하니, **X가 생기지 않는 구조**로 바꾼다.
+
+- **영역**: 인프라 (`frontend/vercel.json`) + 문서 3종. BE 쪽 할 일 없음
+- **방법**: `git.deploymentEnabled`로 `backend_develop`·`*/be-*` 브랜치의 자동
+  배포를 차단 — **배포 시도가 없으면 GitHub 체크도 안 생긴다.** minimatch 글롭
+  지원은 Vercel 공식 문서로 확인
+- **왜 ignoreCommand(8/31 앞앞 항목)로는 안 됐나**: ignoreCommand는 배포 생성
+  **후** 평가되는데 Hobby author 체크는 배포 생성 **시점**에 거부 — BE 커밋에는
+  ignoreCommand가 돌기 전에 X가 찍혔다 (PR #112 실측). `infra/vercel/README.md`
+  §5.5에 정정 기록
+- **트레이드오프 수용**: BE 브랜치가 frontend/를 건드려도 프리뷰가 안 생긴다 —
+  드물다고 보고, 발생 시 PM에게 알리는 것으로 처리 (§5.5 "남는 경우")
+- **미확정 (실측 대기)**: deploymentEnabled 평가가 author 체크보다 앞서는지
+  문서에 명시가 없다. develop 머지 후 BE 푸시 1건으로 확인 — 실패하면 아래
+  "조건부 무시" 결정이 폴백
+- **구현**: `frontend/vercel.json` · `infra/vercel/README.md` §5.5 ·
+  `BACKEND_HANDOFF.md` 2026-08-31 정정 항목 · PR `feat/infra-vercel-be-branch-skip`
+
+---
+
 ## 2026-08-31 — BE PR의 Vercel X는 **조건부로 무시한다** (backend_develop 한정 · develop 머지는 merge commit 유지)
 
 **결정**: BE PR(→`backend_develop`)에 뜨는 Vercel X는 무시하고 머지해도 된다.

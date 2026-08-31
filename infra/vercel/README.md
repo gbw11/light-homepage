@@ -356,15 +356,14 @@ Vercel  fail  "GitHub couldn't verify an account for the commit."
 > 오늘 시크릿 스캔에서 "**늘 실패하는 검사는 곧 무시된다**"고 판단해 오탐을 고친
 > 것과 같은 실패 모드입니다 (`COST_GUARDRAILS.md §3.1`).
 
-### 처리 방법 — Ignored Build Step
+### 처리 방법 ① — Ignored Build Step (PM 커밋의 frontend 무관 변경용)
 
 **적용 완료 (2026-08-31)**: 대시보드가 아니라 저장소의
 **`frontend/vercel.json` → `ignoreCommand`**로 넣었습니다. 저장소에 있으면
 설정이 코드 리뷰를 거치고 이력이 남으며, 대시보드 로그인 없이도 관리됩니다.
 (vercel.json의 ignoreCommand가 대시보드 설정보다 우선합니다.)
 
-동작: **`frontend/` 변경이 없으면 빌드를 건너뜁니다.** 그러면 백엔드 전용
-PR에서는 Vercel 체크가 아예 생기지 않습니다.
+동작: **`frontend/` 변경이 없으면 빌드를 건너뜁니다.**
 
 Root Directory가 `frontend`이므로, 그 디렉터리에 변경이 있는지만 봅니다:
 
@@ -380,10 +379,48 @@ git diff --quiet HEAD^ HEAD -- .
 **이건 Actions에 `paths` 필터를 둔 것과 같은 발상입니다** — 바뀐 쪽만 검증하고,
 무관한 변경에는 체크를 만들지 않습니다 (`CICD.md §1.1`).
 
+> 🔴 **정정 (2026-08-31, PR #112 실측)**: 처음에는 이 설정으로 "백엔드 전용
+> PR에서는 Vercel 체크가 아예 생기지 않는다"고 기대했지만 **틀렸습니다.**
+> ignoreCommand는 **배포가 만들어진 뒤** 평가되는데, Hobby 플랜의 author 권한
+> 체크(`Git author kdy1668 must have access to the project on Vercel`)는
+> **배포 생성 시점**에 거부합니다. 그래서 BE 계정 커밋에는 ignoreCommand가
+> 돌기 전에 X가 찍혔습니다. BE 커밋의 X는 아래 ②가 처리합니다.
+> 즉 ①이 실제로 처리하는 것은 **PM 커밋의 frontend 무관 변경**(docs·infra 등)뿐입니다.
+
+### 처리 방법 ② — git.deploymentEnabled (BE 브랜치의 X 제거)
+
+**적용 (2026-08-31)**: `frontend/vercel.json`에 브랜치별 자동 배포 차단을
+추가했습니다:
+
+```json
+"git": {
+  "deploymentEnabled": {
+    "backend_develop": false,
+    "*/be-*": false
+  }
+}
+```
+
+- **배포 시도 자체를 만들지 않으므로 GitHub 체크(X)도 생기지 않습니다** —
+  author 체크까지 갈 일이 없습니다
+- `*/be-*`는 minimatch 글롭: `feat/be-*`·`fix/be-*` 등 `INTEGRATION.md §6.4`
+  명명 규칙의 모든 BE 하위 브랜치를 커버합니다 (`*`는 `/`를 넘지 않음).
+  글롭 지원은 [공식 문서](https://vercel.com/docs/project-configuration/git-configuration)에서 확인
+- 명시하지 않은 브랜치는 기본 `true` → develop 프로덕션 배포·FE 프리뷰는 영향 없음
+- ⚠️ **설정 반영에는 머지 후 배포 1회가 필요할 수 있습니다** (Vercel이 최신
+  배포의 설정을 참조). 이 설정을 넣는 PR 자체가 frontend/를 바꾸므로 develop
+  머지 시 자연히 충족됩니다
+- ⚠️ **평가 순서(deploymentEnabled vs author 체크)는 공식 문서에 명시가
+  없습니다.** 머지 후 BE 푸시 1건으로 실측하세요 — X가 여전히 뜨면
+  `DECISIONS.md` 2026-08-31의 "조건부 무시" 규칙이 폴백입니다
+
 ### 남는 경우
 
-FE PR에 BE가 커밋을 섞으면 여전히 실패합니다. 드물 것이라 우선 위 설정으로
-대응하고, 실제로 문제가 되면 다시 봅니다.
+- **BE 브랜치가 `frontend/`를 건드리는 경우**: ②로 인해 프리뷰가 아예 만들어지지
+  않습니다. 그 변경의 화면 확인은 develop 머지 후에 하거나, PM이 자기 브랜치로
+  가져와 커밋합니다 (드물 것이라 발생 시 다시 봅니다)
+- **FE PR에 BE가 커밋을 섞는 경우**: 브랜치 이름이 `*/fe-*`라 ②에 안 걸리고,
+  author 체크에서 여전히 실패합니다. 섞지 않는 것이 원칙입니다
 
 ---
 
