@@ -1,5 +1,12 @@
 import type {
   AdminMember,
+  AttendanceEntryInput,
+  AttendanceSessionDetail,
+  AttendanceSessionInput,
+  AttendanceSessionSummary,
+  AttendanceSessionType,
+  AttendanceStatus,
+  Village,
   AlbumInput,
   AlbumSummary,
   AttachmentUpload,
@@ -847,18 +854,43 @@ function findUserByLoginId(loginId: string): AuthUser | undefined {
  *   VALIDATION_ERROR("임원에게 문의")를 돌려준다
  */
 type MockRosterEntry = {
+  rosterId: string;
   name: string;
   birthDate: string; // YYYY-MM-DD
   phone: string;
+  /** 마을 — 출석부가 마을 그룹으로 돈다. 인증 대조에는 쓰지 않는다 */
+  village: Village;
   /** 가입된 계정의 loginId — null이면 미가입(재개방 포함) */
   claimedBy: string | null;
 };
+
+/**
+ * ⚠️ 인증(verify-roster)과 출석부가 **같은 명단**을 쓴다 — 실제 모델도
+ * member_roster 하나다. 전원 가상 인물이며 실명·실연락처를 넣지 않는다
+ * (`infra/vercel/README.md §3`). 출석부 응답에는 전화번호를 싣지 않는다.
+ */
 const MOCK_ROSTER: MockRosterEntry[] = [
-  { name: "김도연a", birthDate: "2001-03-14", phone: "010-1111-2222", claimedBy: "doyeon01" },
-  { name: "김도연b", birthDate: "1999-07-01", phone: "010-3333-4444", claimedBy: null },
-  { name: "이믿음", birthDate: "2002-11-23", phone: "010-5555-6666", claimedBy: null },
-  { name: "이중복", birthDate: "2000-01-01", phone: "010-7777-0000", claimedBy: null },
-  { name: "이중복", birthDate: "2000-01-01", phone: "010-7777-0000", claimedBy: null },
+  { rosterId: "r01", name: "강하늘", birthDate: "2000-01-05", phone: "010-1000-0001", village: "1", claimedBy: null },
+  { rosterId: "r02", name: "김보라", birthDate: "2001-02-14", phone: "010-1000-0002", village: "1", claimedBy: null },
+  { rosterId: "r03", name: "박새벽", birthDate: "1998-05-21", phone: "010-1000-0003", village: "1", claimedBy: null },
+  { rosterId: "r04", name: "이한별", birthDate: "2003-08-09", phone: "010-1000-0004", village: "1", claimedBy: null },
+  { rosterId: "r05", name: "정미르", birthDate: "1999-12-30", phone: "010-1000-0005", village: "2", claimedBy: null },
+  { rosterId: "r06", name: "최나래", birthDate: "2002-04-17", phone: "010-1000-0006", village: "2", claimedBy: null },
+  { rosterId: "r07", name: "한가람", birthDate: "2000-10-02", phone: "010-1000-0007", village: "2", claimedBy: null },
+  { rosterId: "r08", name: "윤슬기", birthDate: "2001-06-25", phone: "010-1000-0008", village: "2", claimedBy: null },
+  { rosterId: "r09", name: "서도담", birthDate: "1997-03-11", phone: "010-1000-0009", village: "3", claimedBy: null },
+  { rosterId: "r10", name: "임누리", birthDate: "2004-01-19", phone: "010-1000-0010", village: "3", claimedBy: null },
+  { rosterId: "r11", name: "오아람", birthDate: "2002-09-08", phone: "010-1000-0011", village: "3", claimedBy: null },
+  { rosterId: "r12", name: "신바다", birthDate: "1999-07-04", phone: "010-1000-0012", village: "4", claimedBy: null },
+  { rosterId: "r13", name: "문소리", birthDate: "2000-11-23", phone: "010-1000-0013", village: "4", claimedBy: null },
+  { rosterId: "r14", name: "장여울", birthDate: "2003-02-28", phone: "010-1000-0014", village: "4", claimedBy: null },
+  { rosterId: "r15", name: "배이든", birthDate: "2001-08-15", phone: "010-1000-0015", village: "4", claimedBy: null },
+  // 가입(verify-roster) 시나리오 전용 케이스
+  { rosterId: "r16", name: "김도연a", birthDate: "2001-03-14", phone: "010-1111-2222", village: "3", claimedBy: "doyeon01" }, // 이미 가입됨 → 단일 문구 실패
+  { rosterId: "r17", name: "김도연b", birthDate: "1999-07-01", phone: "010-3333-4444", village: "5", claimedBy: null }, // 미가입 동명이인 — 접미사 정확히 입력해야 통과
+  { rosterId: "r18", name: "이믿음", birthDate: "2002-11-23", phone: "010-5555-6666", village: "5", claimedBy: null }, // 정상 가입 경로
+  { rosterId: "r19", name: "이중복", birthDate: "2000-01-01", phone: "010-7777-0000", village: "5", claimedBy: null }, // 명단 결함(2건) → 임원 문의
+  { rosterId: "r20", name: "이중복", birthDate: "2000-01-01", phone: "010-7777-0000", village: "5", claimedBy: null },
 ];
 
 /** verify-roster가 발급한 registrationToken — 1회용 · 5분 (SPEC_API §2.1) */
@@ -1053,6 +1085,90 @@ function allMockBulletins(): MockBulletin[] {
   return [...dynamicBulletins, ...seeded]
     .filter((b) => !removedMockBulletinIds.has(b.id))
     .sort((a, b) => b.serviceDate.localeCompare(a.serviceDate));
+}
+
+
+// ── 출석부 mock (브리핑 2026-08-28 §7 초안 · SPEC_API 미반영) ──────────
+
+// 명단은 인증 mock과 공유한다 — 위 MOCK_ROSTER (member_roster 하나가 원본이다).
+
+type MockAttendanceSession = {
+  id: string;
+  date: string;
+  type: AttendanceSessionType;
+  title: string;
+  /** rosterId → status. 없는 키 = 미체크(null) — "기록 없음"과 ABSENT는 다르다 */
+  entries: Map<string, AttendanceStatus>;
+};
+
+/** 이번 세션 중 만든 회차 포함. 새로고침하면 시드로 돌아간다 (dynamicAlbums와 같은 원칙) */
+const dynamicAttendanceSessions: MockAttendanceSession[] = [
+  {
+    // 체크가 끝난 지난 회차 — 목록에서 "15/15" 완료 상태를 보여주기 위한 시드
+    id: "as-1",
+    date: "2026-08-17",
+    type: "SUNDAY_SERVICE",
+    title: "주일예배",
+    entries: new Map([
+      ["r01", "PRESENT"], ["r02", "PRESENT"], ["r03", "LATE"], ["r04", "PRESENT"],
+      ["r05", "PRESENT"], ["r06", "ABSENT"], ["r07", "PRESENT"], ["r08", "EXCUSED"],
+      ["r09", "PRESENT"], ["r10", "PRESENT"], ["r11", "ABSENT"], ["r12", "PRESENT"],
+      ["r13", "PRESENT"], ["r14", "LATE"], ["r15", "PRESENT"],
+    ]),
+  },
+  {
+    // 체크 중인 회차 — 일부만 기록된 상태(마을 1만 끝남)를 보여주기 위한 시드
+    id: "as-2",
+    date: "2026-08-24",
+    type: "SUNDAY_SERVICE",
+    title: "주일예배",
+    entries: new Map([
+      ["r01", "PRESENT"], ["r02", "PRESENT"], ["r03", "PRESENT"], ["r04", "ABSENT"],
+    ]),
+  },
+];
+
+let attendanceSessionSeq = 100;
+
+/** 출석부는 전부 임원(`L`) 이상이다 (§7 · 인가 매트릭스 §3) */
+function requireAttendanceLeader(): AuthUser {
+  const user = requireSession();
+  if (user.role !== "LEADER" && user.role !== "PASTOR") {
+    throw new ApiError({
+      code: "FORBIDDEN",
+      message: "출석부는 임원 이상만 사용할 수 있습니다.",
+      status: 403,
+    });
+  }
+  return user;
+}
+
+/** 마을(숫자, newcomer는 뒤로) → 이름 순 — 체크 화면이 마을 단위로 돈다 */
+function rosterSorted(): MockRosterEntry[] {
+  return [...MOCK_ROSTER].sort((a, b) => {
+    if (a.village !== b.village) {
+      if (a.village === "newcomer") return 1;
+      if (b.village === "newcomer") return -1;
+      return Number(a.village) - Number(b.village);
+    }
+    return a.name.localeCompare(b.name, "ko");
+  });
+}
+
+function toAttendanceSummary(s: MockAttendanceSession): AttendanceSessionSummary {
+  let present = 0;
+  for (const status of s.entries.values()) {
+    if (status === "PRESENT") present += 1;
+  }
+  return {
+    id: s.id,
+    date: s.date,
+    type: s.type,
+    title: s.title,
+    checkedCount: s.entries.size,
+    presentCount: present,
+    rosterCount: MOCK_ROSTER.length,
+  };
 }
 
 export const mockApi: Api = {
@@ -1822,6 +1938,126 @@ export const mockApi: Api = {
 
       const all = scenario() === "empty" ? [] : ADMIN_NEWCOMERS;
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
+    },
+  },
+  attendance: {
+    async sessions({ page = 0, size = 20 } = {}): Promise<Page<AttendanceSessionSummary>> {
+      await delay();
+      throwIfScenario();
+      requireAttendanceLeader();
+
+      const all = scenario() === "empty" ? [] : [...dynamicAttendanceSessions];
+      // 최신 날짜부터 — 임원이 여는 것은 거의 항상 "이번 주" 회차다
+      all.sort((a, b) => b.date.localeCompare(a.date));
+      return {
+        items: all.slice(page * size, (page + 1) * size).map(toAttendanceSummary),
+        page,
+        size,
+        hasNext: all.length > (page + 1) * size,
+      };
+    },
+
+    async createSession(input: AttendanceSessionInput): Promise<{ id: string }> {
+      await delay();
+      throwIfScenario();
+      requireAttendanceLeader();
+
+      if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(input.date)) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "날짜를 선택해주세요.",
+          status: 400,
+          field: "date",
+        });
+      }
+      if (!input.title.trim()) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "회차 이름을 입력해주세요.",
+          status: 400,
+          field: "title",
+        });
+      }
+      // 같은 날짜·같은 종류 중복 방지 — 실수로 두 번 만들면 출결이 갈라진다
+      if (dynamicAttendanceSessions.some((s) => s.date === input.date && s.type === input.type)) {
+        throw new ApiError({
+          code: "DUPLICATE",
+          message: "같은 날짜에 이미 회차가 있습니다.",
+          status: 409,
+          field: "date",
+        });
+      }
+
+      attendanceSessionSeq += 1;
+      const id = "as-" + attendanceSessionSeq;
+      dynamicAttendanceSessions.push({
+        id,
+        date: input.date,
+        type: input.type,
+        title: input.title.trim(),
+        entries: new Map(),
+      });
+      return { id };
+    },
+
+    async session(id: string): Promise<AttendanceSessionDetail> {
+      await delay();
+      throwIfScenario();
+      requireAttendanceLeader();
+
+      const found = dynamicAttendanceSessions.find((s) => s.id === id);
+      if (!found) {
+        throw new ApiError({ code: "NOT_FOUND", message: "회차를 찾을 수 없습니다.", status: 404 });
+      }
+      return {
+        id: found.id,
+        date: found.date,
+        type: found.type,
+        title: found.title,
+        entries: rosterSorted().map((row) => ({
+          rosterId: row.rosterId,
+          name: row.name,
+          village: row.village,
+          status: found.entries.get(row.rosterId) ?? null,
+        })),
+      };
+    },
+
+    async saveEntries(id: string, entries: AttendanceEntryInput[]): Promise<void> {
+      await delay();
+      throwIfScenario();
+      requireAttendanceLeader();
+
+      const found = dynamicAttendanceSessions.find((s) => s.id === id);
+      if (!found) {
+        throw new ApiError({ code: "NOT_FOUND", message: "회차를 찾을 수 없습니다.", status: 404 });
+      }
+      // ⚠️ upsert — 보낸 것만 덮는다 (§7). 전체 교체로 만들면 동시에 체크하는
+      //    다른 임원의 기록을 지운다. mock도 같은 의미론을 흉내내야 화면이
+      //    "손댄 것만 보내는" 방식을 검증할 수 있다.
+      for (const entry of entries) {
+        if (!MOCK_ROSTER.some((r) => r.rosterId === entry.rosterId)) {
+          throw new ApiError({
+            code: "VALIDATION_ERROR",
+            message: "명단에 없는 사람입니다.",
+            status: 400,
+            field: "rosterId",
+          });
+        }
+        found.entries.set(entry.rosterId, entry.status);
+      }
+    },
+
+    async removeSession(id: string): Promise<void> {
+      await delay();
+      throwIfScenario();
+      requireAttendanceLeader();
+
+      const idx = dynamicAttendanceSessions.findIndex((s) => s.id === id);
+      if (idx < 0) {
+        throw new ApiError({ code: "NOT_FOUND", message: "회차를 찾을 수 없습니다.", status: 404 });
+      }
+      dynamicAttendanceSessions.splice(idx, 1);
     },
   },
   sermons: {

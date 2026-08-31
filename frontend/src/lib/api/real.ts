@@ -445,6 +445,22 @@ export const realApi: Api = {
     downloadUrl: (id, pageNo) =>
       `/api/bulletins/${encodeURIComponent(id)}/pages/${encodeURIComponent(String(pageNo))}/download`,
   },
+  attendance: {
+    // ⚠️ [CONTRACT] 브리핑 §7 초안 경로 — SPEC_API 반영 시 재확인
+    sessions: ({ page = 0, size = 20 } = {}) =>
+      request("/attendance/sessions", { query: { page, size } }),
+    createSession: (input) =>
+      request("/attendance/sessions", { method: "POST", body: JSON.stringify(input) }),
+    session: (id) => request("/attendance/sessions/" + encodeURIComponent(id)),
+    // §7 예시 그대로 배열을 본문으로 보낸다 (envelope 없음)
+    saveEntries: (id, entries) =>
+      request("/attendance/sessions/" + encodeURIComponent(id) + "/entries", {
+        method: "PUT",
+        body: JSON.stringify(entries),
+      }),
+    removeSession: (id) =>
+      request("/attendance/sessions/" + encodeURIComponent(id), { method: "DELETE" }),
+  },
   auth: {
     verifyRoster: (input: VerifyRosterInput) =>
       request("/auth/verify-roster", { method: "POST", body: JSON.stringify(input) }),
