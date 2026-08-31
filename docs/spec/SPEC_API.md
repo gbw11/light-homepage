@@ -1,6 +1,6 @@
 # API 명세서 — LIGHT
 
-- 문서 버전: **v1.2** (2026-08-28 — §13 출석부 신규 · §10 매트릭스에 출석부 행. ⚠️ 로그인·권한 재설계 반영은 별도 버전으로 온다 — `handoff/2026-08-28-auth-roster-model.md` §9 확정 대기)
+- 문서 버전: **v1.3** (2026-08-31 — 로그인·권한 재설계 **확정** 반영: §2 전면 개정(명단 대조 가입·loginId 로그인·리셋 코드) · §3.1 열람 권한 되돌림 · §8 승인 폐지 · §10 매트릭스 교체. 근거: `handoff/2026-08-28-auth-roster-model.md` §9 BE 답변 + `DECISIONS.md` 2026-08-31)
 - Base URL: `/api` (Next.js `rewrites`로 Spring에 프록시 → **동일 출처**)
 - 이 문서의 역할: **FE와 BE의 유일한 접점.** W0에서 이 문서를 합의한 뒤 각자 작업한다
 - 구현되면 **Swagger UI**(`/swagger-ui.html`)가 살아있는 계약서가 되고, 이 문서는 합의 기준으로 남는다
@@ -19,6 +19,10 @@
 > 3. **`§6.8` ZIP 대량 다운로드는 폐기** — 구현하지 않습니다
 >
 > **쓰기·관리 권한은 하나도 바뀌지 않았습니다.**
+>
+> ⚠️ **2026-08-31 부분 철회**: 위 1의 열람 공개 중 **내부공지·회의록·사진첩·월례회는
+> 다시 `M`(회원 전용)**이 됐습니다 (`§3.1` `§10`). 주보·설교·공개공지·새가족 접수는
+> 공개로 남습니다. 근거: `handoff/2026-08-28-auth-roster-model.md` §1·§3.
 
 ---
 
@@ -41,14 +45,14 @@
 
 `@RestControllerAdvice`로 모든 예외를 이 형태로 통일합니다. FE는 에러 처리를 한 곳에서 만듭니다.
 
-### 1.2 에러 코드 — 이 7개만 사용
+### 1.2 에러 코드 — 이 6개만 사용
 FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
+~~`PENDING_APPROVAL`~~ 은 v1.3(2026-08-31)에서 제거됐습니다 — 승인 절차 소멸 (`[CONTRACT]` 합의).
 
 | code | HTTP | 의미 | FE 처리 |
 |---|---|---|---|
 | `UNAUTHORIZED` | 401 | 로그인 필요 | 로그인 화면으로 |
 | `FORBIDDEN` | 403 | 권한 부족 | 접근 불가 안내 |
-| `PENDING_APPROVAL` | 403 | 승인 대기 상태 | `/pending` 화면으로 |
 | `NOT_FOUND` | 404 | 없음 또는 **권한이 없어 숨김** | 404 화면 |
 | `VALIDATION_ERROR` | 400 | 입력값 오류 (`field`에 필드명) | 해당 입력란에 표시 |
 | `STORAGE_LIMIT` | 409 | 저장 용량 초과 | 업로드 차단 + 안내 |
@@ -71,10 +75,14 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 - 401 응답 시 FE가 `POST /api/auth/refresh`를 1회 시도한 뒤 실패하면 로그인 화면으로
 
 ### 1.5 권한 표기
-`G` GUEST · `P` PENDING · `M` MEMBER · `L` LEADER · `T` PASTOR (계단식 상위 포함)
+`G` GUEST · `M` MEMBER · `L` LEADER · `T` PASTOR (계단식 상위 포함)
 
-⚠️ 2026-08-25 전환 이후 **열람 계열에는 `M`이 거의 남지 않습니다.** 열람은 `G`(익명 허용),
-쓰기·관리는 `L`↑입니다. `M`이 남은 곳은 **본인 계정 관련**(`§2.11` 내 정보 수정 · `§2.12` 비밀번호 변경 · `§2.13` 탈퇴)뿐입니다.
+⚠️ **`P`(PENDING·승인 대기)는 2026-08-31 확정으로 소멸했습니다** — 명단 대조 가입은
+즉시 `MEMBER`가 됩니다 (`§2.1~2.2`). 열람 권한은 **회원 콘텐츠(내부공지·회의록·
+사진첩·월례회)가 `M`**, 공개 콘텐츠(공개공지·주보·설교)가 `G`입니다 (`§3.1` `§10`).
+
+⚠️ 비공개 열람·쓰기에서 **`G`는 `401`, `M` 미달은 `403`** — FE가 "로그인하면 됨"(로그인
+유도)과 "로그인해도 안 됨"(권한 없음)을 **다른 화면으로** 처리합니다 (`§10` 주의 3).
 
 ### 1.6 페이징 기본값
 `page=0`, `size=20` (최대 100). 사진 목록만 커서 방식입니다.
@@ -83,124 +91,149 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 
 ## 2. 인증 (`/api/auth`)
 
-### 2.1 `POST /api/auth/signup` — 이메일 회원가입
+> ### ⚠️ v1.3 전면 개정 (2026-08-31) — 절 번호가 이전 버전과 다릅니다
+>
+> 이메일 회원가입(구 §2.1) · 카카오 추가정보 `complete-profile`(구 §2.8) ·
+> 이메일 비밀번호 재설정(구 §2.9~2.10)은 **폐기**됐습니다.
+> 가입은 **교회 명단 대조 → 즉시 `MEMBER`** 2단계이며, 승인(PENDING) 절차가 없습니다.
+> 마을·이메일은 받지 않습니다. 근거: `handoff/2026-08-28-auth-roster-model.md` §9 확정.
+
+### 2.1 `POST /api/auth/verify-roster` — 명단 확인 (가입 1단계)
 권한 `G`
 
 ```json
 // 요청
-{
-  "name": "김OO",
-  "email": "user@example.com",
-  "password": "비밀번호12!",
-  "phone": "010-1234-5678",
-  "village": "3",
-  "agreed": true
-}
+{ "name": "김도연a", "birthDate": "2001-03-14", "phone": "010-1234-5678" }
 ```
 | 필드 | 타입 | 필수 | 제약 |
 |---|---|---|---|
-| `name` | string | ✅ | 2~50자, 실명 |
-| `email` | string | ✅ | 이메일 형식, 중복 불가 |
-| `password` | string | ✅ | 8자 이상 |
-| `phone` | string | ✅ | `010-0000-0000` |
-| `village` | string | ✅ | `"1"`~`"9"` \| `"newcomer"` |
-| `agreed` | boolean | ✅ | **`true`가 아니면 거부** |
+| `name` | string | ✅ | 명단의 이름과 글자 그대로 비교. **동명이인은 명단의 접미사 포함** (예: `김도연a`) — 저장·표시 모두 접미사 그대로 |
+| `birthDate` | string | ✅ | `YYYY-MM-DD` |
+| `phone` | string | ✅ | 서버가 숫자만 남겨 정규화 후 비교 |
 
 ```json
-// 201
-{ "data": { "id": "42", "role": "PENDING" } }
+// 200
+{ "data": { "registrationToken": "...", "name": "김도연a", "expiresIn": 300 } }
 ```
-| 실패 | code |
-|---|---|
-| 이메일 중복 | `DUPLICATE` (field: `email`) |
-| 동의 누락 | `VALIDATION_ERROR` (field: `agreed`) |
+토큰은 **1회용 · 5분 만료**입니다.
 
----
+| 실패 | code | 비고 |
+|---|---|---|
+| 셋 중 하나라도 불일치 · 명단에 없음 · 이미 계정 있음 | `UNAUTHORIZED` | **전부 같은 문구** "명단에서 확인되지 않습니다" — 어느 필드가 틀렸는지 알려주지 않음 |
+| 동명이인 2건 이상 매칭 | `VALIDATION_ERROR` | "임원에게 문의해 주세요" |
+| rate limit 초과 | `UNAUTHORIZED` | **일반 실패와 동일 응답** (§9-G 확정 — 429·전용 문구 없음) |
 
-### 2.2 `POST /api/auth/login`
+⚠️ FE는 **필드별 오류 표시를 만들지 않습니다** — 폼 전체 단일 에러 문구 하나와
+"임원 문의" 분기 하나뿐입니다.
+
+### 2.2 `POST /api/auth/register` — 계정 생성 (가입 2단계)
 권한 `G`
 
 ```json
 // 요청
-{ "email": "user@example.com", "password": "비밀번호12!" }
+{ "registrationToken": "...", "loginId": "doyeon01", "password": "비밀번호12!" }
 ```
+| 필드 | 제약 |
+|---|---|
+| `loginId` | 사용자가 정한 아이디 (§9-A 확정), 중복 불가 |
+| `password` | 8자 이상 · **생년월일·전화번호와 같으면 거부** (`VALIDATION_ERROR`) |
+
 ```json
-// 200 — 쿠키에 access/refresh 토큰이 설정된다
-{
-  "data": {
-    "id": "42", "name": "김OO", "village": "3",
-    "role": "MEMBER", "profileComplete": true
-  }
-}
+// 201 — 즉시 MEMBER (승인 없음, §9-B 확정)
+{ "data": { "id": "42", "name": "김도연a", "role": "MEMBER" } }
 ```
 | 실패 | code |
 |---|---|
-| 자격 불일치 | `UNAUTHORIZED` |
-| 승인 대기 | `PENDING_APPROVAL` (로그인은 성공, 회원 API는 차단) |
+| 토큰 만료·재사용 | `UNAUTHORIZED` |
+| `loginId` 중복 | `DUPLICATE` (field: `loginId`) |
 
----
+❓ **미확정 — BE 확인 필요**: 201과 함께 세션 쿠키를 발급하는지.
+**FE는 미발급으로 가정**하고 가입 완료 화면에서 로그인으로 유도합니다.
 
-### 2.3 `POST /api/auth/refresh`
+### 2.3 `POST /api/auth/login`
+권한 `G`
+
+```json
+// 요청
+{ "loginId": "doyeon01", "password": "비밀번호12!" }
+```
+```json
+// 200 — 쿠키에 access/refresh 토큰이 설정된다
+{ "data": { "id": "42", "name": "김도연a", "role": "MEMBER" } }
+```
+| 실패 | code | 비고 |
+|---|---|---|
+| 자격 불일치 | `UNAUTHORIZED` | |
+| 5회 실패 → 15분 잠금 | `UNAUTHORIZED` | **일반 실패와 동일 응답** — FE 전용 UI 없음 |
+
+### 2.4 `POST /api/auth/refresh`
 권한 — (리프레시 쿠키 필요) · 응답 `200 { "data": { "refreshed": true } }`
 리프레시 토큰은 **회전**합니다(사용 시 새로 발급). 실패는 `UNAUTHORIZED`.
 
-### 2.4 `POST /api/auth/logout`
+### 2.5 `POST /api/auth/logout`
 권한 로그인 · 쿠키 삭제 + 리프레시 토큰 DB 폐기 · `204`
 
-### 2.5 `GET /api/auth/me`
+### 2.6 `GET /api/auth/me`
 권한 로그인
 ```json
 {
   "data": {
-    "id": "42", "name": "김OO", "email": "user@example.com",
-    "phone": "010-1234-5678", "village": "3",
-    "role": "MEMBER", "profileComplete": true,
-    "approvedAt": "2026-08-20T02:11:00Z"
+    "id": "42", "name": "김도연a", "loginId": "doyeon01",
+    "phone": "010-1234-5678", "role": "MEMBER"
   }
 }
 ```
+`loginId`는 카카오 가입자면 `null`. ~~`email` `village` `profileComplete` `approvedAt`~~ 은 v1.3에서 제거.
 
-### 2.6 `GET /api/auth/kakao/authorize`
+### 2.7 `GET /api/auth/kakao/authorize`
 권한 `G` · **302** → 카카오 인가 URL
 
-### 2.7 `GET /api/auth/kakao/callback?code=...`
+두 용도로 쓰입니다 (§9-F: 카카오 **유지**, 단 가입 간소화 효과 없음).
+- **기존 카카오 가입자의 로그인**: 파라미터 없이 호출
+- **가입 2단계의 수단 ②**: `verify-roster` 통과 후에만 진입
+
+⚠️ 카카오는 이름·생년월일·전화번호를 주지 않으므로 **카카오만으로는 가입할 수 없습니다** —
+명단 대조를 건너뛸 수 없습니다. FE 문구는 "본인 확인 후 카카오로 계속"입니다.
+
+❓ **미확정 — BE 확인 필요**: 가입 경로에서 `registrationToken`을 어떻게 전달하는지
+(제안: `?registrationToken=...`을 OAuth `state`에 실어 콜백에서 회수).
+
+### 2.8 `GET /api/auth/kakao/callback?code=...`
 권한 `G` · **302** → FE로 리다이렉트 (쿠키 설정 후)
 
 | 상황 | 리다이렉트 |
 |---|---|
-| 기존 계정 · 프로필 완료 | `/my` |
-| 신규 계정 또는 프로필 미완 | `/signup/complete` |
-| 승인 대기 | `/pending` |
+| 기존 카카오 계정 | `/my` |
+| 신규 + 유효한 registrationToken | 계정 생성(즉시 MEMBER) 후 `/my` |
+| 신규 + 토큰 없음/만료 | `/signup?error=kakao` (명단 확인부터 다시) |
 
-⚠️ 카카오 이메일 수집은 비즈 앱 전환이 필요합니다. **이메일 없이도 계정이 생성되어야 합니다**(`kakao_id`로 식별).
+❓ 위 표는 FE 제안이며 **BE 확정 필요**. ~~구 `/signup/complete`·`/pending` 리다이렉트~~ 폐기.
 
-### 2.8 `POST /api/auth/complete-profile`
-권한 로그인 (카카오 가입자)
+⚠️ 카카오 가입자는 loginId·비밀번호가 없어 **카카오 계정을 잃으면 로그인 수단이 없습니다**
+— 의도된 트레이드오프이며, 사고 시 §8.2(계정 삭제 + 명단 재개방)로 재가입합니다.
+
+### 2.9 `POST /api/auth/password/reset-with-code` — 리셋 코드로 비밀번호 재설정
+권한 `G`
+
 ```json
 // 요청
-{ "name": "김OO", "phone": "010-1234-5678", "village": "3", "agreed": true }
+{ "loginId": "doyeon01", "resetCode": "8H2K-9QX1", "password": "새비밀번호12!" }
 ```
-```json
-// 200
-{ "data": { "profileComplete": true, "role": "PENDING" } }
-```
-카카오 닉네임은 실명이 아닌 경우가 많아 **실명을 별도로 받습니다**(승인 대조용).
+`204` · 코드는 **1회용 · 30분 만료 · 해시 저장** — 전도사가 §8.4로 발급해 구두/문자로 전달합니다.
+실패(코드 불일치·만료)는 `UNAUTHORIZED` 단일 응답.
 
-### 2.9 `POST /api/auth/password/reset-request`
-권한 `G` · 요청 `{ "email": "..." }` · **204** (계정 존재 여부를 노출하지 않기 위해 항상 204)
+~~구 §2.9 `reset-request`(이메일) · 구 §2.10 `reset`(이메일 토큰)~~ 폐기 —
+이메일을 수집하지 않으므로 자력 수단은 **카카오 로그인**(카카오 가입자) 또는 전도사 문의입니다.
 
-### 2.10 `POST /api/auth/password/reset`
-권한 `G` · 요청 `{ "token": "...", "password": "새비밀번호12!" }` · `204`
-토큰은 1회용이며 만료됩니다.
-
-### 2.11 `PATCH /api/auth/me`
+### 2.10 `PATCH /api/auth/me`
 권한 `M` · 요청 `{ "phone": "010-9999-8888" }` · 응답 갱신된 프로필
 
-### 2.12 `POST /api/auth/password/change`
+### 2.11 `POST /api/auth/password/change`
 권한 `M` · 요청 `{ "currentPassword": "...", "newPassword": "..." }` · `204`
 
-### 2.13 `DELETE /api/auth/me` — 회원 탈퇴
+### 2.12 `DELETE /api/auth/me` — 회원 탈퇴
 권한 `M` · 요청 `{ "password": "..." }` · `204` · 개인정보 즉시 파기
+⚠️ 탈퇴 시 명단 `claimed_at`도 해제해 재가입이 가능해야 합니다.
 
 ---
 
@@ -212,13 +245,14 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 | category | 의미 | 열람 | 작성 |
 |---|---|---|---|
 | `NOTICE_PUBLIC` | 공개 공지 | 누구나 | `L` |
-| `NOTICE_MEMBER` | 내부 공지 | **누구나** | `L` |
-| `MINUTES` | 회의록 | **누구나** | `L` |
+| `NOTICE_MEMBER` | 내부 공지 | **`M`** | `L` |
+| `MINUTES` | 회의록 | **`M`** | `L` |
 | `BUDGET` | 예산안 | `L` | `L` |
 
-> **2026-08-25 전환**: `NOTICE_MEMBER`·`MINUTES`의 열람이 `M` → 누구나로 바뀌었습니다.
-> **`BUDGET`만 `L`로 남습니다** — 헌금·지출 내역이 담기기 때문입니다.
-> 분류 이름(대상)과 접근 권한은 다른 것입니다. "내부 공지"는 이제 **대상이 회원일 뿐 누구나 볼 수 있습니다.**
+> **2026-08-31 확정 (§9-D)**: `NOTICE_MEMBER`·`MINUTES` 열람이 **`M`(회원 전용)으로
+> 돌아왔습니다** — 2026-08-25 "누구나" 전환의 부분 철회입니다. 회의록은 구모델의
+> `L`이 아니라 `M`입니다 (완화). `BUDGET`은 `L` 유지 — 헌금·지출 내역이 담기기 때문입니다.
+> 열람 `M`에서 익명은 `401`(로그인 유도), 로그인했지만 미달은 `403`입니다 (§10 주의 3).
 
 ⚠️ **분류별 열람 권한 검사는 서비스 계층의 단일 관문을 통과해야 합니다.** Controller가 받은 category를 그대로 신뢰하지 않습니다.
 
@@ -226,7 +260,7 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 목록(`§3.2`)에서 `category=BUDGET`을 권한 없이 요청하면 `403`이 맞습니다 — 분류의 존재는 이미 공개된 정보이고, FE는 애초에 그 요청을 보내지 않습니다.
 
 ### 3.2 `GET /api/posts`
-권한 **분류별 — `NOTICE_PUBLIC`·`NOTICE_MEMBER`·`MINUTES`는 `G`(익명 허용) · `BUDGET`만 `L`**
+권한 **분류별 — `NOTICE_PUBLIC`은 `G`(익명 허용) · `NOTICE_MEMBER`·`MINUTES`는 `M` · `BUDGET`은 `L`**
 
 | 쿼리 | 필수 | 설명 |
 |---|---|---|
@@ -632,37 +666,49 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 
 ## 8. 관리 (`/api/admin`)
 
-### 8.1 `GET /api/admin/members?status=PENDING&q=&page=&size=`
+### 8.1 `GET /api/admin/members?q=&page=&size=`
 권한 **`T`**
 ```json
 {
   "data": {
     "items": [
       {
-        "id": "51", "name": "이OO", "email": "lee@example.com",
-        "phone": "010-1234-5678", "village": "5",
-        "role": "PENDING", "profileComplete": true,
-        "createdAt": "2026-08-19T09:00:00Z", "approvedAt": null
+        "id": "51", "name": "이도연a", "loginId": "doyeon01",
+        "phone": "010-1234-5678", "role": "MEMBER",
+        "createdAt": "2026-08-19T09:00:00Z"
       }
     ],
     "page": 0, "size": 20, "hasNext": false
   }
 }
 ```
-`status`: `PENDING` \| `ALL` · `q`: 이름 검색
+`q`: 이름 검색. ~~`status` 파라미터~~ 폐기 — PENDING이 없으므로 전체 목록 하나뿐입니다.
+`loginId`는 카카오 가입자면 `null`. 이름은 명단의 **동명이인 접미사를 포함해 그대로** 표시합니다.
+❓ 마을 컬럼은 명단 DB에 마을 정보가 확인되면 추가 논의 (인증에는 불필요).
 
-### 8.2 `POST /api/admin/members/{id}/approve`
-권한 **`T`** · `204` · `role=MEMBER`, `approved_at/by` 기록, 감사로그, 안내 메일 발송
+### 8.2 `DELETE /api/admin/members/{id}` — 계정 삭제 + 명단 재개방
+권한 **`T`** · 요청 `{ "reason": "본인 확인 — 선점 계정 삭제" }` · `204`
 
-### 8.3 `POST /api/admin/members/{id}/reject`
-권한 **`T`** · 요청 `{ "reason": "청년교회 소속 확인 불가" }` · `204`
+계정 삭제 + 명단 `claimed_at` 해제 + 감사로그(사유 필수).
+**선점 복구 절차의 핵심입니다**: 진짜 본인이 "이미 계정이 있습니다"를 만나면 →
+전도사가 명단의 전화번호로 본인 확인 → 이 API로 삭제 → 본인이 다시 가입.
+~~구 `POST .../approve`(승인) · `POST .../reject`(거절)~~ 폐기 — 승인 절차가 없습니다.
 
-### 8.4 `PATCH /api/admin/members/{id}/role`
+### 8.3 `PATCH /api/admin/members/{id}/role`
 권한 **`T`** · 요청 `{ "role": "LEADER" }` · `204`
 
 | 실패 | code | 상황 |
 |---|---|---|
-| 마지막 `PASTOR` 강등 | `VALIDATION_ERROR` | 아무도 회원을 승인할 수 없게 되는 것을 방지 |
+| 마지막 `PASTOR` 강등 | `VALIDATION_ERROR` | 회원 관리가 불가능해지는 것을 방지 |
+
+### 8.4 `POST /api/admin/members/{id}/password/reset` — 리셋 코드 발급
+권한 **`T`**
+```json
+// 200
+{ "data": { "resetCode": "8H2K-9QX1", "expiresAt": "2026-08-31T12:30:00Z" } }
+```
+코드는 **1회용 · 30분 · 해시 저장**. 화면에 표시된 코드를 전도사가 구두/문자로 전달하고,
+본인이 `§2.9 reset-with-code`로 새 비밀번호를 설정합니다. 발급도 감사로그에 남깁니다.
 
 ### 8.5 `GET /api/admin/storage`
 권한 `L`
@@ -777,61 +823,69 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 
 ⚠️ **RLS가 없으므로 이 표가 마지막 방어선입니다.** 자동 테스트로 검증하고 CI에서 실행합니다.
 
-> ⚠️ **2026-08-26 갱신 — 이 표는 권한 모델 전환 이전 값(열람 대부분 `401`)이었습니다.**
-> 옛 표대로 구현하면 **공개돼야 할 열람이 전부 잠깁니다.** 아래가 새 기준입니다.
+> ⚠️ **2026-08-31 교체 — 로그인·권한 재설계 확정 반영.** `P`(승인 대기) 열은
+> 역할 자체가 소멸해 제거했습니다. **굵은 칸이 2026-08-25 값에서 바뀐 지점**입니다.
+> 근거: `handoff/2026-08-28-auth-roster-model.md` §3 + §9 확정.
 
-| 엔드포인트 | G | P | M | L | T |
-|---|---|---|---|---|---|
-| `GET /posts?category=NOTICE_PUBLIC` | 200 | 200 | 200 | 200 | 200 |
-| `GET /posts?category=NOTICE_MEMBER` | **200** | **200** | 200 | 200 | 200 |
-| `GET /posts?category=MINUTES` | **200** | **200** | **200** | 200 | 200 |
-| `GET /posts?category=BUDGET` | 403 | 403 | **403** | 200 | 200 |
-| `GET /posts/{공개·내부공지·회의록id}` | **200** | **200** | 200 | 200 | 200 |
-| `GET /posts/{예산안id}` | **404** | **404** | **404** | 200 | 200 |
-| `POST /posts` | 401 | 403 | **403** | 200 | 200 |
-| `GET /files/{공개글첨부id}` | **200** | **200** | 200 | 200 | 200 |
-| `GET /files/{예산안첨부id}` | **404** | **404** | **404** | 200 | 200 |
-| `GET /bulletins/latest` | **200** | **200** | 200 | 200 | 200 |
-| `POST /bulletins` | 401 | 403 | **403** | 200 | 200 |
-| `GET /albums` | **200** | **200** | 200 | 200 | 200 |
-| `GET /albums/{id}/photos` | **200** | **200** | 200 | 200 | 200 |
-| `POST /uploads:issue` | 401 | 403 | **403** | 200 | 200 |
-| `GET /photos/{id}/download` | **200** | **200** | 200 | 200 | 200 |
-| `POST /photos/{id}/report` | **200** | **200** | 200 | 200 | 200 |
-| `DELETE /photos/{id}` | 401 | 403 | **403** | 200 | 200 |
-| `GET /meetings` | **200** | **200** | 200 | 200 | 200 |
-| `GET /meetings/{id}/pages/{n}` (기간 내) | **200** | **200** | 200 | 200 | 200 |
-| `GET /meetings/{id}/pages/{n}` (**기간 외**) | **403** | **403** | **403** | 200 | 200 |
-| `POST /meetings` | 401 | 403 | **403** | 200 | 200 |
-| `GET /meetings/{id}/views` | 401 | 403 | **403** | 200 | 200 |
-| `GET /admin/storage` | 401 | 403 | **403** | 200 | 200 |
-| `GET /admin/newcomers` | 401 | 403 | **403** | 200 | 200 |
-| `GET /admin/members` | 401 | 403 | 403 | **403** | 200 |
-| `POST /admin/members/{id}/approve` | 401 | 403 | 403 | **403** | 200 |
-| `PATCH /admin/members/{id}/role` | 401 | 403 | 403 | **403** | 200 |
-| `POST /newcomers` | 200 | 200 | 200 | 200 | 200 |
-| `GET /sermons` | 200 | 200 | 200 | 200 | 200 |
-| `GET /attendance/sessions` (§13 신규) | 401 | 403 | **403** | 200 | 200 |
-| `POST /attendance/sessions` | 401 | 403 | **403** | 200 | 200 |
-| `GET /attendance/sessions/{id}` | 401 | 403 | **403** | 200 | 200 |
-| `PUT /attendance/sessions/{id}/entries` | 401 | 403 | **403** | 200 | 200 |
-| `DELETE /attendance/sessions/{id}` | 401 | 403 | **403** | 200 | 200 |
+| 엔드포인트 | G | M | L | T |
+|---|---|---|---|---|
+| `POST /auth/verify-roster` · `POST /auth/register` · `POST /auth/password/reset-with-code` | 200 | 200 | 200 | 200 |
+| `GET /posts?category=NOTICE_PUBLIC` | 200 | 200 | 200 | 200 |
+| `GET /posts?category=NOTICE_MEMBER` | **401** | 200 | 200 | 200 |
+| `GET /posts?category=MINUTES` | **401** | 200 | 200 | 200 |
+| `GET /posts?category=BUDGET` | 403 | 403 | 200 | 200 |
+| `GET /posts/{공개공지id}` | 200 | 200 | 200 | 200 |
+| `GET /posts/{내부공지·회의록id}` | **401** | 200 | 200 | 200 |
+| `GET /posts/{예산안id}` | 404 | 404 | 200 | 200 |
+| `POST /posts` | 401 | 403 | 200 | 200 |
+| `GET /files/{공개글첨부id}` | 200 | 200 | 200 | 200 |
+| `GET /files/{내부공지·회의록 첨부id}` | **401** | 200 | 200 | 200 |
+| `GET /files/{예산안첨부id}` | 404 | 404 | 200 | 200 |
+| `GET /bulletins/latest` | 200 | 200 | 200 | 200 |
+| `POST /bulletins` | 401 | 403 | 200 | 200 |
+| `GET /albums` | **401** | 200 | 200 | 200 |
+| `GET /albums/{id}/photos` | **401** | 200 | 200 | 200 |
+| `GET /photos/{id}/download` | **401** | 200 | 200 | 200 |
+| `POST /photos/{id}/report` | **401** | 200 | 200 | 200 |
+| `POST /uploads:issue` | 401 | 403 | 200 | 200 |
+| `DELETE /photos/{id}` | 401 | 403 | 200 | 200 |
+| `GET /meetings` | **401** | 200 | 200 | 200 |
+| `GET /meetings/{id}/pages/{n}` (기간 내) | **401** | 200 | 200 | 200 |
+| `GET /meetings/{id}/pages/{n}` (**기간 외**) | 401 | 403 | 200 | 200 |
+| `POST /meetings` | 401 | 403 | 200 | 200 |
+| `GET /meetings/{id}/views` | 401 | 403 | 200 | 200 |
+| `GET /admin/storage` | 401 | 403 | 200 | 200 |
+| `GET /admin/newcomers` | 401 | 403 | 200 | 200 |
+| `GET /admin/members` | 401 | 403 | **403** | 200 |
+| `DELETE /admin/members/{id}` | 401 | 403 | **403** | 200 |
+| `PATCH /admin/members/{id}/role` | 401 | 403 | **403** | 200 |
+| `POST /admin/members/{id}/password/reset` | 401 | 403 | **403** | 200 |
+| `POST /newcomers` | 200 | 200 | 200 | 200 |
+| `GET /sermons` | 200 | 200 | 200 | 200 |
+| `GET /attendance/sessions` (§13) | 401 | 403 | 200 | 200 |
+| `POST /attendance/sessions` | 401 | 403 | 200 | 200 |
+| `GET /attendance/sessions/{id}` | 401 | 403 | 200 | 200 |
+| `PUT /attendance/sessions/{id}/entries` | 401 | 403 | 200 | 200 |
+| `DELETE /attendance/sessions/{id}` | 401 | 403 | 200 | 200 |
 
-**굵게 표시된 칸이 실제 사고가 나는 지점입니다.**
 엔드포인트를 추가하면 이 표에 행을 추가합니다. **표에 없는 보호 엔드포인트는 미완성으로 봅니다.**
 
 ### 이 표를 읽을 때 틀리기 쉬운 4가지
 
-1. **`P`(승인 대기)가 `G`(익명)보다 권한이 낮으면 안 됩니다.** 전환 전에는 `P`가
-   열람 전부 `403`이었는데, 지금 그대로 두면 **가입한 사람이 가입 안 한 사람보다
-   못 보게 됩니다.** 공개 열람 행은 `P`도 `200`입니다
+1. **비공개 열람의 `G`는 `403`이 아니라 `401`입니다.** 내부공지·회의록·사진첩·월례회는
+   "로그인하면 볼 수 있는" 콘텐츠입니다 — 익명에게 `403`을 주면 FE가 로그인 유도를
+   할 수 없습니다
 2. **`403`과 `404`를 섞지 마세요.** 예산안 **상세·첨부**는 `404`(존재를 숨김),
    예산안 **목록 조회**는 `403`(분류의 존재는 이미 공개된 정보)입니다
-3. **쓰기의 `G`는 `401`, `P`·`M`은 `403`입니다.** 익명은 "로그인하면 될 수도
-   있다"이고, 로그인한 일반 회원은 "로그인해도 안 된다"입니다 — FE가 이 둘을
-   다르게 처리합니다(로그인 화면 vs 접근 불가 안내)
+3. **`G`는 `401`, 로그인했지만 미달은 `403`입니다.** 익명은 "로그인하면 될 수도
+   있다"이고, 로그인한 회원은 "로그인해도 안 된다"입니다 — FE가 이 둘을
+   다르게 처리합니다(로그인 유도 화면 vs 권한 없음 안내)
 4. **월례회 기간 외 `403`은 로그인 여부와 무관합니다.** `L`↑만 통과하고,
    그 우회는 **세션이 있을 때만** 적용됩니다 (`§7.1` `§7.2`)
+
+⚠️ **사진첩이 `M`이 되면서 presigned URL이 새는 경로가 됩니다.** `GET /albums/{id}/photos`가
+발급하는 URL 자체에는 인증이 없으므로 **만료를 짧게(10분 이하)** 가져가고, `§6.7` 개별
+다운로드는 매 요청마다 세션을 다시 봅니다 (브리핑 §3 경고).
 
 ---
 
@@ -857,7 +911,7 @@ frontend/src/lib/api/
 ├─ mock.ts     # 이 문서의 응답 형태를 그대로 구현 + 지연 300ms
 └─ real.ts     # 실제 fetch
 ```
-**mock에 실패 케이스를 반드시 넣습니다**: `401` · `403` · `PENDING_APPROVAL` · `STORAGE_LIMIT` · 업로드 실패 · 빈 목록.
+**mock에 실패 케이스를 반드시 넣습니다**: `401` · `403` · 명단 불일치(단일 문구) · 토큰/코드 만료 · `STORAGE_LIMIT` · 업로드 실패 · 빈 목록.
 성공 경로만 만들면 통합 때 무너집니다.
 
 ### 12.2 401 처리 흐름
@@ -867,8 +921,11 @@ API 401 → POST /api/auth/refresh 1회 시도
   실패 → 로그인 화면으로 이동
 ```
 
-### 12.3 `PENDING_APPROVAL` 처리
-회원 API가 이 코드를 반환하면 **어느 화면에 있든 `/pending`으로** 보냅니다.
+### 12.3 401 vs 403 화면 분기
+~~`PENDING_APPROVAL` → `/pending`~~ 은 v1.3에서 폐기됐습니다 (승인 절차 소멸).
+대신 비공개 열람에서 **`401`은 로그인 유도 화면, `403`은 권한 없음 안내**로 나눠
+처리합니다 (§10 주의 3). 같은 실패를 한 화면으로 뭉개면 회원이 "로그인해도 안 되는"
+것과 "로그인 안 해서 안 되는" 것을 구별할 수 없습니다.
 
 ---
 
