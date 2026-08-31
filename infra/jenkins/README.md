@@ -160,7 +160,36 @@ delete head branches" **해제**.
 **주의**: `backend_develop`/`frontend_develop`도 향후 `develop`으로의 PR
 head가 될 수 있으므로, 이 설정이 다시 켜지지 않도록 유지해야 합니다.
 
-### 6.5 현재 상태 (2026-08-21 기준)
+### 6.5 ⚠️ `error: This commit cannot be built` — 원인 규명 완료 (2026-08-31)
+
+2026-08-26부터 백엔드·신규 브랜치의 GitHub 커밋 상태가 전부
+`error: This commit cannot be built`로 남던 문제의 원인 두 가지를 규명하고
+고쳤습니다. **테스트 실패가 아니라 Jenkins 실행 환경 문제였습니다.**
+
+1. **docker CLI 부재** — Jenkinsfile의 Backend 스테이지는
+   `docker.image('postgres:16').withRun(...)`으로 테스트 DB를 띄우는데,
+   이 단계는 컨테이너 안에서 `docker` CLI 바이너리를 실행합니다. compose가
+   `docker.sock`을 마운트해도 공식 `jenkins/jenkins` 이미지에는 CLI가 없어
+   `docker: not found`(exit 127)로 즉사했습니다.
+   → **`Dockerfile`**(이 디렉터리)로 CLI를 이미지에 구웠고, compose가
+   `build: .`로 참조합니다. 컨테이너에 수동 설치하면 재생성 때 사라지므로
+   반드시 이미지에 굽습니다.
+
+2. **브리지 네트워크 격리** — Jenkins가 compose 전용 네트워크(172.18.x)에
+   있으면, 파이프라인이 띄운 테스트 DB(기본 bridge, 172.17.x)의 IP로 TCP가
+   막혀 Gradle 테스트가 DB에 붙지 못합니다.
+   → compose에 **`network_mode: bridge`** 추가.
+
+부수 증상: 새 브랜치의 **첫 빌드**는 `GIT_PREVIOUS_SUCCESSFUL_COMMIT`이 없어
+"전체 검증"(FE+BE 모두)으로 돌기 때문에, **docs만 바꾼 브랜치도 Backend
+스테이지에서 같이 죽어** 문서 PR까지 빨간 X가 붙었습니다(#102·#103·#104).
+또한 파이프라인이 예외로 죽으면 GitHub Branch Source가 상태를 `failure`가
+아닌 `error: This commit cannot be built`로 보고해 오해를 키웠습니다.
+
+적용 방법(재구축 시): `cd infra/jenkins && docker compose up -d --build`
+(jenkins_home 볼륨은 유지되므로 설정·잡·크리덴셜은 보존됩니다.)
+
+### 6.6 현재 상태 (2026-08-21 기준)
 
 | 항목 | 상태 |
 |---|---|
