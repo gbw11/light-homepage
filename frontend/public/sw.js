@@ -77,7 +77,6 @@ const PUBLIC_ROUTE_PREFIXES = [
   "/home",
   "/login",
   "/signup",
-  "/pending",
   "/password",
   OFFLINE_URL,
 ];

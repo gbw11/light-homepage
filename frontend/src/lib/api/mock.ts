@@ -14,7 +14,7 @@ import type {
   Bulletin,
   BulletinInput,
   BulletinSummary,
-  CompleteProfileInput,
+  PasswordResetCode,
   Cursor,
   MeetingCreateInput,
   MeetingDetail,
@@ -38,7 +38,11 @@ import type {
   PostDetail,
   PostInput,
   PostSummary,
-  SignupInput,
+  RegisterInput,
+  RegisterResult,
+  ResetPasswordWithCodeInput,
+  VerifyRosterInput,
+  VerifyRosterResult,
 } from "@/types/api";
 import { ApiError } from "./error";
 import { notifySessionExpired } from "./session";
@@ -48,8 +52,8 @@ import type { Api } from "./types";
  * 백엔드 없이 화면을 완성하기 위한 mock.
  *
  * ★ 성공 경로만 만들면 통합 때 무너진다 (docs/ops/INTEGRATION.md).
- *   실패 케이스를 반드시 함께 넣는다: 401 · 403 · PENDING_APPROVAL ·
- *   STORAGE_LIMIT · 업로드 실패 · 빈 목록.
+ *   실패 케이스를 반드시 함께 넣는다: 401 · 403 · 명단 불일치(단일 문구) ·
+ *   토큰/코드 만료 · STORAGE_LIMIT · 업로드 실패 · 빈 목록.
  *
  * 강제 방법: 쿼리스트링 `?mock=unauthorized` 처럼 시나리오를 지정한다.
  */
@@ -73,12 +77,6 @@ function throwIfScenario() {
       throw new ApiError({
         code: "FORBIDDEN",
         message: "권한이 없습니다.",
-        status: 403,
-      });
-    case "pending":
-      throw new ApiError({
-        code: "PENDING_APPROVAL",
-        message: "승인 대기 중입니다.",
         status: 403,
       });
     case "storage":
@@ -813,61 +811,101 @@ function requireSession(): AuthUser {
   return user;
 }
 
-/** 로그인 테스트 계정 — 비밀번호는 전부 `password12!` */
+/** 로그인 테스트 계정 — 키는 loginId, 비밀번호는 전부 `password12!` */
 const MOCK_PASSWORD = "password12!";
 const MOCK_USERS: Record<string, AuthUser> = {
-  "member@example.com": {
+  doyeon01: {
     id: "42",
-    name: "김OO",
-    email: "member@example.com",
-    phone: "010-1234-5678",
-    village: "3",
+    name: "김도연a", // 동명이인 접미사 포함 그대로 (SPEC_API §2.1)
+    loginId: "doyeon01",
+    phone: "010-1111-2222",
     role: "MEMBER",
-    profileComplete: true,
-    approvedAt: "2026-08-20T02:11:00Z",
   },
-  "pending@example.com": {
-    id: "43",
-    name: "이OO",
-    email: "pending@example.com",
-    phone: "010-2222-3333",
-    village: "newcomer",
-    role: "PENDING",
-    profileComplete: true,
-    approvedAt: null,
-  },
-  "leader@example.com": {
+  leader1: {
     id: "7",
-    name: "박OO",
-    email: "leader@example.com",
+    name: "박임원",
+    loginId: "leader1",
     phone: "010-9999-0000",
-    village: "1",
     role: "LEADER",
-    profileComplete: true,
-    approvedAt: "2026-01-05T02:11:00Z",
   },
-  "pastor@example.com": {
+  pastor1: {
     id: "1",
-    name: "최OO",
-    email: "pastor@example.com",
+    name: "최전도",
+    loginId: "pastor1",
     phone: "010-7777-8888",
-    village: "1",
     role: "PASTOR",
-    profileComplete: true,
-    approvedAt: "2025-03-02T02:11:00Z",
   },
 };
 
 /** 이번 세션 중 가입한 계정 — 새로고침하면 사라진다 (실제 DB 아님) */
 const dynamicUsers: Record<string, AuthUser> = {};
 
+function findUserByLoginId(loginId: string): AuthUser | undefined {
+  return MOCK_USERS[loginId] ?? dynamicUsers[loginId];
+}
+
+/**
+ * 교회 명단 mock (member_roster) — verify-roster가 대조하는 원본.
+ *
+ * · `김도연a`는 이미 가입돼 있다(doyeon01) → 다시 확인하면 "이미 계정 있음"인데,
+ *   응답은 불일치와 같은 단일 문구다 (SPEC_API §2.1)
+ * · `김도연b`는 미가입 동명이인 — 접미사를 정확히 입력해야 통과한다
+ * · `이중복` 2건은 명단 데이터 결함 시나리오 — 셋 다 일치가 2건 이상이면
+ *   VALIDATION_ERROR("임원에게 문의")를 돌려준다
+ */
+type MockRosterEntry = {
+  rosterId: string;
+  name: string;
+  birthDate: string; // YYYY-MM-DD
+  phone: string;
+  /** 마을 — 출석부가 마을 그룹으로 돈다. 인증 대조에는 쓰지 않는다 */
+  village: Village;
+  /** 가입된 계정의 loginId — null이면 미가입(재개방 포함) */
+  claimedBy: string | null;
+};
+
+/**
+ * ⚠️ 인증(verify-roster)과 출석부가 **같은 명단**을 쓴다 — 실제 모델도
+ * member_roster 하나다. 전원 가상 인물이며 실명·실연락처를 넣지 않는다
+ * (`infra/vercel/README.md §3`). 출석부 응답에는 전화번호를 싣지 않는다.
+ */
+const MOCK_ROSTER: MockRosterEntry[] = [
+  { rosterId: "r01", name: "강하늘", birthDate: "2000-01-05", phone: "010-1000-0001", village: "1", claimedBy: null },
+  { rosterId: "r02", name: "김보라", birthDate: "2001-02-14", phone: "010-1000-0002", village: "1", claimedBy: null },
+  { rosterId: "r03", name: "박새벽", birthDate: "1998-05-21", phone: "010-1000-0003", village: "1", claimedBy: null },
+  { rosterId: "r04", name: "이한별", birthDate: "2003-08-09", phone: "010-1000-0004", village: "1", claimedBy: null },
+  { rosterId: "r05", name: "정미르", birthDate: "1999-12-30", phone: "010-1000-0005", village: "2", claimedBy: null },
+  { rosterId: "r06", name: "최나래", birthDate: "2002-04-17", phone: "010-1000-0006", village: "2", claimedBy: null },
+  { rosterId: "r07", name: "한가람", birthDate: "2000-10-02", phone: "010-1000-0007", village: "2", claimedBy: null },
+  { rosterId: "r08", name: "윤슬기", birthDate: "2001-06-25", phone: "010-1000-0008", village: "2", claimedBy: null },
+  { rosterId: "r09", name: "서도담", birthDate: "1997-03-11", phone: "010-1000-0009", village: "3", claimedBy: null },
+  { rosterId: "r10", name: "임누리", birthDate: "2004-01-19", phone: "010-1000-0010", village: "3", claimedBy: null },
+  { rosterId: "r11", name: "오아람", birthDate: "2002-09-08", phone: "010-1000-0011", village: "3", claimedBy: null },
+  { rosterId: "r12", name: "신바다", birthDate: "1999-07-04", phone: "010-1000-0012", village: "4", claimedBy: null },
+  { rosterId: "r13", name: "문소리", birthDate: "2000-11-23", phone: "010-1000-0013", village: "4", claimedBy: null },
+  { rosterId: "r14", name: "장여울", birthDate: "2003-02-28", phone: "010-1000-0014", village: "4", claimedBy: null },
+  { rosterId: "r15", name: "배이든", birthDate: "2001-08-15", phone: "010-1000-0015", village: "4", claimedBy: null },
+  // 가입(verify-roster) 시나리오 전용 케이스
+  { rosterId: "r16", name: "김도연a", birthDate: "2001-03-14", phone: "010-1111-2222", village: "3", claimedBy: "doyeon01" }, // 이미 가입됨 → 단일 문구 실패
+  { rosterId: "r17", name: "김도연b", birthDate: "1999-07-01", phone: "010-3333-4444", village: "5", claimedBy: null }, // 미가입 동명이인 — 접미사 정확히 입력해야 통과
+  { rosterId: "r18", name: "이믿음", birthDate: "2002-11-23", phone: "010-5555-6666", village: "5", claimedBy: null }, // 정상 가입 경로
+  { rosterId: "r19", name: "이중복", birthDate: "2000-01-01", phone: "010-7777-0000", village: "5", claimedBy: null }, // 명단 결함(2건) → 임원 문의
+  { rosterId: "r20", name: "이중복", birthDate: "2000-01-01", phone: "010-7777-0000", village: "5", claimedBy: null },
+];
+
+/** verify-roster가 발급한 registrationToken — 1회용 · 5분 (SPEC_API §2.1) */
+const issuedRegistrationTokens = new Map<string, { entry: MockRosterEntry; expiresAt: number }>();
+
+/** 전도사가 발급한 비밀번호 리셋 코드 — loginId → 코드 (SPEC_API §8.4) */
+const issuedResetCodes = new Map<string, { resetCode: string; expiresAt: number }>();
+
+const digitsOnly = (v: string) => v.replace(/\D/g, "");
+
 function toLoginResult(user: AuthUser): LoginResult {
   return {
     id: user.id,
     name: user.name,
-    village: user.village,
     role: user.role,
-    profileComplete: user.profileComplete,
   };
 }
 
@@ -1052,30 +1090,7 @@ function allMockBulletins(): MockBulletin[] {
 
 // ── 출석부 mock (브리핑 2026-08-28 §7 초안 · SPEC_API 미반영) ──────────
 
-/**
- * 명단 mock — **전원 가상 인물이다.** 실명·실연락처를 넣지 않는다
- * (`infra/vercel/README.md §3` "mock 데이터에 실명 0건"이 배포 전제 조건이었다).
- * 출석부 응답에는 전화번호를 아예 싣지 않는다 (§7 민감 정보 최소화).
- */
-type MockRosterRow = { rosterId: string; name: string; village: Village };
-
-const MOCK_ROSTER: MockRosterRow[] = [
-  { rosterId: "r01", name: "강하늘", village: "1" },
-  { rosterId: "r02", name: "김보라", village: "1" },
-  { rosterId: "r03", name: "박새벽", village: "1" },
-  { rosterId: "r04", name: "이한별", village: "1" },
-  { rosterId: "r05", name: "정미르", village: "2" },
-  { rosterId: "r06", name: "최나래", village: "2" },
-  { rosterId: "r07", name: "한가람", village: "2" },
-  { rosterId: "r08", name: "윤슬기", village: "2" },
-  { rosterId: "r09", name: "서도담", village: "3" },
-  { rosterId: "r10", name: "임누리", village: "3" },
-  { rosterId: "r11", name: "오아람", village: "3" },
-  { rosterId: "r12", name: "신바다", village: "4" },
-  { rosterId: "r13", name: "문소리", village: "4" },
-  { rosterId: "r14", name: "장여울", village: "4" },
-  { rosterId: "r15", name: "배이든", village: "4" },
-];
+// 명단은 인증 mock과 공유한다 — 위 MOCK_ROSTER (member_roster 하나가 원본이다).
 
 type MockAttendanceSession = {
   id: string;
@@ -1129,7 +1144,7 @@ function requireAttendanceLeader(): AuthUser {
 }
 
 /** 마을(숫자, newcomer는 뒤로) → 이름 순 — 체크 화면이 마을 단위로 돈다 */
-function rosterSorted(): MockRosterRow[] {
+function rosterSorted(): MockRosterEntry[] {
   return [...MOCK_ROSTER].sort((a, b) => {
     if (a.village !== b.village) {
       if (a.village === "newcomer") return 1;
@@ -1767,9 +1782,7 @@ export const mockApi: Api = {
     },
   },
   admin: {
-    async members({ status = "PENDING", q, page = 0, size = 20 } = {}): Promise<
-      Page<AdminMember>
-    > {
+    async members({ q, page = 0, size = 20 } = {}): Promise<Page<AdminMember>> {
       await delay();
       throwIfScenario();
       const user = requireSession();
@@ -1779,35 +1792,30 @@ export const mockApi: Api = {
         throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
       }
 
-      const all: AdminMember[] = Object.values(MOCK_USERS).map((u) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        phone: u.phone,
-        village: u.village,
-        role: u.role,
-        profileComplete: u.profileComplete,
-        createdAt: "2026-08-19T09:00:00Z",
-        approvedAt: u.approvedAt,
-      }));
+      const all: AdminMember[] = [...Object.values(MOCK_USERS), ...Object.values(dynamicUsers)].map(
+        (u) => ({
+          id: u.id,
+          name: u.name,
+          loginId: u.loginId,
+          phone: u.phone,
+          role: u.role,
+          createdAt: "2026-08-19T09:00:00Z",
+        }),
+      );
 
-      let items = status === "PENDING" ? all.filter((m) => m.role === "PENDING") : all;
+      let items = all;
       if (q?.trim()) items = items.filter((m) => m.name.includes(q.trim()));
       if (scenario() === "empty") items = [];
 
       return { items: items.slice(page * size, (page + 1) * size), page, size, hasNext: false };
     },
 
-    async approveMember(): Promise<void> {
-      await delay();
-      throwIfScenario();
-      const user = requireSession();
-      if (user.role !== "PASTOR") {
-        throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
-      }
-    },
-
-    async rejectMember(_id: string, input: { reason: string }): Promise<void> {
+    /**
+     * SPEC_API §8.2 — 계정 삭제 + 명단 재개방 (선점 복구 절차).
+     * mock에서도 claimed 해제를 실제로 해야 "삭제 후 재가입" 흐름을
+     * 화면에서 끝까지 밟아볼 수 있다.
+     */
+    async deleteMember(id: string, input: { reason: string }): Promise<void> {
       await delay();
       throwIfScenario();
       const user = requireSession();
@@ -1817,10 +1825,21 @@ export const mockApi: Api = {
       if (!input.reason.trim()) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
-          message: "거절 사유를 입력해주세요.",
+          message: "삭제 사유를 입력해주세요.",
           status: 400,
           field: "reason",
         });
+      }
+      const target = [...Object.values(MOCK_USERS), ...Object.values(dynamicUsers)].find(
+        (u) => u.id === id,
+      );
+      if (!target) {
+        throw new ApiError({ code: "NOT_FOUND", message: "회원을 찾을 수 없습니다.", status: 404 });
+      }
+      if (target.loginId) {
+        delete dynamicUsers[target.loginId];
+        const rosterEntry = MOCK_ROSTER.find((r) => r.claimedBy === target.loginId);
+        if (rosterEntry) rosterEntry.claimedBy = null;
       }
     },
 
@@ -1847,6 +1866,38 @@ export const mockApi: Api = {
           field: "role",
         });
       }
+    },
+
+    /** SPEC_API §8.4 — 리셋 코드 발급 (1회용·30분). 코드는 화면에 표시해 구두/문자 전달 */
+    async issuePasswordResetCode(id: string): Promise<PasswordResetCode> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+      if (user.role !== "PASTOR") {
+        throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
+      }
+      const target = [...Object.values(MOCK_USERS), ...Object.values(dynamicUsers)].find(
+        (u) => u.id === id,
+      );
+      if (!target) {
+        throw new ApiError({ code: "NOT_FOUND", message: "회원을 찾을 수 없습니다.", status: 404 });
+      }
+      if (!target.loginId) {
+        // 카카오 가입자는 비밀번호가 없다 — 카카오 로그인이 자력 수단 (SPEC_API §2.9)
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "카카오로 가입한 회원입니다. 카카오 로그인을 안내해주세요.",
+          status: 400,
+          field: null,
+        });
+      }
+      const resetCode = `${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random()
+        .toString(36)
+        .slice(2, 6)
+        .toUpperCase()}`;
+      const expiresAt = Date.now() + 30 * 60 * 1000;
+      issuedResetCodes.set(target.loginId, { resetCode, expiresAt });
+      return { resetCode, expiresAt: new Date(expiresAt).toISOString() };
     },
 
     async storage(): Promise<StorageUsage> {
@@ -2163,67 +2214,117 @@ export const mockApi: Api = {
     },
   },
   auth: {
-    async signup(input: SignupInput): Promise<{ id: string; role: AuthUser["role"] }> {
+    /**
+     * SPEC_API §2.1 — 가입 1단계 명단 확인.
+     * ⚠️ 불일치·명단 없음·이미 계정 있음·rate limit이 전부 같은 문구다 —
+     *    어느 필드가 틀렸는지 알려주지 않는다 (명단 정보 탐색 방지).
+     */
+    async verifyRoster(input: VerifyRosterInput): Promise<VerifyRosterResult> {
       await delay();
       throwIfScenario();
 
-      if (MOCK_USERS[input.email] || dynamicUsers[input.email]) {
-        throw new ApiError({
-          code: "DUPLICATE",
-          message: "이미 가입된 이메일입니다.",
-          status: 409,
-          field: "email",
-        });
-      }
-      if (input.agreed !== true) {
+      const name = input.name.trim();
+      const matches = MOCK_ROSTER.filter(
+        (r) =>
+          r.name === name &&
+          r.birthDate === input.birthDate &&
+          digitsOnly(r.phone) === digitsOnly(input.phone),
+      );
+
+      if (matches.length >= 2) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
-          message: "개인정보 수집·이용 동의가 필요합니다.",
+          message: "동명이인 확인이 필요합니다. 임원에게 문의해 주세요.",
           status: 400,
-          field: "agreed",
+          field: null,
         });
       }
 
-      const id = `${Date.now()}`;
-      dynamicUsers[input.email] = {
-        id,
-        name: input.name,
-        email: input.email,
-        phone: input.phone,
-        village: input.village,
-        role: "PENDING",
-        profileComplete: true,
-        approvedAt: null,
+      const entry = matches[0];
+      if (!entry || entry.claimedBy) {
+        throw new ApiError({
+          code: "UNAUTHORIZED",
+          message: "명단에서 확인되지 않습니다.",
+          status: 401,
+        });
+      }
+
+      const registrationToken = `mock-reg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      issuedRegistrationTokens.set(registrationToken, {
+        entry,
+        expiresAt: Date.now() + 5 * 60 * 1000,
+      });
+      return { registrationToken, name: entry.name, expiresIn: 300 };
+    },
+
+    /**
+     * SPEC_API §2.2 — 가입 2단계, 즉시 MEMBER.
+     * 세션은 만들지 않는다 — 201의 쿠키 발급 여부가 ❓ 미확정이라 FE는
+     * "가입 완료 → 로그인 유도"로 가정한다.
+     */
+    async register(input: RegisterInput): Promise<RegisterResult> {
+      await delay();
+      throwIfScenario();
+
+      const issued = issuedRegistrationTokens.get(input.registrationToken);
+      if (!issued || issued.expiresAt < Date.now()) {
+        issuedRegistrationTokens.delete(input.registrationToken);
+        throw new ApiError({
+          code: "UNAUTHORIZED",
+          message: "확인이 만료되었습니다. 처음부터 다시 진행해주세요.",
+          status: 401,
+        });
+      }
+      if (findUserByLoginId(input.loginId)) {
+        throw new ApiError({
+          code: "DUPLICATE",
+          message: "이미 사용 중인 아이디입니다.",
+          status: 409,
+          field: "loginId",
+        });
+      }
+      const birthDigits = digitsOnly(issued.entry.birthDate);
+      const phoneDigits = digitsOnly(issued.entry.phone);
+      const pwDigits = digitsOnly(input.password);
+      if (input.password.length < 8 || pwDigits === birthDigits || pwDigits === phoneDigits) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "비밀번호는 8자 이상이어야 하며 생년월일·전화번호와 같을 수 없습니다.",
+          status: 400,
+          field: "password",
+        });
+      }
+
+      issuedRegistrationTokens.delete(input.registrationToken); // 1회용
+      issued.entry.claimedBy = input.loginId;
+
+      const user: AuthUser = {
+        id: `${Date.now()}`,
+        name: issued.entry.name,
+        loginId: input.loginId,
+        phone: issued.entry.phone,
+        role: "MEMBER",
       };
-      return { id, role: "PENDING" };
+      dynamicUsers[input.loginId] = user;
+      return { id: user.id, name: user.name, role: user.role };
     },
 
     async login(input: LoginInput): Promise<LoginResult> {
       await delay();
       throwIfScenario();
 
-      const user = MOCK_USERS[input.email] ?? dynamicUsers[input.email];
+      const user = findUserByLoginId(input.loginId);
+      // 5회 실패 잠금(SPEC_API §2.3)도 이 문구와 동일한 응답이므로 mock은 구분하지 않는다
       if (!user || input.password !== MOCK_PASSWORD) {
         throw new ApiError({
           code: "UNAUTHORIZED",
-          message: "이메일 또는 비밀번호가 올바르지 않습니다.",
+          message: "아이디 또는 비밀번호가 올바르지 않습니다.",
           status: 401,
         });
       }
 
       // 실제로는 서버가 쿠키를 심는다 — mock은 로그인 시도 자체로 세션을 만든다.
       writeSession(user);
-
-      if (user.role === "PENDING") {
-        // SPEC_API §2.2: "로그인은 성공, 회원 API는 차단" — 세션은 만들어지지만
-        // 이 호출 자체는 에러로 응답해 FE가 /pending으로 보내게 한다.
-        throw new ApiError({
-          code: "PENDING_APPROVAL",
-          message: "승인 대기 중입니다.",
-          status: 403,
-        });
-      }
-
       return toLoginResult(user);
     },
 
@@ -2261,50 +2362,24 @@ export const mockApi: Api = {
       return requireSession();
     },
 
-    async completeProfile(
-      input: CompleteProfileInput,
-    ): Promise<{ profileComplete: boolean; role: AuthUser["role"] }> {
+    /**
+     * SPEC_API §2.9 — 전도사가 발급한 리셋 코드(§8.4)로 새 비밀번호 설정.
+     * 실패(코드 불일치·만료)는 UNAUTHORIZED 단일 응답 — 필드 오류로 붙이지 않는다.
+     */
+    async resetPasswordWithCode(input: ResetPasswordWithCodeInput): Promise<void> {
       await delay();
       throwIfScenario();
-      const current = requireSession();
 
-      if (input.agreed !== true) {
+      const issued = issuedResetCodes.get(input.loginId);
+      const expired = !issued || issued.expiresAt < Date.now();
+      if (expired || issued.resetCode !== input.resetCode.trim().toUpperCase()) {
         throw new ApiError({
-          code: "VALIDATION_ERROR",
-          message: "개인정보 수집·이용 동의가 필요합니다.",
-          status: 400,
-          field: "agreed",
+          code: "UNAUTHORIZED",
+          message: "코드가 올바르지 않거나 만료되었습니다.",
+          status: 401,
         });
       }
-
-      const updated: AuthUser = {
-        ...current,
-        name: input.name,
-        phone: input.phone,
-        village: input.village,
-        profileComplete: true,
-        role: "PENDING",
-      };
-      writeSession(updated);
-      return { profileComplete: true, role: "PENDING" };
-    },
-
-    async passwordResetRequest(): Promise<void> {
-      await delay();
-      // SPEC_API §2.9: 계정 존재 여부를 노출하지 않기 위해 항상 성공
-    },
-
-    async passwordResetConfirm(input: { token: string; password: string }): Promise<void> {
-      await delay();
-      throwIfScenario();
-      if (input.token === "expired") {
-        throw new ApiError({
-          code: "VALIDATION_ERROR",
-          message: "링크가 만료되었거나 이미 사용된 링크입니다.",
-          status: 400,
-          field: "token",
-        });
-      }
+      issuedResetCodes.delete(input.loginId); // 1회용
     },
 
     async updateProfile(input: { phone: string }): Promise<AuthUser> {
