@@ -13,6 +13,37 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-08-31 — 항상 빨간 CI 체크 두 갈래를 없앤다: **Vercel Ignored Build Step은 vercel.json으로, Jenkins는 커스텀 이미지로**
+
+**결정**: 8/28 머지 PR 4건(#100·#102·#103·#104)에 붙어 있던 빨간 체크의 원인을
+규명한 결과 **둘 다 테스트 실패가 아니었다.** 각각 저장소 수준에서 고친다.
+
+- **영역**: 인프라(Vercel 설정 + Jenkins 구성). 앱 코드 변경 없음
+- **Vercel `Deployment was blocked`(#100·#103)**: BE 작성 커밋을 Hobby 플랜이
+  차단한 것(§5.5에 기록돼 있던 알려진 문제). 처리 방법이던 Ignored Build Step을
+  **대시보드 설정이 아니라 `frontend/vercel.json`의 `ignoreCommand`로** 넣는다.
+  저장소에 있으면 코드 리뷰를 거치고 이력이 남으며, 대시보드 로그인 없이 관리된다
+- **실측 완료 (§5.5가 요구한 그 실측)**: frontend/ 변경 없는 커밋 →
+  `Canceled by Ignored Build Step`(초록) · frontend/ 변경 있는 커밋 →
+  `Deployment has completed`. **우려하던 역방향 오작동(프론트 변경이 배포되지
+  않는 경우)은 배제됨**
+- **Jenkins `This commit cannot be built`(#102·#103·#104)**: 공식 jenkins
+  이미지에 docker CLI가 없어 Backend 스테이지가 exit 127로 즉사 + compose 전용
+  네트워크와 기본 bridge 간 격리로 테스트 DB에 TCP 불가. **docker CLI를 구운
+  커스텀 이미지 + `network_mode: bridge`**로 고쳤다 (`infra/jenkins/README.md` §6.5)
+- **왜 지금 하나**: "항상 실패하는 검사는 곧 무시된다"(§5.5·COST_GUARDRAILS §3.1).
+  가짜 빨강에 익숙해지면 진짜 빨강을 놓친다 — 실제로 8/28에 넷 다 빨간 채로
+  머지됐다(머지 판단 자체는 결과적으로 옳았지만, 그 판단을 사람이 매번 해야 했다)
+- **남는 경우**: BE가 frontend/를 건드리는 커밋은 여전히 Vercel이 차단한다(§5.5
+  "남는 경우"). 드물 것으로 보고 발생 시 다시 본다
+- **미확정 사항**: 프로덕션 배포 검증 §2⓪·§2②와 옛 배포 삭제(§2.5)는 여전히
+  PM 브라우저(SSO)가 필요해 미완 — 8/29 할 일이 이월된 상태
+- **구현**: `frontend/vercel.json`(신설) · `infra/vercel/README.md` §5.5 ·
+  `infra/jenkins/Dockerfile`(신설) · `infra/jenkins/docker-compose.yml` ·
+  `infra/jenkins/README.md` §6.5
+
+---
+
 ## 2026-08-28 — 🔴 프로덕션이 13커밋 동안 동결돼 있었다: **Production Branch `main` → `develop`, 옛 배포는 삭제한다**
 
 **결정**: Vercel Production Branch를 `develop`으로 고치고(PM이 즉시 변경 완료),
