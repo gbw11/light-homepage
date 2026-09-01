@@ -226,9 +226,41 @@ Branch Tracking을 고쳐도 **그것만으로는 재배포되지 않습니다.*
 **Vercel은 배포마다 고유 URL을 영구 보존합니다.** 새 배포를 올려도 사진이 든
 옛 배포는 **자기 URL에서 계속 서빙합니다.**
 
-- [ ] 새 Production 배포가 생긴 뒤, **`d0f8a0f`(사진 제거) 이전 배포를 전부
-      삭제**한다 (Deployments → 해당 행 → `⋯` → Delete)
-- [ ] 현재 Production 배포는 삭제할 수 없습니다 — **새 배포를 먼저** 올립니다
+- [x] ~~새 Production 배포를 먼저 올린다~~ — **2026-09-01 완료** (`959016c`, §2.6)
+- [ ] **`d0f8a0f`(사진 제거) 이전 배포 삭제** (Deployments → 해당 행 → `⋯` → Delete)
+      — 아래 대상 목록 확정됨. **2026-09-01 PM 결정: 오늘은 실행하지 않는다**
+
+#### 삭제 대상 — 2026-09-01 확정 (preview 5건)
+
+`d0f8a0f`보다 **오래된 배포**를 API로 전수 조회해 확정했다(전체 90건 중).
+
+| 시각 | 종류 | 상태 | 커밋 | 브랜치 |
+|---|---|---|---|---|
+| 08-27 08:38 | preview | BLOCKED | `2d1d656` | `backend_develop` |
+| 08-27 08:29 | preview | READY | `b2d1518` | `feat/infra-frontend-deploy` |
+| 08-27 08:24 | preview | READY | `811347c` | `fix/fe-mock-photo-assets-off` |
+| 08-27 08:08 | preview | READY | `d39e723` | `fix/fe-site-url-empty-env` |
+| 08-27 07:28 | preview | READY | `d39e723` | `fix/fe-site-url-empty-env` |
+
+**제외한 것과 이유** (PM 결정 2026-09-01):
+
+- **`d0f8a0f` 자신** — 사진을 제거한 **바로 그 커밋**이라 이미 자산이 빠져 있다.
+  "이전 배포 전부"의 경계는 이 커밋을 **포함하지 않는다**
+- **production 2건** (`6e47df3` ×2, 08-27 07:28·08:10) — 활성 Production이
+  아니지만 **롤백 대상으로 남긴다**
+
+목록 재생성 (Deployments 화면이 로딩이 느려 UI로 세는 것보다 정확하다):
+
+```js
+// vercel.com 대시보드 탭 콘솔에서
+const r = await fetch('/api/v6/deployments?projectId=prj_F0lLRE39SzeJbUNSn3sqzHTncpP7'
+  + '&teamId=team_vBpdXoCAUoO8hUqvlpKcT38s&limit=100', { credentials: 'include' });
+const d = (await r.json()).deployments
+  .map(x => ({ sha: (x.meta?.githubCommitSha || '').slice(0, 7), branch: x.meta?.githubCommitRef,
+               target: x.target || 'preview', state: x.state, created: new Date(x.created).toISOString() }))
+  .sort((a, b) => a.created < b.created ? 1 : -1);
+console.table(d.slice(d.findIndex(x => x.sha === 'd0f8a0f') + 1));  // +1 = d0f8a0f 자신은 제외
+```
 
 > ⚠️ **"보호가 걸려 있으니 괜찮다"로 끝내지 않습니다.** Deployment Protection의
 > 적용 범위(Standard Protection이 무엇까지 덮는지)를 따져서 안전하다고 결론내는
@@ -264,11 +296,48 @@ Branch Tracking을 고쳐도 **그것만으로는 재배포되지 않습니다.*
 > - [ ] 개인정보 처리방침 문구 (회원제 법적 요구)
 > - [ ] 🔴 **사진이 든 옛 배포 삭제** (§2.5) — 새 배포를 올려도 옛 배포 URL은
 >       살아 있습니다. **이걸 빼먹고 보호를 풀면 사진 수정이 무의미해집니다**
-> - [ ] §2⓪ 커밋 해시 대조 → §2② 자산 확인 재실행 (보호가 없으면 curl 실측이
->       가능해집니다)
+>       (2026-09-01 PM 결정: **오늘은 삭제하지 않는다** — 대상 목록은 §2.5에
+>       확정해 두었으니 보호를 풀기 전에 그대로 실행하면 된다)
+> - [x] ~~§2⓪ 커밋 해시 대조 → §2② 자산 확인 재실행~~ — **2026-09-01 완료**(§2.6)
 >
 > ⚠️ **BE에게 화면을 보여줘야 하면** Vercel 팀에 초대하는 편이 보호를 푸는 것보다
 > 안전합니다.
+
+---
+
+## 2.6 ✅ 2026-09-01 검증 완료 — 실측값
+
+8/29부터 5일간 이월되던 §2⓪·§2② 검증을 끝냈다. **브라우저(SSO 로그인) 안에서
+same-origin `fetch`로 측정**했다 — Deployment Protection 때문에 외부 curl은
+전부 302를 받는다(그래서 그동안 미뤄졌다).
+
+**§2⓪ 커밋 대조** — Production Deployment `959016c` / `develop` /
+"Merge pull request #126" = `origin/develop` HEAD와 **일치** ✅
+
+**§2② 자산 3종** — 기대값과 정확히 일치 ✅
+
+| 경로 | 기대 | 실측 |
+|---|---|---|
+| `/icons/icon-192.png` | 200 | **200** `image/png` |
+| `/photos/retreat-2026/thumb/p001.webp` | 404 | **404** |
+| `/mock-assets/photos/retreat-2026/thumb/p001.webp` | 404 | **404** |
+
+덤으로 확인한 것: `/login` `/signup` `/photos` `/news` 200 · `sitemap.xml`
+`application/xml` 200 · `/photos`가 로그아웃 상태에서 **🔒 로그인 유도 화면**을
+프로덕션에서도 정상 렌더(#118 열람 게이트).
+
+**측정 방법** (다음에도 이렇게 하면 된다 — 보호를 푼 뒤에는 curl로도 된다):
+
+```js
+// 브라우저에서 https://light-homepage-light-ba18.vercel.app 를 연 뒤 콘솔에서
+for (const p of ['/icons/icon-192.png', '/photos/retreat-2026/thumb/p001.webp',
+                 '/mock-assets/photos/retreat-2026/thumb/p001.webp']) {
+  console.log(p, (await fetch(p)).status);
+}
+```
+
+⚠️ vercel.com 대시보드 탭에서 실행하면 CORS로 전부 실패한다. **사이트 자체를
+열어 same-origin으로 실행해야 한다.**
 
 ---
 
