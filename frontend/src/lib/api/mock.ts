@@ -669,6 +669,42 @@ const MOCK_SERMONS: Sermon[] = REAL_STREAMS.map(({ id, title, date }) => ({
   thumbnailUrl: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
 }));
 
+/**
+ * 목록의 실제 출처.
+ *
+ * 하드코딩(`MOCK_SERMONS`)은 **2026-09-01의 스냅샷**이라 새 설교가 올라와도
+ * 갱신되지 않는다. 그래서 먼저 우리 서버 라우트(`/sermons/feed` — 채널 RSS를
+ * 읽는다)에 물어보고, **실패하면 스냅샷으로 내려앉는다**.
+ *
+ * 이 폴백이 중요하다: 오프라인·YouTube 장애·정적 export 어디서든 화면이
+ * 비지 않는다. mock의 목적은 "백엔드 없이도 화면이 돈다"이므로 네트워크에
+ * 의존하는 경로를 **필수로 만들면 안 된다.**
+ *
+ * 한 번 성공하면 세션 동안 재사용한다 — 목록 조회가 페이지마다 일어나는데
+ * 매번 RSS를 다시 읽을 이유가 없다 (서버 쪽도 30분 캐시다).
+ */
+let sermonCache: Sermon[] | null = null;
+
+async function sermonSource(): Promise<Sermon[]> {
+  if (sermonCache) return sermonCache;
+  if (typeof window === "undefined") return MOCK_SERMONS;
+
+  try {
+    const res = await fetch("/sermons/feed");
+    if (res.ok) {
+      const { items } = (await res.json()) as { items: Sermon[] };
+      if (items.length > 0) {
+        sermonCache = items;
+        return items;
+      }
+    }
+  } catch {
+    // 폴백으로 넘어간다 — 화면에 에러를 띄울 일이 아니다
+  }
+  sermonCache = MOCK_SERMONS;
+  return MOCK_SERMONS;
+}
+
 const MEETINGS: MeetingSummary[] = [
   {
     id: "3",
@@ -2118,15 +2154,14 @@ export const mockApi: Api = {
       await delay();
       throwIfScenario();
 
+      const base = scenario() === "empty" ? [] : await sermonSource();
       const all: Sermon[] =
-        scenario() === "empty"
-          ? []
-          : scenario() === "broken-thumb"
-            ? MOCK_SERMONS.map((s) => ({
-                ...s,
-                thumbnailUrl: "https://i.ytimg.com/vi/does-not-exist/hqdefault.jpg",
-              }))
-            : MOCK_SERMONS;
+        scenario() === "broken-thumb"
+          ? base.map((s) => ({
+              ...s,
+              thumbnailUrl: "https://i.ytimg.com/vi/does-not-exist/hqdefault.jpg",
+            }))
+          : base;
       const items = all.slice(page * size, (page + 1) * size);
       return { items, page, size, hasNext: (page + 1) * size < all.length };
     },
@@ -2157,13 +2192,13 @@ export const mockApi: Api = {
       if (scenario() !== "live" && !(isSunday && inWindow)) return null;
 
       // 방송 중일 때 보여줄 영상 — 가장 최근 예배 영상을 라이브인 것처럼 쓴다
-      const [latest] = REAL_STREAMS;
+      const [latest] = await sermonSource();
       return {
         videoId: latest.id,
         title: `${kst.getUTCFullYear()}년 ${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 주일 청년예배`,
         startedAt: new Date(now.getTime() - 10 * 60 * 1000).toISOString(),
-        watchUrl: `https://www.youtube.com/watch?v=${latest.id}`,
-        thumbnailUrl: `https://i.ytimg.com/vi/${latest.id}/hqdefault.jpg`,
+        watchUrl: latest.youtubeUrl,
+        thumbnailUrl: latest.thumbnailUrl,
       };
     },
   },

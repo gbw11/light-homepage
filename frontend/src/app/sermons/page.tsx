@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { YOUTUBE_CHANNEL_URL } from "@/content/links";
 import { LiveSection } from "./_components/LiveSection";
@@ -45,18 +46,27 @@ export default function SermonsPage() {
       <LiveSection />
 
       <Section className="pt-10">
-        <div className="flex flex-col items-center gap-2">
-          <a
-            href={YOUTUBE_CHANNEL_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
+        <div className="flex flex-col items-center gap-4">
+          <Link
+            href="/sermons/all"
+            className="inline-flex min-h-11 items-center text-sm font-bold"
           >
-            ▶ 유튜브로 바로가기
-          </a>
-          <p className="text-sm text-[var(--color-gray-400)]">
-            지난 예배 영상과 찬양·영상은 채널에서 모두 보실 수 있습니다.
-          </p>
+            ▸ 지난 말씀 전체보기
+          </Link>
+
+          <div className="flex flex-col items-center gap-2">
+            <a
+              href={YOUTUBE_CHANNEL_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
+            >
+              ▶ 유튜브로 바로가기
+            </a>
+            <p className="text-center text-sm text-[var(--color-gray-400)]">
+              찬양·브이로그를 포함한 모든 영상은 채널에서 보실 수 있습니다.
+            </p>
+          </div>
         </div>
       </Section>
     </main>
