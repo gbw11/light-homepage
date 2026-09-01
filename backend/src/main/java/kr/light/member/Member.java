@@ -136,6 +136,11 @@ public class Member {
         return role == Role.MEMBER || role == Role.LEADER;
     }
 
+    /** 연락처 변경 (SPEC_API.md §2.10). 이름은 바꿀 수 없다 — 명단에서 온 값이다 */
+    public void changePhone(String phone) {
+        this.phone = phone;
+    }
+
     /**
      * 비밀번호 설정 — 재설정(§2.9)·변경(§2.11) 공용.
      *

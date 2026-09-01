@@ -71,8 +71,11 @@ class AuthorizationCoverageTest {
             //   ⚠️ 둘 다 로그인 전에 불린다. 인가를 걸면 로그인이 불가능해진다
             "GET /api/auth/kakao/authorize",
             "GET /api/auth/kakao/callback",
-            // 인증 — 로그인 필요 (AuthAuthorizationTest)
+            // 인증 — 로그인 필요 (AuthAuthorizationTest · ProfileApiTest)
             "GET /api/auth/me",
+            "PATCH /api/auth/me",
+            "DELETE /api/auth/me",
+            "POST /api/auth/password/change",
 
             // 게시물 읽기 (PostAuthorizationTest 서비스 · PostReadAuthorizationTest HTTP)
             "GET /api/posts",

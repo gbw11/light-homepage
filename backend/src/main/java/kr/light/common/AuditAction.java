@@ -26,5 +26,13 @@ public enum AuditAction {
      * 본인 확인의 근거가 시스템이 아니라 전도사의 판단이므로,
      * <b>누가 누구에게 언제 발급했는지</b>가 유일한 기록이 된다.
      */
-    PASSWORD_RESET_ISSUE
+    PASSWORD_RESET_ISSUE,
+
+    /**
+     * 본인 탈퇴 (SPEC_API.md §2.12).
+     *
+     * <p>회원 행이 사라지므로 actor는 {@code ON DELETE SET NULL}로 null이
+     * 된다. 그래도 대상과 시각은 남아 "언제 누가 나갔는지"를 알 수 있다.
+     */
+    MEMBER_WITHDRAW
 }

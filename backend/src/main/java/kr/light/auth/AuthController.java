@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import kr.light.common.ApiResponse;
 import kr.light.common.ClientAddress;
+import kr.light.member.Member;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -17,7 +18,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -37,7 +40,7 @@ import java.util.Map;
  * <p>가입은 <b>명단 확인 → 계정 생성</b> 2단계다. 승인 절차는 없다 —
  * 명단 대조가 본인 확인을 대신한다 (§9-B 확정).
  *
- * <p>프로필 수정(§2.10~§2.12)은 아직이다.
+ * <p>프로필 수정·비밀번호 변경·탈퇴(§2.10~§2.12)까지 여기 있다.
  */
 @Tag(name = "인증", description = "명단 확인 · 가입 · 로그인 · 토큰 재발급 · 로그아웃")
 @RestController
@@ -49,6 +52,7 @@ public class AuthController {
     private final RosterRegistrationService registrationService;
     private final PasswordResetService passwordResetService;
     private final KakaoOAuthService kakaoOAuthService;
+    private final ProfileService profileService;
     private final JwtProperties jwtProperties;
 
     /**
@@ -311,6 +315,118 @@ public class AuthController {
     @GetMapping("/me")
     public ApiResponse<MeResponse> me(@AuthenticationPrincipal AuthPrincipal principal) {
         return ApiResponse.of(authService.me(principal.memberId()));
+    }
+
+    @Operation(summary = "프로필 수정",
+            description = """
+                    연락처를 바꿉니다.
+
+                    ⚠️ **이름은 바꿀 수 없습니다** — 명단에서 온 값이고, 계정의 이름이
+                    명단과 갈라지면 "계정 = 명단에서 확인된 사람"이라는 전제가
+                    무너집니다. 명단의 이름이 틀렸다면 교회 명단을 고칠 일입니다.
+
+                    ⚠️ **명단의 전화번호는 바뀌지 않습니다.** 여기서 바꾸는 것은
+                    이 서비스의 연락처입니다. 명단 대조(§2.1)의 기준이 사용자가
+                    고칠 수 있는 값이 되면 대조가 본인 확인 구실을 못 합니다.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "수정된 프로필"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
+    })
+    @PreAuthorize("hasRole('MEMBER')")
+    @PatchMapping("/me")
+    public ApiResponse<MeResponse> updateProfile(
+            @Valid @RequestBody UpdateProfileRequest request,
+            @AuthenticationPrincipal AuthPrincipal principal
+    ) {
+        return ApiResponse.of(profileService.updatePhone(principal.memberId(), request.phone()));
+    }
+
+    @Operation(summary = "비밀번호 변경",
+            description = """
+                    현재 비밀번호를 함께 보냅니다 — 로그인해 있다는 것만으로는
+                    부족합니다. 자리를 비운 사이 남이 브라우저를 만지면 비밀번호를
+                    바꿔 계정을 통째로 가져갈 수 있습니다.
+
+                    ⚠️ **다른 기기의 세션이 전부 끊깁니다.** 비밀번호를 바꾸는 이유가
+                    "누가 내 계정을 쓰는 것 같다"인 경우가 많은데, 기존 세션을
+                    살려두면 정작 그 사람은 그대로 남습니다.
+
+                    **이 기기는 로그인 상태가 유지됩니다** — 새 쿠키가 함께 나갑니다.
+
+                    카카오로 가입한 계정에는 비밀번호가 없어 `VALIDATION_ERROR`입니다.
+                    현재 비밀번호가 틀리면 401이 아니라 **400**입니다 — 로그인은
+                    멀쩡한데 입력값만 틀린 상황이라, 401을 주면 FE가 로그인 화면으로
+                    튕겨 사용자가 이유를 알 수 없게 됩니다.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "204", description = "변경 완료 — 다른 기기 로그아웃됨"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
+    })
+    @PreAuthorize("hasRole('MEMBER')")
+    @PostMapping("/password/change")
+    public ResponseEntity<Void> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            @AuthenticationPrincipal AuthPrincipal principal
+    ) {
+        Instant now = Instant.now();
+        Member member = profileService.changePassword(
+                principal.memberId(), request.currentPassword(), request.newPassword(), now);
+
+        // 방금 전 기기의 리프레시 토큰까지 폐기됐다. 새로 발급해 이 기기만
+        // 로그인 상태를 잇는다 — 안 하면 비밀번호를 바꾼 사람이 곧바로 튕긴다.
+        // noContent()는 HeadersBuilder라 쿠키 헬퍼(BodyBuilder)에 넘길 수 없다
+        return withAuthCookies(
+                ResponseEntity.status(HttpStatus.NO_CONTENT), authService.issueFor(member, now))
+                .build();
+    }
+
+    @Operation(summary = "회원 탈퇴",
+            description = """
+                    회원 행을 **삭제**합니다. 개인정보 즉시 파기(NFR-PRIV-06).
+
+                    **명단은 다시 열립니다.** 탈퇴는 "이 서비스를 그만 쓴다"이지
+                    "교회를 떠난다"가 아니라, 마음이 바뀌면 다시 가입할 수 있어야
+                    합니다. 명단 행 자체는 교회의 기록이라 지우지 않습니다.
+
+                    ⚠️ **`password`는 비밀번호가 있는 계정에만 필요합니다.** 카카오로
+                    가입했다면 확인할 비밀번호가 없어, 필수로 두면 그 사람들은 탈퇴할
+                    수 없습니다 — 로그인 세션 자체를 본인 확인으로 봅니다.
+
+                    ⚠️ **마지막 전도사는 탈퇴할 수 없습니다** — 나가고 나면 아무도
+                    회원을 관리할 수 없습니다 (§8.3 자기잠금 방지와 같은 규칙).
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "204", description = "탈퇴 완료 — 쿠키 삭제됨"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
+    })
+    @PreAuthorize("hasRole('MEMBER')")
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> withdraw(
+            @RequestBody(required = false) WithdrawRequest request,
+            @AuthenticationPrincipal AuthPrincipal principal
+    ) {
+        profileService.withdraw(principal.memberId(),
+                request == null ? null : request.password(), Instant.now());
+
+        // 계정이 사라졌으니 쿠키도 지운다. 남겨두면 브라우저가 죽은 토큰을
+        // 계속 보내고, 사용자는 로그인한 것처럼 보이는 화면에서 401만 받는다.
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, AuthCookies.expireAccess(secureCookie).toString())
+                .header(HttpHeaders.SET_COOKIE, AuthCookies.expireRefresh(secureCookie).toString())
+                .build();
     }
 
     /**

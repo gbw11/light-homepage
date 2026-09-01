@@ -323,6 +323,8 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `POST /api/auth/login` · `POST /api/auth/refresh` | 200 | 200 | 200 | 200 |
 | `POST /api/auth/logout` | **204** | 204 | 204 | 204 |
 | `GET /api/auth/me` | **401** | 200 | 200 | 200 |
+| `PATCH /api/auth/me` · `POST /api/auth/password/change` | **401** | 200 | 200 | 200 |
+| `DELETE /api/auth/me` | **401** | 204 | 204 | 204 |
 | `GET /api/auth/kakao/authorize` · `GET /api/auth/kakao/callback` | **302** | 302 | 302 | 302 |
 | `GET /api/posts?category=NOTICE_PUBLIC` | 200 | 200 | 200 | 200 |
 | `GET /api/posts?category=NOTICE_MEMBER` | **401** | 200 | 200 | 200 |
