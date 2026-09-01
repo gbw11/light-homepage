@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 const inputClass =
   "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]";
@@ -18,6 +19,7 @@ export function AccountActions() {
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [confirm, confirmDialog] = useConfirm();
 
   const logoutMutation = useMutation({
     mutationFn: logout,
@@ -35,14 +37,16 @@ export function AccountActions() {
     },
   });
 
-  function handleWithdraw() {
+  async function handleWithdraw() {
     if (!password) {
       setError("비밀번호를 입력해주세요.");
       return;
     }
-    const confirmed = window.confirm(
-      "정말 탈퇴하시겠습니까? 탈퇴 시 개인정보는 즉시 파기되며 되돌릴 수 없습니다.",
-    );
+    const confirmed = await confirm({
+      title: "정말 탈퇴하시겠습니까?",
+      description: "탈퇴 시 개인정보는 즉시 파기되며 되돌릴 수 없습니다.",
+      confirmLabel: "탈퇴",
+    });
     if (!confirmed) return;
     setError(null);
     deleteMutation.mutate(password);
@@ -50,6 +54,7 @@ export function AccountActions() {
 
   return (
     <div className="space-y-6">
+      {confirmDialog}
       <div>
         <Button
           type="button"

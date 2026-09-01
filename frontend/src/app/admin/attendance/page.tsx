@@ -4,7 +4,7 @@ import { RequireLeader } from "@/components/auth/RequireLeader";
 import { SessionList } from "./_components/SessionList";
 
 export const metadata: Metadata = {
-  title: "출석부 | LIGHT",
+  title: "출석부",
   /*
    * 출석 기록은 "누가 교회에 안 나왔는지"의 기록이다 — 예산안과 같은 급의
    * 민감 정보로 다룬다 (브리핑 2026-08-28 §7). 색인은 robots.ts의 `/admin`

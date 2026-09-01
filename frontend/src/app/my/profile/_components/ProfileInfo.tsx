@@ -8,23 +8,9 @@ import { Button } from "@/components/ui/Button";
 
 const ROLE_LABELS: Record<AuthUser["role"], string> = {
   GUEST: "손님",
-  PENDING: "승인 대기",
   MEMBER: "일반 회원",
   LEADER: "임원",
   PASTOR: "목회자",
-};
-
-const VILLAGE_LABELS: Record<string, string> = {
-  "1": "1마을",
-  "2": "2마을",
-  "3": "3마을",
-  "4": "4마을",
-  "5": "5마을",
-  "6": "6마을",
-  "7": "7마을",
-  "8": "8마을",
-  "9": "9마을",
-  newcomer: "새가족",
 };
 
 const PHONE_REGEX = /^010-\d{4}-\d{4}$/;
@@ -37,7 +23,7 @@ interface ProfileInfoProps {
   onUpdated: () => void;
 }
 
-/** WIREFRAME.md §14 우측 — 이름/이메일/마을/권한은 읽기 전용, 연락처만 인라인 수정 */
+/** WIREFRAME.md §14 우측 — 이름/아이디/권한은 읽기 전용, 연락처만 인라인 수정 (v1.3: 이메일·마을 제거) */
 export function ProfileInfo({ user, onUpdated }: ProfileInfoProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [phone, setPhone] = useState(user.phone);
@@ -78,8 +64,8 @@ export function ProfileInfo({ user, onUpdated }: ProfileInfoProps) {
       </div>
 
       <div className="flex items-center justify-between gap-4">
-        <dt className="text-sm font-bold text-[var(--color-gray-400)]">이메일</dt>
-        <dd className="text-base">{user.email ?? "-"}</dd>
+        <dt className="text-sm font-bold text-[var(--color-gray-400)]">아이디</dt>
+        <dd className="text-base">{user.loginId ?? "카카오 로그인"}</dd>
       </div>
 
       <div className="flex items-center justify-between gap-4">
@@ -132,11 +118,6 @@ export function ProfileInfo({ user, onUpdated }: ProfileInfoProps) {
           )}
           {error && <p role="alert" className="text-sm text-[var(--color-red-500)]">{error}</p>}
         </dd>
-      </div>
-
-      <div className="flex items-center justify-between gap-4">
-        <dt className="text-sm font-bold text-[var(--color-gray-400)]">마을</dt>
-        <dd className="text-base">{VILLAGE_LABELS[user.village] ?? user.village}</dd>
       </div>
 
       <div className="flex items-center justify-between gap-4">

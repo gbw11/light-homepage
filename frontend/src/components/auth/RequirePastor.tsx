@@ -17,7 +17,7 @@ export function isPastor(role: Role): boolean {
  * (SPEC_API §8.1~§8.4 · FR-ADM-02/03/04).
  *
  * `RequireLeader`와 구조가 같다 — `RequireMember`를 감싸서 비로그인(`/login`)·
- * 승인 대기(`/pending`) 처리를 재사용하고, 역할 검사만 한 겹 더 얹는다.
+ * 처리를 재사용하고, 역할 검사만 한 겹 더 얹는다.
  * 다른 점은 **임원(`LEADER`)도 막는다**는 것뿐이다: 관리 홈(§8.5 저장 용량,
  * §8.6 새가족 내역)은 `L` 이상이지만 회원 승인·역할 부여는 `T`만이다.
  *

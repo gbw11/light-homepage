@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MemberGate } from "@/components/auth/MemberGate";
 import { PhotoGrid } from "./_components/PhotoGrid";
 
 export const metadata: Metadata = {
@@ -9,9 +10,8 @@ export const metadata: Metadata = {
 /**
  * WIREFRAME.md §13-2 — 앨범 상세 `/photos/[id]`.
  *
- * 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 가능하다.
+ * 열람은 회원 전용이다 (2026-08-31 — 8/25 공개 전환의 부분 철회, SPEC_API §10).
  * 사진 업로드·삭제는 임원 권한으로 남는다 (UploadLink·Lightbox ⋮).
- * 데이터 조회는 기존대로 클라이언트(`PhotoGrid`)에서 한다.
  */
 export default async function AlbumDetailPage({
   params,
@@ -22,7 +22,9 @@ export default async function AlbumDetailPage({
 
   return (
     <main id="main" tabIndex={-1}>
-      <PhotoGrid albumId={id} />
+      <MemberGate description="행사 사진첩은 회원만 볼 수 있습니다.">
+        <PhotoGrid albumId={id} />
+      </MemberGate>
     </main>
   );
 }

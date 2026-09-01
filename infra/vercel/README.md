@@ -226,9 +226,41 @@ Branch Tracking을 고쳐도 **그것만으로는 재배포되지 않습니다.*
 **Vercel은 배포마다 고유 URL을 영구 보존합니다.** 새 배포를 올려도 사진이 든
 옛 배포는 **자기 URL에서 계속 서빙합니다.**
 
-- [ ] 새 Production 배포가 생긴 뒤, **`d0f8a0f`(사진 제거) 이전 배포를 전부
-      삭제**한다 (Deployments → 해당 행 → `⋯` → Delete)
-- [ ] 현재 Production 배포는 삭제할 수 없습니다 — **새 배포를 먼저** 올립니다
+- [x] ~~새 Production 배포를 먼저 올린다~~ — **2026-09-01 완료** (`959016c`, §2.6)
+- [ ] **`d0f8a0f`(사진 제거) 이전 배포 삭제** (Deployments → 해당 행 → `⋯` → Delete)
+      — 아래 대상 목록 확정됨. **2026-09-01 PM 결정: 오늘은 실행하지 않는다**
+
+#### 삭제 대상 — 2026-09-01 확정 (preview 5건)
+
+`d0f8a0f`보다 **오래된 배포**를 API로 전수 조회해 확정했다(전체 90건 중).
+
+| 시각 | 종류 | 상태 | 커밋 | 브랜치 |
+|---|---|---|---|---|
+| 08-27 08:38 | preview | BLOCKED | `2d1d656` | `backend_develop` |
+| 08-27 08:29 | preview | READY | `b2d1518` | `feat/infra-frontend-deploy` |
+| 08-27 08:24 | preview | READY | `811347c` | `fix/fe-mock-photo-assets-off` |
+| 08-27 08:08 | preview | READY | `d39e723` | `fix/fe-site-url-empty-env` |
+| 08-27 07:28 | preview | READY | `d39e723` | `fix/fe-site-url-empty-env` |
+
+**제외한 것과 이유** (PM 결정 2026-09-01):
+
+- **`d0f8a0f` 자신** — 사진을 제거한 **바로 그 커밋**이라 이미 자산이 빠져 있다.
+  "이전 배포 전부"의 경계는 이 커밋을 **포함하지 않는다**
+- **production 2건** (`6e47df3` ×2, 08-27 07:28·08:10) — 활성 Production이
+  아니지만 **롤백 대상으로 남긴다**
+
+목록 재생성 (Deployments 화면이 로딩이 느려 UI로 세는 것보다 정확하다):
+
+```js
+// vercel.com 대시보드 탭 콘솔에서
+const r = await fetch('/api/v6/deployments?projectId=prj_F0lLRE39SzeJbUNSn3sqzHTncpP7'
+  + '&teamId=team_vBpdXoCAUoO8hUqvlpKcT38s&limit=100', { credentials: 'include' });
+const d = (await r.json()).deployments
+  .map(x => ({ sha: (x.meta?.githubCommitSha || '').slice(0, 7), branch: x.meta?.githubCommitRef,
+               target: x.target || 'preview', state: x.state, created: new Date(x.created).toISOString() }))
+  .sort((a, b) => a.created < b.created ? 1 : -1);
+console.table(d.slice(d.findIndex(x => x.sha === 'd0f8a0f') + 1));  // +1 = d0f8a0f 자신은 제외
+```
 
 > ⚠️ **"보호가 걸려 있으니 괜찮다"로 끝내지 않습니다.** Deployment Protection의
 > 적용 범위(Standard Protection이 무엇까지 덮는지)를 따져서 안전하다고 결론내는
@@ -264,11 +296,48 @@ Branch Tracking을 고쳐도 **그것만으로는 재배포되지 않습니다.*
 > - [ ] 개인정보 처리방침 문구 (회원제 법적 요구)
 > - [ ] 🔴 **사진이 든 옛 배포 삭제** (§2.5) — 새 배포를 올려도 옛 배포 URL은
 >       살아 있습니다. **이걸 빼먹고 보호를 풀면 사진 수정이 무의미해집니다**
-> - [ ] §2⓪ 커밋 해시 대조 → §2② 자산 확인 재실행 (보호가 없으면 curl 실측이
->       가능해집니다)
+>       (2026-09-01 PM 결정: **오늘은 삭제하지 않는다** — 대상 목록은 §2.5에
+>       확정해 두었으니 보호를 풀기 전에 그대로 실행하면 된다)
+> - [x] ~~§2⓪ 커밋 해시 대조 → §2② 자산 확인 재실행~~ — **2026-09-01 완료**(§2.6)
 >
 > ⚠️ **BE에게 화면을 보여줘야 하면** Vercel 팀에 초대하는 편이 보호를 푸는 것보다
 > 안전합니다.
+
+---
+
+## 2.6 ✅ 2026-09-01 검증 완료 — 실측값
+
+8/29부터 5일간 이월되던 §2⓪·§2② 검증을 끝냈다. **브라우저(SSO 로그인) 안에서
+same-origin `fetch`로 측정**했다 — Deployment Protection 때문에 외부 curl은
+전부 302를 받는다(그래서 그동안 미뤄졌다).
+
+**§2⓪ 커밋 대조** — Production Deployment `959016c` / `develop` /
+"Merge pull request #126" = `origin/develop` HEAD와 **일치** ✅
+
+**§2② 자산 3종** — 기대값과 정확히 일치 ✅
+
+| 경로 | 기대 | 실측 |
+|---|---|---|
+| `/icons/icon-192.png` | 200 | **200** `image/png` |
+| `/photos/retreat-2026/thumb/p001.webp` | 404 | **404** |
+| `/mock-assets/photos/retreat-2026/thumb/p001.webp` | 404 | **404** |
+
+덤으로 확인한 것: `/login` `/signup` `/photos` `/news` 200 · `sitemap.xml`
+`application/xml` 200 · `/photos`가 로그아웃 상태에서 **🔒 로그인 유도 화면**을
+프로덕션에서도 정상 렌더(#118 열람 게이트).
+
+**측정 방법** (다음에도 이렇게 하면 된다 — 보호를 푼 뒤에는 curl로도 된다):
+
+```js
+// 브라우저에서 https://light-homepage-light-ba18.vercel.app 를 연 뒤 콘솔에서
+for (const p of ['/icons/icon-192.png', '/photos/retreat-2026/thumb/p001.webp',
+                 '/mock-assets/photos/retreat-2026/thumb/p001.webp']) {
+  console.log(p, (await fetch(p)).status);
+}
+```
+
+⚠️ vercel.com 대시보드 탭에서 실행하면 CORS로 전부 실패한다. **사이트 자체를
+열어 same-origin으로 실행해야 한다.**
 
 ---
 
@@ -356,15 +425,14 @@ Vercel  fail  "GitHub couldn't verify an account for the commit."
 > 오늘 시크릿 스캔에서 "**늘 실패하는 검사는 곧 무시된다**"고 판단해 오탐을 고친
 > 것과 같은 실패 모드입니다 (`COST_GUARDRAILS.md §3.1`).
 
-### 처리 방법 — Ignored Build Step
+### 처리 방법 ① — Ignored Build Step (PM 커밋의 frontend 무관 변경용)
 
 **적용 완료 (2026-08-31)**: 대시보드가 아니라 저장소의
 **`frontend/vercel.json` → `ignoreCommand`**로 넣었습니다. 저장소에 있으면
 설정이 코드 리뷰를 거치고 이력이 남으며, 대시보드 로그인 없이도 관리됩니다.
 (vercel.json의 ignoreCommand가 대시보드 설정보다 우선합니다.)
 
-동작: **`frontend/` 변경이 없으면 빌드를 건너뜁니다.** 그러면 백엔드 전용
-PR에서는 Vercel 체크가 아예 생기지 않습니다.
+동작: **`frontend/` 변경이 없으면 빌드를 건너뜁니다.**
 
 Root Directory가 `frontend`이므로, 그 디렉터리에 변경이 있는지만 봅니다:
 
@@ -380,10 +448,63 @@ git diff --quiet HEAD^ HEAD -- .
 **이건 Actions에 `paths` 필터를 둔 것과 같은 발상입니다** — 바뀐 쪽만 검증하고,
 무관한 변경에는 체크를 만들지 않습니다 (`CICD.md §1.1`).
 
+> 🔴 **정정 (2026-08-31, PR #112 실측)**: 처음에는 이 설정으로 "백엔드 전용
+> PR에서는 Vercel 체크가 아예 생기지 않는다"고 기대했지만 **틀렸습니다.**
+> ignoreCommand는 **배포가 만들어진 뒤** 평가되는데, Hobby 플랜의 author 권한
+> 체크(`Git author kdy1668 must have access to the project on Vercel`)는
+> **배포 생성 시점**에 거부합니다. 그래서 BE 계정 커밋에는 ignoreCommand가
+> 돌기 전에 X가 찍혔습니다. BE 커밋의 X는 아래 ②가 처리합니다.
+> 즉 ①이 실제로 처리하는 것은 **PM 커밋의 frontend 무관 변경**(docs·infra 등)뿐입니다.
+
+### 처리 방법 ② — git.deploymentEnabled (BE 브랜치의 X 제거)
+
+**적용 (2026-08-31)**: `frontend/vercel.json`에 브랜치별 자동 배포 차단을
+추가했습니다:
+
+```json
+"git": {
+  "deploymentEnabled": {
+    "backend_develop": false,
+    "*/be-*": false
+  }
+}
+```
+
+- **배포 시도 자체를 만들지 않으므로 GitHub 체크(X)도 생기지 않습니다** —
+  author 체크까지 갈 일이 없습니다
+- `*/be-*`는 minimatch 글롭: `feat/be-*`·`fix/be-*` 등 `INTEGRATION.md §6.4`
+  명명 규칙의 모든 BE 하위 브랜치를 커버합니다 (`*`는 `/`를 넘지 않음).
+  글롭 지원은 [공식 문서](https://vercel.com/docs/project-configuration/git-configuration)에서 확인
+- 명시하지 않은 브랜치는 기본 `true` → develop 프로덕션 배포·FE 프리뷰는 영향 없음
+- ⚠️ **설정 반영에는 머지 후 배포 1회가 필요할 수 있습니다** (Vercel이 최신
+  배포의 설정을 참조). 이 설정을 넣는 PR 자체가 frontend/를 바꾸므로 develop
+  머지 시 자연히 충족됩니다
+- ⚠️ **평가 순서(deploymentEnabled vs author 체크)는 공식 문서에 명시가
+  없습니다.** 머지 후 BE 푸시 1건으로 실측하세요
+
+> 🔴 **실측 (2026-09-01, `feat/be-contract-v13` head `6388cf6`)**: **X가 여전히
+> 떴습니다** (`Vercel: failure`). 단 원인은 평가 순서가 아니었습니다 —
+> **`git.deploymentEnabled`는 배포되는 그 브랜치의 `vercel.json`에서 읽습니다.**
+> `backend_develop`이 `develop`보다 7커밋 뒤처져 있어 BE 브랜치의
+> `frontend/vercel.json`에는 `ignoreCommand`밖에 없었고, 설정이 없으니 배포가
+> 그대로 시도돼 author 체크에서 막힌 것입니다.
+>
+> 즉 **②는 BE 브랜치에 설정이 내려간 뒤에야 효력이 있습니다.** 이 설정을
+> develop에 머지하는 것만으로는 부족하고, `develop → backend_develop` 동기화가
+> 반드시 선행돼야 합니다 (PR #123). "조건부 무시" 폴백은 **필요 없습니다** —
+> ②가 틀린 게 아니라 아직 도달하지 않았을 뿐입니다.
+>
+> 최종 실측은 동기화 뒤 BE 푸시 1건으로 다시 합니다. 확인 명령:
+> `gh api repos/gbw11/light-homepage/commits/<sha>/status --jq .statuses`
+> — `Vercel` context가 **아예 없어야** 통과입니다
+
 ### 남는 경우
 
-FE PR에 BE가 커밋을 섞으면 여전히 실패합니다. 드물 것이라 우선 위 설정으로
-대응하고, 실제로 문제가 되면 다시 봅니다.
+- **BE 브랜치가 `frontend/`를 건드리는 경우**: ②로 인해 프리뷰가 아예 만들어지지
+  않습니다. 그 변경의 화면 확인은 develop 머지 후에 하거나, PM이 자기 브랜치로
+  가져와 커밋합니다 (드물 것이라 발생 시 다시 봅니다)
+- **FE PR에 BE가 커밋을 섞는 경우**: 브랜치 이름이 `*/fe-*`라 ②에 안 걸리고,
+  author 체크에서 여전히 실패합니다. 섞지 않는 것이 원칙입니다
 
 ---
 
