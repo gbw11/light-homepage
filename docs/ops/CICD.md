@@ -293,6 +293,27 @@ GitHub 브랜치 보호에서 **CI 상태 체크를 필수(required status check
 기술적 강제가 없으므로 이 3개는 **팀 약속**입니다. 실수로 통합 브랜치에 push했다면
 즉시 상대에게 알리고 되돌리기를 협의합니다 (`INTEGRATION.md §6.11`).
 
+### 4.3 `branch-policy.yml` — 약속 중 하나는 기계가 본다 (2026-09-01)
+
+위 2번("`feat/*` → PR을 경유")은 **지켜지지 않았습니다.** 9/1에 FE PR 6건이
+`frontend_develop`을 우회해 `develop`으로 직행했고, 아무 신호도 없었습니다
+(`DECISIONS.md` 2026-09-01). 그래서 이 한 가지만 워크플로로 옮겼습니다.
+
+| head | 가야 하는 base |
+|---|---|
+| `feat/fe-*` · `fix/fe-*` | `frontend_develop` |
+| `feat/be-*` · `fix/be-*` | `backend_develop` |
+| `feat/infra-*` · `fix/infra-*` | `server_develop` |
+
+어긋나면 PR에 ❌와 함께 **고치는 법**(Edit → base 변경)이 뜹니다.
+규칙이 없는 head(`docs/**`, 통합 브랜치 → `develop` 등)는 검사하지 않습니다.
+
+⚠️ **머지를 막지는 못합니다** — §4.1의 제약 그대로입니다. 빨간 X가 전부이고,
+Pro로 올리면 required check로 승격할 자리입니다.
+
+⚠️ 일부러 우회할 때는 PR에 **`skip-branch-policy` 라벨**을 답니다. 예외가
+없으면 급할 때 검사를 통째로 지우게 되므로, 예외를 두되 라벨로 보이게 합니다.
+
 ---
 
 ## 5. CD — 배포 자동화
