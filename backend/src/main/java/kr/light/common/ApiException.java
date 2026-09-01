@@ -35,12 +35,18 @@ public class ApiException extends RuntimeException {
         return new ApiException(ErrorCode.UNAUTHORIZED, ErrorCode.UNAUTHORIZED.defaultMessage(), null);
     }
 
-    public static ApiException forbidden() {
-        return new ApiException(ErrorCode.FORBIDDEN, ErrorCode.FORBIDDEN.defaultMessage(), null);
+    /**
+     * 문구를 지정하는 401.
+     *
+     * <p>명단 대조(SPEC_API.md §2.1)처럼 <b>여러 이유를 한 문구로 모아야</b> 하는
+     * 곳에서 쓴다. 이유마다 문구가 다르면 문구 자체가 답을 알려준다.
+     */
+    public static ApiException unauthorized(String message) {
+        return new ApiException(ErrorCode.UNAUTHORIZED, message, null);
     }
 
-    public static ApiException pendingApproval() {
-        return new ApiException(ErrorCode.PENDING_APPROVAL, ErrorCode.PENDING_APPROVAL.defaultMessage(), null);
+    public static ApiException forbidden() {
+        return new ApiException(ErrorCode.FORBIDDEN, ErrorCode.FORBIDDEN.defaultMessage(), null);
     }
 
     /** 없거나, 있어도 권한이 없어 숨기는 경우 */

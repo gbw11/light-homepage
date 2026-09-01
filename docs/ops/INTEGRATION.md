@@ -129,10 +129,15 @@ UNAUTHORIZED       로그인 필요 (401)
 FORBIDDEN          권한 부족 (403)
 NOT_FOUND          없음 또는 권한 없어 숨김 (404)
 VALIDATION_ERROR   입력값 오류 (400) — field에 필드명
-PENDING_APPROVAL   승인 대기 상태 (403)
 STORAGE_LIMIT      저장 용량 초과 (409)
 DUPLICATE          중복 (409)
+
+INTERNAL_ERROR     서버 오류 (500) — ★ FE는 분기하지 않는다. 공통 안내만
 ```
+⚠️ `PENDING_APPROVAL`은 v1.3(2026-08-31)에서 폐기됐습니다 — 승인 절차 소멸.
+⚠️ `RATE_LIMITED`(429)는 `POST /api/newcomers`(§9.1)에서만 씁니다. **인증(§2)에서는
+   쓰지 않습니다** — rate limit·로그인 잠금도 `UNAUTHORIZED`입니다 (`SPEC_API §2.1 · §2.3`).
+   구분해 알려주면 계정·명단 열거에 쓰입니다.
 
 **직렬화 규칙**
 | 항목 | 규칙 | 이유 |
@@ -641,9 +646,9 @@ BE를 먼저 올려야 FE가 없는 필드를 호출하는 상황을 피할 수 
 
 [ 계약 ]    응답  { "data": ... }  /  { "error": { code, message, field } }
             ID는 문자열 · 날짜는 ISO-8601 · 파일은 presigned URL
-            에러코드 7개만: UNAUTHORIZED FORBIDDEN NOT_FOUND
-                          VALIDATION_ERROR PENDING_APPROVAL
-                          STORAGE_LIMIT DUPLICATE
+            에러코드 6개만: UNAUTHORIZED FORBIDDEN NOT_FOUND
+                          VALIDATION_ERROR STORAGE_LIMIT DUPLICATE
+                          (+ INTERNAL_ERROR — 500 전용, 분기 대상 아님)
 
 [ 변경 ]    비호환 변경 = 사전 합의 + PR 제목에 [CONTRACT] + 상대 승인
             조용히 바꾸지 않는다

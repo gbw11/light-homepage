@@ -167,7 +167,7 @@ class JwtProviderTest {
     private Member member(Long id, Role role) {
         Member m = Member.builder()
                 .name("테스트")
-                .email("t%d@light.kr".formatted(id))
+                .loginId("t%d".formatted(id))
                 .role(role)
                 .build();
         // id는 DB가 채우는 값이라 빌더로 못 넣는다. 테스트에서만 리플렉션으로 심는다.

@@ -232,7 +232,7 @@ docker run -d --name light-db -p 5432:5432 \
 | ⚠️ 접두사 | `API_ORIGIN`에 **`NEXT_PUBLIC_`을 붙이지 않는다** | FE |
 | 인증 | JWT **httpOnly 쿠키** (`Secure; SameSite=Lax`). localStorage 금지 | BE |
 | 응답 형태 | `{ "data": ... }` / `{ "error": { code, message, field } }` | BE |
-| 에러 코드 | 7개 집합만: `UNAUTHORIZED · FORBIDDEN · NOT_FOUND · VALIDATION_ERROR · PENDING_APPROVAL · STORAGE_LIMIT · DUPLICATE` | BE |
+| 에러 코드 | 6개 집합만: `UNAUTHORIZED · FORBIDDEN · NOT_FOUND · VALIDATION_ERROR · STORAGE_LIMIT · DUPLICATE` (+ `INTERNAL_ERROR` 500 · `RATE_LIMITED` 429 — 둘 다 `[CONTRACT]` 합의 대기) | BE |
 | ID 직렬화 | **문자열** (`"123"`) — JS Number 정밀도 | BE |
 | 날짜 | ISO-8601 · 시각은 UTC + `Z` | BE |
 | 계약서 | [`SPEC_API.md`](../spec/SPEC_API.md) + Swagger UI | 공동 |

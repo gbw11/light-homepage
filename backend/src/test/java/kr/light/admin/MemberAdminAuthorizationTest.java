@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -69,7 +70,6 @@ class MemberAdminAuthorizationTest {
     static Stream<Arguments> roles() {
         return Stream.of(
                 arguments((Role) null,  401, "UNAUTHORIZED"),
-                arguments(Role.PENDING, 403, "PENDING_APPROVAL"),
                 arguments(Role.MEMBER,  403, "FORBIDDEN"),
                 arguments(Role.LEADER,  403, "FORBIDDEN"),   // ★ 임원도 막힌다
                 arguments(Role.PASTOR,  404, "NOT_FOUND")    // 통과 → 없는 회원이라 404
@@ -89,14 +89,6 @@ class MemberAdminAuthorizationTest {
         }
     }
 
-    @ParameterizedTest(name = "POST approve × {0} → {1}")
-    @MethodSource("roles")
-    void 승인_인가(Role role, int expectedStatus, String expectedCode) throws Exception {
-        mockMvc.perform(withRole(post("/api/admin/members/" + ANY_ID + "/approve"), role))
-                .andExpect(status().is(expectedStatus))
-                .andExpect(jsonPath("$.error.code").value(expectedCode));
-    }
-
     @ParameterizedTest(name = "PATCH role × {0} → {1}")
     @MethodSource("roles")
     void 역할변경_인가(Role role, int expectedStatus, String expectedCode) throws Exception {
@@ -109,12 +101,23 @@ class MemberAdminAuthorizationTest {
                 .andExpect(jsonPath("$.error.code").value(expectedCode));
     }
 
-    @ParameterizedTest(name = "POST reject × {0} → {1}")
+    @ParameterizedTest(name = "POST password/reset × {0} → {1}")
     @MethodSource("roles")
-    void 거절_인가(Role role, int expectedStatus, String expectedCode) throws Exception {
-        var request = post("/api/admin/members/" + ANY_ID + "/reject")
+    void 리셋코드_발급_인가(Role role, int expectedStatus, String expectedCode) throws Exception {
+        // ⚠️ 남의 비밀번호를 바꿀 수 있는 코드를 발급하는 경로다.
+        //    임원(LEADER)에게도 막혀 있어야 한다 (§10 · §9-C 확정)
+        mockMvc.perform(withRole(post("/api/admin/members/" + ANY_ID + "/password/reset"), role))
+                .andExpect(status().is(expectedStatus))
+                .andExpect(jsonPath("$.error.code").value(expectedCode));
+    }
+
+    @ParameterizedTest(name = "DELETE member × {0} → {1}")
+    @MethodSource("roles")
+    void 삭제_인가(Role role, int expectedStatus, String expectedCode) throws Exception {
+        // ⚠️ 계정을 지우고 명단을 여는 경로다. 임원(LEADER)에게도 막혀 있어야 한다
+        var request = delete("/api/admin/members/" + ANY_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"reason\":\"확인 불가\"}");
+                .content("{\"reason\":\"본인 확인 — 선점 계정 삭제\"}");
 
         mockMvc.perform(withRole(request, role))
                 .andExpect(status().is(expectedStatus))
@@ -144,7 +147,7 @@ class MemberAdminAuthorizationTest {
     private RequestPostProcessor as(Role role) {
         Member actor = memberRepository.saveAndFlush(Member.builder()
                 .name("행위자")
-                .email("actor-%s@light.kr".formatted(role.name().toLowerCase()))
+                .loginId("actor_%s".formatted(role.name().toLowerCase()))
                 .role(role)
                 .build());
 

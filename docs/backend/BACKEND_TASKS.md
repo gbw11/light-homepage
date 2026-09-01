@@ -156,18 +156,31 @@ MAIL_API_KEY= / NOTIFY_EMAIL=
 전체 스키마를 M1에 한 번에 만듭니다. 나중에 테이블을 추가하는 것보다 낫습니다.
 
 ```sql
+member_roster                        -- ★ 교회 등록 명단 (계정과 별개)
+  id bigserial PK
+  name varchar(50) not null          -- 동명이인 접미사 포함 ("김도연a")
+  birth_date date not null
+  phone_normalized varchar(20) not null  -- 숫자만 남긴 형태로 저장·비교
+  village varchar(16)                -- 출석부(§13)가 씀. 명단 CSV에 없으면 null
+  active boolean not null default true
+  claimed_at timestamptz             -- 계정을 만든 시각. null이면 미가입
+  claimed_by bigint FK members
+  created_at timestamptz not null
+  UNIQUE (name, birth_date, phone_normalized)
+  -- ⚠️ 명단 원본 CSV는 저장소에 커밋하지 않습니다
+
 members
   id bigserial PK
-  email varchar(255) unique          -- 카카오 전용 계정은 null 가능
+  login_id varchar(30) unique        -- 사용자가 정한 아이디. 카카오 전용은 null
   password_hash varchar(255)         -- BCrypt. 카카오 전용은 null
   kakao_id varchar(64) unique
-  name varchar(50) not null          -- 실명 (승인 대조용)
+  name varchar(50) not null          -- 명단에서 복사. 접미사 그대로 유지
   phone varchar(20)
-  village varchar(16)                -- '1'~'9' | 'newcomer'
-  role varchar(16) not null          -- PENDING|MEMBER|LEADER|PASTOR
-  approved_at timestamptz / approved_by bigint FK members
+  roster_id bigint FK member_roster  -- 어느 명단 행으로 가입했는지
+  role varchar(16) not null          -- MEMBER|LEADER|PASTOR
   created_at timestamptz not null
-  CHECK (email IS NOT NULL OR kakao_id IS NOT NULL)
+  CHECK (login_id IS NOT NULL OR kakao_id IS NOT NULL)
+  -- ⚠️ email·village·approved_at·approved_by는 v1.3에서 제거 (승인 절차 폐지)
 
 refresh_tokens
   id / member_id FK / token_hash varchar(255) not null   -- ★ 평문 저장 금지
@@ -238,15 +251,18 @@ audit_logs
 
 ### 5.1 역할 계층
 ```
-GUEST    비로그인       → 공개 영역
-PENDING  가입·미승인     → 아무것도 못 봄 (403)
-MEMBER   승인된 회원     → + 주보, 사진첩, 내부 공지, 월례회(기간 내)
-LEADER   임원           → + 콘텐츠 작성/업로드/삭제, 회의록, 예산안, 월례회(기간 무관)
-PASTOR   전도사님        → + 회원 승인, 역할 부여
+GUEST    비로그인       → 공개 공지, 주보, 설교, 새가족 등록
+MEMBER   회원           → + 내부 공지, 회의록, 사진첩, 월례회(기간 내)
+LEADER   임원           → + 콘텐츠 작성/업로드/삭제, 예산안, 월례회(기간 무관), 출석부
+PASTOR   전도사님        → + 계정 삭제·명단 재개방, 역할 부여, 비밀번호 리셋 코드
 ```
 `RoleHierarchy`로 `ROLE_MEMBER < ROLE_LEADER < ROLE_PASTOR` 선언 → `@PreAuthorize("hasRole('LEADER')")` 하나로 상위 역할까지 통과합니다.
 
 **`PASTOR` 전용 권한은 회원 관리뿐입니다.** (예산안은 임원도 허용 — 팀 결정)
+
+> ⚠️ **`PENDING`은 v1.3(2026-08-31)에서 사라졌습니다.** 명단 대조가 본인 확인을
+> 대신하므로 승인 절차가 없습니다 — 가입하면 **즉시 `MEMBER`**입니다
+> (`SPEC_API §2.2`). `ErrorCode.PENDING_APPROVAL`도 함께 폐기됩니다.
 
 ### 5.2 반드시 지킬 3가지 규칙
 
@@ -288,58 +304,87 @@ RLS를 잃었으므로 **이 테스트가 마지막 방어선**입니다. 이것
 void 인가_매트릭스(String method, String path, Role role, int expectedStatus) { ... }
 ```
 
-> ### ⚠️ 2026-08-26 갱신 — 이 표는 권한 모델 전환 이전 값이었습니다
-> 옛 표(열람 대부분 `401`)대로 테스트를 작성하면 **공개돼야 할 열람이 전부 잠긴 채로
-> "통과"합니다.** 아래가 새 기준이고, `SPEC_API §10`과 같은 표입니다.
+> ### ⚠️ 2026-09-01 갱신 — 표를 `SPEC_API §10` v1.3 값으로 교체했습니다
+> **`PENDING` 열이 사라졌습니다.** 명단 대조 가입으로 바뀌며 승인 절차가 폐지되어
+> (`SPEC_API §2` v1.3) `PENDING` 역할 자체가 없습니다. `approve` 행도 폐기했습니다.
+>
+> 그리고 **8/26판의 "열람은 누구나 200" 모델이 부분 철회**됐습니다. 내부공지·회의록·
+> 사진첩·월례회 열람은 **`401`(회원 전용)로 돌아왔고**, 회의록만 `LEADER` → `MEMBER`로
+> 완화됐습니다.
+>
+> ⚠️ **8/26판 표대로 테스트를 짜면 회의록·사진첩이 인터넷에 열린 채로 "통과"합니다.**
+> 이 표와 `SPEC_API §10`이 어긋나면 **`SPEC_API §10`이 최종 기준**입니다.
 
-| 엔드포인트 | GUEST | PENDING | MEMBER | LEADER | PASTOR |
-|---|---|---|---|---|---|
-| `GET /api/posts?category=NOTICE_PUBLIC` | 200 | 200 | 200 | 200 | 200 |
-| `GET /api/posts?category=NOTICE_MEMBER` | **200** | **200** | 200 | 200 | 200 |
-| `GET /api/posts?category=MINUTES` | **200** | **200** | **200** | 200 | 200 |
-| `GET /api/posts?category=BUDGET` | 403 | 403 | **403** | 200 | 200 |
-| `GET /api/posts/{회의록id}` | **200** | **200** | **200** | 200 | 200 |
-| `GET /api/posts/{예산안id}` | **404** | **404** | **404** | 200 | 200 |
-| `POST /api/posts` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/files/{공개글첨부id}` | **200** | **200** | 200 | 200 | 200 |
-| `GET /api/files/{예산안첨부id}` | **404** | **404** | **404** | 200 | 200 |
-| `GET /api/bulletins/latest` | **200** | **200** | 200 | 200 | 200 |
-| `POST /api/bulletins` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/albums` | **200** | **200** | 200 | 200 | 200 |
-| `GET /api/albums/{id}/photos` | **200** | **200** | 200 | 200 | 200 |
-| `POST /api/uploads:issue` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/photos/{id}/download` | **200** | **200** | 200 | 200 | 200 |
-| `POST /api/photos/{id}/report` | **200** | **200** | 200 | 200 | 200 |
-| `DELETE /api/photos/{id}` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/meetings` | **200** | **200** | 200 | 200 | 200 |
-| `GET /api/meetings/{id}/pages/{n}` (기간 내) | **200** | **200** | 200 | 200 | 200 |
-| `GET /api/meetings/{id}/pages/{n}` (**기간 외**) | **403** | **403** | **403** | 200 | 200 |
-| `POST /api/meetings` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/meetings/{id}/views` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/admin/storage` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/admin/newcomers` | 401 | 403 | **403** | 200 | 200 |
-| `GET /api/admin/members` | 401 | 403 | 403 | **403** | 200 |
-| `POST /api/admin/members/{id}/approve` | 401 | 403 | 403 | **403** | 200 |
-| `PATCH /api/admin/members/{id}/role` | 401 | 403 | 403 | **403** | 200 |
-| `POST /api/newcomers` | 200 | 200 | 200 | 200 | 200 |
-| `GET /api/sermons` | 200 | 200 | 200 | 200 | 200 |
+역할 약어: `G`=비로그인 · `M`=MEMBER · `L`=LEADER · `T`=PASTOR
 
-**굵게 표시된 칸이 실제 사고가 나는 지점입니다.**
+| 엔드포인트 | G | M | L | T |
+|---|---|---|---|---|
+| `POST /api/auth/verify-roster` · `POST /api/auth/register` · `POST /api/auth/password/reset-with-code` | 200 | 200 | 200 | 200 |
+| `POST /api/auth/login` · `POST /api/auth/refresh` | 200 | 200 | 200 | 200 |
+| `POST /api/auth/logout` | **204** | 204 | 204 | 204 |
+| `GET /api/auth/me` | **401** | 200 | 200 | 200 |
+| `PATCH /api/auth/me` · `POST /api/auth/password/change` | **401** | 200 | 200 | 200 |
+| `DELETE /api/auth/me` | **401** | 204 | 204 | 204 |
+| `GET /api/auth/kakao/authorize` · `GET /api/auth/kakao/callback` | **302** | 302 | 302 | 302 |
+| `GET /api/posts?category=NOTICE_PUBLIC` | 200 | 200 | 200 | 200 |
+| `GET /api/posts?category=NOTICE_MEMBER` | **401** | 200 | 200 | 200 |
+| `GET /api/posts?category=MINUTES` | **401** | **200** | 200 | 200 |
+| `GET /api/posts?category=BUDGET` | 403 | 403 | 200 | 200 |
+| `GET /api/posts/{공개공지id}` | 200 | 200 | 200 | 200 |
+| `GET /api/posts/{내부공지·회의록id}` | **401** | **200** | 200 | 200 |
+| `GET /api/posts/{예산안id}` | **404** | 404 | 200 | 200 |
+| `POST /api/posts` | 401 | 403 | 200 | 200 |
+| `GET /api/files/{공개글첨부id}` | 200 | 200 | 200 | 200 |
+| `GET /api/files/{내부공지·회의록 첨부id}` | **401** | 200 | 200 | 200 |
+| `GET /api/files/{예산안첨부id}` | **404** | 404 | 200 | 200 |
+| `GET /api/bulletins/latest` | 200 | 200 | 200 | 200 |
+| `POST /api/bulletins` | 401 | 403 | 200 | 200 |
+| `GET /api/albums` | **401** | 200 | 200 | 200 |
+| `GET /api/albums/{id}/photos` | **401** | 200 | 200 | 200 |
+| `GET /api/photos/{id}/download` | **401** | 200 | 200 | 200 |
+| `POST /api/photos/{id}/report` | **401** | 200 | 200 | 200 |
+| `POST /api/uploads:issue` | 401 | 403 | 200 | 200 |
+| `DELETE /api/photos/{id}` | 401 | 403 | 200 | 200 |
+| `GET /api/meetings` | **401** | 200 | 200 | 200 |
+| `GET /api/meetings/{id}/pages/{n}` (기간 내) | **401** | 200 | 200 | 200 |
+| `GET /api/meetings/{id}/pages/{n}` (**기간 외**) | 401 | 403 | 200 | 200 |
+| `POST /api/meetings` | 401 | 403 | 200 | 200 |
+| `GET /api/meetings/{id}/views` | 401 | 403 | 200 | 200 |
+| `GET /api/admin/storage` | 401 | 403 | 200 | 200 |
+| `GET /api/admin/newcomers` | 401 | 403 | 200 | 200 |
+| `GET /api/admin/members` | 401 | 403 | **403** | 200 |
+| `DELETE /api/admin/members/{id}` | 401 | 403 | **403** | 200 |
+| `PATCH /api/admin/members/{id}/role` | 401 | 403 | **403** | 200 |
+| `POST /api/admin/members/{id}/password/reset` | 401 | 403 | **403** | 200 |
+| `POST /api/newcomers` | 200 | 200 | 200 | 200 |
+| `GET /api/sermons` | 200 | 200 | 200 | 200 |
+| `GET /api/attendance/sessions` (§13) | 401 | 403 | 200 | 200 |
+| `POST /api/attendance/sessions` | 401 | 403 | 200 | 200 |
+| `GET /api/attendance/sessions/{id}` | 401 | 403 | 200 | 200 |
+| `PUT /api/attendance/sessions/{id}/entries` | 401 | 403 | 200 | 200 |
+| `DELETE /api/attendance/sessions/{id}` | 401 | 403 | 200 | 200 |
+
+**굵게 표시된 칸이 8/26판에서 바뀐 지점이자, 실제 사고가 나는 지점입니다.**
 **엔드포인트를 추가하면 이 표에 행을 추가하세요. 표에 없는 보호 엔드포인트는 미완성으로 봅니다.**
 
 ### 이 표에서 틀리기 쉬운 4가지
 
-1. **`PENDING`이 `GUEST`보다 권한이 낮으면 안 됩니다.** 전환 전에는 `PENDING`이 열람
-   전부 `403`이었습니다. 그대로 두면 **가입한 사람이 가입 안 한 사람보다 못 보게 됩니다.**
-   공개 열람 행은 `PENDING`도 `200`입니다
+1. **비공개 열람의 `G`는 `403`이 아니라 `401`입니다.** 내부공지·회의록·사진첩·월례회는
+   "로그인하면 볼 수 있는" 콘텐츠입니다 — 익명에게 `403`을 주면 FE가 로그인 유도를
+   할 수 없습니다
 2. **`403`과 `404`를 섞지 마세요.** 예산안 **상세·첨부**는 `404`(존재를 숨김),
-   예산안 **목록**은 `403`(분류의 존재는 이미 공개된 정보)입니다
-3. **쓰기의 `GUEST`는 `401`, `PENDING`·`MEMBER`는 `403`입니다.** 익명은 "로그인하면
-   될 수도 있다", 로그인한 일반 회원은 "로그인해도 안 된다" — FE가 이 둘을 다르게
-   처리합니다(로그인 화면 vs 접근 불가 안내). **여기서 `401`과 `403`을 바꿔 쓰면
-   회원이 로그인 화면으로 튕깁니다**
+   예산안 **목록**은 `403`(분류의 존재는 이미 공개된 정보)입니다. ⚠️ 예산안은 위 1번의
+   예외입니다 — 익명에게도 `401`이 아니라 `403`·`404`입니다
+3. **`G`는 `401`, 로그인했지만 미달은 `403`입니다.** 익명은 "로그인하면 될 수도 있다",
+   로그인한 일반 회원은 "로그인해도 안 된다" — FE가 이 둘을 다르게 처리합니다
+   (로그인 화면 vs 접근 불가 안내). **여기서 `401`과 `403`을 바꿔 쓰면 회원이
+   로그인 화면으로 튕깁니다**
 4. **월례회 기간 외 `403`은 로그인 여부와 무관합니다.** `LEADER`↑만 통과하고,
-   그 우회는 **세션이 있을 때만** 적용됩니다 — 익명은 `OPEN`인 자료만 볼 수 있습니다
+   그 우회는 **세션이 있을 때만** 적용됩니다
+
+⚠️ **사진첩이 `M`이 되면서 presigned URL이 새는 경로가 됩니다.** `GET /albums/{id}/photos`가
+발급하는 URL 자체에는 인증이 없으므로 **만료를 짧게(10분 이하)** 가져가고, 개별 다운로드는
+매 요청마다 세션을 다시 봅니다 (`SPEC_API §6.7`).
 
 ---
 
@@ -448,7 +493,11 @@ POST /api/uploads:commit ─────────▶ 5. status=COMMITTED, siz
 ```
 - `@RestControllerAdvice`로 예외를 이 형태로 통일
 - 에러 `code`는 **FE가 분기에 쓰는 값**이므로 이 집합을 벗어나지 마세요:
-  `UNAUTHORIZED · FORBIDDEN · NOT_FOUND · VALIDATION_ERROR · PENDING_APPROVAL · STORAGE_LIMIT · DUPLICATE`
+  `UNAUTHORIZED · FORBIDDEN · NOT_FOUND · VALIDATION_ERROR · STORAGE_LIMIT · DUPLICATE`
+  (+ `INTERNAL_ERROR` — 500 전용, FE는 분기하지 않고 공통 안내만 띄웁니다)
+  ⚠️ `PENDING_APPROVAL`은 v1.3에서 폐기됐습니다. `RATE_LIMITED`는 쓰지 않습니다 —
+  rate limit 초과·로그인 잠금은 **일반 실패와 같은 `UNAUTHORIZED`**입니다
+  (`SPEC_API §2.1 · §2.3`). 구분해서 알려주면 계정 열거에 쓰입니다
 - 날짜는 전부 ISO-8601. `LocalDate` → `"2026-08-24"`, 시각은 UTC + `Z`
 - ⚠️ **ID는 문자열로 직렬화하세요** (`"123"`). JS `Number` 정밀도 이슈 회피
 - 파일 URL은 항상 presigned URL (월례회 제외 — §7.4)
@@ -517,8 +566,9 @@ FE가 Next.js `rewrites`로 `/api/**`를 프록시해 **동일 출처**로 만�
 **관리 · 공개**
 | Method | Path | 권한 |
 |---|---|---|
-| GET | `/api/admin/members?status=` | PASTOR |
-| POST | `/api/admin/members/{id}/approve` · `/reject` | PASTOR |
+| GET | `/api/admin/members?q=&page=&size=` | PASTOR — ⚠️ `status=` 폐기(전체 목록 하나뿐) |
+| DELETE | `/api/admin/members/{id}` | PASTOR — 계정 삭제 + 명단 `claimed_at` 해제 |
+| POST | `/api/admin/members/{id}/password/reset` | PASTOR — 리셋 코드 발급 |
 | PATCH | `/api/admin/members/{id}/role` | PASTOR |
 | GET | `/api/admin/storage` | LEADER |
 | GET | `/api/admin/newcomers` | LEADER |
@@ -528,9 +578,10 @@ FE가 Next.js `rewrites`로 `/api/**`를 프록시해 **동일 출처**로 만�
 > ⚠️ **`L`(임원)의 월례회 기간 무관 열람은 로그인 세션이 있을 때만입니다.**
 > 익명 요청에는 적용되지 않습니다 — 익명은 `status === "OPEN"`인 자료만 볼 수 있습니다.
 >
-> ⚠️ **`PENDING`이 `GUEST`보다 권한이 낮아지면 안 됩니다.** 전환 전 매트릭스는 `P`를
-> 열람 전부 `403`으로 두고 있었는데, 그대로 두면 **가입한 사람이 가입 안 한 사람보다
-> 못 보게 됩니다.**
+> ⚠️ **인증 엔드포인트가 v1.3에서 전면 교체됐습니다.** 이메일 가입(구 `/auth/signup`) ·
+> `complete-profile` · 이메일 비밀번호 재설정은 폐기되고
+> `verify-roster` → `register` → `loginId` 로그인 + 리셋 코드로 바뀝니다
+> (`SPEC_API §2`). 위 표의 인증 행은 그 기준입니다.
 
 ---
 
@@ -563,14 +614,20 @@ FE가 공개 사이트를 만드는 동안 기반을 깝니다. **접점이 거�
 
 - [ ] **Spring Security 설정 + JWT** (16h) — 발급·검증·필터, 쿠키 방식
       → DoD: 유효/만료/위조 토큰 각각 테스트
-- [ ] **가입·로그인·refresh·logout·me** (10h)
-      → DoD: 가입 시 `role=PENDING` 자동 설정, BCrypt 해싱
+- [ ] **`member_roster` 스키마 + CSV 임포트 + 중복/누락 리포트** (8h)
+      → DoD: 동명이인 접미사 누락·전화번호 중복이 임포트 시점에 드러남
+      → ⚠️ 명단 원본 CSV는 커밋 금지. `local` 프로필 전용, 경로는 환경변수
+- [ ] **`verify-roster` + `register`** (12h) — 3필드 대조, 1회용 5분 토큰
+      → DoD: 불일치·미등록·이미가입·rate limit 초과가 **전부 같은 401 문구**
+      → DoD: 다중 매칭만 `VALIDATION_ERROR`, 비밀번호가 생일·전화번호면 거부
+- [ ] **`loginId` 로그인 + 5회 실패 15분 잠금** (6h) — 잠금도 일반 실패와 동일 응답
 - [ ] **RoleHierarchy + `@PreAuthorize` 전면 적용** (4h)
 - [ ] **카카오 OAuth** (14h) — authorize·callback·계정 연결
       → ⚠️ §11 주의사항 확인
-- [ ] **비밀번호 재설정** (6h) — 1회용 토큰, 만료
-- [ ] **회원 승인·역할 부여 + 자기잠금 방지 + 감사로그** (10h)
+- [ ] **리셋 코드 발급(`§8.4`) + `reset-with-code`(`§2.9`)** (6h) — 1회용 30분, 해시 저장
+- [ ] **계정 삭제 + 명단 재개방 · 역할 부여 + 자기잠금 방지 + 감사로그** (10h)
       → DoD: 마지막 PASTOR 강등 시도 → 거부
+      → DoD: 삭제하면 명단 `claimed_at`이 풀려 본인이 다시 가입 가능
 - [ ] **posts CRUD + PostQueryService 단일 관문 + 페이징** (14h)
       → DoD: §5.2 세 규칙 준수, §6 매트릭스의 posts 행 통과
 - [ ] **시드 스크립트** (4h) — MEMBER·LEADER·PASTOR 각 1개 계정 (임의 ID/비번)
@@ -607,17 +664,25 @@ FE가 공개 사이트를 만드는 동안 기반을 깝니다. **접점이 거�
 
 **카카오에서 이메일을 받으려면 "비즈 앱" 전환이 필요하고, 사업자등록번호 또는 고유번호증이 있어야 합니다.** 일반 앱 상태로는 닉네임·프로필사진만 받습니다.
 
-→ **이메일 없이도 동작하도록 설계했습니다.** `members.email`은 nullable이고 `kakao_id`로 식별합니다. 전환이 안 되어도 진행 가능합니다.
+→ **이메일을 아예 받지 않도록 설계를 바꿨습니다** (v1.3). `kakao_id`로 식별합니다.
+
+⚠️ **카카오만으로는 가입할 수 없습니다.** 카카오는 이름·생년월일·전화번호를 주지
+않으므로 **명단 대조(`verify-roster`)를 건너뛸 수 없습니다.** 카카오는 가입 2단계의
+"수단 ②"일 뿐이고, 가입 간소화 효과는 없습니다.
 
 ```
 카카오 로그인 → kakao_id로 members 조회
-  있으면  → JWT 발급 → FE로 리다이렉트
-  없으면  → members 생성 (role=PENDING) → JWT 발급
-            → FE `/signup/complete`로 리다이렉트 (실명·연락처·마을 입력)
+  있으면  → JWT 발급 → FE `/my`로 리다이렉트
+  없으면  → state로 회수한 registrationToken 검증
+              유효  → members 생성 (role=MEMBER) → JWT 발급 → `/my`
+              없음·만료 → `/signup?error=kakao` (명단 확인부터 다시)
 ```
-- 카카오 닉네임은 실명이 아닌 경우가 많습니다 → **실명은 앱에서 직접 받습니다** (승인 대조용)
-- Redirect URI에 배포 도메인 + `localhost` 둘 다 등록
-- 이메일 로그인도 **병행 유지**합니다 (카카오 계정 없는 사역자용)
+- **`registrationToken`은 `state`에 직접 싣지 않습니다.** `state`는 CSRF 방어값이므로
+  랜덤값만 보내고 서버가 `랜덤 → registrationToken` 대응을 짧게 보관합니다
+- 카카오 닉네임은 쓰지 않습니다 — **이름은 명단에서 가져옵니다** (접미사 포함)
+- Redirect URI에 배포 도메인 + `http://localhost:8080/api/auth/kakao/callback` 둘 다 등록
+- ⚠️ 카카오 가입자는 `login_id`·비밀번호가 없어 **카카오 계정을 잃으면 로그인 수단이
+  없습니다.** 그때는 전도사가 `DELETE /api/admin/members/{id}`로 지우고 재가입합니다
 
 ---
 
