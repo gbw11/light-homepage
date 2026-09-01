@@ -30,6 +30,38 @@
 
 ---
 
+## 2026-09-01 — 🔴 Vercel X를 없애려면 **`backend_develop` 동기화가 먼저**입니다 (PR #123)
+
+**상태**: 실측으로 원인 규명 완료. **백엔드에 요청 1건 있습니다.**
+
+오늘 `feat/be-contract-v13`(head `6388cf6`)의 커밋 상태를 확인했더니
+**`Vercel: failure`가 그대로 떴습니다.** 아래 항목에서 "다음 푸시부터 안 뜬다"고
+안내한 것이 아직 사실이 아닙니다.
+
+**원인**: `git.deploymentEnabled`는 **배포되는 그 브랜치의 `frontend/vercel.json`**
+에서 읽힙니다. `backend_develop`이 `develop`보다 7커밋 뒤처져 있어, 거기서 갈라진
+BE 브랜치에는 그 설정이 아직 없습니다.
+
+| 브랜치 | `frontend/vercel.json` |
+|---|---|
+| `develop` | `ignoreCommand` + `git.deploymentEnabled` |
+| `feat/be-contract-v13` | `ignoreCommand` **만** |
+
+**요청**:
+
+1. **PR #123 (`develop → backend_develop`) 머지** — 충돌 없음(7커밋). 내려가는
+   것은 `vercel.json` 2건·Actions 트리거 수정(#109)·스펙 3종 v1.3·문서이고
+   **BE 코드에는 손대지 않습니다**
+2. 이미 갈라져 나온 `feat/be-contract-v13`은 머지 후 **`backend_develop`을 다시
+   머지**해야 새 `vercel.json`을 받습니다
+3. 그 뒤 첫 푸시에서 Vercel 체크가 **아예 안 생기는지** 알려주세요. 그게 최종
+   실측입니다
+
+그때까지는 BE 브랜치의 Vercel X를 무시하셔도 됩니다 (`DECISIONS.md` 2026-08-31
+"조건부 무시" 항목의 조건 그대로).
+
+---
+
 ## 2026-08-31 — (정정) BE 브랜치에서 Vercel 체크가 **아예 안 뜨게** 바꿨습니다
 
 **상태**: 설정 적용, develop 머지 후 실측 대기. 아래 항목 1의 정정입니다.
