@@ -375,6 +375,34 @@ export type Sermon = {
   thumbnailUrl: string;
 };
 
+/**
+ * 진행 중인 YouTube 라이브 (SPEC_API §4.2 — 신설 2026-09-01).
+ *
+ * 주일 청년예배가 **일요일 13:45 무렵** 라이브로 올라온다. 방송이 켜져 있으면
+ * `/sermons` 맨 위가 "지난 영상 4편"에서 **라이브 화면**으로 바뀐다.
+ *
+ * ⚠️ **백엔드가 YouTube Data API를 프록시해서 판정한다.** API 키를 클라이언트에
+ * 실을 수 없고, 브라우저에서 채널 페이지를 긁는 것도 CORS로 막힌다
+ * (`Sermon` 주석과 같은 이유).
+ *
+ * 방송 중이 아니면 **`null`**이다 — 빈 객체나 `live: false` 플래그를 쓰지
+ * 않는다. "없음"을 한 가지 모양으로만 표현해야 화면 분기가 하나로 끝난다.
+ */
+export type LiveStream = {
+  /** YouTube 영상 id — FE가 임베드 주소(`youtube.com/embed/<id>`)를 만든다 */
+  videoId: string;
+  title: string;
+  /** ISO-8601 UTC — 방송이 실제로 시작된 시각 */
+  startedAt: string;
+  /** 새 탭으로 보낼 시청 URL (`youtube.com/watch?v=...`) */
+  watchUrl: string;
+  /**
+   * 썸네일 URL (YouTube CDN). 임베드가 막힌 환경(브라우저 확장·회사망)에서
+   * 대신 보여준다. `Sermon.thumbnailUrl`과 같은 이유로 `next/image`에 넣지 않는다.
+   */
+  thumbnailUrl: string;
+};
+
 /** 주보 상세 (SPEC_API §5.1 · §5.3) */
 export type Bulletin = {
   id: string;

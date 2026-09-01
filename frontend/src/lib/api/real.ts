@@ -417,6 +417,8 @@ export const realApi: Api = {
   sermons: {
     // [CONTRACT] 신규 제안 경로 — 백엔드가 다르게 정하면 여기만 바꾼다
     list: ({ page = 0, size = 12 } = {}) => request("/sermons", { query: { page, size } }),
+    // [CONTRACT] 신규 제안 경로 — 방송 중이 아니면 서버가 data: null을 준다
+    live: () => request("/sermons/live"),
   },
   bulletins: {
     latest: () => request("/bulletins/latest"),
