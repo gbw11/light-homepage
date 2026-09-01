@@ -105,8 +105,6 @@ public class PostController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401", ref = "#/components/responses/UNAUTHORIZED"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "403", ref = "#/components/responses/PENDING_APPROVAL"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404", ref = "#/components/responses/NOT_FOUND")
     })
     @GetMapping("/{idOrSlug}")

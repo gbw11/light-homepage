@@ -3,6 +3,8 @@ package kr.light.seed;
 import kr.light.member.Member;
 import kr.light.member.MemberRepository;
 import kr.light.member.Role;
+import kr.light.roster.RosterEntry;
+import kr.light.roster.RosterEntryRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultApplicationArguments;
@@ -38,6 +40,7 @@ class SeedRunnerTest {
 
     /** 저장된 회원. 각 테스트가 이 목록만 확인한다. */
     private final List<Member> saved = new ArrayList<>();
+    private final List<RosterEntry> savedRoster = new ArrayList<>();
 
     // ── 운영 방지 ─────────────────────────────────────────────
 
@@ -100,9 +103,10 @@ class SeedRunnerTest {
                 .extracting(Member::getRole)
                 .containsExactlyInAnyOrder(Role.PASTOR, Role.LEADER, Role.MEMBER);
 
-        // 바로 쓸 수 있어야 하므로 승인 상태다. PENDING이면 로그인해도 막힌다.
-        assertThat(saved)
-                .allSatisfy(m -> assertThat(m.getApprovedAt()).isNotNull());
+        // ★ 계정마다 명단 행이 함께 생긴다. 계정만 만들면 실제 가입으로는
+        //   도달할 수 없는 상태가 되어, 명단이 얽힌 기능을 개발할 수 없다.
+        assertThat(savedRoster).hasSize(3);
+        assertThat(saved).allSatisfy(m -> assertThat(m.getRosterEntry()).isNotNull());
     }
 
     @Test
@@ -118,14 +122,15 @@ class SeedRunnerTest {
     }
 
     @Test
-    @DisplayName("이메일이 실재하지 않는 TLD다 — 실수로 메일이 나가도 남에게 닿지 않는다")
-    void 이메일_도메인() {
+    @DisplayName("★ 명백히 가짜인 생년월일을 쓴다 — 실제 교인의 것과 겹치면 안 된다")
+    void 명단_값이_가짜다() {
         runner(new SeedProperties(true, "비밀번호1234!"), "local")
                 .run(new DefaultApplicationArguments());
 
-        assertThat(saved)
-                .extracting(Member::getEmail)
-                .allSatisfy(email -> assertThat(email).endsWith("@light.local"));
+        assertThat(savedRoster).allSatisfy(entry -> {
+            assertThat(entry.getBirthDate()).isEqualTo(java.time.LocalDate.of(1900, 1, 1));
+            assertThat(entry.getPhoneDisplay()).startsWith("010-0000-");
+        });
     }
 
     // ── 재실행 ────────────────────────────────────────────────
@@ -161,7 +166,7 @@ class SeedRunnerTest {
     private SeedRunner runner(SeedProperties properties, String... activeProfiles) {
         var environment = new MockEnvironment();
         environment.setActiveProfiles(activeProfiles);
-        return new SeedRunner(fakeRepository(), encoder, properties, environment);
+        return new SeedRunner(fakeRepository(), fakeRosterRepository(), encoder, properties, environment);
     }
 
     /**
@@ -171,12 +176,25 @@ class SeedRunnerTest {
      * 생성 규칙</b>을 보기 때문이다. 진짜 DB를 붙이면 프로필·트랜잭션 설정이
      * 얽혀 정작 보려는 것이 흐려진다.
      */
+    /** 저장만 기억하는 가짜 명단 리포지토리 */
+    private RosterEntryRepository fakeRosterRepository() {
+        RosterEntryRepository repository = mock(RosterEntryRepository.class);
+
+        when(repository.save(any(RosterEntry.class)))
+                .thenAnswer(call -> {
+                    RosterEntry entry = call.getArgument(0);
+                    savedRoster.add(entry);
+                    return entry;
+                });
+        return repository;
+    }
+
     private MemberRepository fakeRepository() {
         MemberRepository repository = mock(MemberRepository.class);
 
-        when(repository.existsByEmail(anyString()))
+        when(repository.existsByLoginId(anyString()))
                 .thenAnswer(call -> saved.stream()
-                        .anyMatch(m -> call.getArgument(0).equals(m.getEmail())));
+                        .anyMatch(m -> call.getArgument(0).equals(m.getLoginId())));
 
         when(repository.save(any(Member.class)))
                 .thenAnswer(call -> {

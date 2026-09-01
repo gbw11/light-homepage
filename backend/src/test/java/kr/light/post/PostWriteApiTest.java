@@ -62,7 +62,7 @@ class PostWriteApiTest {
         memberRepository.deleteAllInBatch();
 
         leader = memberRepository.saveAndFlush(Member.builder()
-                .name("박도연").email("leader@light.kr").role(Role.LEADER).build());
+                .name("박도연").loginId("leader").role(Role.LEADER).build());
     }
 
     // ── 작성 (§3.4) ───────────────────────────────────────────
@@ -247,7 +247,7 @@ class PostWriteApiTest {
         String id = createAndGetId(form("공지", PostCategory.NOTICE_PUBLIC, true));
 
         Member other = memberRepository.saveAndFlush(Member.builder()
-                .name("다른임원").email("other@light.kr").role(Role.LEADER).build());
+                .name("다른임원").loginId("other").role(Role.LEADER).build());
 
         mockMvc.perform(put("/api/posts/" + id).with(as(other))
                         .contentType(MediaType.APPLICATION_JSON)

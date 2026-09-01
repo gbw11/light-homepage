@@ -77,7 +77,6 @@ class PostWriteAuthorizationTest {
     static Stream<Arguments> roles() {
         return Stream.of(
                 arguments((Role) null,  401, "UNAUTHORIZED"),
-                arguments(Role.PENDING, 403, "PENDING_APPROVAL"),
                 arguments(Role.MEMBER,  403, "FORBIDDEN"),   // ★ 회원도 못 쓴다
                 arguments(Role.LEADER,  null, null),         // 통과
                 arguments(Role.PASTOR,  null, null)          // 계층상 통과
@@ -152,7 +151,7 @@ class PostWriteAuthorizationTest {
     private RequestPostProcessor as(Role role) {
         Member actor = memberRepository.saveAndFlush(Member.builder()
                 .name("작성자")
-                .email("writer-%s@light.kr".formatted(role.name().toLowerCase()))
+                .loginId("writer_%s".formatted(role.name().toLowerCase()))
                 .role(role)
                 .build());
 

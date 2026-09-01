@@ -21,9 +21,6 @@ public enum ErrorCode {
     /** 권한 부족 → FE는 접근 불가 안내 */
     FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다."),
 
-    /** 가입했으나 미승인 → FE는 어느 화면에 있든 /pending 으로 보낸다 */
-    PENDING_APPROVAL(HttpStatus.FORBIDDEN, "가입 승인 대기 중입니다."),
-
     /**
      * 없음 <b>또는 권한이 없어 숨김</b>.
      *

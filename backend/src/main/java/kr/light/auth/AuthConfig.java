@@ -16,6 +16,6 @@ import org.springframework.context.annotation.Configuration;
  * 두면 전체 컨텍스트에서만 로딩된다.
  */
 @Configuration
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class})
 public class AuthConfig {
 }
