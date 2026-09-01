@@ -12,7 +12,7 @@ import type {
   BulletinInput,
   BulletinSummary,
   Sermon,
-  CompleteProfileInput,
+  PasswordResetCode,
   Cursor,
   MeetingCreateInput,
   MeetingDetail,
@@ -34,7 +34,11 @@ import type {
   PostDetail,
   PostInput,
   PostSummary,
-  SignupInput,
+  RegisterInput,
+  RegisterResult,
+  ResetPasswordWithCodeInput,
+  VerifyRosterInput,
+  VerifyRosterResult,
 } from "@/types/api";
 
 /**
@@ -191,23 +195,25 @@ export type Api = {
     ): Promise<Page<MeetingView> & { totalViewers: number }>;
   };
   admin: {
-    /** SPEC_API §8.1 — 권한 **`T`** */
+    /** SPEC_API §8.1 — 권한 **`T`**. status 파라미터는 v1.3에서 폐기(PENDING 소멸) */
     members(params?: {
-      status?: "PENDING" | "ALL";
       q?: string;
       page?: number;
       size?: number;
     }): Promise<Page<AdminMember>>;
-    /** SPEC_API §8.2 — 권한 **`T`** */
-    approveMember(id: string): Promise<void>;
-    /** SPEC_API §8.3 — 권한 **`T`** */
-    rejectMember(id: string, input: { reason: string }): Promise<void>;
     /**
-     * SPEC_API §8.4 — 권한 **`T`**.
-     * ⚠️ 마지막 `PASTOR`를 강등하면 아무도 회원을 승인할 수 없게 되므로
+     * SPEC_API §8.2 — 권한 **`T`**. 계정 삭제 + 명단 재개방(선점 복구 절차).
+     * 사유 필수 → 감사로그.
+     */
+    deleteMember(id: string, input: { reason: string }): Promise<void>;
+    /**
+     * SPEC_API §8.3 — 권한 **`T`**.
+     * ⚠️ 마지막 `PASTOR`를 강등하면 회원 관리가 불가능해지므로
      *    서버가 `VALIDATION_ERROR`로 거부한다 (FR-ADM-05 자기 잠금 방지).
      */
     changeRole(id: string, input: { role: Role }): Promise<void>;
+    /** SPEC_API §8.4 — 권한 **`T`**. 리셋 코드 발급(1회용·30분), 감사로그 */
+    issuePasswordResetCode(id: string): Promise<PasswordResetCode>;
     /** SPEC_API §8.5 — 권한 `L`. 95% 도달 시 업로드 차단 */
     storage(): Promise<StorageUsage>;
     /** SPEC_API §8.6 — 권한 `L`. ⚠️ 개인정보, 보유기간 1년 */
@@ -281,16 +287,21 @@ export type Api = {
     downloadUrl(id: string, pageNo: number): string;
   };
   auth: {
-    signup(input: SignupInput): Promise<{ id: string; role: AuthUser["role"] }>;
+    /**
+     * SPEC_API §2.1 — 가입 1단계 명단 확인. 권한 `G`.
+     * ⚠️ 실패(불일치·명단 없음·이미 계정·rate limit)는 전부 UNAUTHORIZED 단일 문구 —
+     *    FE는 필드별 오류를 만들지 않는다. 동명이인 2건 이상만 VALIDATION_ERROR.
+     */
+    verifyRoster(input: VerifyRosterInput): Promise<VerifyRosterResult>;
+    /** SPEC_API §2.2 — 가입 2단계, 즉시 MEMBER. 토큰 만료·재사용은 UNAUTHORIZED */
+    register(input: RegisterInput): Promise<RegisterResult>;
+    /** SPEC_API §2.3 — loginId 기반. 5회 실패 잠금도 일반 실패와 동일 응답 */
     login(input: LoginInput): Promise<LoginResult>;
     logout(): Promise<void>;
     refresh(): Promise<{ refreshed: boolean }>;
     me(): Promise<AuthUser>;
-    completeProfile(
-      input: CompleteProfileInput,
-    ): Promise<{ profileComplete: boolean; role: AuthUser["role"] }>;
-    passwordResetRequest(input: { email: string }): Promise<void>;
-    passwordResetConfirm(input: { token: string; password: string }): Promise<void>;
+    /** SPEC_API §2.9 — 전도사가 발급한 리셋 코드로 재설정. 실패는 UNAUTHORIZED 단일 응답 */
+    resetPasswordWithCode(input: ResetPasswordWithCodeInput): Promise<void>;
     updateProfile(input: { phone: string }): Promise<AuthUser>;
     changePassword(input: { currentPassword: string; newPassword: string }): Promise<void>;
     deleteAccount(input: { password: string }): Promise<void>;

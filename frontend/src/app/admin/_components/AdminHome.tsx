@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Section } from "@/components/ui/Section";
-import { isPastor } from "@/components/auth/RequirePastor";
 import type { Role } from "@/types/api";
-import { PendingApprovalBanner } from "./PendingApprovalBanner";
 import { StorageGauge } from "./StorageGauge";
 
 /** WIREFRAME.md §15 — 역할 배지(`임원` / `전도사`)를 항상 표시한다 */
@@ -90,9 +88,6 @@ export function AdminHome() {
       </div>
 
       <div className="mt-8 space-y-8">
-        {/* 승인 대기 알림은 §8.1이 `T` 전용이라 전도사에게만 마운트한다 */}
-        {isPastor(user.role) && <PendingApprovalBanner />}
-
         <div className="rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-5">
           <h2 className="mb-3 text-sm font-bold text-[var(--color-gray-400)]">저장 공간</h2>
           <StorageGauge />
