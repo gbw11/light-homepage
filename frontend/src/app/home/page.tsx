@@ -168,7 +168,9 @@ export default function Home() {
       <Section title="최근 말씀">
         <RecentSermon />
 
-        <Link href="/sermons" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
+        {/* 라이브 우선 화면(`/sermons`)이 아니라 아카이브로 보낸다 — 이 링크를
+            누르는 사람은 "지난 것"을 찾고 있다 (PM 요청 2026-09-01) */}
+        <Link href="/sermons/all" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
           ▸ 지난 말씀 전체보기
         </Link>
       </Section>
