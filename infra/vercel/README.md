@@ -411,8 +411,23 @@ git diff --quiet HEAD^ HEAD -- .
   배포의 설정을 참조). 이 설정을 넣는 PR 자체가 frontend/를 바꾸므로 develop
   머지 시 자연히 충족됩니다
 - ⚠️ **평가 순서(deploymentEnabled vs author 체크)는 공식 문서에 명시가
-  없습니다.** 머지 후 BE 푸시 1건으로 실측하세요 — X가 여전히 뜨면
-  `DECISIONS.md` 2026-08-31의 "조건부 무시" 규칙이 폴백입니다
+  없습니다.** 머지 후 BE 푸시 1건으로 실측하세요
+
+> 🔴 **실측 (2026-09-01, `feat/be-contract-v13` head `6388cf6`)**: **X가 여전히
+> 떴습니다** (`Vercel: failure`). 단 원인은 평가 순서가 아니었습니다 —
+> **`git.deploymentEnabled`는 배포되는 그 브랜치의 `vercel.json`에서 읽습니다.**
+> `backend_develop`이 `develop`보다 7커밋 뒤처져 있어 BE 브랜치의
+> `frontend/vercel.json`에는 `ignoreCommand`밖에 없었고, 설정이 없으니 배포가
+> 그대로 시도돼 author 체크에서 막힌 것입니다.
+>
+> 즉 **②는 BE 브랜치에 설정이 내려간 뒤에야 효력이 있습니다.** 이 설정을
+> develop에 머지하는 것만으로는 부족하고, `develop → backend_develop` 동기화가
+> 반드시 선행돼야 합니다 (PR #123). "조건부 무시" 폴백은 **필요 없습니다** —
+> ②가 틀린 게 아니라 아직 도달하지 않았을 뿐입니다.
+>
+> 최종 실측은 동기화 뒤 BE 푸시 1건으로 다시 합니다. 확인 명령:
+> `gh api repos/gbw11/light-homepage/commits/<sha>/status --jq .statuses`
+> — `Vercel` context가 **아예 없어야** 통과입니다
 
 ### 남는 경우
 
