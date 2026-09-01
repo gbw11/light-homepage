@@ -116,60 +116,27 @@ export function Header() {
         사이트는 Hero가 사진이라 이 문제가 없다.
       */}
       <header className="sticky top-0 z-40 border-b border-white/15 bg-[var(--color-navy-900)] text-white">
-        <div className="mx-auto w-full max-w-[var(--container-max)] px-5">
-          {/* ── 1행: 워드마크 + 로그인 (모교회와 같은 배치) ───────────── */}
-          <div className="flex min-h-14 items-center justify-between gap-3">
-            <Link href="/" className="inline-flex min-h-11 items-center text-lg font-bold">
-              LIGHT
-            </Link>
+        {/*
+          **한 줄** 배치 (PM 요청 2026-09-01) — 워드마크 · 가로 메뉴 · 로그인이
+          같은 줄에 온다. 2행으로 나눴더니 헤더가 세로로 길어 본문을 밀어냈다.
 
-            <div className="flex items-center gap-1">
-              {/*
-                문의 진입점 (PM 결정 2026-08-25). `tel:`로 곧장 걸지 않고
-                `/contact`로 보낸다 — 데스크톱에는 전화 앱이 없어 `tel:`이
-                아무 반응도 없고 번호를 눈으로 볼 수도 없다.
-              */}
-              <Link
-                href="/contact"
-                aria-label={`문의 ${CHURCH_PHONE}`}
-                title="문의"
-                className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-xl transition hover:bg-white/10"
-              >
-                <span aria-hidden>☎</span>
-              </Link>
+          메뉴는 `flex-1`로 남는 폭을 먹고 오른쪽으로 붙는다 — 항목이 늘어도
+          워드마크·로그인을 밀지 않고 자기들끼리 좁아진다.
+        */}
+        <div className="mx-auto flex min-h-14 w-full max-w-[var(--container-max)] items-center gap-2 px-5">
+          <Link href="/" className="inline-flex min-h-11 shrink-0 items-center text-lg font-bold">
+            LIGHT
+          </Link>
 
-              <Link
-                href={signedIn ? "/my" : "/login"}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-button)] px-3 text-sm font-bold transition hover:bg-white/10"
-              >
-                <span aria-hidden>{signedIn ? "👤" : "🔒"}</span>
-                {signedIn ? "나의 LIGHT" : "로그인"}
-              </Link>
-
-              {/* 가로 메뉴가 있는 화면에서는 햄버거를 감춘다 */}
-              <button
-                ref={toggleRef}
-                type="button"
-                aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
-                aria-expanded={isMenuOpen}
-                aria-controls={MENU_ID}
-                className="flex min-h-11 min-w-11 items-center justify-center text-2xl lg:hidden"
-                onClick={() => setIsMenuOpen((open) => !open)}
-              >
-                {isMenuOpen ? "✕" : "☰"}
-              </button>
-            </div>
-          </div>
-
-          {/* ── 2행: 가로 메뉴 (데스크톱만) ─────────────────────────── */}
-          <nav aria-label="주요 메뉴" className="hidden lg:block">
-            <ul className="flex items-center justify-end gap-1 pb-1">
+          {/* ── 가로 메뉴 (데스크톱만) ─────────────────────────────── */}
+          <nav aria-label="주요 메뉴" className="hidden flex-1 lg:block">
+            <ul className="flex items-center justify-end">
               {MENU_LINKS.map((item) => (
                 <li key={item.href} className="group relative">
                   <Link
                     href={item.href}
                     aria-current={isActive(item.href) ? "page" : undefined}
-                    className={`inline-flex min-h-11 items-center border-b-2 px-4 text-sm font-bold transition ${
+                    className={`inline-flex min-h-11 items-center whitespace-nowrap border-b-2 px-3 text-sm font-bold transition ${
                       isActive(item.href)
                         ? "border-[var(--color-accent-on-dark)] text-[var(--color-accent-on-dark)]"
                         : "border-transparent hover:border-white/40"
@@ -189,7 +156,7 @@ export function Header() {
                         <li key={child.href}>
                           <Link
                             href={child.href}
-                            className="flex min-h-11 items-center px-4 text-sm transition hover:bg-white/10"
+                            className="flex min-h-11 items-center whitespace-nowrap px-4 text-sm transition hover:bg-white/10"
                           >
                             {child.label}
                           </Link>
@@ -209,13 +176,13 @@ export function Header() {
                 하위 항목은 `invisible`이라 탭 순서에서 빠져 있어서
                 **키보드로는 영영 열 수 없다** (NFR-A11Y-06).
               */}
-              <li className="group relative ml-2 border-l border-white/20 pl-2">
+              <li className="group relative ml-1 border-l border-white/20 pl-1">
                 <button
                   type="button"
                   aria-expanded={isResourceOpen}
                   aria-controls={RESOURCE_MENU_ID}
                   onClick={() => setIsResourceOpen((open) => !open)}
-                  className="inline-flex min-h-11 items-center px-4 text-sm font-bold text-white/80 transition hover:text-white"
+                  className="inline-flex min-h-11 items-center whitespace-nowrap px-3 text-sm font-bold text-white/80 transition hover:text-white"
                 >
                   자료 ▾
                 </button>
@@ -229,7 +196,7 @@ export function Header() {
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="flex min-h-11 items-center px-4 text-sm transition hover:bg-white/10"
+                        className="flex min-h-11 items-center whitespace-nowrap px-4 text-sm transition hover:bg-white/10"
                       >
                         🔒 {link.label}
                       </Link>
@@ -239,6 +206,44 @@ export function Header() {
               </li>
             </ul>
           </nav>
+
+          {/* ── 오른쪽 고정 항목 ───────────────────────────────────── */}
+          <div className="ml-auto flex shrink-0 items-center gap-1 lg:ml-2">
+            {/*
+              문의 진입점 (PM 결정 2026-08-25). `tel:`로 곧장 걸지 않고
+              `/contact`로 보낸다 — 데스크톱에는 전화 앱이 없어 `tel:`이
+              아무 반응도 없고 번호를 눈으로 볼 수도 없다.
+            */}
+            <Link
+              href="/contact"
+              aria-label={`문의 ${CHURCH_PHONE}`}
+              title="문의"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-xl transition hover:bg-white/10"
+            >
+              <span aria-hidden>☎</span>
+            </Link>
+
+            <Link
+              href={signedIn ? "/my" : "/login"}
+              className="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-button)] px-3 text-sm font-bold transition hover:bg-white/10"
+            >
+              <span aria-hidden>{signedIn ? "👤" : "🔒"}</span>
+              {signedIn ? "나의 LIGHT" : "로그인"}
+            </Link>
+
+            {/* 가로 메뉴가 있는 화면에서는 햄버거를 감춘다 */}
+            <button
+              ref={toggleRef}
+              type="button"
+              aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
+              aria-expanded={isMenuOpen}
+              aria-controls={MENU_ID}
+              className="flex min-h-11 min-w-11 items-center justify-center text-2xl lg:hidden"
+              onClick={() => setIsMenuOpen((open) => !open)}
+            >
+              {isMenuOpen ? "✕" : "☰"}
+            </button>
+          </div>
         </div>
       </header>
 
