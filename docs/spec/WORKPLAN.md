@@ -138,7 +138,8 @@ FE와 BE가 다른 언어라 **타입이 자동으로 공유되지 않는다.** 
 { "data": { "items": [], "page": 0, "hasNext": true } }
 ```
 - 에러 `code`는 **FE가 분기에 쓰는 값**이므로 문자열 집합을 미리 고정한다:
-  `UNAUTHORIZED · FORBIDDEN · NOT_FOUND · VALIDATION_ERROR · PENDING_APPROVAL · STORAGE_LIMIT · DUPLICATE`
+  `UNAUTHORIZED · FORBIDDEN · NOT_FOUND · VALIDATION_ERROR · STORAGE_LIMIT · DUPLICATE`
+  (+ `INTERNAL_ERROR` — 500 전용, FE는 분기하지 않는다. `PENDING_APPROVAL`은 v1.3에서 폐기)
 - 날짜는 전부 ISO-8601. `LocalDate`는 `"2026-08-24"`, 시각은 UTC + `Z`
 - **ID는 문자열로 직렬화**한다 (JS `Number` 정밀도 이슈 회피)
 - 파일 URL은 항상 presigned URL. FE는 R2 경로를 알지 못한다
