@@ -17,5 +17,14 @@ public enum AuditAction {
      */
     MEMBER_DELETE,
     /** 역할 부여·변경 */
-    ROLE_CHANGE
+    ROLE_CHANGE,
+
+    /**
+     * 비밀번호 리셋 코드 발급 (SPEC_API.md §8.4).
+     *
+     * <p>남의 비밀번호를 바꿀 수 있는 값을 사람에게 건네는 동작이다.
+     * 본인 확인의 근거가 시스템이 아니라 전도사의 판단이므로,
+     * <b>누가 누구에게 언제 발급했는지</b>가 유일한 기록이 된다.
+     */
+    PASSWORD_RESET_ISSUE
 }

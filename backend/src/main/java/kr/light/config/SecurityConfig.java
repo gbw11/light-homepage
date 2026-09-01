@@ -118,10 +118,9 @@ public class SecurityConfig {
             "/api/auth/register",
             "/api/auth/login",
             "/api/auth/refresh",
-            "/api/auth/logout"
-            // ⚠️ 비밀번호 재설정(§2.9 reset-with-code)은 아직 없다. 만들 때
-            //    여기에 추가해야 한다 — 비밀번호를 잊은 사람은 로그인할 수
-            //    없으므로 인증을 요구하면 모순이다.
+            "/api/auth/logout",
+            // 비밀번호를 잊은 사람은 로그인할 수 없다 — 인증을 요구하면 모순이다
+            "/api/auth/password/reset-with-code"
     };
 
     private final ObjectMapper objectMapper;

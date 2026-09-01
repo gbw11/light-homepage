@@ -112,6 +112,39 @@ public class MemberAdminController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "비밀번호 리셋 코드 발급",
+            description = """
+                    본인이 §2.9 `reset-with-code`로 새 비밀번호를 설정할 수 있는
+                    **1회용 · 30분** 코드를 발급합니다.
+
+                    ⚠️ **응답의 코드는 평문이고, 다시 볼 수 없습니다.** 서버는 해시만
+                    갖습니다 — 화면에서 옮겨 적어 전달하세요. 놓쳤다면 새로 발급하면
+                    되고, 그러면 이전 코드는 무효가 됩니다.
+
+                    ⚠️ **먼저 명단의 전화번호로 본인을 확인하세요.** 이메일을 수집하지
+                    않아 시스템이 본인 여부를 판단할 수 없습니다 — 확인의 근거는
+                    전도사님의 판단이고, 그래서 **발급이 감사로그에 남습니다.**
+
+                    카카오로 가입한 계정에는 발급할 수 없습니다(아이디가 없어 코드를
+                    쓸 수 없습니다). 카카오 로그인으로 안내해 주세요.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "발급 완료 — 평문 코드가 담긴 유일한 응답"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403", ref = "#/components/responses/FORBIDDEN"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404", ref = "#/components/responses/NOT_FOUND")
+    })
+    @PostMapping("/{id}/password/reset")
+    public ApiResponse<ResetCodeResponse> issueResetCode(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return ApiResponse.of(memberAdminService.issueResetCode(id, actor(principal), Instant.now()));
+    }
+
     @Operation(summary = "역할 변경",
             description = """
                     `MEMBER ↔ LEADER`만 가능합니다 (FR-ADM-04). 전도사 임명은 API로 열지 않습니다.

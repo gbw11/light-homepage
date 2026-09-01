@@ -46,6 +46,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final RosterRegistrationService registrationService;
+    private final PasswordResetService passwordResetService;
     private final JwtProperties jwtProperties;
 
     /**
@@ -182,6 +183,37 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, AuthCookies.expireAccess(secureCookie).toString())
                 .header(HttpHeaders.SET_COOKIE, AuthCookies.expireRefresh(secureCookie).toString())
                 .build();
+    }
+
+    @Operation(summary = "리셋 코드로 비밀번호 재설정",
+            description = """
+                    전도사에게 받은 **1회용 · 30분** 코드로 비밀번호를 바꿉니다.
+
+                    이메일을 수집하지 않으므로 자력 재설정 수단이 없습니다. 전도사가
+                    명단의 전화번호로 본인을 확인한 뒤 코드를 구두·문자로 전달합니다
+                    (§8.4). 카카오 가입자는 카카오 로그인으로 들어올 수 있습니다.
+
+                    코드는 **대소문자·하이픈을 가리지 않습니다** — 입으로 전달받아
+                    옮겨 적는 값이라 표기가 흔들리는 것이 정상입니다.
+
+                    ⚠️ **성공하면 그 회원의 모든 기기에서 로그아웃됩니다.** 재설정하는
+                    상황은 대개 계정이 남의 손에 있을지도 모른다는 뜻입니다.
+
+                    없는 아이디·틀린 코드·만료된 코드·이미 쓴 코드는 **전부 같은 401**입니다.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "204", description = "변경 완료 — 모든 기기 로그아웃됨"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
+    })
+    @PostMapping("/password/reset-with-code")
+    public ResponseEntity<Void> resetWithCode(@Valid @RequestBody ResetWithCodeRequest request) {
+        passwordResetService.resetWithCode(
+                request.loginId(), request.resetCode(), request.password(), Instant.now());
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "내 정보", description = "로그인이 필요합니다.")

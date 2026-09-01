@@ -6,6 +6,7 @@ import kr.light.common.AuditLogger;
 import kr.light.common.PageResponse;
 import kr.light.member.Member;
 import kr.light.member.MemberRepository;
+import kr.light.auth.PasswordResetService;
 import kr.light.roster.RosterEntry;
 import kr.light.roster.RosterEntryRepository;
 import kr.light.member.Role;
@@ -35,6 +36,7 @@ public class MemberAdminService {
 
     private final MemberRepository memberRepository;
     private final RosterEntryRepository rosterRepository;
+    private final PasswordResetService passwordResetService;
     private final AuditLogger auditLogger;
 
     /** SPEC_API.md §1.6 — 기본 20, 최대 100 */
@@ -98,6 +100,35 @@ public class MemberAdminService {
 
         rosterRepository.findByClaimedById(member.getId()).ifPresent(RosterEntry::release);
         memberRepository.delete(member);
+    }
+
+    // ── 비밀번호 리셋 코드 (§8.4) ──────────────────────────────
+
+    /**
+     * 리셋 코드 발급 (SPEC_API.md §8.4).
+     *
+     * <p>이메일을 수집하지 않으므로 자력 재설정 수단이 없다. 전도사가
+     * <b>명단의 전화번호로 본인을 확인한 뒤</b> 코드를 구두·문자로 전한다.
+     *
+     * <p><b>본인 확인의 근거가 시스템이 아니라 사람의 판단이다.</b> 그래서
+     * 발급 자체를 감사로그에 남긴다 — 남의 비밀번호를 바꿀 수 있는 값을
+     * 건네는 동작이고, 나중에 문제가 되면 이 기록이 유일한 근거다.
+     *
+     * <p>⚠️ 응답에 <b>평문 코드</b>가 담긴다. 서버는 해시만 갖고 있어 다시
+     * 알아낼 수 없다.
+     */
+    @Transactional
+    public ResetCodeResponse issueResetCode(Long memberId, Member actor, Instant now) {
+        Member member = find(memberId);
+
+        PasswordResetService.IssuedCode issued = passwordResetService.issue(member, now);
+
+        // ⚠️ 코드는 남기지 않는다. 로그에 남으면 그것을 읽을 수 있는 사람이
+        //    남의 비밀번호를 바꿀 수 있다 — 해시로 저장한 의미가 사라진다.
+        auditLogger.log(actor, AuditAction.PASSWORD_RESET_ISSUE, target(member),
+                "리셋 코드 발급 (만료 " + issued.expiresAt() + ")");
+
+        return ResetCodeResponse.of(issued);
     }
 
     // ── 역할 변경 ─────────────────────────────────────────────
