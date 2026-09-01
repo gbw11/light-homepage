@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -57,7 +58,7 @@ class PostApiTest {
         postRepository.deleteAllInBatch();
 
         author = Member.builder()
-                .email("author@light.kr")
+                .loginId("author")
                 .name("박도연")
                 .role(Role.LEADER)
                 .build();
@@ -189,11 +190,25 @@ class PostApiTest {
     }
 
     @Test
-    @DisplayName("비공개 분류를 비로그인으로 부르면 401 — 목록이 새지 않는다")
-    void 비공개_분류는_비로그인에게_401() throws Exception {
+    @DisplayName("예산안 목록을 비로그인으로 부르면 403 — 401이 아니다")
+    void 예산안_목록은_비로그인에게_403() throws Exception {
         savePost("예산안", null, false, hoursAgo(1), PostCategory.BUDGET);
 
+        // ★ 예산안은 "로그인하면 볼 수 있는 글"이 아니라 임원 전용이다.
+        //   401을 주면 FE가 로그인 화면으로 보내 있지도 않은 기대를 만든다.
+        //   분류의 존재 자체는 이미 공개된 정보라 403으로 충분하다 (§10 주의 2).
         mockMvc.perform(get("/api/posts").param("category", "BUDGET"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("회의록 목록을 비로그인으로 부르면 401 — 로그인하면 볼 수 있다")
+    void 회의록_목록은_비로그인에게_401() throws Exception {
+        savePost("회의록", null, false, hoursAgo(1), PostCategory.MINUTES);
+
+        mockMvc.perform(get("/api/posts").param("category", "MINUTES"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.data").doesNotExist());
@@ -251,14 +266,27 @@ class PostApiTest {
     }
 
     @Test
-    @DisplayName("비공개 글의 상세를 비로그인으로 부르면 401이고 제목이 새지 않는다")
-    void 비공개_상세() throws Exception {
+    @DisplayName("예산안 상세를 비로그인으로 부르면 404 — 존재 자체를 숨긴다")
+    void 예산안_상세는_존재를_숨긴다() throws Exception {
         Post budget = savePost("2026 예산안", null, false, hoursAgo(1), PostCategory.BUDGET);
 
         mockMvc.perform(get("/api/posts/" + budget.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("회의록 상세를 비로그인으로 부르면 401이고 제목이 새지 않는다")
+    void 회의록_상세() throws Exception {
+        Post minutes = savePost("8월 회의록", null, false, hoursAgo(1), PostCategory.MINUTES);
+
+        String body = mockMvc.perform(get("/api/posts/" + minutes.getId()))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"))
-                .andExpect(jsonPath("$.data").doesNotExist());
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(body).doesNotContain("8월 회의록");
     }
 
     @Test

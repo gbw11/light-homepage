@@ -48,28 +48,42 @@ public class PostQueryService {
     // ── 단일 관문 ──────────────────────────────────────────────
 
     /**
-     * 목록 조회 권한 (ARCHITECTURE.md §5.3 인가 매트릭스).
+     * 목록 조회 권한 (SPEC_API.md §10 인가 매트릭스).
      *
      * <table>
-     *   <tr><th>category</th><th>GUEST</th><th>PENDING</th><th>MEMBER</th><th>LEADER·PASTOR</th></tr>
-     *   <tr><td>NOTICE_PUBLIC</td><td>200</td><td>200</td><td>200</td><td>200</td></tr>
-     *   <tr><td>NOTICE_MEMBER</td><td>401</td><td>403</td><td>200</td><td>200</td></tr>
-     *   <tr><td>MINUTES·BUDGET</td><td>401</td><td>403</td><td>403</td><td>200</td></tr>
+     *   <tr><th>category</th><th>G</th><th>M</th><th>L·T</th></tr>
+     *   <tr><td>NOTICE_PUBLIC</td><td>200</td><td>200</td><td>200</td></tr>
+     *   <tr><td>NOTICE_MEMBER·MINUTES</td><td>401</td><td>200</td><td>200</td></tr>
+     *   <tr><td>BUDGET</td><td>403</td><td>403</td><td>200</td></tr>
      * </table>
+     *
+     * <p><b>비로그인은 401, 로그인했지만 역할이 모자라면 403</b>이다 (§10 주의 3).
+     * 익명은 "로그인하면 될 수도 있다"이고 회원은 "로그인해도 안 된다"라서,
+     * FE가 로그인 유도와 권한 없음 안내를 갈라 쓴다. 여기서 바꿔 쓰면
+     * <b>회원이 로그인 화면으로 튕긴다.</b>
+     *
+     * <p>⚠️ <b>예산안만 예외다.</b> 익명에게도 401이 아니라 403이다 (§10 주의 2) —
+     * "로그인하면 볼 수 있는 글"이 아니라 임원 전용이고, 401을 주면 로그인
+     * 화면으로 유도하게 되어 있지도 않은 기대를 만든다. 분류의 존재 자체는
+     * 이미 공개된 정보라 403으로 충분하다. (상세·첨부는 §10대로 404다 —
+     * {@link #assertVisible})
      *
      * @param role 비로그인이면 null
      */
     public void assertReadable(PostCategory category, Role role) {
         if (category == PostCategory.NOTICE_PUBLIC) {
-            return;     // 누구나 — 비로그인·미승인 포함
+            return;     // 누구나 — 비로그인 포함
+        }
+        if (category == PostCategory.BUDGET) {
+            // 익명·회원 모두 403. 로그인 유도를 하지 않는다 (§10 주의 2)
+            if (!canRead(category, role)) {
+                throw ApiException.forbidden();
+            }
+            return;
         }
         if (role == null) {
             // 로그인하면 볼 수 있을지도 모르므로 401이다. 403이 아니다.
             throw ApiException.unauthorized();
-        }
-        if (role == Role.PENDING) {
-            // FE는 이 코드를 보고 어느 화면에 있든 /pending으로 보낸다
-            throw ApiException.pendingApproval();
         }
         if (!canRead(category, role)) {
             throw ApiException.forbidden();
@@ -83,8 +97,9 @@ public class PostQueryService {
      * <b>404</b>를 준다. 403을 주면 "그 글이 있다"는 사실이 새어나가고, 예산안은
      * 그 사실 자체가 민감하다 (ARCHITECTURE.md §5.2).
      *
-     * <p>비로그인(401)과 미승인(403 PENDING_APPROVAL)은 그대로 둔다 — 매트릭스가
-     * 그렇게 정하고 있고, 둘 다 "이 글"에 대한 정보를 흘리지 않는다.
+     * <p>비로그인의 401은 그대로 둔다 — 매트릭스가 그렇게 정하고 있고,
+     * "이 글"에 대한 정보를 흘리지 않는다. 다만 예산안은 익명도 403으로
+     * 오므로 여기서 404가 되어 존재가 숨겨진다.
      */
     public void assertVisible(PostCategory category, Role role) {
         try {
@@ -97,12 +112,23 @@ public class PostQueryService {
         }
     }
 
-    /** 역할이 이 분류를 읽을 수 있는가 (PENDING·비로그인은 위에서 이미 걸러졌다) */
+    /**
+     * 역할이 이 분류를 읽을 수 있는가.
+     *
+     * <p>⚠️ <b>회의록은 {@code LEADER}가 아니라 {@code MEMBER}다</b> — v1.3에서
+     * 완화됐다 (§9-D 확정). 예산안만 임원 전용으로 남는다. 헌금·지출 내역이
+     * 담기기 때문이다.
+     *
+     * @param role 비로그인이면 null (예산안 경로에서만 여기까지 온다)
+     */
     private boolean canRead(PostCategory category, Role role) {
+        if (role == null) {
+            return category == PostCategory.NOTICE_PUBLIC;
+        }
         return switch (category) {
             case NOTICE_PUBLIC -> true;
-            case NOTICE_MEMBER -> role == Role.MEMBER || role == Role.LEADER || role == Role.PASTOR;
-            case MINUTES, BUDGET -> role == Role.LEADER || role == Role.PASTOR;
+            case NOTICE_MEMBER, MINUTES -> true;   // 로그인한 회원이면 누구나
+            case BUDGET -> role == Role.LEADER || role == Role.PASTOR;
         };
     }
 

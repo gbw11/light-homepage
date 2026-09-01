@@ -50,7 +50,7 @@ export function RecentSermon() {
           ▶ 영상 보기
         </div>
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element -- YouTube CDN 이미지 (SermonList와 같은 이유)
+        // eslint-disable-next-line @next/next/no-img-element -- YouTube CDN 이미지 (LiveSection과 같은 이유)
         <img
           src={sermon.thumbnailUrl}
           alt=""

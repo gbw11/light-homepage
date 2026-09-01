@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 const inputClass =
   "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]";
@@ -13,11 +14,17 @@ const inputClass =
 /** WIREFRAME.md §14 — ▸ 로그아웃 · ▸ 회원 탈퇴 */
 export function AccountActions() {
   const router = useRouter();
-  const { logout, refetch } = useAuth();
+  const { user, logout, refetch } = useAuth();
+
+  // 카카오 가입자는 비밀번호가 없다 (SPEC_API §2.6 — loginId가 null).
+  // 비밀번호를 요구하면 이 사람들은 탈퇴할 수단이 아예 없어진다. BE도 같은
+  // 이유로 body를 선택으로 뒀다 (2026-09-01 v1.3).
+  const needsPassword = user?.loginId != null;
 
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [confirm, confirmDialog] = useConfirm();
 
   const logoutMutation = useMutation({
     mutationFn: logout,
@@ -25,7 +32,7 @@ export function AccountActions() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (pw: string) => api.auth.deleteAccount({ password: pw }),
+    mutationFn: (pw: string | undefined) => api.auth.deleteAccount(pw ? { password: pw } : {}),
     onSuccess: () => {
       refetch();
       router.push("/");
@@ -35,21 +42,24 @@ export function AccountActions() {
     },
   });
 
-  function handleWithdraw() {
-    if (!password) {
+  async function handleWithdraw() {
+    if (needsPassword && !password) {
       setError("비밀번호를 입력해주세요.");
       return;
     }
-    const confirmed = window.confirm(
-      "정말 탈퇴하시겠습니까? 탈퇴 시 개인정보는 즉시 파기되며 되돌릴 수 없습니다.",
-    );
+    const confirmed = await confirm({
+      title: "정말 탈퇴하시겠습니까?",
+      description: "탈퇴 시 개인정보는 즉시 파기되며 되돌릴 수 없습니다.",
+      confirmLabel: "탈퇴",
+    });
     if (!confirmed) return;
     setError(null);
-    deleteMutation.mutate(password);
+    deleteMutation.mutate(needsPassword ? password : undefined);
   }
 
   return (
     <div className="space-y-6">
+      {confirmDialog}
       <div>
         <Button
           type="button"
@@ -84,20 +94,24 @@ export function AccountActions() {
               ▾ 회원 탈퇴
             </button>
             <p className="text-sm text-[var(--color-gray-400)]">
-              탈퇴 시 개인정보가 즉시 파기되며 되돌릴 수 없습니다. 확인을 위해
-              비밀번호를 입력해주세요.
+              탈퇴 시 개인정보가 즉시 파기되며 되돌릴 수 없습니다.
+              {needsPassword && " 확인을 위해 비밀번호를 입력해주세요."}
             </p>
-            <label htmlFor="withdraw-password" className="sr-only">
-              비밀번호
-            </label>
-            <input
-              id="withdraw-password"
-              type="password"
-              autoComplete="current-password"
-              className={inputClass}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            {needsPassword && (
+              <>
+                <label htmlFor="withdraw-password" className="sr-only">
+                  비밀번호
+                </label>
+                <input
+                  id="withdraw-password"
+                  type="password"
+                  autoComplete="current-password"
+                  className={inputClass}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </>
+            )}
             {error && <p role="alert" className="text-sm text-[var(--color-red-500)]">{error}</p>}
             <button
               type="button"

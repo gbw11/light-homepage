@@ -17,20 +17,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
- * 인가 매트릭스 — 게시물 (ARCHITECTURE.md §5.3).
+ * 인가 매트릭스 — 게시물 (SPEC_API.md §10).
  *
  * <p><b>이 프로젝트에는 RLS가 없다. 이 테스트가 마지막 방어선이다.</b>
  * Jenkinsfile이 {@code --tests "*Authorization*"}으로 이 클래스를 따로 먼저
  * 돌린다 — <b>클래스 이름에서 {@code Authorization}을 빼면 CI가 찾지 못한다.</b>
  *
  * <p>여기서는 단일 관문({@link PostQueryService#assertReadable} ·
- * {@link PostQueryService#assertVisible})을 직접 검증한다. 컨트롤러를 태우는
- * 검증은 {@link PostApiTest}에 있는데, 인증 수단이 M2라 지금 HTTP로는 GUEST 행밖에
- * 만들 수 없다. 반면 관문은 역할을 인자로 받으므로 <b>표 전체를 지금 덮을 수 있다</b>
- * — M2에서 JWT가 붙어도 이 표는 그대로 유효하다.
+ * {@link PostQueryService#assertVisible})을 <b>직접</b> 검증한다 — 규칙 자체가
+ * 맞는지를 본다.
  *
- * <p>기대값은 ARCHITECTURE.md §5.3 · SPEC_API.md §10의 표를 그대로 옮긴 것이다.
- * 표가 바뀌면 여기도 함께 바꾼다.
+ * <p>⚠️ <b>이 테스트만으로는 부족하다.</b> 컨트롤러가 이 관문을 실제로 부르는지는
+ * 여기서 알 수 없다 — 호출을 빼도 전부 통과한다. HTTP로 관통하는 검증은
+ * {@link PostReadAuthorizationTest}에 있다. 둘은 같이 봐야 한다.
+ *
+ * <p>기대값은 SPEC_API.md §10의 표를 그대로 옮긴 것이다. 표가 바뀌면 여기도
+ * 함께 바꾼다 — 어긋나면 잘못된 기준으로 "통과"하게 된다.
  */
 class PostAuthorizationTest {
 
@@ -46,30 +48,29 @@ class PostAuthorizationTest {
      */
     static Stream<Arguments> listMatrix() {
         return Stream.of(
-                // category,                          role,         기대 에러 (null이면 200)
-                arguments(PostCategory.NOTICE_PUBLIC, null,         null),
-                arguments(PostCategory.NOTICE_PUBLIC, Role.PENDING, null),
-                arguments(PostCategory.NOTICE_PUBLIC, Role.MEMBER,  null),
-                arguments(PostCategory.NOTICE_PUBLIC, Role.LEADER,  null),
-                arguments(PostCategory.NOTICE_PUBLIC, Role.PASTOR,  null),
+                // category,                          role,        기대 에러 (null이면 200)
+                arguments(PostCategory.NOTICE_PUBLIC, null,        null),
+                arguments(PostCategory.NOTICE_PUBLIC, Role.MEMBER, null),
+                arguments(PostCategory.NOTICE_PUBLIC, Role.LEADER, null),
+                arguments(PostCategory.NOTICE_PUBLIC, Role.PASTOR, null),
 
-                arguments(PostCategory.NOTICE_MEMBER, null,         ErrorCode.UNAUTHORIZED),
-                arguments(PostCategory.NOTICE_MEMBER, Role.PENDING, ErrorCode.PENDING_APPROVAL),
-                arguments(PostCategory.NOTICE_MEMBER, Role.MEMBER,  null),
-                arguments(PostCategory.NOTICE_MEMBER, Role.LEADER,  null),
-                arguments(PostCategory.NOTICE_MEMBER, Role.PASTOR,  null),
+                arguments(PostCategory.NOTICE_MEMBER, null,        ErrorCode.UNAUTHORIZED),
+                arguments(PostCategory.NOTICE_MEMBER, Role.MEMBER, null),
+                arguments(PostCategory.NOTICE_MEMBER, Role.LEADER, null),
+                arguments(PostCategory.NOTICE_MEMBER, Role.PASTOR, null),
 
-                arguments(PostCategory.MINUTES,       null,         ErrorCode.UNAUTHORIZED),
-                arguments(PostCategory.MINUTES,       Role.PENDING, ErrorCode.PENDING_APPROVAL),
-                arguments(PostCategory.MINUTES,       Role.MEMBER,  ErrorCode.FORBIDDEN),
-                arguments(PostCategory.MINUTES,       Role.LEADER,  null),
-                arguments(PostCategory.MINUTES,       Role.PASTOR,  null),
+                // ★ 회의록은 v1.3에서 L → M으로 완화됐다 (§9-D)
+                arguments(PostCategory.MINUTES,       null,        ErrorCode.UNAUTHORIZED),
+                arguments(PostCategory.MINUTES,       Role.MEMBER, null),
+                arguments(PostCategory.MINUTES,       Role.LEADER, null),
+                arguments(PostCategory.MINUTES,       Role.PASTOR, null),
 
-                arguments(PostCategory.BUDGET,        null,         ErrorCode.UNAUTHORIZED),
-                arguments(PostCategory.BUDGET,        Role.PENDING, ErrorCode.PENDING_APPROVAL),
-                arguments(PostCategory.BUDGET,        Role.MEMBER,  ErrorCode.FORBIDDEN),
-                arguments(PostCategory.BUDGET,        Role.LEADER,  null),
-                arguments(PostCategory.BUDGET,        Role.PASTOR,  null)
+                // ★ 예산안 목록의 비로그인은 401이 아니라 403이다 (§10 주의 2) —
+                //   "로그인하면 볼 수 있는 글"이 아니라서 로그인 유도를 하지 않는다
+                arguments(PostCategory.BUDGET,        null,        ErrorCode.FORBIDDEN),
+                arguments(PostCategory.BUDGET,        Role.MEMBER, ErrorCode.FORBIDDEN),
+                arguments(PostCategory.BUDGET,        Role.LEADER, null),
+                arguments(PostCategory.BUDGET,        Role.PASTOR, null)
         );
     }
 
@@ -97,11 +98,12 @@ class PostAuthorizationTest {
      */
     static Stream<Arguments> budgetDetailMatrix() {
         return Stream.of(
-                arguments(null,         ErrorCode.UNAUTHORIZED),
-                arguments(Role.PENDING, ErrorCode.PENDING_APPROVAL),
-                arguments(Role.MEMBER,  ErrorCode.NOT_FOUND),
-                arguments(Role.LEADER,  null),
-                arguments(Role.PASTOR,  null)
+                // ★ 비로그인도 404다 — 목록의 403이 상세에서 404로 바뀐다.
+                //   401을 주면 "로그인하면 보이나?"라는 기대를 만든다 (§10 주의 2)
+                arguments(null,        ErrorCode.NOT_FOUND),
+                arguments(Role.MEMBER, ErrorCode.NOT_FOUND),
+                arguments(Role.LEADER, null),
+                arguments(Role.PASTOR, null)
         );
     }
 
@@ -120,21 +122,22 @@ class PostAuthorizationTest {
     }
 
     @Test
-    @DisplayName("상세에서 역할부족만 404로 바뀐다 — 401·PENDING_APPROVAL은 그대로")
+    @DisplayName("상세에서 역할부족만 404로 바뀐다 — 401은 그대로")
     void 상세는_역할부족만_404로_바꾼다() {
         // 목록에서는 403
-        assertThatThrownBy(() -> service.assertReadable(PostCategory.MINUTES, Role.MEMBER))
+        assertThatThrownBy(() -> service.assertReadable(PostCategory.BUDGET, Role.MEMBER))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).code())
                 .isEqualTo(ErrorCode.FORBIDDEN);
 
         // 상세에서는 404 — 존재를 숨긴다
-        assertThatThrownBy(() -> service.assertVisible(PostCategory.MINUTES, Role.MEMBER))
+        assertThatThrownBy(() -> service.assertVisible(PostCategory.BUDGET, Role.MEMBER))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).code())
                 .isEqualTo(ErrorCode.NOT_FOUND);
 
-        // 비로그인은 401 그대로 — 로그인하면 볼 수 있을지도 모르기 때문
+        // 회의록의 비로그인은 401 그대로 — 로그인하면 볼 수 있기 때문이다.
+        // 예산안과 갈리는 지점이다 (§10 주의 1·2)
         assertThatThrownBy(() -> service.assertVisible(PostCategory.MINUTES, null))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).code())

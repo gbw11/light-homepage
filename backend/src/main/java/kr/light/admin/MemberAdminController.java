@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -53,7 +54,9 @@ public class MemberAdminController {
                     `status=PENDING`이면 승인 대기만, `ALL`이면 전체입니다. `q`는 이름 부분 검색이고
                     대소문자를 구분하지 않습니다. 정렬은 가입일 최신순입니다.
 
-                    ⚠️ 응답에 이메일·연락처가 들어갑니다. 명단 자체가 개인정보입니다.
+                    ⚠️ 응답에 아이디·연락처가 들어갑니다. 명단 자체가 개인정보입니다.
+
+                    ~~`status` 파라미터~~ 는 v1.3에서 폐기됐습니다 — 승인 절차가 없어 목록은 하나뿐입니다.
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -65,9 +68,6 @@ public class MemberAdminController {
     })
     @GetMapping
     public ApiResponse<PageResponse<MemberSummaryResponse>> list(
-            @Parameter(description = "PENDING | ALL. 기본 PENDING")
-            @RequestParam(required = false, defaultValue = "PENDING") String status,
-
             @Parameter(description = "이름 부분 검색")
             @RequestParam(required = false) String q,
 
@@ -75,22 +75,28 @@ public class MemberAdminController {
             @RequestParam(required = false) Integer size
     ) {
         return ApiResponse.of(memberAdminService.list(
-                !"ALL".equalsIgnoreCase(status),
                 q,
                 MemberAdminService.normalizePage(page),
                 MemberAdminService.normalizeSize(size)));
     }
 
-    @Operation(summary = "가입 승인",
+    @Operation(summary = "계정 삭제 + 명단 재개방",
             description = """
-                    `role`을 `MEMBER`로 올리고 승인자·승인시각을 기록합니다. 감사로그가 남고
-                    본인에게 안내 메일이 갑니다(발송부는 미구현).
+                    ⚠️ **회원 행을 삭제하고 명단을 다시 엽니다** (SPEC_API §8.2).
 
-                    이미 승인된 회원에게 다시 호출하면 `VALIDATION_ERROR`입니다.
+                    **선점 복구 절차의 핵심입니다.** 진짜 본인이 가입하려는데
+                    "명단에서 확인되지 않습니다"가 뜨면, 누군가 그 명단 행으로 이미
+                    계정을 만든 것입니다 — §2.1은 그 사실을 알려주지 않으므로 본인은
+                    이유를 알 수 없습니다. 명단의 전화번호로 본인을 확인한 뒤 이 API로
+                    계정을 지우면 본인이 다시 가입할 수 있습니다.
+
+                    **삭제 사유가 유일한 기록으로 감사로그에 남습니다.**
+
+                    자기 계정은 삭제할 수 없습니다.
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "204", description = "승인 완료"),
+                    responseCode = "204", description = "삭제 완료 — 명단이 다시 열림"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -98,26 +104,33 @@ public class MemberAdminController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404", ref = "#/components/responses/NOT_FOUND")
     })
-    @PostMapping("/{id}/approve")
-    public ResponseEntity<Void> approve(@PathVariable Long id,
-                                        @AuthenticationPrincipal AuthPrincipal principal) {
-        memberAdminService.approve(id, actor(principal), Instant.now());
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id,
+                                       @Valid @RequestBody DeleteMemberRequest request,
+                                       @AuthenticationPrincipal AuthPrincipal principal) {
+        memberAdminService.delete(id, actor(principal), request.reason());
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "가입 거절",
+    @Operation(summary = "비밀번호 리셋 코드 발급",
             description = """
-                    ⚠️ **회원 행을 삭제합니다.** 스키마에 "거절됨" 상태가 없고, 거절된 사람의
-                    개인정보를 보관할 이유가 없기 때문입니다.
+                    본인이 §2.9 `reset-with-code`로 새 비밀번호를 설정할 수 있는
+                    **1회용 · 30분** 코드를 발급합니다.
 
-                    **거절 사유가 유일한 기록으로 감사로그에 남습니다.**
+                    ⚠️ **응답의 코드는 평문이고, 다시 볼 수 없습니다.** 서버는 해시만
+                    갖습니다 — 화면에서 옮겨 적어 전달하세요. 놓쳤다면 새로 발급하면
+                    되고, 그러면 이전 코드는 무효가 됩니다.
 
-                    승인 대기 상태가 아닌 회원은 거절할 수 없습니다 — 활동 중인 회원을 지우는 것은
-                    탈퇴(§2.13)의 몫입니다.
+                    ⚠️ **먼저 명단의 전화번호로 본인을 확인하세요.** 이메일을 수집하지
+                    않아 시스템이 본인 여부를 판단할 수 없습니다 — 확인의 근거는
+                    전도사님의 판단이고, 그래서 **발급이 감사로그에 남습니다.**
+
+                    카카오로 가입한 계정에는 발급할 수 없습니다(아이디가 없어 코드를
+                    쓸 수 없습니다). 카카오 로그인으로 안내해 주세요.
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "204", description = "거절 완료 — 회원 행 삭제됨"),
+                    responseCode = "200", description = "발급 완료 — 평문 코드가 담긴 유일한 응답"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -125,12 +138,11 @@ public class MemberAdminController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404", ref = "#/components/responses/NOT_FOUND")
     })
-    @PostMapping("/{id}/reject")
-    public ResponseEntity<Void> reject(@PathVariable Long id,
-                                       @Valid @RequestBody RejectRequest request,
-                                       @AuthenticationPrincipal AuthPrincipal principal) {
-        memberAdminService.reject(id, actor(principal), request.reason());
-        return ResponseEntity.noContent().build();
+    @PostMapping("/{id}/password/reset")
+    public ApiResponse<ResetCodeResponse> issueResetCode(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return ApiResponse.of(memberAdminService.issueResetCode(id, actor(principal), Instant.now()));
     }
 
     @Operation(summary = "역할 변경",

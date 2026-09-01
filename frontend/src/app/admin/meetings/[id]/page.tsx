@@ -5,7 +5,7 @@ import { MeetingAdminPanel } from "./_components/MeetingAdminPanel";
 export const metadata: Metadata = {
   // 제목을 정적으로 둔다 — `generateMetadata`에서 조회하면 월례회 자료 제목이
   // 권한 판단 전에 서버에서 렌더된다 (`/documents/[slug]`와 같은 판단)
-  title: "월례회 자료 관리 | LIGHT",
+  title: "월례회 자료 관리",
   robots: { index: false, follow: false },
 };
 

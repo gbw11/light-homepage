@@ -40,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p><b>왜 테스트용 컨트롤러를 따로 두는가.</b> 지금 실제 보호 엔드포인트는
  * {@code GET /api/auth/me} 하나뿐이라, 실제 컨트롤러만으로는 역할별 표를
  * 만들 수 없다. 그런데 검증해야 하는 것은 개별 엔드포인트가 아니라
- * <b>메서드 보안 설정 자체</b>다 — 계층이 걸렸는지, PENDING이 차단되는지,
+ * <b>메서드 보안 설정 자체</b>다 — 계층이 걸렸는지,
  * 거부될 때 어떤 에러 코드가 나가는지. 그 설정이 깨지면 앞으로 추가될
  * 모든 회원 API가 한꺼번에 뚫린다.
  *
@@ -102,26 +102,21 @@ class MethodSecurityAuthorizationTest {
         return Stream.of(
                 // 경로,             역할,          기대 상태, 기대 에러코드
                 arguments("/probe/authenticated", null,         401, "UNAUTHORIZED"),
-                arguments("/probe/authenticated", Role.PENDING, 200, null),
                 arguments("/probe/authenticated", Role.MEMBER,  200, null),
                 arguments("/probe/authenticated", Role.LEADER,  200, null),
                 arguments("/probe/authenticated", Role.PASTOR,  200, null),
 
                 arguments("/probe/member", null,         401, "UNAUTHORIZED"),
-                // ★ 미승인은 FORBIDDEN이 아니라 PENDING_APPROVAL이다 (SPEC_API.md §12.3)
-                arguments("/probe/member", Role.PENDING, 403, "PENDING_APPROVAL"),
                 arguments("/probe/member", Role.MEMBER,  200, null),
                 arguments("/probe/member", Role.LEADER,  200, null),   // 계층
                 arguments("/probe/member", Role.PASTOR,  200, null),   // 계층
 
                 arguments("/probe/leader", null,         401, "UNAUTHORIZED"),
-                arguments("/probe/leader", Role.PENDING, 403, "PENDING_APPROVAL"),
                 arguments("/probe/leader", Role.MEMBER,  403, "FORBIDDEN"),
                 arguments("/probe/leader", Role.LEADER,  200, null),
                 arguments("/probe/leader", Role.PASTOR,  200, null),   // 계층
 
                 arguments("/probe/pastor", null,         401, "UNAUTHORIZED"),
-                arguments("/probe/pastor", Role.PENDING, 403, "PENDING_APPROVAL"),
                 arguments("/probe/pastor", Role.MEMBER,  403, "FORBIDDEN"),
                 arguments("/probe/pastor", Role.LEADER,  403, "FORBIDDEN"),
                 arguments("/probe/pastor", Role.PASTOR,  200, null)
@@ -156,13 +151,19 @@ class MethodSecurityAuthorizationTest {
     }
 
     @Test
-    @DisplayName("★ 승인 대기 회원은 FORBIDDEN이 아니라 PENDING_APPROVAL을 받는다")
-    void 미승인은_pending_approval() throws Exception {
-        // FORBIDDEN을 주면 FE가 "권한 없음"만 띄우고, 미승인 회원은 자기가
-        // 승인을 기다리는 중이라는 사실을 알 방법이 없다 (SPEC_API.md §12.3).
-        mockMvc.perform(get("/probe/member").with(as(Role.PENDING)))
+    @DisplayName("★ 권한 부족의 두 경로가 같은 코드를 낸다")
+    void 두_경로가_같은_코드를_낸다() throws Exception {
+        // 같은 "권한 부족"이 두 곳에서 나간다 — @PreAuthorize가 던지면
+        // GlobalExceptionHandler, 경로 규칙에서 걸리면 SecurityConfig의
+        // AccessDeniedHandler다. 두 곳이 다른 코드를 내면 FE는 같은 상황에서
+        // 다른 화면을 띄운다. 실제로 어긋난 적이 있어 여기서 고정한다.
+        mockMvc.perform(get("/probe/leader").with(as(Role.MEMBER)))   // @PreAuthorize 경로
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("PENDING_APPROVAL"));
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+
+        mockMvc.perform(get("/api/admin/members").with(as(Role.MEMBER)))   // 실제 보호 경로
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
     }
 
     // ── 보조 ──────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { SiteRails } from "@/components/layout/SiteRails";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
@@ -36,8 +37,8 @@ export const metadata: Metadata = {
  */
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f1e4" },
-    { media: "(prefers-color-scheme: dark)", color: "#1c1a15" },
+    { media: "(prefers-color-scheme: light)", color: "#e5e0d8" },
+    { media: "(prefers-color-scheme: dark)", color: "#1f1a12" },
   ],
 };
 
@@ -85,6 +86,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <AuthProvider>
             <ServiceWorkerRegistrar />
             <Header />
+            <SiteRails />
             {children}
             <SiteFooter />
             <InstallBanner />

@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import kr.light.common.ApiResponse;
+import kr.light.common.ClientAddress;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -62,7 +63,7 @@ public class NewcomerController {
             HttpServletRequest httpRequest
     ) {
         Optional<NewcomerRequest> saved =
-                newcomerService.register(request, clientIp(httpRequest), Instant.now());
+                newcomerService.register(request, ClientAddress.of(httpRequest), Instant.now());
 
         // 봇에게는 본문을 주지 않는다. 성공과 구분되는 단서를 남기지 않기 위해
         // 에러도 아니다 (SPEC_API.md §9.1).
@@ -72,23 +73,4 @@ public class NewcomerController {
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
-    /**
-     * 요청자 IP.
-     *
-     * <p>Render가 앞단에서 프록시하므로 {@code getRemoteAddr()}는 프록시 주소다.
-     * {@code X-Forwarded-For}의 <b>맨 앞</b> 값이 원래 클라이언트다.
-     *
-     * <p>⚠️ <b>이 헤더는 위조할 수 있다.</b> 마음먹은 공격자는 매 요청 다른 값을
-     * 넣어 제한을 우회한다. 그래도 쓰는 이유는, 이 제한의 목적이 "작정한 공격
-     * 차단"이 아니라 "무심코 여러 번 누르는 것과 단순 봇을 걸러내는 것"이기
-     * 때문이다. 더 강한 방어가 필요해지면 CAPTCHA나 프록시 단 제한으로 올린다.
-     */
-    private String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        String remote = request.getRemoteAddr();
-        return remote != null ? remote : "unknown";
-    }
 }
