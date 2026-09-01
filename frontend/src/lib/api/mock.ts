@@ -25,6 +25,7 @@ import type {
   NewcomerRecord,
   Photo,
   Role,
+  LiveStream,
   Sermon,
   StorageUsage,
   UploadCommitResult,
@@ -629,38 +630,85 @@ function bulletinOf(entry: (typeof BULLETIN_DATES)[number]): Bulletin {
  * 상태 3가지가 모두 필요하다 — 화면이 SCHEDULED/OPEN/CLOSED를 다르게 보여야 한다.
  */
 /**
- * mock 설교 목록 — 8편(12개 페이지 크기보다 적어 `hasNext: false`가 되므로,
- * "더 보기"를 눌러볼 수 있게 **14편**을 둔다).
- * 날짜는 주일(일요일) 기준으로 역순.
+ * mock 설교 목록 — **실제 채널(`@light4402`)의 라이브 다시보기 14편**이다.
+ *
+ * ⚠️ 예전에는 존재하지 않는 영상 id(`mock-sermon-1` …)를 썼다. "썸네일 로드
+ * 실패를 화면이 처리하는지 보려는 것"이 의도였지만, 실제로는 **배포된 mock
+ * 빌드에서 썸네일이 한 장도 안 뜨는** 결과가 됐다 — 실패 처리를 확인하는
+ * 대가로 정상 화면을 한 번도 못 보는 셈이었다.
+ *
+ * 그래서 뒤집었다: **기본은 실제 id로 정상 썸네일을 보여주고**, 실패 처리는
+ * `?mock=broken-thumb` 시나리오로 확인한다. 이러면 둘 다 볼 수 있다.
+ *
+ * id·제목은 2026-09-01에 채널에서 직접 옮겼다. 실백엔드가 붙으면 이 배열은
+ * 쓰이지 않는다.
  */
-const MOCK_SERMONS: Sermon[] = [
-  "오늘, 다시 시작하는 믿음",
-  "은혜 위에 서다",
-  "함께 걷는 믿음의 길",
-  "소망을 심는 사람",
-  "작은 자를 세우시는 하나님",
-  "다시 사랑으로",
-  "광야에서 배우는 것",
-  "기다림의 훈련",
-  "네 이웃을 네 몸같이",
-  "말씀 앞에 서는 아침",
-  "두려움을 지나서",
-  "함께 지는 짐",
-  "감사의 자리",
-  "빛으로 부르심",
-].map((title, i) => {
-  // 2026-08-17(월)에서 매주 일요일로 거슬러 올라간다
-  const base = new Date("2026-08-16T05:00:00Z");
-  base.setUTCDate(base.getUTCDate() - i * 7);
-  return {
-    id: `mock-sermon-${i + 1}`,
-    title,
-    publishedAt: base.toISOString(),
-    youtubeUrl: "https://www.youtube.com/@light4402",
-    // 실제로 존재하지 않는 영상 id — 썸네일은 뜨지 않는다 (위 주석 참고)
-    thumbnailUrl: `https://i.ytimg.com/vi/mock-sermon-${i + 1}/hqdefault.jpg`,
-  };
-});
+const REAL_STREAMS: { id: string; title: string; date: string }[] = [
+  { id: "SaVEqB82v7Y", title: "하나님께 소망을 두고 있나요?", date: "2026-08-30" },
+  { id: "aUMMywF--Q4", title: "세상을 비추는 빛", date: "2026-08-23" },
+  { id: "85AkOKXSOe0", title: "빛나는 우리", date: "2026-08-16" },
+  { id: "vARqPGsmDOc", title: "무너지는 나라", date: "2026-08-09" },
+  { id: "TVoF19cUTPU", title: "주의 장막으로", date: "2026-08-02" },
+  { id: "_Sr0mFypnj4", title: "주의 장막으로", date: "2026-07-19" },
+  { id: "E57K1MhP4Y0", title: "사람을 향하신 주님", date: "2026-07-12" },
+  { id: "8XyoMFMtIGE", title: "주께로 향하는 길", date: "2026-07-05" },
+  { id: "s904Rs0EYHc", title: "하나님의 형상", date: "2026-06-28" },
+  { id: "Mi92dcuXLr0", title: "함께 지어져", date: "2026-06-14" },
+  { id: "qxcRYK_uKvA", title: "사랑", date: "2026-05-31" },
+  { id: "U7LyLiAUjTU", title: "나와 함께", date: "2026-05-24" },
+  { id: "xB_2qjbsiIg", title: "내 길을 즐거워할지어다", date: "2026-05-10" },
+  { id: "Nv74ikPD22k", title: "아이처럼", date: "2026-05-02" },
+];
+
+const MOCK_SERMONS: Sermon[] = REAL_STREAMS.map(({ id, title, date }) => ({
+  id,
+  title,
+  // 주일 14:00 KST = 05:00 UTC
+  publishedAt: `${date}T05:00:00Z`,
+  youtubeUrl: `https://www.youtube.com/watch?v=${id}`,
+  thumbnailUrl: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+}));
+
+/**
+ * 목록의 실제 출처.
+ *
+ * 하드코딩(`MOCK_SERMONS`)은 **2026-09-01의 스냅샷**이라 새 설교가 올라와도
+ * 갱신되지 않는다. 그래서 먼저 우리 서버 라우트(`/sermons/feed` — 채널 RSS를
+ * 읽는다)에 물어보고, **실패하면 스냅샷으로 내려앉는다**.
+ *
+ * 이 폴백이 중요하다: 오프라인·YouTube 장애·정적 export 어디서든 화면이
+ * 비지 않는다. mock의 목적은 "백엔드 없이도 화면이 돈다"이므로 네트워크에
+ * 의존하는 경로를 **필수로 만들면 안 된다.**
+ *
+ * 한 번 성공하면 세션 동안 재사용한다 — 목록 조회가 페이지마다 일어나는데
+ * 매번 RSS를 다시 읽을 이유가 없다 (서버 쪽도 30분 캐시다).
+ */
+let sermonCache: Sermon[] | null = null;
+
+async function sermonSource(): Promise<Sermon[]> {
+  if (sermonCache) return sermonCache;
+  if (typeof window === "undefined") return MOCK_SERMONS;
+
+  try {
+    const res = await fetch("/sermons/feed");
+    if (res.ok) {
+      const { items } = (await res.json()) as { items: Sermon[] };
+      if (items.length > 0) {
+        sermonCache = items;
+        return items;
+      }
+    }
+  } catch {
+    // 폴백으로 넘어간다 — 화면에 에러를 띄울 일이 아니다
+  }
+
+  /*
+    ⚠️ 폴백은 **캐시하지 않는다.** 캐시하면 한 번의 일시적 실패가 세션 내내
+    옛 스냅샷을 고정한다 (YouTube가 서버 요청에 간헐적 404를 준다 —
+    `app/sermons/feed/route.ts` 주석). 다음 조회에서 다시 시도하게 둔다.
+  */
+  return MOCK_SERMONS;
+}
 
 const MEETINGS: MeetingSummary[] = [
   {
@@ -2104,18 +2152,59 @@ export const mockApi: Api = {
      * mock 설교 목록. 화면에 있던 더미 배열을 여기로 옮겼다 — 화면이 자기
      * 데이터를 들고 있으면 API가 붙는 날 화면도 같이 고쳐야 한다.
      *
-     * ⚠️ `thumbnailUrl`은 **실제 YouTube CDN 주소가 아니다.** 존재하지 않는
-     * 영상 id로 만든 주소라 이미지가 뜨지 않는다 — 화면이 썸네일 로드 실패를
-     * 처리해야 한다는 뜻이고, 그게 의도다. 가짜 이미지를 넣으면 실서비스에서
-     * 깨질 자리를 mock이 가려준다.
+     * `?mock=broken-thumb` — 썸네일 URL을 존재하지 않는 id로 바꾼다.
+     * 화면의 로드 실패 처리(`▶ 영상 보기` 자리표시자)를 확인하는 시나리오다.
      */
     async list({ page = 0, size = 12 } = {}): Promise<Page<Sermon>> {
       await delay();
       throwIfScenario();
 
-      const all: Sermon[] = scenario() === "empty" ? [] : MOCK_SERMONS;
+      const base = scenario() === "empty" ? [] : await sermonSource();
+      const all: Sermon[] =
+        scenario() === "broken-thumb"
+          ? base.map((s) => ({
+              ...s,
+              thumbnailUrl: "https://i.ytimg.com/vi/does-not-exist/hqdefault.jpg",
+            }))
+          : base;
       const items = all.slice(page * size, (page + 1) * size);
       return { items, page, size, hasNext: (page + 1) * size < all.length };
+    },
+
+    /**
+     * 진행 중인 라이브 (SPEC_API §4.2 신설).
+     *
+     * 실제 판정은 백엔드가 YouTube Data API로 한다. mock은 **시계로 흉내낸다**
+     * — 주일 청년예배 시간대(일요일 13:45~16:00 KST)면 방송 중으로 친다.
+     * 그래야 "일요일에 저절로 뜬다"는 동작을 실제 시간에 맞춰 확인할 수 있다.
+     *
+     * 다른 요일에도 화면을 보려면 `?mock=live`(방송 중) ·
+     * `?mock=no-live`(방송 없음)로 강제한다.
+     */
+    async live(): Promise<LiveStream | null> {
+      await delay();
+      throwIfScenario();
+
+      if (scenario() === "no-live") return null;
+
+      const now = new Date();
+      // KST = UTC+9. 서버 시간대에 의존하지 않으려고 UTC로 계산한다
+      const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+      const isSunday = kst.getUTCDay() === 0;
+      const minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+      const inWindow = minutes >= 13 * 60 + 45 && minutes < 16 * 60;
+
+      if (scenario() !== "live" && !(isSunday && inWindow)) return null;
+
+      // 방송 중일 때 보여줄 영상 — 가장 최근 예배 영상을 라이브인 것처럼 쓴다
+      const [latest] = await sermonSource();
+      return {
+        videoId: latest.id,
+        title: `${kst.getUTCFullYear()}년 ${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 주일 청년예배`,
+        startedAt: new Date(now.getTime() - 10 * 60 * 1000).toISOString(),
+        watchUrl: latest.youtubeUrl,
+        thumbnailUrl: latest.thumbnailUrl,
+      };
     },
   },
   bulletins: {
@@ -2447,11 +2536,12 @@ export const mockApi: Api = {
       passwords.set(current.loginId, input.newPassword);
     },
 
-    async deleteAccount(input: { password: string }): Promise<void> {
+    async deleteAccount(input: { password?: string }): Promise<void> {
       await delay();
       throwIfScenario();
       const current = requireSession();
-      if (!current.loginId || input.password !== passwordOf(current.loginId)) {
+      // 카카오 가입자는 비밀번호가 없다 — 로그인 세션 자체가 본인 확인이다.
+      if (current.loginId && input.password !== passwordOf(current.loginId)) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
           message: "비밀번호가 일치하지 않습니다.",

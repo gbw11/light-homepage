@@ -8,9 +8,31 @@ package kr.light.common;
  */
 public enum AuditAction {
     /** 회원 승인 — PENDING → MEMBER */
-    MEMBER_APPROVE,
     /** 회원 가입 거절 */
-    MEMBER_REJECT,
+    /**
+     * 계정 삭제 + 명단 재개방 (SPEC_API.md §8.2).
+     *
+     * <p>선점 복구 절차의 기록이다 — 회원 행이 사라지므로 <b>사유가 담긴
+     * 이 로그가 유일한 기록</b>이다.
+     */
+    MEMBER_DELETE,
     /** 역할 부여·변경 */
-    ROLE_CHANGE
+    ROLE_CHANGE,
+
+    /**
+     * 비밀번호 리셋 코드 발급 (SPEC_API.md §8.4).
+     *
+     * <p>남의 비밀번호를 바꿀 수 있는 값을 사람에게 건네는 동작이다.
+     * 본인 확인의 근거가 시스템이 아니라 전도사의 판단이므로,
+     * <b>누가 누구에게 언제 발급했는지</b>가 유일한 기록이 된다.
+     */
+    PASSWORD_RESET_ISSUE,
+
+    /**
+     * 본인 탈퇴 (SPEC_API.md §2.12).
+     *
+     * <p>회원 행이 사라지므로 actor는 {@code ON DELETE SET NULL}로 null이
+     * 된다. 그래도 대상과 시각은 남아 "언제 누가 나갔는지"를 알 수 있다.
+     */
+    MEMBER_WITHDRAW
 }

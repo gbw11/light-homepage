@@ -7,6 +7,7 @@ import { api, isApiError } from "@/lib/api";
 import { BULLETIN_MAX_EDGE, ResizeError, resizeToWebp } from "@/lib/image/resize";
 import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { PageOrderList } from "./PageOrderList";
 import { move, nextPageId, type PendingPage } from "./pages";
 
@@ -38,6 +39,7 @@ export function BulletinUploadForm() {
   const [pages, setPages] = useState<PendingPage[]>([]);
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [error, setError] = useState<string | null>(null);
+  const [confirm, confirmDialog] = useConfirm();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const dateId = useId();
   const queryClient = useQueryClient();
@@ -161,9 +163,11 @@ export function BulletinUploadForm() {
 
   /** DUPLICATE → 확인 → 기존 주보 삭제 → 재업로드 */
   async function replaceExisting(converted: Blob[]) {
-    const ok = window.confirm(
-      `${serviceDate} 주보가 이미 있습니다. 기존 주보를 지우고 새로 올릴까요?\n\n지운 주보는 되돌릴 수 없습니다.`,
-    );
+    const ok = await confirm({
+      title: `${serviceDate} 주보가 이미 있습니다. 기존 주보를 지우고 새로 올릴까요?`,
+      description: "지운 주보는 되돌릴 수 없습니다.",
+      confirmLabel: "교체",
+    });
     if (!ok) {
       setPhase({ kind: "idle" });
       setError("같은 날짜의 주보가 이미 있습니다. 날짜를 바꾸거나 교체를 선택해주세요.");
@@ -203,6 +207,7 @@ export function BulletinUploadForm() {
 
   return (
     <Section>
+      {confirmDialog}
       <Link
         href="/bulletin"
         className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--color-gray-400)] hover:underline"

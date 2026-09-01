@@ -11,6 +11,7 @@ import type {
   Bulletin,
   BulletinInput,
   BulletinSummary,
+  LiveStream,
   Sermon,
   PasswordResetCode,
   Cursor,
@@ -248,6 +249,17 @@ export type Api = {
      * 클라이언트에 실을 수 없다). 응답을 서버에서 캐시해두면 쿼터도 아낀다.
      */
     list(params?: { page?: number; size?: number }): Promise<Page<Sermon>>;
+    /**
+     * ⚠️ **[CONTRACT] 스펙에 없는 신규 엔드포인트다** — 백엔드 합의 필요.
+     *
+     * 제안: `GET /api/sermons/live` · 권한 `G`(누구나).
+     * 진행 중인 라이브가 있으면 `LiveStream`, 없으면 **`null`**.
+     *
+     * 주일 청년예배가 일요일 13:45 무렵 올라온다. 화면은 60초마다 다시
+     * 물어보므로(`LiveSection`) **캐시를 걸더라도 60초를 넘기지 않아야**
+     * 방송 시작이 화면에 늦게 반영되지 않는다.
+     */
+    live(): Promise<LiveStream | null>;
   };
   bulletins: {
     /** SPEC_API §5.1 — 최신 주보. **없으면 null** */
@@ -304,6 +316,11 @@ export type Api = {
     resetPasswordWithCode(input: ResetPasswordWithCodeInput): Promise<void>;
     updateProfile(input: { phone: string }): Promise<AuthUser>;
     changePassword(input: { currentPassword: string; newPassword: string }): Promise<void>;
-    deleteAccount(input: { password: string }): Promise<void>;
+    /**
+     * SPEC_API §2.13 — 탈퇴. `password`는 **비밀번호가 있는 계정에만** 보낸다.
+     * 카카오 가입자(`loginId === null`)는 확인할 비밀번호가 없어, 필수로 두면
+     * 영원히 탈퇴할 수 없다 — BE도 `@RequestBody(required = false)`다.
+     */
+    deleteAccount(input: { password?: string }): Promise<void>;
   };
 };

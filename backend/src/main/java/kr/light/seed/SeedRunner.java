@@ -1,8 +1,11 @@
 package kr.light.seed;
 
+import kr.light.common.PhoneNumbers;
 import kr.light.member.Member;
 import kr.light.member.MemberRepository;
 import kr.light.member.Role;
+import kr.light.roster.RosterEntry;
+import kr.light.roster.RosterEntryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -14,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -51,6 +55,7 @@ import java.util.List;
 public class SeedRunner implements ApplicationRunner {
 
     private final MemberRepository memberRepository;
+    private final RosterEntryRepository rosterRepository;
     private final PasswordEncoder passwordEncoder;
     private final SeedProperties properties;
     private final Environment environment;
@@ -58,14 +63,21 @@ public class SeedRunner implements ApplicationRunner {
     /**
      * 만들 계정.
      *
-     * <p>이메일은 {@code @light.local} — 실재하지 않는 TLD라 실수로 메일이
-     * 나가도 어디에도 닿지 않는다. 실제 도메인을 쓰면 개발 중 알림 메일이
-     * 남의 주소로 갈 수 있다.
+     * <p>⚠️ <b>명단 행도 함께 만든다.</b> v1.3에서 계정은 "명단에서 확인된
+     * 사람"을 뜻하므로, 명단 없이 계정만 만들면 실제 가입으로는 도달할 수 없는
+     * 상태가 된다 — 그런 시드로 개발하면 §8.2 계정 삭제·명단 재개방 같은
+     * 기능이 손에 잡히지 않는다.
+     *
+     * <p>생년월일·전화번호는 명백히 가짜인 값을 쓴다. 진짜처럼 보이는 값을
+     * 넣으면 실제 교인의 것과 겹칠 수 있다.
      */
+    /** 명백히 가짜인 값. 실제 교인의 생일과 겹치지 않게 한다 */
+    private static final LocalDate SEED_BIRTH_DATE = LocalDate.of(1900, 1, 1);
+
     private static final List<SeedAccount> ACCOUNTS = List.of(
-            new SeedAccount("시드전도사", "pastor@light.local", Role.PASTOR, "1"),
-            new SeedAccount("시드임원", "leader@light.local", Role.LEADER, "2"),
-            new SeedAccount("시드회원", "member@light.local", Role.MEMBER, "3")
+            new SeedAccount("시드전도사", "pastor", Role.PASTOR, "1", "010-0000-0001"),
+            new SeedAccount("시드임원", "leader", Role.LEADER, "2", "010-0000-0002"),
+            new SeedAccount("시드회원", "member", Role.MEMBER, "3", "010-0000-0003")
     );
 
     @Override
@@ -80,7 +92,7 @@ public class SeedRunner implements ApplicationRunner {
 
         List<String> created = ACCOUNTS.stream()
                 .filter(this::createIfAbsent)
-                .map(SeedAccount::email)
+                .map(SeedAccount::loginId)
                 .toList();
 
         if (created.isEmpty()) {
@@ -95,43 +107,51 @@ public class SeedRunner implements ApplicationRunner {
     /**
      * 이미 있으면 만들지 않는다.
      *
-     * <p>앱을 재시작할 때마다 중복 생성되면 이메일 unique 제약에 걸려 기동이
-     * 실패한다. 그리고 <b>이미 있는 계정의 비밀번호를 덮지도 않는다</b> —
-     * 개발자가 바꿔둔 값을 되돌리면 혼란스럽다.
+     * <p>앱을 재시작할 때마다 중복 생성되면 unique 제약에 걸려 기동이 실패한다.
+     * 그리고 <b>이미 있는 계정의 비밀번호를 덮지도 않는다</b> — 개발자가
+     * 바꿔둔 값을 되돌리면 혼란스럽다.
      *
      * @return 새로 만들었으면 true
      */
     private boolean createIfAbsent(SeedAccount account) {
-        if (memberRepository.existsByEmail(account.email())) {
+        if (memberRepository.existsByLoginId(account.loginId())) {
             return false;
         }
-        Member member = Member.signUpWithEmail(
-                account.name(),
-                account.email(),
-                passwordEncoder.encode(properties.password()),
-                "010-0000-0000",
-                account.village());
 
-        // 가입은 PENDING으로 시작한다. 시드는 바로 쓸 수 있어야 하므로
-        // 승인 상태까지 만들어 준다 — 승인자는 없다(시스템이 만든 계정).
-        if (account.role() != Role.PENDING) {
+        RosterEntry roster = rosterRepository.save(RosterEntry.builder()
+                .name(account.name())
+                .birthDate(SEED_BIRTH_DATE)
+                .phoneNormalized(PhoneNumbers.normalize(account.phone()))
+                .phoneDisplay(account.phone())
+                .village(account.village())
+                .active(true)
+                .build());
+
+        Member member = Member.registerFromRoster(
+                roster, account.loginId(), passwordEncoder.encode(properties.password()));
+
+        // 가입은 MEMBER로 시작한다. 임원·전도사 시드는 여기서 올린다.
+        if (account.role() != Role.MEMBER) {
             promote(member, account.role());
         }
         memberRepository.save(member);
+        roster.claimBy(member, Instant.now());
         return true;
     }
 
     /**
      * 시드 계정을 목표 역할까지 올린다.
      *
-     * <p>{@code Member.approve()}는 승인자를 요구하고 {@code changeRole()}은
-     * {@code MEMBER ↔ LEADER}만 허용한다 — 둘 다 <b>사람이 하는 동작</b>의
-     * 규칙이다. 시드는 그 규칙의 대상이 아니므로 여기서만 리플렉션으로
-     * 직접 심는다. 도메인 규칙을 시드 때문에 느슨하게 만들지 않기 위해서다.
+     * <p>{@code changeRole()}은 {@code MEMBER ↔ LEADER}만 허용한다 —
+     * <b>사람이 하는 동작</b>의 규칙이고, PASTOR를 API로 열지 않기 위한 것이다.
+     * 시드는 그 규칙의 대상이 아니므로 여기서만 리플렉션으로 직접 심는다.
+     * 도메인 규칙을 시드 때문에 느슨하게 만들지 않기 위해서다.
+     *
+     * <p>★ 최초 전도사는 이 경로로만 만들 수 있다 — API에는 PASTOR를 주는
+     * 방법이 없다.
      */
     private void promote(Member member, Role role) {
         setField(member, "role", role);
-        setField(member, "approvedAt", Instant.now());
     }
 
     private void setField(Object target, String name, Object value) {
@@ -170,12 +190,12 @@ public class SeedRunner implements ApplicationRunner {
                       seed:
                         enabled: true
                         password: <원하는 비밀번호>
-                  계정: pastor@light.local · leader@light.local · member@light.local""",
+                  아이디: pastor · leader · member""",
                 properties.enabled(),
                 properties.password() == null || properties.password().isBlank() ? "없음" : "있음");
     }
 
     /** @param village 마을은 서로 다르게 둔다 — 마을별 화면을 확인할 수 있게 */
-    private record SeedAccount(String name, String email, Role role, String village) {
+    private record SeedAccount(String name, String loginId, Role role, String village, String phone) {
     }
 }

@@ -30,6 +30,182 @@
 
 ---
 
+## 2026-09-01 — 🔴 [CONTRACT] 신규 엔드포인트 요청: `GET /api/sermons/live`
+
+**상태**: FE 구현 완료(mock). **BE 구현이 있어야 실제로 동작합니다.**
+
+`/sermons`(말씀) 화면을 PM 요청으로 다시 만들었습니다. **주일 청년예배가
+일요일 13:45 무렵 YouTube 라이브로 올라오면 그 화면이 자동으로 라이브로
+바뀌어야** 합니다. 그 판정을 FE가 할 수 없어 요청드립니다.
+
+### 왜 FE가 못 하나
+
+YouTube Data API 키를 클라이언트에 실을 수 없고, 브라우저에서 채널 페이지를
+긁는 것도 CORS로 막힙니다. 기존 `GET /api/sermons`(설교 목록)를 백엔드가
+프록시하기로 한 것과 **같은 이유**입니다.
+
+### 요청 계약
+
+```
+GET /api/sermons/live      권한 G (누구나)
+```
+
+**방송 중일 때 (200)**
+
+```jsonc
+{
+  "data": {
+    "videoId":      "SaVEqB82v7Y",                                  // 11자 YouTube 영상 id
+    "title":        "2026년 9월 7일 주일 청년예배",
+    "startedAt":    "2026-09-07T04:45:00Z",                         // ISO-8601 UTC, 실제 시작 시각
+    "watchUrl":     "https://www.youtube.com/watch?v=SaVEqB82v7Y",
+    "thumbnailUrl": "https://i.ytimg.com/vi/SaVEqB82v7Y/hqdefault.jpg"
+  }
+}
+```
+
+**방송 중이 아닐 때 (200)** — `{ "data": null }`
+
+⚠️ **`null`로 주세요.** 빈 객체나 `live: false` 플래그를 쓰면 화면 분기가
+둘로 갈립니다. 404도 쓰지 마세요 — "방송이 없다"는 정상 상태이지 오류가
+아닙니다.
+
+### 구현할 때 주의점 3가지
+
+1. **캐시 TTL은 60초를 넘기지 마세요.** 화면이 60초마다 다시 물어봅니다
+   (`LiveSection.tsx` `LIVE_POLL_MS`). TTL이 그보다 길면 방송이 시작돼도
+   화면이 그만큼 늦게 바뀝니다. **쿼터 때문에 캐시는 필요하지만 60초가 상한**입니다
+2. **YouTube Data API 쿼터** — `search.list`는 호출당 100유닛이라 일일 1만
+   유닛을 금방 씁니다. 채널의 업로드/라이브를 확인할 때는 쿼터가 싼 경로를
+   쓰시고(예: `videos.list`에 `id` 지정 = 1유닛), 서버 캐시로 외부 호출 수를
+   줄여주세요. 판단은 BE에 맡깁니다
+3. **일요일에만 켜지는 것이 아닙니다** — 특별집회 등 다른 요일 방송도 그대로
+   떠야 합니다. **요일로 필터링하지 마세요.** "지금 라이브인가"만 보면 됩니다
+
+### 채널 정보
+
+- `@light4402` — 김해교회 청년교회 LIGHT (구독자 236명 · 영상 210개)
+- 주일 예배는 "라이브" 탭에 쌓입니다 (예: `2026년 8월 30일 l 하나님께 소망을 두고 있나요? l [김해교회 LIGHT청년교회]`)
+
+### 기존 `GET /api/sermons`도 확인 부탁드립니다
+
+FE mock을 **실제 채널 영상 14편의 진짜 id**로 교체했습니다(이전에는 존재하지
+않는 id를 써서 썸네일이 한 장도 안 떴습니다). 실제 응답의 `thumbnailUrl`도
+`https://i.ytimg.com/vi/<videoId>/hqdefault.jpg` 형태면 그대로 뜹니다.
+
+또한 화면이 두 개로 나뉘었습니다 (PM 요청 2026-09-01):
+
+| 화면 | 쓰는 방식 |
+|---|---|
+| `/sermons` (라이브 우선) | `?page=0&size=4` |
+| `/sermons/all` (지난 말씀) | `size=12`로 페이지네이션 (한 행 4개 × 3줄) |
+
+**페이지네이션 계약은 그대로 씁니다** — 서버는 바꿀 것이 없습니다.
+
+### ⚠️ 그때까지 FE가 임시로 채널 RSS를 읽고 있습니다
+
+BE의 `GET /api/sermons`가 없는 동안 목록이 하드코딩 스냅샷이라 새 설교가
+올라와도 갱신되지 않았습니다. 그래서 **Next 서버 라우트
+`GET /sermons/feed`**를 만들어 채널 공개 RSS
+(`youtube.com/feeds/videos.xml?channel_id=UCiG_caE3_ZPu2y04ei_mC7Q`)를
+서버에서 읽고 있습니다.
+
+- **API 키가 필요 없고 쿼터도 없습니다** — 그래서 키 발급을 요청드리지 않았습니다
+- 최신 **15편**이 상한입니다. 그 이상은 "유튜브로 바로가기"가 담당합니다
+- 제목이 날짜로 시작하는 것만 설교로 골라냅니다
+  (`2026년 8월 30일 l … l [김해교회 LIGHT청년교회]`) — 브이로그·찬양 커버 제외
+- `/api/` **밖**에 뒀습니다. `next.config.ts`가 `/api/:path*`를 Spring으로
+  rewrite하기 때문입니다
+
+**BE 엔드포인트가 붙고 `NEXT_PUBLIC_USE_MOCK=0`이 되면 이 라우트는 쓰이지
+않습니다** — 파일째 지우면 됩니다. 화면은 계약(`api.sermons.list`)만 알고
+있어서 영향받지 않습니다.
+
+👉 **BE가 목록을 만들 때 15편 상한을 넘기실 수 있다면** 그게 더 좋습니다.
+그러면 `/sermons/all`이 실제로 210편을 다 넘겨볼 수 있게 됩니다. 다만
+YouTube Data API 쿼터(`search.list` 100 units/회)를 감안해 판단해 주세요 —
+FE는 어느 쪽이든 그대로 동작합니다.
+
+---
+
+## 2026-09-01 — PR #136 FE 대조 완료 — **확인 요청 2건**, FE 수정 1건은 끝냈습니다
+
+**상태**: `feebf0e`(backend_develop)의 인증 v1.3 구현을 FE와 항목별로 대조했습니다.
+**엔드포인트 12개가 1:1로 일치**하고, 폐기 엔드포인트·`PENDING` 잔재는 FE에
+0건입니다. FE가 선행하며 세운 가정 4건이 전부 구현과 같았습니다 — 다시 맞출
+것이 없습니다. 감사합니다.
+
+### 확인 요청 ① `MeResponse.phone`이 정말 null이 될 수 있습니까
+
+BE는 `@Schema(nullable = true)`로 선언했는데, 가입은 반드시 `verify-roster`를
+거치고 전화번호는 명단 행에서 가져오므로 FE는 **항상 채워진다**고 보고
+`AuthUser.phone: string`(non-null)으로 두고 있습니다.
+
+- 실제로 null이 나올 수 있는 경로가 있으면 알려주세요 → FE를 `string | null`로
+  바꾸고 `/my/profile`에 빈 값 표시를 넣겠습니다
+- 나올 수 없다면 `nullable = true`를 떼 주세요 — 스키마를 기계로 읽는 쪽에서
+  FE 타입과 어긋납니다
+
+### 확인 요청 ② `auth/SignupRequest.java`가 남아 있습니다
+
+`AuthController`에 `/signup` 매핑이 없으니 죽은 코드로 보입니다. 여기에만
+`@Size(min = 8, max = 72)`가 남아 있어, 나중에 읽는 사람이 이걸 현행 규칙으로
+오해할 수 있습니다 (실제 규칙은 `RegisterRequest`의 바이트 검사입니다).
+`PENDING_APPROVAL` $ref 잔재를 잡으신 것과 같은 부류라 함께 올립니다.
+
+### FE에서 고친 것 (BE 조치 불필요, 참고용)
+
+1. **카카오 가입자 탈퇴 경로** — FE가 탈퇴 시 비밀번호를 무조건 요구하고 있어서
+   `loginId === null`인 계정은 탈퇴할 수단이 없었습니다. BE가 `required = false`로
+   열어 두신 의도대로 FE도 분기하게 고쳤습니다.
+2. **비밀번호 상한을 바이트로** — FE에 상한이 없어 한글 25자 이상이면 클라이언트
+   검증을 통과한 뒤 서버만 거절했습니다. BCrypt 72바이트 기준으로 맞췄습니다
+   (실서버 확인에서 잡으신 500 건과 짝이 되는 FE 쪽 조치입니다).
+
+### 절차 하나만
+
+PR #136은 `INTEGRATION.md §5.1` 비호환 변경이라 **FE 승인 후 머지** 대상이었는데
+승인 전에 `backend_develop`으로 들어갔습니다. `develop`에는 아직 안 올라가
+Render 배포와 `DELETE FROM members`는 실행되지 않았으니 지금 문제는 없습니다.
+
+다음부터 §5.1 게이트를 `backend_develop` 머지 시점으로 볼지, `develop` 머지
+시점으로 볼지만 맞춰 두면 좋겠습니다. FE 대조는 위와 같이 끝났으니 **이번
+건은 그대로 두셔도 됩니다** — `backend_develop → develop` PR을 올려 주세요.
+
+---
+
+## 2026-09-01 — 🔴 Vercel X를 없애려면 **`backend_develop` 동기화가 먼저**입니다 (PR #123)
+
+**상태**: 실측으로 원인 규명 완료. **백엔드에 요청 1건 있습니다.**
+
+오늘 `feat/be-contract-v13`(head `6388cf6`)의 커밋 상태를 확인했더니
+**`Vercel: failure`가 그대로 떴습니다.** 아래 항목에서 "다음 푸시부터 안 뜬다"고
+안내한 것이 아직 사실이 아닙니다.
+
+**원인**: `git.deploymentEnabled`는 **배포되는 그 브랜치의 `frontend/vercel.json`**
+에서 읽힙니다. `backend_develop`이 `develop`보다 7커밋 뒤처져 있어, 거기서 갈라진
+BE 브랜치에는 그 설정이 아직 없습니다.
+
+| 브랜치 | `frontend/vercel.json` |
+|---|---|
+| `develop` | `ignoreCommand` + `git.deploymentEnabled` |
+| `feat/be-contract-v13` | `ignoreCommand` **만** |
+
+**요청**:
+
+1. **PR #123 (`develop → backend_develop`) 머지** — 충돌 없음(7커밋). 내려가는
+   것은 `vercel.json` 2건·Actions 트리거 수정(#109)·스펙 3종 v1.3·문서이고
+   **BE 코드에는 손대지 않습니다**
+2. 이미 갈라져 나온 `feat/be-contract-v13`은 머지 후 **`backend_develop`을 다시
+   머지**해야 새 `vercel.json`을 받습니다
+3. 그 뒤 첫 푸시에서 Vercel 체크가 **아예 안 생기는지** 알려주세요. 그게 최종
+   실측입니다
+
+그때까지는 BE 브랜치의 Vercel X를 무시하셔도 됩니다 (`DECISIONS.md` 2026-08-31
+"조건부 무시" 항목의 조건 그대로).
+
+---
+
 ## 2026-08-31 — (정정) BE 브랜치에서 Vercel 체크가 **아예 안 뜨게** 바꿨습니다
 
 **상태**: 설정 적용, develop 머지 후 실측 대기. 아래 항목 1의 정정입니다.

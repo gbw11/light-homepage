@@ -152,7 +152,7 @@ public class OpenApiConfig {
         body.put("code", code.name());
         body.put("message", code.defaultMessage());
         // field는 VALIDATION_ERROR에서만 값이 들어간다 (SPEC_API.md §1.3)
-        body.put("field", code == ErrorCode.VALIDATION_ERROR ? "email" : null);
+        body.put("field", code == ErrorCode.VALIDATION_ERROR ? "loginId" : null);
         return body;
     }
 }
