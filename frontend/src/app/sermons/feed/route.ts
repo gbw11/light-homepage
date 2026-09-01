@@ -108,15 +108,63 @@ function parseFeed(xml: string): Sermon[] {
   return sermons.sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
 }
 
-export async function GET() {
-  try {
-    const res = await fetch(FEED_URL, { next: { revalidate } });
-    if (!res.ok) {
-      // 원인을 삼키지 않는다 — 호출부가 하드코딩 목록으로 넘어갈 판단을 한다
-      return Response.json({ items: [], error: `feed ${res.status}` }, { status: 502 });
+/**
+ * 마지막으로 성공한 목록.
+ *
+ * 배포 후 실측에서 **YouTube가 서버 요청에 간헐적으로 404를 준다.** 로컬
+ * curl은 항상 200이라 IP 기반(데이터센터 대역) 제한으로 보인다. 한 번
+ * 실패했다고 빈 목록을 주면 화면이 하드코딩 스냅샷으로 내려앉는데, 그
+ * 스냅샷은 갱신되지 않는 옛 목록이다.
+ *
+ * 그래서 **직전 성공분을 들고 있다가 실패하면 그걸 준다.** 서버리스 인스턴스가
+ * 재사용되는 동안만 유지되지만, 산발적 404를 덮기에는 그것으로 충분하다.
+ * (완전한 해결은 BE의 `GET /api/sermons`다 — 이 라우트는 그때 지운다.)
+ */
+let lastGood: Sermon[] | null = null;
+
+/**
+ * 한 번 실패하면 한 번 더 시도한다.
+ *
+ * ⚠️ `next: { revalidate }`를 쓰지 않는다. Next의 Data Cache는 **실패 응답도
+ * 캐시한다** — 404 한 번이 30분 동안 굳어버린다. 캐시는 이 라우트의
+ * `export const revalidate`(응답 단위)가 담당하고, 업스트림 호출은
+ * `no-store`로 매번 새로 한다.
+ *
+ * User-Agent를 붙이는 이유: 기본값이 비어 있으면 거절하는 엔드포인트가 있다.
+ * 로컬 실측에서는 UA와 무관하게 200이었지만, 붙여서 손해 볼 것이 없다.
+ */
+async function fetchFeed(): Promise<Sermon[] | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(FEED_URL, {
+        cache: "no-store",
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; LightChurchSite/1.0; +https://light-homepage-light-ba18.vercel.app)",
+          Accept: "application/atom+xml, application/xml;q=0.9, */*;q=0.8",
+        },
+      });
+      if (!res.ok) continue;
+      const items = parseFeed(await res.text());
+      if (items.length > 0) return items;
+    } catch {
+      // 다음 시도로 넘어간다
     }
-    return Response.json({ items: parseFeed(await res.text()) });
-  } catch {
-    return Response.json({ items: [], error: "feed unreachable" }, { status: 502 });
   }
+  return null;
+}
+
+export async function GET() {
+  const fresh = await fetchFeed();
+  if (fresh) {
+    lastGood = fresh;
+    return Response.json({ items: fresh, stale: false });
+  }
+
+  // 업스트림이 막혔지만 직전 성공분이 있으면 그걸 준다 — 화면이 스냅샷으로
+  // 내려앉는 것보다 낫다. `stale`로 사실을 숨기지는 않는다
+  if (lastGood) return Response.json({ items: lastGood, stale: true });
+
+  // 줄 것이 정말 없을 때만 실패를 알린다 — 호출부가 스냅샷으로 넘어간다
+  return Response.json({ items: [], error: "feed unavailable" }, { status: 502 });
 }
