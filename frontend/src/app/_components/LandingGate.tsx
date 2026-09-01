@@ -34,10 +34,20 @@ const ACROSTIC = [
  * 그것마저 없애면 처음 온 청년이 길찾기 페이지에 닿을 방법이 사라진다
  * (`PLAN.md §4.2`가 사이트에서 가장 중요하다고 지정한 페이지다).
  *
- * 배경 사진은 순수 장식이라 `alt=""`로 두고, 워드마크는 실제 DOM 텍스트로
- * 남긴다. 스크림(`--color-navy-900` 70%)은 사진 없이 단색이던 때와 명도가
- * 거의 같아 기존 텍스트 대비가 유지된다.
+ * 배경 사진은 순수 장식이라 `alt=""`로 두고, 워드마크는 실제 DOM 텍스트로 남긴다.
  * 사진 선정 근거: `docs/records/DECISIONS.md` "수련회 실사진 공개 페이지 적용 범위"(초상권).
+ *
+ * ## 스크림을 걷어냈다 (PM 요청 2026-09-01)
+ *
+ * 예전에는 사진 위에 `--color-navy-900` 70% 판을 덮어 글자 대비를 만들었다.
+ * 사진을 **그대로 보여달라**는 요청이라 그 판을 없앴다.
+ *
+ * 대신 **글자에만** 그림자를 준다. 화면 전체를 어둡게 하지 않으면서 밝은
+ * 배경 위에서도 흰 글자가 읽힌다 — 사진은 사진대로 보이고 대비는 유지된다.
+ * (`NFR-A11Y-01`은 텍스트 대비를 요구하지, 그 방법을 지정하지 않는다.)
+ *
+ * ⚠️ 사진을 교체하면 **글자가 놓이는 가운데 영역의 밝기를 다시 확인해야
+ * 한다.** 지금 사진은 그 부분이 어두워서 그림자만으로 충분하다.
  */
 export function LandingGate() {
   return (
@@ -52,8 +62,6 @@ export function LandingGate() {
         sizes="100vw"
         className="object-cover"
       />
-      <div aria-hidden className="absolute inset-0 bg-[var(--color-navy-900)]/70" />
-
       <h1 className="sr-only">LIGHT — 김해교회 청년교회</h1>
 
       <Link
@@ -69,7 +77,10 @@ export function LandingGate() {
           이름이 양쪽에서 일치해야만 동작한다 (`LIGHT_WORDMARK`).
         */}
         <ViewTransition name={LIGHT_WORDMARK}>
-          <p aria-hidden className="select-none text-lg font-bold leading-tight md:text-2xl">
+          <p
+            aria-hidden
+            className="select-none text-lg font-bold leading-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.95),0_0_10px_rgba(0,0,0,0.9),0_0_28px_rgba(0,0,0,0.75)] md:text-2xl"
+          >
             {ACROSTIC.map(({ letter, rest }) => (
               <span key={letter} className="block">
                 <span className="text-[var(--color-accent-on-dark)]">{letter}</span>
@@ -83,7 +94,10 @@ export function LandingGate() {
           클릭 대상이라는 걸 알려주는 유일한 단서다. 화면 전체가 버튼인데
           아무 표시도 없으면 사용자는 멈춘 화면으로 읽고 기다린다.
         */}
-        <span aria-hidden className="text-sm font-bold text-white/80 md:text-base">
+        <span
+          aria-hidden
+          className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.95),0_0_10px_rgba(0,0,0,0.9),0_0_28px_rgba(0,0,0,0.75)] md:text-base"
+        >
           화면을 눌러 들어가기
         </span>
       </Link>
