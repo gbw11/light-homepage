@@ -3,7 +3,7 @@ import { RequireLeader } from "@/components/auth/RequireLeader";
 import { AdminHome } from "./_components/AdminHome";
 
 export const metadata: Metadata = {
-  title: "관리 | LIGHT",
+  title: "관리",
   // 관리 화면은 검색 결과에 나올 이유가 없다 (권한이 있어야 열리는 화면).
   // robots.ts의 `/admin` disallow · next.config.ts의 X-Robots-Tag와 삼중 방어.
   robots: { index: false, follow: false },

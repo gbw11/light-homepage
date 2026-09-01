@@ -3,7 +3,7 @@ import { RequireLeader } from "@/components/auth/RequireLeader";
 import { BulletinUploadForm } from "./_components/BulletinUploadForm";
 
 export const metadata: Metadata = {
-  title: "주보 업로드 | LIGHT",
+  title: "주보 업로드",
   // 관리 화면은 검색 대상이 아니다 (`/admin` 전체가 robots.ts에서 disallow).
   robots: { index: false, follow: false },
 };

@@ -5,7 +5,7 @@ import { RequireLeader } from "@/components/auth/RequireLeader";
 import { PostForm } from "@/components/post/PostForm";
 
 export const metadata: Metadata = {
-  title: "글 작성 | LIGHT",
+  title: "글 작성",
   // 관리 화면은 검색 결과에 나올 이유가 없다 (권한이 있어야 열리는 화면)
   robots: { index: false, follow: false },
 };
