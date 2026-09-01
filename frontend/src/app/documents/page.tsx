@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MemberGate } from "@/components/auth/MemberGate";
 import { DocumentBoard } from "./_components/DocumentBoard";
 
 export const metadata: Metadata = {
@@ -29,11 +30,13 @@ export default function MyDocumentsPage() {
       <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pt-16 md:px-10 md:pt-24">
         <h1 className="text-2xl font-bold md:text-3xl">문서</h1>
         <p className="mt-1 text-sm text-[var(--color-gray-400)]">
-          회의록은 누구나 볼 수 있습니다. 예산안은 임원 이상만 열람할 수 있습니다.
+          회의록은 회원만, 예산안은 임원 이상만 열람할 수 있습니다.
         </p>
       </section>
 
-      <DocumentBoard />
+      <MemberGate description="회의록·문서는 회원만 볼 수 있습니다.">
+        <DocumentBoard />
+      </MemberGate>
     </main>
   );
 }
