@@ -53,4 +53,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
               and p.publishedAt is not null
             """)
     Optional<Post> findPublishedByIdOrSlug(@Param("id") Long id, @Param("slug") String slug);
+
+    /** slug 중복 확인용 (PostSlugGenerator). 임시저장 글도 slug를 점유한다. */
+    Optional<Post> findBySlug(String slug);
 }
