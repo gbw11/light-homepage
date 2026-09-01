@@ -14,10 +14,10 @@
 | [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) | 코드 작성 전 — 폴더 구조·API 계층·상태관리·타입 규칙 |
 | [`docs/COMPONENTS.md`](docs/COMPONENTS.md) | 컴포넌트를 만들거나 쪼갤 때 |
 | [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) | 실패했을 때, 또는 재발 방지를 기록할 때 |
-| [`../docs/TESTING.md`](../docs/TESTING.md) | push 전 — CI(Jenkins/Actions) 통과 체크리스트 |
-| [`../docs/SPEC_FUNCTIONAL.md`](../docs/SPEC_FUNCTIONAL.md) | 기능 구현 시 — 기능 명세 |
-| [`../docs/WIREFRAME.md`](../docs/WIREFRAME.md) | 화면 구현 시 — 와이어프레임 |
-| [`../docs/SPEC_API.md`](../docs/SPEC_API.md) | API 연동 시 — 백엔드 계약 |
-| [`../docs/INTEGRATION.md`](../docs/INTEGRATION.md) | PR 올리기 전 — 브랜치/협업 규칙 |
-| [`../docs/DECISIONS.md`](../docs/DECISIONS.md) | **PM이 새 결정을 말할 때마다 자동 기록** — 요청받지 않아도 항상 (`HARNESS.md` §1.1) |
-| [`../docs/BACKEND_HANDOFF.md`](../docs/BACKEND_HANDOFF.md) | **백엔드가 알아야 할 내용이 생길 때마다 자동 기록** — 요청받지 않아도 항상 (`WORKFLOW.md` §7) |
+| [`../docs/ops/TESTING.md`](../docs/ops/TESTING.md) | push 전 — CI(Jenkins/Actions) 통과 체크리스트 |
+| [`../docs/spec/SPEC_FUNCTIONAL.md`](../docs/spec/SPEC_FUNCTIONAL.md) | 기능 구현 시 — 기능 명세 |
+| [`../docs/spec/WIREFRAME.md`](../docs/spec/WIREFRAME.md) | 화면 구현 시 — 와이어프레임 |
+| [`../docs/spec/SPEC_API.md`](../docs/spec/SPEC_API.md) | API 연동 시 — 백엔드 계약 |
+| [`../docs/ops/INTEGRATION.md`](../docs/ops/INTEGRATION.md) | PR 올리기 전 — 브랜치/협업 규칙 |
+| [`../docs/records/DECISIONS.md`](../docs/records/DECISIONS.md) | **PM이 새 결정을 말할 때마다 자동 기록** — 요청받지 않아도 항상 (`HARNESS.md` §1.1) |
+| [`../docs/backend/BACKEND_HANDOFF.md`](../docs/backend/BACKEND_HANDOFF.md) | **백엔드가 알아야 할 내용이 생길 때마다 자동 기록** — 요청받지 않아도 항상 (`WORKFLOW.md` §7) |

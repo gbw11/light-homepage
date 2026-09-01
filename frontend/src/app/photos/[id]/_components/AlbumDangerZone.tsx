@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { isLeaderOrAbove } from "@/components/auth/RequireLeader";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 /**
  * FR-PHO-09 · SPEC_API §6.3 — 앨범 삭제 (권한 `L`).
@@ -22,10 +23,10 @@ import { useAuth } from "@/components/providers/AuthProvider";
  *
  * 1. 접힌 상태 — 펼치지 않으면 삭제 버튼 자체가 없다
  * 2. **앨범 제목을 그대로 타이핑**해야 확정 버튼이 활성화된다
- * 3. `window.confirm`에 장수를 넣어 마지막으로 되묻는다
+ * 3. 확인 창(`useConfirm`)에 장수를 넣어 마지막으로 되묻는다
  *
- * `AccountActions`(회원 탈퇴)가 이미 "타이핑 확인 + `confirm()`" 조합을 쓴다 —
- * 같은 급의 비가역 동작이라 같은 무게로 맞췄다. `confirm()` 하나만 두는 쪽은
+ * `AccountActions`(회원 탈퇴)가 이미 "타이핑 확인 + 확인 창" 조합을 쓴다 —
+ * 같은 급의 비가역 동작이라 같은 무게로 맞췄다. 확인 창 하나만 두는 쪽은
  * 반사적으로 Enter를 눌러 넘길 수 있고, 무엇보다 **어느 앨범인지**를 확인시키지
  * 못한다. 제목을 손으로 옮겨 적게 하면 "지금 보고 있는 앨범이 맞나"를 강제로
  * 읽게 된다.
@@ -68,6 +69,8 @@ export function AlbumDangerZone({
     },
   });
 
+  const [confirm, confirmDialog] = useConfirm();
+
   // 임원·목회자가 아니면 이 영역은 존재하지 않는다 (SPEC_API §6.3 권한 `L`).
   // `RequireLeader`로 감싸지 않는 이유: 그 컴포넌트는 "권한이 없습니다" 패널을
   // 렌더하는데, 일반 회원이 앨범을 볼 때마다(§6.4 권한 `M` — 정상 열람이다)
@@ -77,13 +80,19 @@ export function AlbumDangerZone({
 
   const confirmed = typed.trim() === title.trim();
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!confirmed) return;
-    const ok = window.confirm(
-      photoCount > 0
-        ? `앨범 "${title}"과(와) 안에 있는 사진 ${photoCount}장을 영구 삭제합니다.\n사진 파일까지 함께 지워지며 되돌릴 수 없습니다.\n\n삭제하시겠습니까?`
-        : `앨범 "${title}"을(를) 영구 삭제합니다. 되돌릴 수 없습니다.\n\n삭제하시겠습니까?`,
-    );
+    const ok = await confirm({
+      title:
+        photoCount > 0
+          ? `앨범 "${title}"과(와) 안에 있는 사진 ${photoCount}장을 영구 삭제합니다.`
+          : `앨범 "${title}"을(를) 영구 삭제합니다.`,
+      description:
+        photoCount > 0
+          ? "사진 파일까지 함께 지워지며 되돌릴 수 없습니다."
+          : "되돌릴 수 없습니다.",
+      confirmLabel: "삭제",
+    });
     if (!ok) return;
     setError(null);
     mutation.mutate();
@@ -91,6 +100,7 @@ export function AlbumDangerZone({
 
   return (
     <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pb-16 md:px-10 md:pb-24">
+      {confirmDialog}
       <div className="rounded-[var(--radius-card)] border border-[var(--color-red-500)]/40 p-5">
         <h2 className="text-sm font-bold text-[var(--color-red-500)]">임원 전용 · 되돌릴 수 없는 작업</h2>
 

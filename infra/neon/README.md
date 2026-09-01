@@ -8,8 +8,8 @@
 | **NFR-AVAIL-09** | RPO(데이터 손실 허용) — **24시간** |
 | **NFR-AVAIL-08** | RTO(복구 목표 시간) — 24시간 |
 
-담당: PM/인프라 (`server_develop` — [`../../docs/INTEGRATION.md §6`](../../docs/INTEGRATION.md))
-관련: [`../render/README.md`](../render/README.md) · [`../../docs/COST_GUARDRAILS.md`](../../docs/COST_GUARDRAILS.md)
+담당: PM/인프라 (`server_develop` — [`../../docs/ops/INTEGRATION.md §6`](../../docs/ops/INTEGRATION.md))
+관련: [`../render/README.md`](../render/README.md) · [`../../docs/ops/COST_GUARDRAILS.md`](../../docs/ops/COST_GUARDRAILS.md)
 
 ---
 
@@ -31,7 +31,7 @@
 ## 0.5 최초 관리자(PASTOR) 계정 만들기 — DB를 만들 때 한 번
 
 > **PM 결정 2026-08-27 — D안: 정상 가입 후 `role`만 UPDATE**
-> (`../../docs/DECISIONS.md`)
+> (`../../docs/records/DECISIONS.md`)
 
 ### 왜 이 절차가 필요한가
 

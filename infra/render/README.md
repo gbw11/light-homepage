@@ -5,10 +5,10 @@
 그건 사람이 로그인해서 해야 합니다.
 
 담당: PM/인프라 (`server_develop`)
-관련: [`../../docs/BACKEND_DEPLOY.md`](../../docs/BACKEND_DEPLOY.md)(백엔드 규약) ·
-[`../../docs/CICD.md`](../../docs/CICD.md) §5(CD 설계) ·
-[`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) §8(호스팅 선택 근거) ·
-[`../../docs/COST_GUARDRAILS.md`](../../docs/COST_GUARDRAILS.md)(★ 과금 방지 설계)
+관련: [`../../docs/backend/BACKEND_DEPLOY.md`](../../docs/backend/BACKEND_DEPLOY.md)(백엔드 규약) ·
+[`../../docs/ops/CICD.md`](../../docs/ops/CICD.md) §5(CD 설계) ·
+[`../../docs/spec/ARCHITECTURE.md`](../../docs/spec/ARCHITECTURE.md) §8(호스팅 선택 근거) ·
+[`../../docs/ops/COST_GUARDRAILS.md`](../../docs/ops/COST_GUARDRAILS.md)(★ 과금 방지 설계)
 
 ---
 
@@ -37,7 +37,7 @@ develop  ──▶ GitHub Actions
 >
 > Neon·Render 모두 결제 수단 없이 무료 플랜을 쓸 수 있습니다. **결제 수단이
 > 없으면 한도를 넘겨도 과금이 아니라 서비스 정지로 나타납니다** — 그게
-> 이 프로젝트의 1차 방어입니다 (`../../docs/COST_GUARDRAILS.md §0`).
+> 이 프로젝트의 1차 방어입니다 (`../../docs/ops/COST_GUARDRAILS.md §0`).
 >
 > 가입 과정에서 카드를 요구하는 화면이 나오면 **멈추고 확인하세요.** 무료
 > 한도가 있어도 카드를 요구하는 서비스는 채택 대상이 아닙니다.
@@ -83,7 +83,7 @@ https://render.com → New → **Web Service** → 이 저장소 연결
 | Dockerfile Path | **`Dockerfile`** ← ⚠️ `backend/Dockerfile` 아님 (아래 참고) |
 | Region | **Singapore** (Neon과 같은 리전에 두어야 왕복이 짧습니다) |
 | Instance Type | **Free** |
-| Health Check Path | **`/actuator/health/alive`** ← ⚠️ `/actuator/health`가 아님 (`../../docs/COST_GUARDRAILS.md §3.2`) |
+| Health Check Path | **`/actuator/health/alive`** ← ⚠️ `/actuator/health`가 아님 (`../../docs/ops/COST_GUARDRAILS.md §3.2`) |
 
 > ### ⚠️ Dockerfile Path는 **Root Directory 기준**입니다 (경로를 두 번 쓰면 실패)
 >
@@ -159,7 +159,7 @@ GitHub 저장소 → Settings → Secrets and variables → Actions
 
 > **2026-08-27 현재 꺼져 있습니다.** 동작 검증은 끝났고(23분 무접촉 후 웜 응답),
 > 접속하는 사람이 PM·BE뿐이라 의도적으로 껐습니다. **FE·BE를 실제로 연결하는
-> 시점에 아래 값으로 다시 켭니다** (`../../docs/COST_GUARDRAILS.md §3.5`).
+> 시점에 아래 값으로 다시 켭니다** (`../../docs/ops/COST_GUARDRAILS.md §3.5`).
 
 Render Free는 **15분 유휴 시 슬립**하고, 깨어날 때 JVM 콜드스타트가 30~60초 걸립니다.
 
@@ -182,7 +182,7 @@ https://cron-job.org (무료) → 새 작업
 > `/actuator/health`는 **DB 상태까지 확인합니다.** 10분마다 그쪽을 때리면
 > Neon(DB)이 **한 번도 자동 정지되지 않아** 무료 컴퓨트 한도를 넘깁니다.
 > `/actuator/health/alive`는 DB를 건드리지 않습니다
-> (`../../docs/COST_GUARDRAILS.md §3.2`).
+> (`../../docs/ops/COST_GUARDRAILS.md §3.2`).
 >
 > 이 실수는 **아무 증상이 없습니다** — 사이트도 API도 정상으로 보이고,
 > Neon 사용량으로만 드러납니다.
@@ -201,7 +201,7 @@ https://cron-job.org (무료) → 새 작업
 > 셈입니다.
 >
 > 교회 사이트라 새벽 트래픽은 사실상 0이고, **06:00 핑이 사람들이 오기 전에
-> 서버를 깨워둡니다.** 상세는 `../../docs/COST_GUARDRAILS.md §3.3`.
+> 서버를 깨워둡니다.** 상세는 `../../docs/ops/COST_GUARDRAILS.md §3.3`.
 
 > **그래서 스테이징 서버를 따로 둘 수 없습니다** — 두 개면 한도를 넘습니다.
 
@@ -280,7 +280,7 @@ Render 대시보드 → 서비스 → **Events** → 실패한 배포 클릭 →
 > `deploy` 잡은 **훅을 호출하는 것까지만** 합니다. Render가 그 뒤에 이미지를
 > 빌드하다 실패해도 Actions는 **success**입니다. 같은 이유로 서비스가
 > `Suspended`여도 훅은 200을 반환합니다
-> (`../../docs/COST_GUARDRAILS.md §4`).
+> (`../../docs/ops/COST_GUARDRAILS.md §4`).
 >
 > **그래서 배포 확인은 훅 결과가 아니라 실제 응답으로 합니다** (§2).
 
@@ -338,7 +338,7 @@ curl localhost:8080/actuator/health         # → {"status":"UP"}  (DB 포함)
 | ② 요청 유실 | `shutdown: graceful` (명시) | `application.yml` | Boot 3.5부터 기본값이지만, 깨지면 요청이 소리 없이 사라집니다 |
 | ③ 메모리 | `threads.max: 20` (기본 200) | `application.yml` | 스레드 스택은 **힙 밖** 메모리입니다 |
 | ③ 메모리 | `-XX:+UseSerialGC` | `Dockerfile` | JVM은 CPU 개수로 GC를 고릅니다 — 2 CPU가 되면 조용히 G1로 넘어갑니다 |
-| ④ **과금** | `keepalive-time: 0` 외 2줄 | `application.yml` | ★ **커넥션 풀이 Neon을 상시 가동시키고 있었습니다** — `../../docs/COST_GUARDRAILS.md §3.2` |
+| ④ **과금** | `keepalive-time: 0` 외 2줄 | `application.yml` | ★ **커넥션 풀이 Neon을 상시 가동시키고 있었습니다** — `../../docs/ops/COST_GUARDRAILS.md §3.2` |
 | ⑤ 응답 크기 | `compression.enabled: true` | `application.yml` | ⚠️ **효과가 확인되지 않았습니다 — 아래 실측 참고** |
 
 > ### ⚠️ `-Xmx400m`은 여유가 없습니다 — 늘릴 수 없을 뿐 아니라 이미 빡빡합니다
@@ -349,7 +349,7 @@ curl localhost:8080/actuator/health         # → {"status":"UP"}  (DB 포함)
 >
 > **`-Xmx`를 낮추지 않은 이유**: M4의 PDF→페이지 이미지 변환이 힙을 씁니다.
 > 낮추면 그쪽이 막힙니다. 대신 **힙 밖을 줄였고**(스레드·GC),
-> `../../docs/COST_GUARDRAILS.md §5`의 월례 확인에 **메모리 420MB 경고선**을
+> `../../docs/ops/COST_GUARDRAILS.md §5`의 월례 확인에 **메모리 420MB 경고선**을
 > 넣었습니다.
 
 > ### ⚠️ 효과 수치는 아직 실측이 아닙니다

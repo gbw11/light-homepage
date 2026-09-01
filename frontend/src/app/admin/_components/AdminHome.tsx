@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Section } from "@/components/ui/Section";
-import { isPastor } from "@/components/auth/RequirePastor";
 import type { Role } from "@/types/api";
-import { PendingApprovalBanner } from "./PendingApprovalBanner";
 import { StorageGauge } from "./StorageGauge";
 
 /** WIREFRAME.md §15 — 역할 배지(`임원` / `전도사`)를 항상 표시한다 */
@@ -61,6 +59,8 @@ const DOCUMENT_LINKS: AdminLink[] = [
  */
 const MANAGE_LINKS: AdminLink[] = [
   { label: "회원 관리", href: "/admin/members", note: "전도사님만" },
+  // 출석부는 스펙 밖 신규 화면이다 (브리핑 2026-08-28 §7 초안 · WIREFRAME 미반영)
+  { label: "출석부", href: "/admin/attendance" },
   { label: "새가족 등록 내역", href: "/admin/newcomers" },
 ];
 
@@ -88,9 +88,6 @@ export function AdminHome() {
       </div>
 
       <div className="mt-8 space-y-8">
-        {/* 승인 대기 알림은 §8.1이 `T` 전용이라 전도사에게만 마운트한다 */}
-        {isPastor(user.role) && <PendingApprovalBanner />}
-
         <div className="rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-5">
           <h2 className="mb-3 text-sm font-bold text-[var(--color-gray-400)]">저장 공간</h2>
           <StorageGauge />

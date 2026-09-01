@@ -75,7 +75,7 @@ public class OpenApiConfig {
                 .description("""
                         김해교회 청년교회 홈페이지 API.
 
-                        **이 문서는 살아있는 계약서입니다.** 합의 기준은 `docs/SPEC_API.md`이고,
+                        **이 문서는 살아있는 계약서입니다.** 합의 기준은 `docs/spec/SPEC_API.md`이고,
                         여기는 실제 구현이 내보내는 형태입니다. 둘이 어긋나면 계약 위반이므로
                         `INTEGRATION.md §5` 절차를 따라 주세요.
 
@@ -152,7 +152,7 @@ public class OpenApiConfig {
         body.put("code", code.name());
         body.put("message", code.defaultMessage());
         // field는 VALIDATION_ERROR에서만 값이 들어간다 (SPEC_API.md §1.3)
-        body.put("field", code == ErrorCode.VALIDATION_ERROR ? "email" : null);
+        body.put("field", code == ErrorCode.VALIDATION_ERROR ? "loginId" : null);
         return body;
     }
 }

@@ -1,63 +1,88 @@
 import { CHURCH_PHONE, CHURCH_PHONE_TEL } from "@/content/contact";
 import { CHURCH_SITE_URL, INSTAGRAM_URL, YOUTUBE_CHANNEL_URL } from "@/content/links";
 
+/**
+ * 공통 푸터.
+ *
+ * ## 뼈대를 모교회 사이트에 맞춘다 (PM 요청 2026-09-01)
+ *
+ * 김해교회(`gloria.or.kr`)의 푸터는 **어두운 띠 · 가운데 정렬 워드마크 ·
+ * 구분자(`|`)로 이은 연락처 한 줄 · 저작권 한 줄**이다. 헤더와 같은 띠 색으로
+ * 위아래를 닫아 페이지가 어디서 끝나는지 분명해진다.
+ *
+ * 색은 우리 팔레트를 쓴다 (`--color-navy-900`) — 뼈대를 맞추는 것과 색을
+ * 베끼는 것은 다른 일이다 (`Header` 주석과 같은 판단).
+ *
+ * ## 좁은 화면에서는 줄을 쌓는다
+ *
+ * 저쪽은 한 줄에 `주소 | 이메일 | Tel | Fax`를 다 넣는데, 모바일에서 그러면
+ * 글자가 잘리거나 구분자만 남은 줄이 생긴다. `flex-wrap`으로 자연스럽게
+ * 접히게 두고 구분자는 **선(`border`)이 아니라 문자**로 두지 않는다 —
+ * 줄바꿈 위치에 `|`가 홀로 남지 않게 하려면 요소 사이 여백으로 나누는 편이 낫다.
+ */
 export function Footer() {
   return (
-    <footer className="mt-auto border-t border-[var(--color-navy-100)] px-5 py-10 text-sm text-[var(--color-gray-400)]">
-      <p className="text-base font-bold text-[var(--foreground)]">LIGHT</p>
-      <p className="mt-1">Live In God, Help The other</p>
+    <footer className="mt-auto bg-[var(--color-navy-900)] px-5 py-10 text-center text-sm text-white/80">
+      <div className="mx-auto w-full max-w-[var(--container-max)]">
+        <p className="text-lg font-bold text-white">LIGHT</p>
+        <p className="mt-1 text-white/70">Live In God, Help The other</p>
 
-      <div className="mt-4 space-y-1">
-        <p>주일 14:00 · 드림센터 4층</p>
-        <p>경남 김해시 가락로 117</p>
-        {/* 텍스트로만 두면 모바일에서 눌러도 걸리지 않는다 (기기가 알아서 잡아주길 기대할 일이 아니다) */}
-        <p>
+        {/*
+          연락처 한 줄 — 모교회 푸터와 같은 구성.
+          전화는 링크로 둔다: 텍스트로만 두면 모바일에서 눌러도 걸리지 않는다.
+        */}
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
+          <span>주일 14:00 · 드림센터 4층</span>
+          <span>경남 김해시 가락로 117</span>
           <a href={`tel:${CHURCH_PHONE_TEL}`} className="hover:underline">
-            {CHURCH_PHONE}
+            Tel: {CHURCH_PHONE}
           </a>
+        </div>
+
+        {/*
+          링크 한 줄 — 본문 속 링크가 아니라 개별 타겟이므로 44px를 맞춘다
+          (NFR-A11Y-05). 주소를 모르는 항목은 **아예 그리지 않는다**
+          (`content/links.ts` 주석) — 없는 계정으로 보내면 누른 사람이 빈손으로
+          돌아온다. 김해교회 홈페이지는 2026-09-01에 주소가 확정되어 살아났다.
+        */}
+        <nav
+          aria-label="관련 링크"
+          className="mt-3 flex flex-wrap items-center justify-center gap-x-5"
+        >
+          <a
+            href={YOUTUBE_CHANNEL_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center hover:underline"
+          >
+            ▸ YouTube
+          </a>
+          {INSTAGRAM_URL && (
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center hover:underline"
+            >
+              ▸ Instagram
+            </a>
+          )}
+          {CHURCH_SITE_URL && (
+            <a
+              href={CHURCH_SITE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center hover:underline"
+            >
+              ▸ 김해교회 홈페이지
+            </a>
+          )}
+        </nav>
+
+        <p className="mt-4 border-t border-white/15 pt-4 text-white/60">
+          © 2026 김해교회 청년교회 LIGHT
         </p>
       </div>
-
-      {/*
-        링크 한 줄 — 본문 속 링크가 아니라 개별 타겟이므로 44px를 맞춘다 (NFR-A11Y-05).
-        주소를 모르는 항목은 **아예 그리지 않는다** (`content/links.ts` 주석) —
-        예전에는 `instagram.com`·`gimhae.church`로 보내고 있어서 누른 사람이
-        엉뚱한 곳에 도착했다.
-      */}
-      <nav aria-label="관련 링크" className="mt-4 flex flex-wrap gap-x-4">
-        {INSTAGRAM_URL && (
-          <a
-            href={INSTAGRAM_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex min-h-11 items-center"
-          >
-            ▸ Instagram
-          </a>
-        )}
-        <a
-          href={YOUTUBE_CHANNEL_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex min-h-11 items-center"
-        >
-          ▸ YouTube
-        </a>
-        {CHURCH_SITE_URL && (
-          <a
-            href={CHURCH_SITE_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex min-h-11 items-center"
-          >
-            ▸ 김해교회 홈페이지
-          </a>
-        )}
-      </nav>
-
-      <p className="mt-6 border-t border-[var(--color-navy-100)] pt-4">
-        © 김해교회 청년교회 LIGHT
-      </p>
     </footer>
   );
 }

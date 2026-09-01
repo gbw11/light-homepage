@@ -18,7 +18,7 @@ export function isLeaderOrAbove(role: Role): boolean {
  *
  * `RequireMember`는 "승인된 회원인가"까지만 본다 — 일반 회원(`MEMBER`)도
  * 통과한다. 그래서 이 컴포넌트는 `RequireMember`를 그대로 감싸고
- * (비로그인 → `/login`, 승인 대기 → `/pending` 처리를 재사용) 역할 검사만
+ * (비로그인 → `/login` 처리를 재사용) 역할 검사만
  * 한 겹 더 얹는다.
  *
  * 비로그인/승인대기와 달리 **일반 회원은 리다이렉트하지 않고 "권한이 없습니다"
@@ -26,7 +26,7 @@ export function isLeaderOrAbove(role: Role): boolean {
  * 튕기면 "왜 안 되는지"를 알 수 없기 때문이다.
  *
  * ⚠️ 이건 UI 편의 기능이다. 실제 인가는 서버가 한다 (`RequireMember.tsx`
- * 주석 · docs/WORKPLAN.md §5.1 "메뉴를 숨겼으니 됐다고 판단하지 않는다").
+ * 주석 · docs/spec/WORKPLAN.md §5.1 "메뉴를 숨겼으니 됐다고 판단하지 않는다").
  * 서버는 권한 없는 사용자에게 목록은 `FORBIDDEN`, 상세는 존재 자체를 숨기려
  * `NOT_FOUND`를 돌려준다 (SPEC_API §3.2 · §3.3).
  */

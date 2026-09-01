@@ -4,7 +4,7 @@ import { RequirePastor } from "@/components/auth/RequirePastor";
 import { MemberBoard } from "./_components/MemberBoard";
 
 export const metadata: Metadata = {
-  title: "회원 관리 | LIGHT",
+  title: "회원 관리",
   // 개인정보(이름·연락처)를 다루는 화면이다. robots.ts의 `/admin` disallow ·
   // next.config.ts의 X-Robots-Tag와 삼중으로 막는다.
   robots: { index: false, follow: false },

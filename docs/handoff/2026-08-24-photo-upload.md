@@ -5,7 +5,7 @@
 **관련 브랜치**: `feat/fe-photo-upload` → `frontend_develop` 머지 완료
 
 > 이 문서는 **BE가 바로 착수할 수 있게 정리한 실행용 브리핑**이다.
-> 프론트 전체 인계 로그는 `docs/BACKEND_HANDOFF.md`에 시간순으로 쌓여 있고,
+> 프론트 전체 인계 로그는 `docs/backend/BACKEND_HANDOFF.md`에 시간순으로 쌓여 있고,
 > 이 파일은 그중 오늘 자 사진 업로드 항목만 떼어 온 것이다.
 
 ---

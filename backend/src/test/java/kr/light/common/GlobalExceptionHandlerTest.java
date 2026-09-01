@@ -72,14 +72,6 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("승인 대기는 403이지만 코드는 PENDING_APPROVAL — FE가 이 값으로 /pending으로 보낸다")
-    void 승인대기() throws Exception {
-        mvc.perform(get("/t/pending"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("PENDING_APPROVAL"));
-    }
-
-    @Test
     @DisplayName("용량 초과는 409 STORAGE_LIMIT")
     void 용량초과() throws Exception {
         mvc.perform(get("/t/storage"))
@@ -200,11 +192,6 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/unauthorized")
         void unauthorized() {
             throw ApiException.unauthorized();
-        }
-
-        @GetMapping("/pending")
-        void pending() {
-            throw ApiException.pendingApproval();
         }
 
         @GetMapping("/storage")
