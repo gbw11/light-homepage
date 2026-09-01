@@ -10,7 +10,7 @@
  * ⚠️ **`null`은 "아직 모른다"는 뜻이다.** 렌더하는 쪽에서 `null`을 걸러
  * 항목 자체를 그리지 않는다 — 없는 계정을 링크로 두면 방문자가 빈손으로
  * 돌아온다. 확정되면 여기만 채우면 화면 3곳이 함께 살아난다
- * (`docs/PLAN.md §8`의 ❓ 목록).
+ * (`docs/spec/PLAN.md §8`의 ❓ 목록).
  */
 
 /** LIGHT 청년교회 YouTube 채널 (확정) */
@@ -23,7 +23,10 @@ export const YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@light4402";
 export const INSTAGRAM_URL: string | null = null;
 
 /**
- * 모교회(김해교회) 홈페이지 주소 미확정 (`PLAN §8`).
- * 예전 값 `https://gimhae.church`는 확인된 주소가 아니다 — PM 확인 필요.
+ * 모교회(김해교회) 홈페이지 — **확정 (PM 확인 2026-09-01)**.
+ *
+ * `PLAN §8`의 ❓ 하나가 닫혔다. 그동안 `null`이라 푸터의 "김해교회 홈페이지"
+ * 링크가 아예 그려지지 않고 있었다 (없는 주소로 보내는 것보다 낫다는 판단).
+ * 이제 값이 있으므로 그 링크가 살아난다.
  */
-export const CHURCH_SITE_URL: string | null = null;
+export const CHURCH_SITE_URL: string | null = "https://www.gloria.or.kr";

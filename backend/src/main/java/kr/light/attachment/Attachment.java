@@ -67,4 +67,25 @@ public class Attachment {
     public boolean isOrphan() {
         return post == null && bulletin == null;
     }
+
+    /**
+     * 게시물에 연결한다 (SPEC_API.md §4.1 — 저장 시 attachmentIds로 연결).
+     *
+     * <p>⚠️ 주보와 동시에 연결할 수 없다. DB의 {@code attachments_owner_ck}가
+     * 막고 있으므로 여기서도 주보 연결을 끊어 제약과 어긋나지 않게 한다.
+     */
+    public void linkTo(Post post) {
+        this.post = post;
+        this.bulletin = null;
+    }
+
+    /**
+     * 연결을 끊는다 — 행을 지우지는 않는다.
+     *
+     * <p>연결되지 않은 첨부는 24시간 뒤 정리 배치가 처리한다(§4.1). 그 사이
+     * 사용자가 마음을 바꿔 다시 붙일 수도 있다.
+     */
+    public void unlink() {
+        this.post = null;
+    }
 }

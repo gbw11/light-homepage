@@ -16,8 +16,8 @@ import type { MetadataRoute } from "next";
  * 색상은 globals.css 토큰과 같은 값을 쓴다. Tailwind 토큰을 빌드 시점에 읽을 수 없어
  * hex를 직접 적는 유일한 예외다 (CONVENTIONS.md §5의 "hex 박지 않는다"에 대한 예외 —
  * 매니페스트는 CSS가 아니라 브라우저 OS 통합용 메타데이터다).
- *   --background     #f6f1e4 (베이지)
- *   --color-yellow   #2f7a4a (브랜드 그린)
+ *   --background     #e5e0d8 (ALMOND)
+ *   --color-yellow   #57674d (MATCHA 계열 강조)
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -32,8 +32,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#f6f1e4",
-    theme_color: "#f6f1e4",
+    background_color: "#e5e0d8",
+    theme_color: "#e5e0d8",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

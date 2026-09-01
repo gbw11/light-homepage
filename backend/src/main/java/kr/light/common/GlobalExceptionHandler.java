@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -98,7 +99,13 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 역할 부족.
+     * 역할 부족 — 주로 {@code @PreAuthorize}가 던진다.
+     *
+     * <p><b>⚠️ 이 경로가 필터의 {@code AccessDeniedHandler}보다 먼저 잡는다.</b>
+     * {@code @PreAuthorize}는 컨트롤러 호출 중에 터지므로 어드바이스가 가로챈다.
+     * 즉 <b>같은 "권한 부족"이 두 경로로 나간다</b> — 두 곳이 다른 코드를
+     * 내보내면 FE는 같은 상황에서 다른 화면을 띄운다. 실제로 어긋난 적이 있어,
+     * <b>한쪽을 바꾸면 반드시 {@code SecurityConfig}의 핸들러도 같이 본다.</b>
      *
      * <p>⚠️ 여기서 403을 내보낸다는 것은 "리소스는 있으나 권한이 없다"를
      * 알려주는 것이다. 존재 자체를 숨겨야 하는 리소스(예산안 등)는 서비스
@@ -106,8 +113,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException e) {
-        return ResponseEntity
-                .status(ErrorCode.FORBIDDEN.status())
+        return ResponseEntity.status(ErrorCode.FORBIDDEN.status())
                 .body(ErrorResponse.of(ErrorCode.FORBIDDEN));
     }
 

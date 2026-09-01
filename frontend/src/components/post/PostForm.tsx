@@ -52,16 +52,14 @@ const PostEditor = dynamic(
 /**
  * ⚠️ `audience`는 **실제로 볼 수 있는 사람**이다. 분류 이름(대상)과 다르다.
  *
- * 공개 열람 전환(PM 결정 2026-08-25) 이후 `BUDGET`을 뺀 전부가 로그인 없이
- * 열린다. "공지(회원 대상)"·"회의록"은 **누구를 향해 쓰는 글인지**를 뜻할 뿐
- * 접근 제한이 아니다 — 이 구분을 흐리면 작성자가 "내부니까 괜찮겠지" 하고
- * 민감한 내용을 쓰게 된다. 그래서 여기 값은 접근 권한만 말하고, 화면 문구도
- * 그 값만 따른다.
+ * 2026-08-31 확정(SPEC_API §3.1 v1.3): 내부공지·회의록 열람이 다시 **회원
+ * 전용**이다 (8/25 "전부 공개"의 부분 철회). 이 값이 접근 권한을 말하고,
+ * 화면 문구도 그 값만 따른다 — 분류 선택이 곧 공개 범위 결정이다 (FR-DOC-06).
  */
 const CATEGORIES: { value: PostCategory; label: string; audience: string; isPublic: boolean }[] = [
   { value: "NOTICE_PUBLIC", label: "공지(공개)", audience: "누구나", isPublic: true },
-  { value: "NOTICE_MEMBER", label: "공지(회원 대상)", audience: "누구나", isPublic: true },
-  { value: "MINUTES", label: "회의록", audience: "누구나", isPublic: true },
+  { value: "NOTICE_MEMBER", label: "공지(회원)", audience: "회원", isPublic: false },
+  { value: "MINUTES", label: "회의록", audience: "회원", isPublic: false },
   { value: "BUDGET", label: "예산안", audience: "임원 이상", isPublic: false },
 ];
 

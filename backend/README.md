@@ -2,10 +2,10 @@
 
 **소유: 백엔드 담당자** (프론트엔드는 이 디렉터리를 수정하지 않습니다)
 
-> 👋 **처음 오셨다면 → [`../docs/ONBOARDING_BACKEND.md`](../docs/ONBOARDING_BACKEND.md)** (어떤 파일을 어떤 순서로 읽을지)
-> 📋 **작업 지시서: [`../docs/BACKEND_TASKS.md`](../docs/BACKEND_TASKS.md)**
-> 이 문서만 읽어도 작업할 수 있게 정리돼 있습니다. 먼저 [`../docs/INTEGRATION.md`](../docs/INTEGRATION.md)를 읽어주세요.
-> ⚙️ 설치할 도구와 버전은 [`../docs/TOOLCHAIN.md`](../docs/TOOLCHAIN.md) — **Java 21 Temurin · Postgres 16 · 포트 8080 고정**
+> 👋 **처음 오셨다면 → [`../docs/backend/ONBOARDING_BACKEND.md`](../docs/backend/ONBOARDING_BACKEND.md)** (어떤 파일을 어떤 순서로 읽을지)
+> 📋 **작업 지시서: [`../docs/backend/BACKEND_TASKS.md`](../docs/backend/BACKEND_TASKS.md)**
+> 이 문서만 읽어도 작업할 수 있게 정리돼 있습니다. 먼저 [`../docs/ops/INTEGRATION.md`](../docs/ops/INTEGRATION.md)를 읽어주세요.
+> ⚙️ 설치할 도구와 버전은 [`../docs/ops/TOOLCHAIN.md`](../docs/ops/TOOLCHAIN.md) — **Java 21 Temurin · Postgres 16 · 포트 8080 고정**
 
 ---
 
@@ -120,6 +120,41 @@ MAIL_API_KEY / NOTIFY_EMAIL
 
 ---
 
+## 개발용 시드 계정 (`local` 프로필 전용)
+
+가입 → 승인 흐름을 매번 손으로 밟지 않아도 되게, 역할별 계정을 자동으로 만듭니다.
+**최초 전도사는 API로 만들 수 없으므로**(역할 변경은 `MEMBER ↔ LEADER`만) 이것이 유일한 방법입니다.
+
+`application-local.yml`에 넣으세요 — 이 파일은 `.gitignore` 대상입니다:
+
+```yaml
+app:
+  seed:
+    enabled: true
+    password: <원하는 비밀번호>     # ★ 커밋되는 파일에 쓰지 마세요
+```
+
+기동하면 세 계정이 **승인된 상태로** 생깁니다:
+
+| 이메일 | 역할 | 마을 |
+|---|---|---|
+| `pastor@light.local` | `PASTOR` | 1 |
+| `leader@light.local` | `LEADER` | 2 |
+| `member@light.local` | `MEMBER` | 3 |
+
+비밀번호는 셋 다 위에서 정한 값입니다. 이미 있으면 다시 만들지 않고, 기존 비밀번호도 덮지 않습니다.
+
+**안전장치 3겹** — 운영에서 돌면 비밀번호를 아는 관리자 계정이 인터넷에 열립니다:
+
+1. `@Profile("local")` — prod·test에서는 빈이 만들어지지 않음
+2. `prod` 프로필이 함께 켜져 있으면 **기동 중단** (`local,prod` 같은 실수를 잡음)
+3. `enabled` 기본값 `false`, 비밀번호 기본값 없음
+
+⚠️ **배포 전 체크리스트에 "시드 계정 비밀번호 변경 또는 삭제"가 있습니다**
+(`ARCHITECTURE.md §13` · `SPEC_NONFUNCTIONAL.md`). 운영 이관 시 반드시 처리하세요.
+
+---
+
 ## 로컬 DB
 
 ```bash
@@ -143,7 +178,7 @@ docker run -d --name light-db -p 5432:5432 \
 
 **1. DB 방어선이 없습니다.**
 초기 설계는 Supabase + RLS였습니다. 그 구조에서는 코드에서 `where`를 빠뜨려도 DB가 막아줬지만, Spring이 단일 계정으로 접속하는 지금은 **그 방어선이 없습니다.**
-→ **인가 테스트 매트릭스**([`../docs/BACKEND_TASKS.md`](../docs/BACKEND_TASKS.md) §6)가 마지막 방어선이며, 기능 코드보다 우선순위가 높습니다.
+→ **인가 테스트 매트릭스**([`../docs/backend/BACKEND_TASKS.md`](../docs/backend/BACKEND_TASKS.md) §6)가 마지막 방어선이며, 기능 코드보다 우선순위가 높습니다.
 
 **2. 게시물 조회는 단일 관문을 통과시킵니다.**
 ```java
@@ -163,8 +198,8 @@ Controller가 받은 `category`를 그대로 신뢰하지 마세요. 상세 조�
 ---
 
 ## 참고
-- **첫날 읽기 순서**: [`../docs/ONBOARDING_BACKEND.md`](../docs/ONBOARDING_BACKEND.md)
-- **작업 지시서**: [`../docs/BACKEND_TASKS.md`](../docs/BACKEND_TASKS.md)
-- **협업 규칙**: [`../docs/INTEGRATION.md`](../docs/INTEGRATION.md)
-- **도구 버전**: [`../docs/TOOLCHAIN.md`](../docs/TOOLCHAIN.md)
-- 상세 설계: [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
+- **첫날 읽기 순서**: [`../docs/backend/ONBOARDING_BACKEND.md`](../docs/backend/ONBOARDING_BACKEND.md)
+- **작업 지시서**: [`../docs/backend/BACKEND_TASKS.md`](../docs/backend/BACKEND_TASKS.md)
+- **협업 규칙**: [`../docs/ops/INTEGRATION.md`](../docs/ops/INTEGRATION.md)
+- **도구 버전**: [`../docs/ops/TOOLCHAIN.md`](../docs/ops/TOOLCHAIN.md)
+- 상세 설계: [`../docs/spec/ARCHITECTURE.md`](../docs/spec/ARCHITECTURE.md)

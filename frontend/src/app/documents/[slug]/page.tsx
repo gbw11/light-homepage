@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MemberGate } from "@/components/auth/MemberGate";
 import { DocumentDetail } from "../_components/DocumentDetail";
 
 /**
@@ -42,7 +43,11 @@ export default async function MyDocumentDetailPage({
         <h1 className="text-2xl font-bold md:text-3xl">문서</h1>
       </section>
 
-      <DocumentDetail slug={slug} />
+      {/* 회의록이 M이 된 뒤(2026-08-31)로 비로그인은 조회 전에 로그인 유도.
+          예산안 존재 은닉(404)은 로그인 이후에도 서버 판정 그대로다 */}
+      <MemberGate description="회의록·문서는 회원만 볼 수 있습니다.">
+        <DocumentDetail slug={slug} />
+      </MemberGate>
     </main>
   );
 }

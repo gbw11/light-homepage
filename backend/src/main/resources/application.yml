@@ -16,7 +16,7 @@ spring:
       connection-timeout: 20000
       # ── 아래 3줄: Neon 자동 정지와 풀의 상호작용 (2026-08-27 인프라) ──────
       #   Neon은 약 5분 유휴 시 컴퓨트를 정지한다. 그게 "월 $0"의 전제다
-      #   (docs/COST_GUARDRAILS.md §3.2). 그런데 기본값 그대로는 풀이 그 전제를 깬다.
+      #   (docs/ops/COST_GUARDRAILS.md §3.2). 그런데 기본값 그대로는 풀이 그 전제를 깬다.
       #
       # ★ keepalive-time: 0 — **커넥션 유지 핑을 끈다.**
       #   HikariCP 6.3.3의 기본값은 0이 아니라 **2분**이다(`DEFAULT_KEEPALIVE_TIME`).
@@ -108,7 +108,7 @@ management:
         #   /actuator/health 에는 Spring이 DataSource 인디케이터를 자동으로 붙인다.
         #   10분 핑이 그쪽을 때리면 Neon 컴퓨트가 영구히 깨어 있게 되어 무료
         #   컴퓨트 한도를 넘긴다 — "월 $0" 전제가 깨진다
-        #   (docs/COST_GUARDRAILS.md §3.2).
+        #   (docs/ops/COST_GUARDRAILS.md §3.2).
         #
         #   include를 명시하는 이유: 기본 liveness 그룹 구성(livenessState)에
         #   의존하면 Spring Boot 버전이 올라가며 조용히 바뀔 수 있다.
@@ -139,6 +139,48 @@ app:
     secret: ${JWT_SECRET}
     access-ttl: ${JWT_ACCESS_TTL:1800}      # 30분
     refresh-ttl: ${JWT_REFRESH_TTL:1209600} # 14일
+  auth:
+    # ⚠️ 기본값 false. 로컬은 http라 Secure 쿠키가 브라우저에 저장조차 되지 않아
+    #    켜두면 개발 중 로그인이 통째로 안 된다. 운영(https)에서는 아래 prod
+    #    문서가 true로 덮는다 — 끄고 배포하면 토큰이 평문 http로 샐 수 있다.
+    secure-cookie: false
+    # 카카오 콜백이 돌려보낼 FE 주소 (SPEC_API.md §2.8).
+    #   ⚠️ 요청에서 받지 않고 설정에서만 읽는다 — 사용자가 정하게 두면
+    #      열린 리다이렉트가 되어, 우리 도메인을 거쳐 아무 데나 보내는
+    #      링크를 만들 수 있다.
+    frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+    # 비밀번호 재설정 토큰 수명(초). 기본 30분 — 1회용이고 만료된다 (NFR-SEC-08).
+    #   길면 메일함을 손에 넣은 사람에게 시간을 준다. 짧으면 사용자가 메일을
+    #   늦게 확인했을 때 다시 요청해야 한다. 30분은 그 사이 값이다.
+    password-reset-ttl: ${PASSWORD_RESET_TTL:1800}
+    # ⚠️ 개발용. 켜면 재설정 토큰 평문이 로그에 찍힌다 — 남의 비밀번호를 바꿀 수
+    #    있는 값이다. prod 프로필에서는 켜져 있어도 무시한다.
+    expose-reset-token: false
+  roster:
+    import:
+      # 교회 명단 CSV 임포트 (local 프로필 전용).
+      # ⚠️ 명단 원본 CSV는 저장소에 커밋하지 않는다 — 교인 수백 명의 이름·
+      #    생년월일·전화번호다. 경로는 저장소 밖을 가리킨다.
+      enabled: false
+      path: ${ROSTER_CSV_PATH:}
+      # ⚠️ 한국어 Windows 엑셀의 「CSV로 저장」 기본값은 CP949(MS949)다.
+      #    어긋나면 디코더가 거부해 임포트가 실패하고 로그가 인코딩을 지목한다 —
+      #    깨진 이름이 DB에 들어가지는 않는다. 그래도 리포트의 이름 표본을
+      #    눈으로 확인할 것 (모든 바이트를 받아들이는 인코딩을 설정하면
+      #    거부가 일어나지 않는다).
+      charset: UTF-8
+      # ★ 기본은 예행연습이다. 리포트를 보고 확인한 뒤 켠다.
+      apply: false
+      # ⚠️ CSV에 없는 기존 행을 비활성 처리할지. 명단 일부만 담긴 CSV를
+      #    실수로 넣으면 나머지 전원이 출석부에서 사라진다.
+      deactivate-missing: false
+  seed:
+    # 개발용 시드 계정 (local 프로필 전용). 기본은 꺼둔다.
+    # ★ password를 여기에 쓰지 않는다 — 커밋되는 파일이다.
+    #   application-local.yml(gitignore됨)이나 SEED_PASSWORD로 준다.
+    #   (INTEGRATION.md §2 · ARCHITECTURE.md §13 배포 전 체크리스트)
+    enabled: false
+    password: ${SEED_PASSWORD:}
 
 ---
 # ─────────────────────────────────────────────────────────────
@@ -154,6 +196,10 @@ spring:
     url: ${DATABASE_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+
+app:
+  auth:
+    secure-cookie: true   # ★ https 전용. 끄고 배포하면 토큰이 평문으로 오간다
 
 springdoc:
   swagger-ui:

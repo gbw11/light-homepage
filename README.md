@@ -40,7 +40,7 @@ light-homepage/
 ```
 
 > ⚠️ `frontend/`와 `backend/`는 **각 담당자가 단독 소유**합니다. 상대 디렉터리를 수정하지 않습니다.
-> 자세한 규칙은 [`docs/INTEGRATION.md`](docs/INTEGRATION.md)
+> 자세한 규칙은 [`docs/ops/INTEGRATION.md`](docs/ops/INTEGRATION.md)
 
 ---
 
@@ -55,7 +55,7 @@ main                    배포 (마일스톤 릴리스만)
 ```
 
 > ⚠️ **`*_develop`에서 직접 작업하지 않습니다.** 반드시 하위 브랜치(`feat/*`)를 한 번 더 만들어
-> 작업하고 PR로 올립니다. 자세한 규칙은 [`docs/INTEGRATION.md §6`](docs/INTEGRATION.md)
+> 작업하고 PR로 올립니다. 자세한 규칙은 [`docs/ops/INTEGRATION.md §6`](docs/ops/INTEGRATION.md)
 
 ```bash
 git checkout backend_develop
@@ -64,6 +64,27 @@ git checkout -b feat/be-jwt-auth     # ← 여기서 작업
 ```
 
 머지 흐름: `feat/*` → `*_develop` → `develop` → `main`
+
+> ### 🔴 `main`은 **일부러** 뒤처져 있습니다 — 배포 설정에 쓰지 마세요
+>
+> `main`은 **마일스톤 릴리스만** 받습니다. M1이 아직 릴리스되지 않았으므로
+> `main`은 `develop`보다 **283커밋 뒤처진 상태가 정상**입니다.
+> 앞당기지 마세요 — 앞당기면 "릴리스됐다"는 거짓 신호가 됩니다.
+>
+> **⚠️ 그래서 어떤 배포 설정도 `main`을 가리켜서는 안 됩니다.**
+> 2026-08-28에 Vercel **Production Branch가 `main`으로 설정돼 있어서**
+> 프론트엔드 프로덕션이 **13커밋 동안 동결**됐습니다. 실인물 사진을 제거한
+> 수정(#94)이 배포되지 않은 채 "고쳐졌다"고 기록됐습니다
+> (`infra/vercel/README.md §2⓪`).
+>
+> | 배포 대상 | 가리켜야 하는 브랜치 |
+> |---|---|
+> | Vercel (프론트엔드) | **`develop`** |
+> | Render (백엔드) | **`develop`** — Actions가 훅을 호출 (`docs/ops/CICD.md §5.1`) |
+>
+> **새 배포 대상을 붙일 때는 그 설정 화면에서 브랜치 값을 눈으로 확인하세요.**
+> 문서에 적혀 있다는 것은 설정이 그렇다는 증거가 아닙니다 — 위 사고에서
+> `infra/vercel/README.md`에는 처음부터 `develop`이라고 적혀 있었습니다.
 
 ---
 
@@ -80,13 +101,13 @@ feat/* 에서 작업 → push (몇 번이든) → CI 실행 → ✅ 통과하면
 - `feat/*` 브랜치에는 깨진 커밋이 올라가도 됩니다. **막는 지점은 push가 아니라 머지입니다**
 - ⚠️ **PR에 ❌가 있으면 머지하지 않습니다.** 무료 Private 저장소라 기술적 강제가 없는 **팀 규칙**입니다
 
-설계 근거와 파이프라인 구성 → [`docs/CICD.md`](docs/CICD.md)
+설계 근거와 파이프라인 구성 → [`docs/ops/CICD.md`](docs/ops/CICD.md)
 
 ---
 
 ## 실행
 
-**필요 버전** — 전원 동일하게 맞춥니다 ([TOOLCHAIN.md](docs/TOOLCHAIN.md))
+**필요 버전** — 전원 동일하게 맞춥니다 ([TOOLCHAIN.md](docs/ops/TOOLCHAIN.md))
 
 | | 버전 | |
 |---|---|---|
@@ -113,30 +134,30 @@ cd frontend && npm run dev               # → localhost:3000
 
 | 문서 | 대상 | 내용 |
 |---|---|---|
-| [**INTEGRATION.md**](docs/INTEGRATION.md) | **양쪽 필독** | 협업·병합 규칙, API 계약, 통합 체크포인트 |
-| [**TOOLCHAIN.md**](docs/TOOLCHAIN.md) | **양쪽 필독** | 도구 버전 고정 — Node 22 · Java 21 · Postgres 16 · 포트 |
-| [**ONBOARDING_BACKEND.md**](docs/ONBOARDING_BACKEND.md) | **백엔드 첫날** | 어떤 파일을 어떤 순서로 읽을지 |
-| [**BACKEND_TASKS.md**](docs/BACKEND_TASKS.md) | **백엔드** | 작업 지시서 (이것만 읽어도 작업 가능) |
+| [**INTEGRATION.md**](docs/ops/INTEGRATION.md) | **양쪽 필독** | 협업·병합 규칙, API 계약, 통합 체크포인트 |
+| [**TOOLCHAIN.md**](docs/ops/TOOLCHAIN.md) | **양쪽 필독** | 도구 버전 고정 — Node 22 · Java 21 · Postgres 16 · 포트 |
+| [**ONBOARDING_BACKEND.md**](docs/backend/ONBOARDING_BACKEND.md) | **백엔드 첫날** | 어떤 파일을 어떤 순서로 읽을지 |
+| [**BACKEND_TASKS.md**](docs/backend/BACKEND_TASKS.md) | **백엔드** | 작업 지시서 (이것만 읽어도 작업 가능) |
 
 **배경 문서**
 
 | 문서 | 내용 |
 |---|---|
-| [PLAN.md](docs/PLAN.md) | 기획 — 목표·사용자·정보구조·권한 모델 |
-| [WIREFRAME.md](docs/WIREFRAME.md) | 화면 설계 21개 (모바일 우선) |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 시스템 설계 — 스택·데이터·API·보안 |
-| [WORKPLAN.md](docs/WORKPLAN.md) | 일정·시간 산정·역할 분담 |
-| [CICD.md](docs/CICD.md) | Jenkins CI/CD 설계 · 머지 게이트 |
-| [**FLOW.md**](docs/FLOW.md) | **★ 전체 흐름 — 브랜치를 파는 것부터 사용자 화면까지 한 장** |
-| [**COST_GUARDRAILS.md**](docs/COST_GUARDRAILS.md) | **과금 방지 설계 — 외부 서비스를 추가하기 전에 읽습니다** |
+| [PLAN.md](docs/spec/PLAN.md) | 기획 — 목표·사용자·정보구조·권한 모델 |
+| [WIREFRAME.md](docs/spec/WIREFRAME.md) | 화면 설계 21개 (모바일 우선) |
+| [ARCHITECTURE.md](docs/spec/ARCHITECTURE.md) | 시스템 설계 — 스택·데이터·API·보안 |
+| [WORKPLAN.md](docs/spec/WORKPLAN.md) | 일정·시간 산정·역할 분담 |
+| [CICD.md](docs/ops/CICD.md) | Jenkins CI/CD 설계 · 머지 게이트 |
+| [**FLOW.md**](docs/ops/FLOW.md) | **★ 전체 흐름 — 브랜치를 파는 것부터 사용자 화면까지 한 장** |
+| [**COST_GUARDRAILS.md**](docs/ops/COST_GUARDRAILS.md) | **과금 방지 설계 — 외부 서비스를 추가하기 전에 읽습니다** |
 
 **명세서**
 
 | 문서 | 내용 |
 |---|---|
-| [SPEC_FUNCTIONAL.md](docs/SPEC_FUNCTIONAL.md) | 기능 명세 — 63개 기능, 역할·마일스톤·수용 기준 |
-| [SPEC_NONFUNCTIONAL.md](docs/SPEC_NONFUNCTIONAL.md) | 비기능 명세 — 성능·가용성·보안·개인정보·비용 목표 |
-| [SPEC_API.md](docs/SPEC_API.md) | **API 명세 — FE·BE 계약서** |
+| [SPEC_FUNCTIONAL.md](docs/spec/SPEC_FUNCTIONAL.md) | 기능 명세 — 63개 기능, 역할·마일스톤·수용 기준 |
+| [SPEC_NONFUNCTIONAL.md](docs/spec/SPEC_NONFUNCTIONAL.md) | 비기능 명세 — 성능·가용성·보안·개인정보·비용 목표 |
+| [SPEC_API.md](docs/spec/SPEC_API.md) | **API 명세 — FE·BE 계약서** |
 
 ---
 
@@ -149,14 +170,14 @@ cd frontend && npm run dev               # → localhost:3000
 | **M3** | 사진첩(업로드·다운로드) · 주보 · 용량 관리 | 62h | 60h | ~10주 |
 | **M4** | 문서 게시판 · 월례회 · 인가 테스트 · PWA | 75h | 73h | ~13주 |
 
-기준: 1인 4h/일 · 주 7일 (28h/주). 상세는 [WORKPLAN.md](docs/WORKPLAN.md).
+기준: 1인 4h/일 · 주 7일 (28h/주). 상세는 [WORKPLAN.md](docs/spec/WORKPLAN.md).
 
 ---
 
 ## ⚠️ 반드시 지킬 것
 
 1. **권한은 서버에서 검사한다.** UI에서 메뉴를 숨기는 것은 보안이 아니다
-2. **인가 테스트 매트릭스**([ARCHITECTURE.md §5.3](docs/ARCHITECTURE.md))가 통과해야 배포한다 — RLS가 없으므로 이것이 마지막 방어선
+2. **인가 테스트 매트릭스**([ARCHITECTURE.md §5.3](docs/spec/ARCHITECTURE.md))가 통과해야 배포한다 — RLS가 없으므로 이것이 마지막 방어선
 3. **API 계약을 조용히 바꾸지 않는다** — 비호환 변경은 `[CONTRACT]` PR + 상대 승인
 4. **비용 $0을 넘기지 않는다** — R2 95% 도달 시 업로드 차단
 5. **시크릿을 커밋하지 않는다** — `JWT_SECRET`, R2 키, DB 비밀번호 (`.gitignore`가 1차, CI 스캔이 2차. 올라간 뒤엔 **키 재발급만이 복구**)

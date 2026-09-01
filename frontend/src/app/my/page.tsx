@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Section } from "@/components/ui/Section";
-import { villageLabel } from "@/lib/village";
 import { HomeTile } from "./_components/HomeTile";
 import { MyPreviews } from "./_components/MyPreviews";
 
@@ -21,7 +20,7 @@ import { MyPreviews } from "./_components/MyPreviews";
  *
  * 관리 타일(콘텐츠 작성/회의록)은 LEADER·PASTOR에게만 보이는 UI 편의
  * 기능이다 — 실제 인가는 서버가 한다 (RequireMember와 동일 원칙,
- * docs/WORKPLAN.md §5.1). M4에서 두 타일 모두 활성화됐다 — 회의록은 문서
+ * docs/spec/WORKPLAN.md §5.1). M4에서 두 타일 모두 활성화됐다 — 회의록은 문서
  * 게시판(`/documents` — 회의록·예산안 탭), 콘텐츠 작성은 글 작성 화면
  * (`/admin/posts/new` — WIREFRAME.md §16).
  *
@@ -41,7 +40,7 @@ export default function MyHomePage() {
  */
 function MyHomeContent() {
   const { user } = useAuth();
-  const member = user && user.role !== "PENDING" ? user : null;
+  const member = user;
   const isAdmin = member?.role === "LEADER" || member?.role === "PASTOR";
 
   if (!member) {
@@ -50,20 +49,16 @@ function MyHomeContent() {
         <Section>
           <h1 className="text-2xl font-bold md:text-3xl">나의 LIGHT</h1>
           <p className="mt-2 leading-relaxed text-[var(--color-gray-400)]">
-            {user?.role === "PENDING"
-              ? "가입 승인을 기다리는 중입니다. 승인되면 맡은 역할에 따라 자료를 올릴 수 있습니다."
-              : "주보·사진첩·공지·월례회 자료는 로그인 없이 볼 수 있습니다. 로그인은 자료를 올리거나 관리해야 하는 분을 위한 것입니다."}
+            로그인하면 주보·사진첩·내부 공지·월례회 자료를 볼 수 있습니다.
           </p>
-          {user?.role !== "PENDING" && (
-            <div className="mt-6">
-              <Link
-                href="/login"
-                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)]"
-              >
-                로그인
-              </Link>
-            </div>
-          )}
+          <div className="mt-6">
+            <Link
+              href="/login"
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)]"
+            >
+              로그인
+            </Link>
+          </div>
         </Section>
       </main>
     );
@@ -73,7 +68,6 @@ function MyHomeContent() {
     <main id="main" tabIndex={-1}>
       <Section>
         <h1 className="text-2xl font-bold md:text-3xl">안녕하세요, {member.name}님</h1>
-        <p className="mt-1 text-[var(--color-gray-400)]">{villageLabel(member.village)}</p>
 
         {/* 이번 주 주보 · 최근 앨범 (FR-MEM-01) — `_components/MyPreviews.tsx` */}
         <div className="mt-8">

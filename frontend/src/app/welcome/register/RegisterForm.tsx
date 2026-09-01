@@ -233,10 +233,82 @@ function RegisterFormInner() {
   );
 }
 
+/**
+ * 🔴 **배포된 mock 빌드에서는 폼을 띄우지 않는다.**
+ *
+ * 이 폼이 받는 것은 **실명과 휴대폰 번호**다. 그런데 mock의
+ * `newcomers.submit`은 `{ id: Date.now() }`를 돌려주고 입력을 **버린다**
+ * (`mock.ts`). 즉 배포된 데모에서 처음 온 청년이 이름과 연락처를 적으면
+ * 화면은 "등록됐습니다 🎉"라고 말하는데 **아무도 그 사람에게 연락하지 않는다.**
+ *
+ * 이건 mock의 다른 no-op들과 성질이 다르다. 사진 삭제가 되살아나는 것은
+ * 화면이 이상해 보이는 문제이고(`PhotoDeletePanel`), 이쪽은
+ * **① 개인정보를 처리자 없이 받는다 ② 방문자에게 지키지 못할 약속을 한다** —
+ * 둘 다 문구로 덧붙여 감쌀 수 있는 종류가 아니다. 그래서 안내로 **대체**한다.
+ *
+ * ## 게이트가 두 값의 AND인 이유
+ *
+ * `NEXT_PUBLIC_USE_MOCK`만으로 막으면 **로컬 개발에서도 폼이 사라진다** —
+ * 개발은 mock 모드가 기본이라 폼을 만들 수도 고칠 수도 없게 된다.
+ * `NODE_ENV`만으로 막으면 BE를 연결한 실서비스 빌드(`mock=0`)에서도 막힌다.
+ * 막아야 하는 것은 **"배포됐는데 저장될 곳이 없는"** 조합 하나뿐이다.
+ * (`mock-assets/[...path]/route.ts`는 자산 전체를 배포에서 지워야 했으므로
+ * `NODE_ENV` 단독이 맞았다 — 여기는 대상이 다르다.)
+ *
+ * 두 값 모두 빌드 타임 상수이므로 `mock=0` 빌드에서는 이 분기가 번들에서
+ * 통째로 사라진다.
+ *
+ * → `NEXT_PUBLIC_USE_MOCK=0`으로 BE를 연결하는 순간 폼이 그대로 살아난다.
+ *   이 파일에서 지울 코드는 없다.
+ */
+const FORM_DISABLED =
+  process.env.NODE_ENV === "production" &&
+  process.env.NEXT_PUBLIC_USE_MOCK === "1";
+
+/**
+ * 폼을 대신하는 안내. **막았다는 사실보다 지금 무엇을 할 수 있는지를 먼저 준다** —
+ * 처음 오려는 사람을 빈손으로 돌려보내지 않는 것이 이 화면의 목적이다.
+ * 전화는 이미 확정된 유일한 실제 연락 경로다 (`/contact` · 사무실 번호).
+ */
+function RegisterUnavailable() {
+  return (
+    <div className="rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-6">
+      <p className="text-lg font-bold">온라인 등록은 준비 중입니다</p>
+      <p className="mt-2 text-base text-[var(--color-gray-400)]">
+        아직 등록 내용을 받아둘 곳이 준비되지 않아, 지금 적어주시면 담당자에게
+        전달되지 않습니다. 그냥 오셔도 좋고, 미리 알리고 싶으시면 전화로
+        말씀해주세요.
+      </p>
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link
+          href="/contact"
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
+        >
+          전화로 문의하기
+        </Link>
+        <Link
+          href="/location"
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] border border-[var(--color-navy-100)] px-4 text-base font-bold transition hover:bg-[var(--color-navy-100)]"
+        >
+          오시는 길
+        </Link>
+      </div>
+
+      <p className="mt-4 text-sm text-[var(--color-gray-400)]">
+        주일 14:00 · 드림센터 4층. 등록 없이 오셔도 맞이합니다.
+      </p>
+    </div>
+  );
+}
+
 /** RegisterFormInner가 useMutation을 쓰려면 QueryClientProvider가 필요하다.
  *  앱 전역 Provider가 아직 없으므로 이 페이지 트리 안에서만 생성해서 쓴다. */
 export function RegisterForm() {
   const [queryClient] = useState(() => new QueryClient());
+
+  if (FORM_DISABLED) return <RegisterUnavailable />;
+
   return (
     <QueryClientProvider client={queryClient}>
       <RegisterFormInner />
