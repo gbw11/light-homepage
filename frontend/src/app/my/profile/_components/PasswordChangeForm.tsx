@@ -4,6 +4,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { passwordField } from "@/lib/password";
 import { useMutation } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +13,7 @@ import { Button } from "@/components/ui/Button";
 const schema = z
   .object({
     currentPassword: z.string().min(1, "현재 비밀번호를 입력해주세요."),
-    newPassword: z.string().min(8, "새 비밀번호는 8자 이상이어야 합니다."),
+    newPassword: passwordField("새 비밀번호"),
     newPasswordConfirm: z.string().min(1, "새 비밀번호 확인을 입력해주세요."),
   })
   .refine((values) => values.newPassword === values.newPasswordConfirm, {
