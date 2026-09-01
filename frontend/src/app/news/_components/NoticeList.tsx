@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
+import { useAuth } from "@/components/providers/AuthProvider";
 import type { PostSummary } from "@/types/api";
 
 /** 목록과 스켈레톤이 같은 구분선·간격을 써야 로딩 후 다시 움직이지 않는다 */
@@ -27,18 +28,19 @@ function formatDate(iso: string | null): string {
 }
 
 /**
- * 공지 통합 목록 (PM 결정 2026-08-25).
+ * 공지 통합 목록 — 한 화면, 두 분류.
  *
- * 공개 열람 전환으로 `NOTICE_PUBLIC`·`NOTICE_MEMBER`가 **둘 다 공개**가 되면서
- * 예전의 `/news`(공개만)와 `/notices`(전체)가 사실상 같은 화면이 됐다.
- * 두 목록을 유지하면 방문자가 "공지가 어디 있지"를 두 번 찾게 되므로 여기로
- * 합쳤다. 구분이 사라지는 건 아니고 **`회원 대상` 뱃지로 남긴다** — 누구를
- * 향해 쓴 글인지는 읽는 사람에게 여전히 유용한 정보다.
+ * 2026-08-31 확정(SPEC_API §3.1 v1.3)으로 `NOTICE_MEMBER`가 다시 **회원
+ * 전용**이 됐다. 화면은 하나로 유지하되:
+ *   · 비로그인 — `NOTICE_PUBLIC`만 조회한다 (`enabled`). 회원 공지를
+ *     조회하면 서버가 401을 주는데, 그걸 목록 전체의 에러로 보여줄 이유가
+ *     없다 — 대신 하단에 로그인 안내 한 줄을 남긴다
+ *   · 로그인 — 두 분류를 합쳐 `publishedAt` 최신순. `🔒 회원` 뱃지로 구분
  *
- * 두 분류를 각각 조회해 `publishedAt` 최신순으로 합친다. 쿼리 키는 분류별로
- * 나뉘어 있어(`["posts", category]`) 다른 화면과 캐시를 공유한다.
+ * 쿼리 키는 분류별(`["posts", category]`)이라 다른 화면과 캐시를 공유한다.
  */
 export function NoticeList() {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const publicQuery = useQuery({
     queryKey: ["posts", "NOTICE_PUBLIC"],
     queryFn: () => api.posts.list({ category: "NOTICE_PUBLIC" }),
@@ -46,9 +48,11 @@ export function NoticeList() {
   const memberQuery = useQuery({
     queryKey: ["posts", "NOTICE_MEMBER"],
     queryFn: () => api.posts.list({ category: "NOTICE_MEMBER" }),
+    // 회원 전용 — 비로그인 상태에서는 조회 자체를 하지 않는다 (서버는 401을 준다)
+    enabled: !!user,
   });
 
-  const isLoading = publicQuery.isLoading || memberQuery.isLoading;
+  const isLoading = publicQuery.isLoading || isAuthLoading || (!!user && memberQuery.isLoading);
   const isError = publicQuery.isError || memberQuery.isError;
   const error = publicQuery.error ?? memberQuery.error;
 
@@ -90,10 +94,10 @@ export function NoticeList() {
               className="flex items-center justify-between gap-4 py-4"
             >
               <span className="flex items-center gap-2">
-                {/* 자물쇠가 아니다 — 공개돼 있고, '누구를 향한 글인지'만 표시한다 */}
+                {/* 회원 전용 표시 (SPEC_API §3.1 v1.3) — 목록에 섞여 있어도 구분된다 */}
                 {item.category === "NOTICE_MEMBER" && (
                   <span className="rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-2 py-0.5 text-xs font-bold">
-                    회원 대상
+                    🔒 회원
                   </span>
                 )}
                 {item.pinned && <span aria-label="고정됨">📌</span>}
@@ -106,6 +110,11 @@ export function NoticeList() {
           </li>
         ))}
       </ul>
+      {!user && (
+        <p className="mt-6 text-sm text-[var(--color-gray-400)]">
+          🔒 회원 공지는 로그인하면 볼 수 있습니다.
+        </p>
+      )}
     </Section>
   );
 }

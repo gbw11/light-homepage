@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/ui/Section";
+import { MemberGate } from "@/components/auth/MemberGate";
 import { MeetingScreen } from "./_components/MeetingScreen";
 
 /**
@@ -25,7 +26,9 @@ export default async function MeetingDetailPage({
   return (
     <main id="main" tabIndex={-1}>
       <Section>
-        <MeetingScreen meetingId={id} />
+        <MemberGate description="월례회 자료는 회원만 볼 수 있습니다.">
+          <MeetingScreen meetingId={id} />
+        </MemberGate>
       </Section>
     </main>
   );
