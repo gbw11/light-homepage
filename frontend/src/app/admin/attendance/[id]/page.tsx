@@ -4,7 +4,7 @@ import { RequireLeader } from "@/components/auth/RequireLeader";
 import { AttendanceSheet } from "./_components/AttendanceSheet";
 
 export const metadata: Metadata = {
-  title: "출석 체크 | LIGHT",
+  title: "출석 체크",
   // 출석 기록은 민감 정보 — 목록 페이지와 같은 삼중 색인 차단
   robots: { index: false, follow: false },
 };

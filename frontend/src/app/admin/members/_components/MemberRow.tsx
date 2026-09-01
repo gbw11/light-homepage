@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import type { AdminMember, PasswordResetCode, Role } from "@/types/api";
 
 /** WIREFRAME.md §19 — 일반 / 임원 / 전도사 */
@@ -90,44 +91,54 @@ export function MemberRow({ member }: { member: AdminMember }) {
 
   const canChangeRole = member.role !== "GUEST";
 
-  function handleChange(next: string) {
+  const [confirm, confirmDialog] = useConfirm();
+
+  async function handleChange(next: string) {
     const role = next as Role;
     if (role === member.role) return;
 
     // FR-ADM-04 수용 기준 — 되돌리기 어려운 동작이므로 확인을 거친다
-    const confirmed = window.confirm(
-      `${member.name}님의 역할을 "${ROLE_LABEL[member.role]}" → "${ROLE_LABEL[role]}"로 변경하시겠습니까?\n\n` +
+    const confirmed = await confirm({
+      title: `${member.name}님의 역할을 "${ROLE_LABEL[member.role]}" → "${ROLE_LABEL[role]}"로 변경하시겠습니까?`,
+      description:
         (role === "LEADER"
           ? "임원은 예산안을 열람할 수 있게 됩니다."
           : role === "PASTOR"
             ? "전도사는 회원 관리·비밀번호 초기화까지 할 수 있게 됩니다."
-            : "예산안 열람 권한이 사라집니다.") +
-        "\n변경 이력은 기록됩니다.",
-    );
+            : "예산안 열람 권한이 사라집니다.") + "\n변경 이력은 기록됩니다.",
+      confirmLabel: "변경",
+      tone: "default",
+    });
     if (!confirmed) return;
     setError(null);
     changeRoleMutation.mutate(role);
   }
 
-  function handleIssueResetCode() {
+  async function handleIssueResetCode() {
     // 코드는 30분 유효·1회용 — 잘못 눌러도 위험하지 않지만 발급도 감사로그에 남는다
-    const confirmed = window.confirm(
-      `${member.name}님의 비밀번호 재설정 코드를 발급하시겠습니까?\n발급 이력은 기록됩니다.`,
-    );
+    const confirmed = await confirm({
+      title: `${member.name}님의 비밀번호 재설정 코드를 발급하시겠습니까?`,
+      description: "발급 이력은 기록됩니다.",
+      confirmLabel: "발급",
+      tone: "default",
+    });
     if (!confirmed) return;
     resetCodeMutation.mutate();
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     const reason = deleteReason.trim();
     if (!reason) {
       setError("삭제 사유를 입력해주세요.");
       return;
     }
     // SPEC_API §8.2 — 계정 삭제 + 명단 재개방. 선점 복구 절차의 핵심 동작이다
-    const confirmed = window.confirm(
-      `${member.name}님의 계정을 삭제합니다.\n\n명단이 다시 열려 본인이 재가입할 수 있게 됩니다.\n이 동작은 되돌릴 수 없습니다.`,
-    );
+    const confirmed = await confirm({
+      title: `${member.name}님의 계정을 삭제합니다.`,
+      description:
+        "명단이 다시 열려 본인이 재가입할 수 있게 됩니다.\n이 동작은 되돌릴 수 없습니다.",
+      confirmLabel: "삭제",
+    });
     if (!confirmed) return;
     setError(null);
     deleteMutation.mutate(reason);
@@ -135,6 +146,7 @@ export function MemberRow({ member }: { member: AdminMember }) {
 
   return (
     <div className="py-4">
+      {confirmDialog}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         {/* 이름은 명단의 동명이인 접미사 포함 그대로 (SPEC_API §8.1) */}
         <span className="font-bold">{member.name}</span>

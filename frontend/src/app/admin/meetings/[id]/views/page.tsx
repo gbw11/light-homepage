@@ -3,7 +3,7 @@ import { RequireLeader } from "@/components/auth/RequireLeader";
 import { MeetingViewLog } from "./_components/MeetingViewLog";
 
 export const metadata: Metadata = {
-  title: "월례회 열람 기록 | LIGHT",
+  title: "월례회 열람 기록",
   robots: { index: false, follow: false },
 };
 

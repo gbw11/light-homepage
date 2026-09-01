@@ -3,7 +3,7 @@ import { RequireLeader } from "@/components/auth/RequireLeader";
 import { MeetingUploadForm } from "./_components/MeetingUploadForm";
 
 export const metadata: Metadata = {
-  title: "월례회 자료 업로드 | LIGHT",
+  title: "월례회 자료 업로드",
   robots: { index: false, follow: false },
 };
 
