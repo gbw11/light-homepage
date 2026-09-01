@@ -811,8 +811,20 @@ function requireSession(): AuthUser {
   return user;
 }
 
-/** 로그인 테스트 계정 — 키는 loginId, 비밀번호는 전부 `password12!` */
+/** 로그인 테스트 계정 — 키는 loginId, 초기 비밀번호는 전부 `password12!` */
 const MOCK_PASSWORD = "password12!";
+
+/**
+ * 계정별 비밀번호. 시드 계정은 여기 없으면 `MOCK_PASSWORD`로 친다.
+ *
+ * 상수 하나로 두면 "비밀번호가 변경되었습니다"를 띄운 직후 새 비밀번호로
+ * 로그인이 실패한다 — 재설정·변경 흐름을 화면에서 끝까지 밟을 수 없다.
+ */
+const passwords = new Map<string, string>();
+
+function passwordOf(loginId: string): string {
+  return passwords.get(loginId) ?? MOCK_PASSWORD;
+}
 const MOCK_USERS: Record<string, AuthUser> = {
   doyeon01: {
     id: "42",
@@ -1860,7 +1872,11 @@ export const mockApi: Api = {
         throw new ApiError({ code: "NOT_FOUND", message: "회원을 찾을 수 없습니다.", status: 404 });
       }
       if (target.loginId) {
+        // 시드 계정(MOCK_USERS)도 지운다. dynamicUsers만 지우면 `doyeon01` 같은
+        // 시드가 "삭제 성공" 뒤에도 목록에 남고, 명단만 열려 상태가 어긋난다.
         delete dynamicUsers[target.loginId];
+        delete MOCK_USERS[target.loginId];
+        passwords.delete(target.loginId);
         const rosterEntry = MOCK_ROSTER.find((r) => r.claimedBy === target.loginId);
         if (rosterEntry) rosterEntry.claimedBy = null;
       }
@@ -2329,6 +2345,7 @@ export const mockApi: Api = {
         role: "MEMBER",
       };
       dynamicUsers[input.loginId] = user;
+      passwords.set(input.loginId, input.password);
       return { id: user.id, name: user.name, role: user.role };
     },
 
@@ -2338,7 +2355,7 @@ export const mockApi: Api = {
 
       const user = findUserByLoginId(input.loginId);
       // 5회 실패 잠금(SPEC_API §2.3)도 이 문구와 동일한 응답이므로 mock은 구분하지 않는다
-      if (!user || input.password !== MOCK_PASSWORD) {
+      if (!user || !user.loginId || input.password !== passwordOf(user.loginId)) {
         throw new ApiError({
           code: "UNAUTHORIZED",
           message: "아이디 또는 비밀번호가 올바르지 않습니다.",
@@ -2403,6 +2420,7 @@ export const mockApi: Api = {
         });
       }
       issuedResetCodes.delete(input.loginId); // 1회용
+      passwords.set(input.loginId, input.password);
     },
 
     async updateProfile(input: { phone: string }): Promise<AuthUser> {
@@ -2417,8 +2435,8 @@ export const mockApi: Api = {
     async changePassword(input: { currentPassword: string; newPassword: string }): Promise<void> {
       await delay();
       throwIfScenario();
-      requireSession();
-      if (input.currentPassword !== MOCK_PASSWORD) {
+      const current = requireSession();
+      if (!current.loginId || input.currentPassword !== passwordOf(current.loginId)) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
           message: "현재 비밀번호가 일치하지 않습니다.",
@@ -2426,13 +2444,14 @@ export const mockApi: Api = {
           field: "currentPassword",
         });
       }
+      passwords.set(current.loginId, input.newPassword);
     },
 
     async deleteAccount(input: { password: string }): Promise<void> {
       await delay();
       throwIfScenario();
-      requireSession();
-      if (input.password !== MOCK_PASSWORD) {
+      const current = requireSession();
+      if (!current.loginId || input.password !== passwordOf(current.loginId)) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
           message: "비밀번호가 일치하지 않습니다.",
