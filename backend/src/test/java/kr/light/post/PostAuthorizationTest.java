@@ -17,20 +17,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
- * 인가 매트릭스 — 게시물 (ARCHITECTURE.md §5.3).
+ * 인가 매트릭스 — 게시물 (SPEC_API.md §10).
  *
  * <p><b>이 프로젝트에는 RLS가 없다. 이 테스트가 마지막 방어선이다.</b>
  * Jenkinsfile이 {@code --tests "*Authorization*"}으로 이 클래스를 따로 먼저
  * 돌린다 — <b>클래스 이름에서 {@code Authorization}을 빼면 CI가 찾지 못한다.</b>
  *
  * <p>여기서는 단일 관문({@link PostQueryService#assertReadable} ·
- * {@link PostQueryService#assertVisible})을 직접 검증한다. 컨트롤러를 태우는
- * 검증은 {@link PostApiTest}에 있는데, 인증 수단이 M2라 지금 HTTP로는 GUEST 행밖에
- * 만들 수 없다. 반면 관문은 역할을 인자로 받으므로 <b>표 전체를 지금 덮을 수 있다</b>
- * — M2에서 JWT가 붙어도 이 표는 그대로 유효하다.
+ * {@link PostQueryService#assertVisible})을 <b>직접</b> 검증한다 — 규칙 자체가
+ * 맞는지를 본다.
  *
- * <p>기대값은 ARCHITECTURE.md §5.3 · SPEC_API.md §10의 표를 그대로 옮긴 것이다.
- * 표가 바뀌면 여기도 함께 바꾼다.
+ * <p>⚠️ <b>이 테스트만으로는 부족하다.</b> 컨트롤러가 이 관문을 실제로 부르는지는
+ * 여기서 알 수 없다 — 호출을 빼도 전부 통과한다. HTTP로 관통하는 검증은
+ * {@link PostReadAuthorizationTest}에 있다. 둘은 같이 봐야 한다.
+ *
+ * <p>기대값은 SPEC_API.md §10의 표를 그대로 옮긴 것이다. 표가 바뀌면 여기도
+ * 함께 바꾼다 — 어긋나면 잘못된 기준으로 "통과"하게 된다.
  */
 class PostAuthorizationTest {
 

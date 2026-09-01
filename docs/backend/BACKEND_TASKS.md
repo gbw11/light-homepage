@@ -320,6 +320,9 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | 엔드포인트 | G | M | L | T |
 |---|---|---|---|---|
 | `POST /api/auth/verify-roster` · `POST /api/auth/register` · `POST /api/auth/password/reset-with-code` | 200 | 200 | 200 | 200 |
+| `POST /api/auth/login` · `POST /api/auth/refresh` | 200 | 200 | 200 | 200 |
+| `POST /api/auth/logout` | **204** | 204 | 204 | 204 |
+| `GET /api/auth/me` | **401** | 200 | 200 | 200 |
 | `GET /api/posts?category=NOTICE_PUBLIC` | 200 | 200 | 200 | 200 |
 | `GET /api/posts?category=NOTICE_MEMBER` | **401** | 200 | 200 | 200 |
 | `GET /api/posts?category=MINUTES` | **401** | **200** | 200 | 200 |

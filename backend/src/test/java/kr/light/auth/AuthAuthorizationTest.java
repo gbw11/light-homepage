@@ -61,6 +61,12 @@ class AuthAuthorizationTest {
         mockMvc.perform(post("/api/auth/refresh"))
                 .andExpect(status().isUnauthorized());
 
+        // 비밀번호를 잊은 사람은 로그인할 수 없다 — 인증을 요구하면 모순이다.
+        // 본문이 비어 400이면 된다. 401이면 필터가 막은 것이다 (§2.9)
+        mockMvc.perform(post("/api/auth/password/reset-with-code")
+                        .contentType("application/json").content("{}"))
+                .andExpect(status().isBadRequest());
+
         mockMvc.perform(post("/api/auth/logout"))
                 .andExpect(status().isNoContent());
     }
