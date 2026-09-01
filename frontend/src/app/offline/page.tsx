@@ -3,7 +3,7 @@ import { Section } from "@/components/ui/Section";
 import { RetryButton } from "./RetryButton";
 
 export const metadata: Metadata = {
-  title: "오프라인 | LIGHT",
+  title: "오프라인",
   description: "인터넷에 연결되어 있지 않습니다.",
   // 검색 결과에 "오프라인" 페이지가 뜨면 안 된다. `robots.ts`는 공개 영역을
   // allow 하므로 이 페이지에서 직접 막는다.

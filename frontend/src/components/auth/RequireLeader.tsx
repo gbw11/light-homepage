@@ -18,7 +18,7 @@ export function isLeaderOrAbove(role: Role): boolean {
  *
  * `RequireMember`는 "승인된 회원인가"까지만 본다 — 일반 회원(`MEMBER`)도
  * 통과한다. 그래서 이 컴포넌트는 `RequireMember`를 그대로 감싸고
- * (비로그인 → `/login`, 승인 대기 → `/pending` 처리를 재사용) 역할 검사만
+ * (비로그인 → `/login` 처리를 재사용) 역할 검사만
  * 한 겹 더 얹는다.
  *
  * 비로그인/승인대기와 달리 **일반 회원은 리다이렉트하지 않고 "권한이 없습니다"
