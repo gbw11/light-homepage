@@ -9,6 +9,18 @@ export const metadata: Metadata = {
 };
 
 /**
+ * 예배·모임 시간표.
+ *
+ * 화면이 아니라 여기에 두는 이유: 같은 정보가 홈·푸터·모교회 표에도 나오는데,
+ * 값이 바뀌면 한 곳만 고치면 되도록 출처를 하나로 만든다.
+ * ❓는 아직 확정되지 않은 정보다 (`PLAN §8`).
+ */
+const SCHEDULE: { name: string; time: string; place: string }[] = [
+  { name: "청년예배", time: "주일 14:00", place: "드림센터 4층" },
+  { name: "마을모임", time: "예배 후 15:30~16:00", place: "드림센터 4층" },
+];
+
+/**
  * WIREFRAME.md §4 — 예배와 모임 (FR-PUB-04).
  * 마을별 개별 페이지는 만들지 않는다 (PLAN §4.4 결정) — 이 섹션 텍스트가
  * 마을 정보의 전부다.
@@ -21,23 +33,55 @@ export default function WorshipPage() {
         <h1 className="text-2xl font-bold md:text-3xl">예배와 모임</h1>
       </Section>
 
-      <Section title="청년예배" className="pt-0">
-        <div className="rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-4">
-          <p className="font-bold">주일 14:00 · 드림센터 4층</p>
+      {/*
+        예배 안내 표 — 모교회(`gloria.or.kr`)의 "예배 안내"와 같은 뼈대다
+        (PM 요청 2026-09-01). 이름 칸이 배경으로 구분되고, 시각과 장소가
+        오른쪽에 붙는다. 모교회 표에 우리가 **`청년교회 · 주일 14:00 ·
+        드림센터4층`** 한 줄로 들어가 있는데, 이 화면은 그 한 줄을 펼친 것이다.
+
+        `<table>`을 쓴다 — 행마다 "이름 / 시각 / 장소"가 대응하는 표 데이터다.
+        div로 그리면 스크린리더가 열 관계를 읽어주지 못한다.
+      */}
+      <Section title="예배와 모임 시간" className="pt-0">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <caption className="sr-only">청년교회 예배와 모임 시간·장소</caption>
+            <thead className="sr-only">
+              <tr>
+                <th scope="col">구분</th>
+                <th scope="col">시각</th>
+                <th scope="col">장소</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SCHEDULE.map((row) => (
+                <tr key={row.name} className="border-b border-[var(--color-navy-100)]">
+                  <th
+                    scope="row"
+                    className="w-32 bg-[var(--color-navy-100)] px-4 py-3 font-bold md:w-44"
+                  >
+                    {row.name}
+                  </th>
+                  <td className="px-4 py-3 text-right tabular-nums md:text-left">{row.time}</td>
+                  <td className="px-4 py-3 text-right text-[var(--color-gray-400)]">
+                    {row.place}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+
         <Link
           href="/location"
-          className="mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)]"
+          className="mt-6 inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)]"
         >
           오시는 길
         </Link>
       </Section>
 
       <Section title="마을모임">
-        <div className="rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-4">
-          <p className="font-bold">예배 후 15:30~16:00 (30분)</p>
-        </div>
-        <p className="mt-4 text-base text-[var(--color-gray-400)]">
+        <p className="text-base text-[var(--color-gray-400)]">
           1마을부터 9마을로 나뉘어 모입니다. 처음 오신 분은 새가족마을에서
           함께 시작합니다.
         </p>
