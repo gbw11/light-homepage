@@ -811,8 +811,20 @@ function requireSession(): AuthUser {
   return user;
 }
 
-/** 로그인 테스트 계정 — 키는 loginId, 비밀번호는 전부 `password12!` */
+/** 로그인 테스트 계정 — 키는 loginId, 초기 비밀번호는 전부 `password12!` */
 const MOCK_PASSWORD = "password12!";
+
+/**
+ * 계정별 비밀번호. 시드 계정은 여기 없으면 `MOCK_PASSWORD`로 친다.
+ *
+ * 상수 하나로 두면 "비밀번호가 변경되었습니다"를 띄운 직후 새 비밀번호로
+ * 로그인이 실패한다 — 재설정·변경 흐름을 화면에서 끝까지 밟을 수 없다.
+ */
+const passwords = new Map<string, string>();
+
+function passwordOf(loginId: string): string {
+  return passwords.get(loginId) ?? MOCK_PASSWORD;
+}
 const MOCK_USERS: Record<string, AuthUser> = {
   doyeon01: {
     id: "42",
@@ -951,8 +963,8 @@ function mockPostSummaries(): PostSummary[] {
 }
 
 /**
- * 예산안(`BUDGET`)은 공개 열람 전환(PM 결정 2026-08-25)에서 **유일하게 제외된
- * 분류**다 — 회의록은 공개, 예산안은 임원 이상. 헌금·지출 내역이 담기기 때문.
+ * 예산안(`BUDGET`)은 임원 이상 전용이다 — 헌금·지출 내역이 담기기 때문.
+ * (내부공지·회의록은 회원 `M` — SPEC_API §3.1 v1.3, 2026-08-31)
  */
 function isLeaderSession(): boolean {
   const user = readSession();
@@ -1177,12 +1189,20 @@ export const mockApi: Api = {
       await delay();
       throwIfScenario();
 
-      // 예산안만 임원 이상 (위 `isLeaderSession` 주석)
+      // 예산안은 임원 이상 — 로그인해도 안 되는 경우라 403이다 (§10 주의 3)
       if (category === "BUDGET" && !isLeaderSession()) {
         throw new ApiError({
           code: "FORBIDDEN",
           message: "예산안을 열람할 권한이 없습니다.",
           status: 403,
+        });
+      }
+      // 내부공지·회의록은 회원 전용 (SPEC_API §3.1 v1.3) — 익명은 401(로그인 유도)
+      if ((category === "NOTICE_MEMBER" || category === "MINUTES") && !readSession()) {
+        throw new ApiError({
+          code: "UNAUTHORIZED",
+          message: "로그인이 필요합니다.",
+          status: 401,
         });
       }
 
@@ -1222,6 +1242,18 @@ export const mockApi: Api = {
           code: "NOT_FOUND",
           message: "글을 찾을 수 없습니다.",
           status: 404,
+        });
+      }
+      // 내부공지·회의록 상세는 회원 전용 (SPEC_API §3.1 v1.3) — 401이면
+      // `/news/[slug]` 서버 렌더가 클라이언트 분기로 넘어간다
+      if (
+        (summary.category === "NOTICE_MEMBER" || summary.category === "MINUTES") &&
+        !readSession()
+      ) {
+        throw new ApiError({
+          code: "UNAUTHORIZED",
+          message: "로그인이 필요합니다.",
+          status: 401,
         });
       }
 
@@ -1345,7 +1377,8 @@ export const mockApi: Api = {
     async list({ page = 0, size = 20 } = {}): Promise<Page<AlbumSummary>> {
       await delay();
       throwIfScenario();
-      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
+      // 사진첩 열람은 회원 전용 (SPEC_API §10 v1.3 — 8/25 공개 전환의 부분 철회)
+      requireSession();
 
       const all = scenario() === "empty" ? [] : [...dynamicAlbums, ...ALBUMS];
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
@@ -1390,7 +1423,8 @@ export const mockApi: Api = {
     ): Promise<Cursor<Photo>> {
       await delay();
       throwIfScenario();
-      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
+      // 사진첩 열람은 회원 전용 (SPEC_API §10 v1.3)
+      requireSession();
 
       const known = [...dynamicAlbums, ...ALBUMS].find((a) => a.id === albumId);
       if (!known) {
@@ -1563,9 +1597,9 @@ export const mockApi: Api = {
     async report(photoId: string, input: { reason: string }): Promise<void> {
       await delay();
       throwIfScenario();
-      // 익명 신고 허용(PM 결정 2026-08-25): 사진첩이 공개되면서 얼굴이 찍힌
-      // 비회원이 '내려달라'고 알릴 유일한 창구가 됐다. 로그인을 요구하면
-      // 정작 요청해야 할 사람이 요청할 수 없다.
+      // 사진첩이 회원 전용으로 돌아오면서(2026-08-31) 신고도 회원만 —
+      // 사진을 볼 수 있어야 신고할 수 있다 (SPEC_API §10 매트릭스: report M)
+      requireSession();
 
       if (!input.reason.trim()) {
         throw new ApiError({
@@ -1614,7 +1648,8 @@ export const mockApi: Api = {
     async list({ page = 0, size = 20 } = {}): Promise<Page<MeetingSummary>> {
       await delay();
       throwIfScenario();
-      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
+      // 월례회 열람은 회원 전용 (SPEC_API §10 v1.3)
+      requireSession();
 
       const all = scenario() === "empty" ? [] : mockMeetings();
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
@@ -1623,8 +1658,8 @@ export const mockApi: Api = {
     async get(id: string): Promise<MeetingDetail> {
       await delay();
       throwIfScenario();
-      // 공개 열람 전환(PM 결정 2026-08-25): 세션은 임원 우회 판정에만 쓴다
-      const user = readSession();
+      // 월례회 열람은 회원 전용 (SPEC_API §10 v1.3) — 세션은 임원 우회 판정에도 쓴다
+      const user = requireSession();
 
       const m = mockMeetings().find((x) => x.id === id);
       if (!m) {
@@ -1837,7 +1872,11 @@ export const mockApi: Api = {
         throw new ApiError({ code: "NOT_FOUND", message: "회원을 찾을 수 없습니다.", status: 404 });
       }
       if (target.loginId) {
+        // 시드 계정(MOCK_USERS)도 지운다. dynamicUsers만 지우면 `doyeon01` 같은
+        // 시드가 "삭제 성공" 뒤에도 목록에 남고, 명단만 열려 상태가 어긋난다.
         delete dynamicUsers[target.loginId];
+        delete MOCK_USERS[target.loginId];
+        passwords.delete(target.loginId);
         const rosterEntry = MOCK_ROSTER.find((r) => r.claimedBy === target.loginId);
         if (rosterEntry) rosterEntry.claimedBy = null;
       }
@@ -2306,6 +2345,7 @@ export const mockApi: Api = {
         role: "MEMBER",
       };
       dynamicUsers[input.loginId] = user;
+      passwords.set(input.loginId, input.password);
       return { id: user.id, name: user.name, role: user.role };
     },
 
@@ -2315,7 +2355,7 @@ export const mockApi: Api = {
 
       const user = findUserByLoginId(input.loginId);
       // 5회 실패 잠금(SPEC_API §2.3)도 이 문구와 동일한 응답이므로 mock은 구분하지 않는다
-      if (!user || input.password !== MOCK_PASSWORD) {
+      if (!user || !user.loginId || input.password !== passwordOf(user.loginId)) {
         throw new ApiError({
           code: "UNAUTHORIZED",
           message: "아이디 또는 비밀번호가 올바르지 않습니다.",
@@ -2380,6 +2420,7 @@ export const mockApi: Api = {
         });
       }
       issuedResetCodes.delete(input.loginId); // 1회용
+      passwords.set(input.loginId, input.password);
     },
 
     async updateProfile(input: { phone: string }): Promise<AuthUser> {
@@ -2394,8 +2435,8 @@ export const mockApi: Api = {
     async changePassword(input: { currentPassword: string; newPassword: string }): Promise<void> {
       await delay();
       throwIfScenario();
-      requireSession();
-      if (input.currentPassword !== MOCK_PASSWORD) {
+      const current = requireSession();
+      if (!current.loginId || input.currentPassword !== passwordOf(current.loginId)) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
           message: "현재 비밀번호가 일치하지 않습니다.",
@@ -2403,13 +2444,14 @@ export const mockApi: Api = {
           field: "currentPassword",
         });
       }
+      passwords.set(current.loginId, input.newPassword);
     },
 
     async deleteAccount(input: { password: string }): Promise<void> {
       await delay();
       throwIfScenario();
-      requireSession();
-      if (input.password !== MOCK_PASSWORD) {
+      const current = requireSession();
+      if (!current.loginId || input.password !== passwordOf(current.loginId)) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
           message: "비밀번호가 일치하지 않습니다.",
