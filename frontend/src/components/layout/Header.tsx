@@ -37,7 +37,7 @@ const MENU_ID = "site-menu";
 /** WIREFRAME.md 공통 헤더/메뉴 · §11 `/my` 진입점 */
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const toggleRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -111,11 +111,20 @@ export function Header() {
           LIGHT
         </Link>
         <div className="flex items-center gap-3">
+          {/*
+            CTA는 로그인 상태를 따라간다. 로그인한 회원에게 "처음이신가요"가
+            계속 떠 있으면 **자기 자리로 가는 가장 큰 버튼이 방문자용 안내**가
+            된다 — `/my` 진입점은 메뉴 맨 아래에만 있어서 찾기도 어렵다.
+
+            `isLoading` 동안에는 방문자용을 그린다. 세션 확인은 짧고, 비워두면
+            헤더 폭이 흔들려 레이아웃이 튄다 (`MemberGate`는 화면 전체를
+            차지해서 null을 반환해도 되지만 여기는 다르다).
+          */}
           <Link
-            href="/welcome"
+            href={user && !isLoading ? "/my" : "/welcome"}
             className="inline-flex min-h-11 items-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-4 text-sm font-bold text-[var(--color-accent-fg)]"
           >
-            처음이신가요
+            {user && !isLoading ? "나의 LIGHT" : "처음이신가요"}
           </Link>
           {/*
             문의 진입점 (PM 결정 2026-08-25). `tel:`로 곧장 걸지 않고
@@ -195,13 +204,16 @@ export function Header() {
           >
             ☎ 문의 · {CHURCH_PHONE}
           </Link>
-          <Link
-            href="/welcome"
-            className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] font-bold text-[var(--color-accent-fg)]"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            처음 오시는 분
-          </Link>
+          {/* 로그인한 회원에게는 감춘다 — 메뉴 맨 아래에 "나의 LIGHT"가 있다 */}
+          {!user && (
+            <Link
+              href="/welcome"
+              className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] font-bold text-[var(--color-accent-fg)]"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              처음 오시는 분
+            </Link>
+          )}
 
           {/* 주소를 모르는 항목은 그리지 않는다 — `content/links.ts` 주석 참고 */}
           <div className="mt-4 flex gap-4 text-sm text-[var(--color-gray-400)]">
