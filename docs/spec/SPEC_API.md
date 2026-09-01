@@ -858,6 +858,7 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 | `POST /auth/login` · `POST /auth/refresh` | 200 | 200 | 200 | 200 |
 | `POST /auth/logout` | **204** | 204 | 204 | 204 |
 | `GET /auth/me` | **401** | 200 | 200 | 200 |
+| `GET /auth/kakao/authorize` · `GET /auth/kakao/callback` | **302** | 302 | 302 | 302 |
 | `GET /posts?category=NOTICE_PUBLIC` | 200 | 200 | 200 | 200 |
 | `GET /posts?category=NOTICE_MEMBER` | **401** | 200 | 200 | 200 |
 | `GET /posts?category=MINUTES` | **401** | 200 | 200 | 200 |

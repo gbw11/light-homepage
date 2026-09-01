@@ -20,9 +20,11 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
 
@@ -35,8 +37,7 @@ import java.util.Map;
  * <p>가입은 <b>명단 확인 → 계정 생성</b> 2단계다. 승인 절차는 없다 —
  * 명단 대조가 본인 확인을 대신한다 (§9-B 확정).
  *
- * <p>카카오 로그인(§2.7·§2.8), 리셋 코드(§2.9), 프로필(§2.10~§2.12)은
- * 아직이다.
+ * <p>프로필 수정(§2.10~§2.12)은 아직이다.
  */
 @Tag(name = "인증", description = "명단 확인 · 가입 · 로그인 · 토큰 재발급 · 로그아웃")
 @RestController
@@ -47,6 +48,7 @@ public class AuthController {
     private final AuthService authService;
     private final RosterRegistrationService registrationService;
     private final PasswordResetService passwordResetService;
+    private final KakaoOAuthService kakaoOAuthService;
     private final JwtProperties jwtProperties;
 
     /**
@@ -58,6 +60,22 @@ public class AuthController {
      */
     @Value("${app.auth.secure-cookie:false}")
     private boolean secureCookie;
+
+    /**
+     * 카카오 콜백이 돌려보낼 FE 주소.
+     *
+     * <p>⚠️ <b>요청에서 받지 않고 설정에서만 읽는다.</b> 리다이렉트 주소를
+     * 사용자가 정하게 두면 열린 리다이렉트가 되어, 우리 도메인을 거쳐
+     * 아무 데나 보내는 링크를 만들 수 있다.
+     */
+    @Value("${app.auth.frontend-base-url:http://localhost:3000}")
+    private String frontendBaseUrl;
+
+    /** 성공 시 이동할 FE 경로 (§2.8) */
+    private static final String KAKAO_SUCCESS_PATH = "/my";
+
+    /** 실패 시 이동할 FE 경로 — 명단 확인부터 다시 (§2.8) */
+    private static final String KAKAO_FAILURE_PATH = "/signup?error=kakao";
 
     @Operation(summary = "명단 확인 (가입 1단계)",
             description = """
@@ -216,6 +234,70 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "카카오 인가 URL로 보냄",
+            description = """
+                    카카오 로그인 화면으로 **302 리다이렉트**합니다.
+
+                    두 용도로 씁니다:
+                    - **기존 카카오 가입자의 로그인** — 파라미터 없이 호출
+                    - **가입 2단계의 수단 ②** — `registrationToken`을 함께 보냅니다
+
+                    ⚠️ **카카오만으로는 가입할 수 없습니다.** 카카오는 이름·생년월일·
+                    전화번호를 주지 않으므로 §2.1 명단 확인을 건너뛸 수 없습니다.
+                    FE 문구는 "본인 확인 후 카카오로 계속"입니다 — "3초 만에 시작"이
+                    아닙니다.
+
+                    `state`는 서버가 만듭니다. **`registrationToken`을 `state`에 직접
+                    싣지 않습니다** — `state`는 인가 URL에 노출되는데 그 토큰만 있으면
+                    남의 이름으로 계정을 만들 수 있기 때문입니다.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "302", description = "카카오 인가 URL로 이동"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
+    })
+    @GetMapping("/kakao/authorize")
+    public ResponseEntity<Void> kakaoAuthorize(
+            @RequestParam(required = false) String registrationToken) {
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(kakaoOAuthService.authorizeUrl(registrationToken, Instant.now())))
+                .build();
+    }
+
+    @Operation(summary = "카카오 콜백",
+            description = """
+                    카카오가 브라우저를 되돌려 보내는 곳입니다. **항상 302**로
+                    FE 화면에 돌려보냅니다 — 실패해도 JSON 에러를 내지 않습니다.
+                    브라우저에 에러 봉투가 찍히면 사용자는 무엇을 해야 할지
+                    알 수 없기 때문입니다.
+
+                    | 상황 | 이동 |
+                    |---|---|
+                    | 기존 카카오 계정 | `/my` (쿠키 설정됨) |
+                    | 신규 + 유효한 `registrationToken` | 계정 생성 후 `/my` |
+                    | 신규 + 토큰 없음·만료, 그 밖의 모든 실패 | `/signup?error=kakao` |
+                    """)
+    @ApiResponses(@io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "302", description = "FE로 이동 (성공이면 쿠키 설정됨)"))
+    @GetMapping("/kakao/callback")
+    public ResponseEntity<Void> kakaoCallback(
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false) String state
+    ) {
+        KakaoOAuthService.Outcome outcome =
+                kakaoOAuthService.handleCallback(code, state, Instant.now());
+
+        if (!outcome.isSuccess()) {
+            return redirect(frontendBaseUrl + KAKAO_FAILURE_PATH).build();
+        }
+
+        AuthService.Issued issued = authService.issueFor(outcome.member(), Instant.now());
+        return withAuthCookies(redirect(frontendBaseUrl + KAKAO_SUCCESS_PATH), issued).build();
+    }
+
     @Operation(summary = "내 정보", description = "로그인이 필요합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -237,13 +319,29 @@ public class AuthController {
      * <p>쿠키의 만료는 토큰 자체의 TTL과 같은 값을 쓴다 — 쿠키가 더 오래 살면
      * 브라우저는 이미 죽은 토큰을 계속 보내고, 더 짧으면 멀쩡한 토큰을 잃는다.
      */
+    private ResponseEntity.BodyBuilder redirect(String url) {
+        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(url));
+    }
+
     private ResponseEntity.BodyBuilder withAuthCookies(AuthService.Issued issued) {
+        return withAuthCookies(ResponseEntity.ok(), issued);
+    }
+
+    /**
+     * 두 토큰 쿠키를 주어진 응답에 싣는다.
+     *
+     * <p>상태 코드를 받는 형태인 이유 — 카카오 콜백(§2.8)은 <b>302와 함께</b>
+     * 쿠키를 심어야 한다. 200으로 고정해 두면 그쪽에서 쓸 수 없다.
+     */
+    private ResponseEntity.BodyBuilder withAuthCookies(
+            ResponseEntity.BodyBuilder builder, AuthService.Issued issued) {
+
         ResponseCookie access = AuthCookies.access(
                 issued.accessToken(), jwtProperties.accessDuration(), secureCookie);
         ResponseCookie refresh = AuthCookies.refresh(
                 issued.refreshToken(), jwtProperties.refreshDuration(), secureCookie);
 
-        return ResponseEntity.ok()
+        return builder
                 .header(HttpHeaders.SET_COOKIE, access.toString())
                 .header(HttpHeaders.SET_COOKIE, refresh.toString());
     }

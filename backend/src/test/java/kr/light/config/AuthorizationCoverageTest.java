@@ -67,6 +67,10 @@ class AuthorizationCoverageTest {
             "POST /api/auth/refresh",
             "POST /api/auth/logout",
             "POST /api/auth/password/reset-with-code",
+            // 카카오 로그인 — 열린 경로 (KakaoOAuthApiTest · AuthAuthorizationTest)
+            //   ⚠️ 둘 다 로그인 전에 불린다. 인가를 걸면 로그인이 불가능해진다
+            "GET /api/auth/kakao/authorize",
+            "GET /api/auth/kakao/callback",
             // 인증 — 로그인 필요 (AuthAuthorizationTest)
             "GET /api/auth/me",
 

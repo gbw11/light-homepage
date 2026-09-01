@@ -103,7 +103,14 @@ public class AuthService {
                 .orElseThrow(ApiException::unauthorized);
     }
 
-    private Issued issueFor(Member member, Instant now) {
+    /**
+     * 이 회원으로 세션을 연다 — 토큰 두 개를 발급한다.
+     *
+     * <p>카카오 콜백(§2.8)이 비밀번호 대조 없이 부른다. 그쪽은 카카오가
+     * 본인 확인을 대신했으므로 이 시점에는 "누구인지"가 이미 정해져 있다.
+     */
+    @Transactional
+    public Issued issueFor(Member member, Instant now) {
         return new Issued(
                 member,
                 jwtProvider.issueAccessToken(member, now),

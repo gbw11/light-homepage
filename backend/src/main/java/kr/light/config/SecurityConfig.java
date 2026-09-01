@@ -123,6 +123,18 @@ public class SecurityConfig {
             "/api/auth/password/reset-with-code"
     };
 
+    /**
+     * 카카오 로그인 (SPEC_API.md §2.7 · §2.8).
+     *
+     * <p>둘 다 로그인 <b>전에</b> 불리는 경로다 — 인가를 걸면 로그인 자체가
+     * 불가능해진다. 콜백은 카카오가 브라우저를 되돌려 보내는 곳이라
+     * 우리 쿠키가 실려 있지 않다.
+     */
+    private static final String[] PUBLIC_KAKAO_PATHS = {
+            "/api/auth/kakao/authorize",
+            "/api/auth/kakao/callback"
+    };
+
     private final ObjectMapper objectMapper;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -143,6 +155,7 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_PATHS).permitAll()
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST_PATHS).permitAll()
+                        .requestMatchers(HttpMethod.GET, PUBLIC_KAKAO_PATHS).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint())

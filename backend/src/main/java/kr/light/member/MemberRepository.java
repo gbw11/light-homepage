@@ -12,6 +12,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     boolean existsByLoginId(String loginId);
 
+    /** 카카오 로그인 (SPEC_API.md §2.8) — 같은 사람인지 이 값으로 가린다 */
+    Optional<Member> findByKakaoId(String kakaoId);
+
     /**
      * 관리 화면의 회원 목록 — 이름 부분 검색 (SPEC_API.md §8.1).
      *
