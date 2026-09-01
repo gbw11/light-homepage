@@ -19,41 +19,29 @@ public record MemberSummaryResponse(
         @Schema(description = "회원 ID. 문자열이다.", example = "\"51\"")
         String id,
 
-        @Schema(example = "이도연")
+        @Schema(description = "명단의 이름 (동명이인 접미사 포함)", example = "이도연a")
         String name,
 
-        @Schema(description = "카카오 전용 계정은 null이다.", example = "lee@example.com", nullable = true)
-        String email,
+        @Schema(description = "카카오로 가입했으면 null이다.", example = "doyeon01", nullable = true)
+        String loginId,
 
         @Schema(example = "010-1234-5678", nullable = true)
         String phone,
 
-        @Schema(example = "5", nullable = true)
-        String village,
-
-        @Schema(example = "PENDING")
+        @Schema(example = "MEMBER")
         Role role,
 
-        @Schema(example = "true")
-        boolean profileComplete,
-
         @Schema(example = "2026-08-19T09:00:00Z")
-        Instant createdAt,
-
-        @Schema(description = "승인 시각. 미승인이면 null.", nullable = true)
-        Instant approvedAt
+        Instant createdAt
 ) {
 
     static MemberSummaryResponse of(Member member) {
         return new MemberSummaryResponse(
                 String.valueOf(member.getId()),
                 member.getName(),
-                member.getEmail(),
+                member.getLoginId(),
                 member.getPhone(),
-                member.getVillage(),
                 member.getRole(),
-                member.isProfileComplete(),
-                member.getCreatedAt(),
-                member.getApprovedAt());
+                member.getCreatedAt());
     }
 }

@@ -46,30 +46,29 @@ class PostAuthorizationTest {
      */
     static Stream<Arguments> listMatrix() {
         return Stream.of(
-                // category,                          role,         기대 에러 (null이면 200)
-                arguments(PostCategory.NOTICE_PUBLIC, null,         null),
-                arguments(PostCategory.NOTICE_PUBLIC, Role.PENDING, null),
-                arguments(PostCategory.NOTICE_PUBLIC, Role.MEMBER,  null),
-                arguments(PostCategory.NOTICE_PUBLIC, Role.LEADER,  null),
-                arguments(PostCategory.NOTICE_PUBLIC, Role.PASTOR,  null),
+                // category,                          role,        기대 에러 (null이면 200)
+                arguments(PostCategory.NOTICE_PUBLIC, null,        null),
+                arguments(PostCategory.NOTICE_PUBLIC, Role.MEMBER, null),
+                arguments(PostCategory.NOTICE_PUBLIC, Role.LEADER, null),
+                arguments(PostCategory.NOTICE_PUBLIC, Role.PASTOR, null),
 
-                arguments(PostCategory.NOTICE_MEMBER, null,         ErrorCode.UNAUTHORIZED),
-                arguments(PostCategory.NOTICE_MEMBER, Role.PENDING, ErrorCode.PENDING_APPROVAL),
-                arguments(PostCategory.NOTICE_MEMBER, Role.MEMBER,  null),
-                arguments(PostCategory.NOTICE_MEMBER, Role.LEADER,  null),
-                arguments(PostCategory.NOTICE_MEMBER, Role.PASTOR,  null),
+                arguments(PostCategory.NOTICE_MEMBER, null,        ErrorCode.UNAUTHORIZED),
+                arguments(PostCategory.NOTICE_MEMBER, Role.MEMBER, null),
+                arguments(PostCategory.NOTICE_MEMBER, Role.LEADER, null),
+                arguments(PostCategory.NOTICE_MEMBER, Role.PASTOR, null),
 
-                arguments(PostCategory.MINUTES,       null,         ErrorCode.UNAUTHORIZED),
-                arguments(PostCategory.MINUTES,       Role.PENDING, ErrorCode.PENDING_APPROVAL),
-                arguments(PostCategory.MINUTES,       Role.MEMBER,  ErrorCode.FORBIDDEN),
-                arguments(PostCategory.MINUTES,       Role.LEADER,  null),
-                arguments(PostCategory.MINUTES,       Role.PASTOR,  null),
+                // ★ 회의록은 v1.3에서 L → M으로 완화됐다 (§9-D)
+                arguments(PostCategory.MINUTES,       null,        ErrorCode.UNAUTHORIZED),
+                arguments(PostCategory.MINUTES,       Role.MEMBER, null),
+                arguments(PostCategory.MINUTES,       Role.LEADER, null),
+                arguments(PostCategory.MINUTES,       Role.PASTOR, null),
 
-                arguments(PostCategory.BUDGET,        null,         ErrorCode.UNAUTHORIZED),
-                arguments(PostCategory.BUDGET,        Role.PENDING, ErrorCode.PENDING_APPROVAL),
-                arguments(PostCategory.BUDGET,        Role.MEMBER,  ErrorCode.FORBIDDEN),
-                arguments(PostCategory.BUDGET,        Role.LEADER,  null),
-                arguments(PostCategory.BUDGET,        Role.PASTOR,  null)
+                // ★ 예산안 목록의 비로그인은 401이 아니라 403이다 (§10 주의 2) —
+                //   "로그인하면 볼 수 있는 글"이 아니라서 로그인 유도를 하지 않는다
+                arguments(PostCategory.BUDGET,        null,        ErrorCode.FORBIDDEN),
+                arguments(PostCategory.BUDGET,        Role.MEMBER, ErrorCode.FORBIDDEN),
+                arguments(PostCategory.BUDGET,        Role.LEADER, null),
+                arguments(PostCategory.BUDGET,        Role.PASTOR, null)
         );
     }
 
@@ -97,11 +96,12 @@ class PostAuthorizationTest {
      */
     static Stream<Arguments> budgetDetailMatrix() {
         return Stream.of(
-                arguments(null,         ErrorCode.UNAUTHORIZED),
-                arguments(Role.PENDING, ErrorCode.PENDING_APPROVAL),
-                arguments(Role.MEMBER,  ErrorCode.NOT_FOUND),
-                arguments(Role.LEADER,  null),
-                arguments(Role.PASTOR,  null)
+                // ★ 비로그인도 404다 — 목록의 403이 상세에서 404로 바뀐다.
+                //   401을 주면 "로그인하면 보이나?"라는 기대를 만든다 (§10 주의 2)
+                arguments(null,        ErrorCode.NOT_FOUND),
+                arguments(Role.MEMBER, ErrorCode.NOT_FOUND),
+                arguments(Role.LEADER, null),
+                arguments(Role.PASTOR, null)
         );
     }
 
@@ -120,21 +120,22 @@ class PostAuthorizationTest {
     }
 
     @Test
-    @DisplayName("상세에서 역할부족만 404로 바뀐다 — 401·PENDING_APPROVAL은 그대로")
+    @DisplayName("상세에서 역할부족만 404로 바뀐다 — 401은 그대로")
     void 상세는_역할부족만_404로_바꾼다() {
         // 목록에서는 403
-        assertThatThrownBy(() -> service.assertReadable(PostCategory.MINUTES, Role.MEMBER))
+        assertThatThrownBy(() -> service.assertReadable(PostCategory.BUDGET, Role.MEMBER))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).code())
                 .isEqualTo(ErrorCode.FORBIDDEN);
 
         // 상세에서는 404 — 존재를 숨긴다
-        assertThatThrownBy(() -> service.assertVisible(PostCategory.MINUTES, Role.MEMBER))
+        assertThatThrownBy(() -> service.assertVisible(PostCategory.BUDGET, Role.MEMBER))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).code())
                 .isEqualTo(ErrorCode.NOT_FOUND);
 
-        // 비로그인은 401 그대로 — 로그인하면 볼 수 있을지도 모르기 때문
+        // 회의록의 비로그인은 401 그대로 — 로그인하면 볼 수 있기 때문이다.
+        // 예산안과 갈리는 지점이다 (§10 주의 1·2)
         assertThatThrownBy(() -> service.assertVisible(PostCategory.MINUTES, null))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).code())

@@ -2,7 +2,6 @@ package kr.light.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.light.auth.JwtAuthenticationFilter;
-import kr.light.common.AuthorizationFailures;
 import kr.light.common.ErrorCode;
 import kr.light.common.ErrorResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -114,13 +113,15 @@ public class SecurityConfig {
             // 인증을 얻기 위한 경로는 인증 없이 열려야 한다 (SPEC_API.md §2.1~§2.4).
             // ⚠️ /api/auth/** 로 뭉뚱그리지 않는다. 그러면 나중에 추가될
             //    PATCH /api/auth/me(권한 M)·DELETE /api/auth/me까지 함께 열린다.
-            "/api/auth/signup",
+            // 가입 2단계 — 아직 계정이 없는 사람이 부른다
+            "/api/auth/verify-roster",
+            "/api/auth/register",
             "/api/auth/login",
             "/api/auth/refresh",
-            "/api/auth/logout",
-            // 비밀번호를 잊은 사람은 로그인할 수 없다 — 인증을 요구하면 모순이다
-            "/api/auth/password/reset-request",
-            "/api/auth/password/reset"
+            "/api/auth/logout"
+            // ⚠️ 비밀번호 재설정(§2.9 reset-with-code)은 아직 없다. 만들 때
+            //    여기에 추가해야 한다 — 비밀번호를 잊은 사람은 로그인할 수
+            //    없으므로 인증을 요구하면 모순이다.
     };
 
     private final ObjectMapper objectMapper;
@@ -207,11 +208,14 @@ public class SecurityConfig {
     /**
      * 역할 부족 → 403.
      *
-     * <p><b>⚠️ 승인 대기 회원은 {@code FORBIDDEN}이 아니라 {@code PENDING_APPROVAL}이다.</b>
-     * 둘 다 403이지만 FE의 행동이 다르다 — {@code PENDING_APPROVAL}을 받으면
-     * "어느 화면에 있든 {@code /pending}으로" 보낸다 (SPEC_API.md §12.3).
-     * 그냥 {@code FORBIDDEN}을 주면 미승인 회원이 "권한 없음" 안내만 보고
-     * 자기가 <b>승인을 기다리는 중</b>이라는 사실을 알 방법이 없다.
+     * <p>⚠️ <b>같은 "권한 부족"이 두 경로로 나간다</b> — 경로 규칙에서 걸리면
+     * 여기(필터 체인), {@code @PreAuthorize}에서 걸리면
+     * {@link kr.light.common.GlobalExceptionHandler}다. 두 곳이 서로 다른 코드를
+     * 내보내면 FE는 같은 상황에서 다른 화면을 띄운다 — 실제로 어긋난 적이 있다.
+     * <b>한쪽을 바꾸면 반드시 다른 쪽도 본다.</b>
+     *
+     * <p>v1.3에서 {@code PENDING}이 사라져 지금은 양쪽 다 {@code FORBIDDEN}
+     * 하나뿐이다. 역할별로 갈릴 일이 다시 생기면 그때 판단을 한곳으로 모은다.
      *
      * <p>⚠️ 여기까지 왔다는 것은 "리소스는 있는데 권한이 없다"를 알려주는
      * 것이다. 존재를 숨겨야 하는 리소스(예산안 등)는 필터가 아니라 서비스
@@ -219,8 +223,7 @@ public class SecurityConfig {
      */
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
-        return (request, response, deniedException) -> writeError(response,
-                AuthorizationFailures.codeFor(SecurityContextHolder.getContext().getAuthentication()));
+        return (request, response, deniedException) -> writeError(response, ErrorCode.FORBIDDEN);
     }
 
     private void writeError(HttpServletResponse response, ErrorCode code) throws java.io.IOException {

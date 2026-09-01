@@ -44,11 +44,14 @@ class AuthAuthorizationTest {
     // ── 열려 있어야 하는 경로 ──────────────────────────────────
 
     @Test
-    @DisplayName("가입·로그인·재발급·로그아웃은 비로그인으로 통과한다")
+    @DisplayName("명단 확인·가입·로그인·재발급·로그아웃은 비로그인으로 통과한다")
     void 인증을_얻는_경로는_열려_있다() throws Exception {
-        // 본문이 비어 400/401이 나도 좋다. 401 UNAUTHORIZED로 "필터에 막힌 것"만
-        // 아니면 된다 — 막혔다면 로그인 자체가 불가능해진다.
-        mockMvc.perform(post("/api/auth/signup").contentType("application/json").content("{}"))
+        // 본문이 비어 400이 나도 좋다. 401 UNAUTHORIZED로 "필터에 막힌 것"만
+        // 아니면 된다 — 막혔다면 가입·로그인 자체가 불가능해진다.
+        mockMvc.perform(post("/api/auth/verify-roster").contentType("application/json").content("{}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/auth/register").contentType("application/json").content("{}"))
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(post("/api/auth/login").contentType("application/json").content("{}"))
@@ -109,13 +112,14 @@ class AuthAuthorizationTest {
     }
 
     @Test
-    @DisplayName("★ PENDING은 MEMBER 권한을 물려받지 않는다")
-    void 미승인은_회원이_아니다() {
-        // 계층에 PENDING을 넣으면 미승인 회원이 회원 API를 전부 쓰게 된다.
-        // "아직 아무것도 아님"이지 최하위 회원이 아니다.
-        assertThat(reachableFrom(Role.PENDING))
-                .containsExactly("ROLE_PENDING")
-                .doesNotContain("ROLE_MEMBER");
+    @DisplayName("★ 역할 계층은 위로만 흐른다 — MEMBER가 LEADER 권한을 얻지 않는다")
+    void 계층은_아래로만_포함한다() {
+        // v1.3에서 PENDING이 사라져 "가입만 한 사람" 층은 없다. 남은 위험은
+        // 계층을 거꾸로 걸어 하위 역할이 상위 권한을 얻는 것이다.
+        assertThat(reachableFrom(Role.MEMBER))
+                .containsExactly("ROLE_MEMBER");
+        assertThat(reachableFrom(Role.PASTOR))
+                .contains("ROLE_PASTOR", "ROLE_LEADER", "ROLE_MEMBER");
     }
 
     private List<String> reachableFrom(Role role) {

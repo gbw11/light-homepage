@@ -3,8 +3,10 @@ package kr.light.auth;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import kr.light.common.ApiResponse;
+import kr.light.common.ClientAddress;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -25,22 +27,25 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * 인증 (SPEC_API.md §2).
+ * 인증 (SPEC_API.md §2 v1.3).
  *
  * <p><b>토큰은 응답 본문에 넣지 않는다.</b> 전부 httpOnly 쿠키로 나간다 —
  * 본문에 실으면 JS가 읽을 수 있게 되어 XSS 방어가 사라진다 (ARCHITECTURE.md §6.3).
  *
- * <p>가입·로그인·재발급·로그아웃까지가 이번 범위다. 카카오 로그인(§2.6·§2.7),
- * 비밀번호 재설정(§2.9·§2.10), 프로필 수정(§2.11~§2.13)은 M2의 다음 항목이다.
+ * <p>가입은 <b>명단 확인 → 계정 생성</b> 2단계다. 승인 절차는 없다 —
+ * 명단 대조가 본인 확인을 대신한다 (§9-B 확정).
+ *
+ * <p>카카오 로그인(§2.7·§2.8), 리셋 코드(§2.9), 프로필(§2.10~§2.12)은
+ * 아직이다.
  */
-@Tag(name = "인증", description = "가입 · 로그인 · 토큰 재발급 · 로그아웃")
+@Tag(name = "인증", description = "명단 확인 · 가입 · 로그인 · 토큰 재발급 · 로그아웃")
 @RestController
 @RequestMapping(value = "/api/auth", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
-    private final PasswordResetService passwordResetService;
+    private final RosterRegistrationService registrationService;
     private final JwtProperties jwtProperties;
 
     /**
@@ -53,34 +58,75 @@ public class AuthController {
     @Value("${app.auth.secure-cookie:false}")
     private boolean secureCookie;
 
-    @Operation(summary = "이메일 회원가입",
+    @Operation(summary = "명단 확인 (가입 1단계)",
             description = """
-                    가입 즉시 회원이 되지 않습니다. `role=PENDING`으로 대기하고 전도사가 승인해야
-                    회원 API가 열립니다.
+                    교회 명단과 이름·생년월일·전화번호를 대조합니다. 통과하면 **1회용 ·
+                    5분** 토큰을 돌려주고, 그 토큰으로 2단계에서 계정을 만듭니다.
 
-                    `agreed`가 `true`가 아니면 `VALIDATION_ERROR`입니다.
+                    ⚠️ **어느 필드가 틀렸는지 알려주지 않습니다.** 불일치·명단에 없음·
+                    이미 계정 있음·시도 초과가 **전부 같은 401**입니다 — 구분해 주면
+                    값을 바꿔가며 교인 명단을 캐낼 수 있습니다.
+
+                    이름은 **동명이인 접미사를 포함**해서 보냅니다 (`김도연a`).
+                    전화번호 표기는 자유입니다 — 서버가 숫자만 남겨 비교합니다.
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "201", description = "가입 완료 — 승인 대기"),
+                    responseCode = "200", description = "확인됨 — 5분 안에 2단계로"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
+    })
+    @PostMapping("/verify-roster")
+    public ApiResponse<VerifyRosterResponse> verifyRoster(
+            @Valid @RequestBody VerifyRosterRequest request,
+            HttpServletRequest servletRequest
+    ) {
+        return ApiResponse.of(registrationService.verify(
+                request, ClientAddress.of(servletRequest), Instant.now()));
+    }
+
+    @Operation(summary = "계정 생성 (가입 2단계)",
+            description = """
+                    1단계에서 받은 토큰으로 계정을 만듭니다. **승인 없이 즉시
+                    `MEMBER`**입니다.
+
+                    이름·전화번호는 보내지 않습니다 — 1단계에서 대조한 명단 행에서
+                    가져옵니다.
+
+                    ⚠️ **세션 쿠키가 함께 나가지 않습니다.** 가입 완료 화면에서
+                    로그인으로 유도해 주세요 (2026-09-01 확정).
+
+                    비밀번호가 **생년월일·전화번호와 같으면 거부**합니다 — 방금 그
+                    두 값을 입력했기에 가장 손이 가지만, 이 서비스에서 그 둘은
+                    본인임을 증명하는 값입니다.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201", description = "가입 완료 — 즉시 회원"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "409", ref = "#/components/responses/DUPLICATE")
     })
-    @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<SignupResponse>> signUp(@Valid @RequestBody SignupRequest request) {
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<RegisterResponse>> register(
+            @Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.of(authService.signUp(request)));
+                .body(ApiResponse.of(registrationService.register(request, Instant.now())));
     }
 
     @Operation(summary = "로그인",
             description = """
-                    성공하면 `access_token`·`refresh_token` 쿠키가 설정됩니다. 응답 본문에
-                    토큰은 없습니다 — httpOnly라 JS가 읽을 수 없습니다.
+                    가입 때 정한 **아이디**로 로그인합니다 (이메일이 아닙니다).
+                    성공하면 `access_token`·`refresh_token` 쿠키가 설정됩니다.
 
-                    ⚠️ **승인 대기(`PENDING`)도 로그인은 성공합니다.** 응답의 `role`을 보고
-                    `/pending`으로 보내 주세요. 회원 API는 서버가 따로 막습니다.
+                    ⚠️ **5회 실패하면 15분간 잠깁니다.** 잠긴 동안에도 응답은
+                    일반 실패와 **같은 401**입니다 — "잠겼습니다"는 곧 "이 아이디는
+                    존재합니다"라서 알려줄 수 없습니다.
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -138,65 +184,15 @@ public class AuthController {
                 .build();
     }
 
-    @Operation(summary = "비밀번호 재설정 요청",
-            description = """
-                    등록된 이메일로 1회용 재설정 링크를 보냅니다.
-
-                    ⚠️ **가입 여부와 무관하게 항상 `204`입니다.** 없는 이메일이든 카카오 전용
-                    계정이든 응답이 같습니다 — 구분해서 알려주면 "이 이메일이 가입돼 있다"가
-                    새어나가 계정 열거에 쓰입니다 (SPEC_API.md §2.9).
-
-                    재요청하면 **이전 링크는 즉시 무효**가 됩니다. 살아 있는 링크는 항상 하나입니다.
-                    """)
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "204", description = "요청 접수 — 계정 존재 여부를 알려주지 않는다"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR")
-    })
-    @PostMapping("/password/reset-request")
-    public ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
-        passwordResetService.requestReset(request.email(), Instant.now());
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "새 비밀번호 설정",
-            description = """
-                    메일로 받은 토큰으로 비밀번호를 바꿉니다. 토큰은 **1회용이고 만료**됩니다
-                    (기본 30분, NFR-SEC-08).
-
-                    ⚠️ **성공하면 그 회원의 모든 기기에서 로그아웃됩니다.** 재설정하는 상황은
-                    대개 계정이 남의 손에 있을지도 모른다는 뜻이라, 기존 세션을 살려두면
-                    비밀번호를 바꾼 의미가 사라집니다.
-
-                    없는 토큰·이미 쓴 토큰·만료된 토큰은 **전부 같은 `401`**입니다.
-                    """)
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "204", description = "변경 완료 — 모든 기기 로그아웃됨"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
-    })
-    @PostMapping("/password/reset")
-    public ResponseEntity<Void> confirmPasswordReset(
-            @Valid @RequestBody PasswordResetConfirmRequest request) {
-        passwordResetService.confirmReset(request.token(), request.password(), Instant.now());
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "내 정보",
-            description = "로그인이 필요합니다. 승인 대기(`PENDING`) 상태에서도 조회됩니다.")
+    @Operation(summary = "내 정보", description = "로그인이 필요합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200", description = "조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
     })
-    // ⚠️ hasRole('MEMBER')가 아니라 isAuthenticated()다. 승인 대기(PENDING) 회원도
-    //    자기 정보는 볼 수 있어야 한다 — 못 보면 자기가 어떤 상태인지 확인할
-    //    방법이 없다 (SPEC_API.md §2.5 "권한 로그인").
+    // hasRole('MEMBER')가 아니라 isAuthenticated()다. 역할이 무엇이든 자기
+    // 정보는 볼 수 있어야 한다 (SPEC_API.md §2.6 "권한 로그인").
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
     public ApiResponse<MeResponse> me(@AuthenticationPrincipal AuthPrincipal principal) {

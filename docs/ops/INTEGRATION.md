@@ -135,8 +135,9 @@ DUPLICATE          중복 (409)
 INTERNAL_ERROR     서버 오류 (500) — ★ FE는 분기하지 않는다. 공통 안내만
 ```
 ⚠️ `PENDING_APPROVAL`은 v1.3(2026-08-31)에서 폐기됐습니다 — 승인 절차 소멸.
-⚠️ `RATE_LIMITED`(429)는 쓰지 않습니다 — rate limit·로그인 잠금도 `UNAUTHORIZED`입니다
-   (`SPEC_API §2.1 · §2.3`). 구분해 알려주면 계정 열거에 쓰입니다.
+⚠️ `RATE_LIMITED`(429)는 `POST /api/newcomers`(§9.1)에서만 씁니다. **인증(§2)에서는
+   쓰지 않습니다** — rate limit·로그인 잠금도 `UNAUTHORIZED`입니다 (`SPEC_API §2.1 · §2.3`).
+   구분해 알려주면 계정·명단 열거에 쓰입니다.
 
 **직렬화 규칙**
 | 항목 | 규칙 | 이유 |

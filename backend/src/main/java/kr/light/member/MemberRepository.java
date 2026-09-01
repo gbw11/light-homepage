@@ -8,9 +8,9 @@ import java.util.Optional;
 
 public interface MemberRepository extends JpaRepository<Member, Long> {
 
-    Optional<Member> findByEmail(String email);
+    Optional<Member> findByLoginId(String loginId);
 
-    boolean existsByEmail(String email);
+    boolean existsByLoginId(String loginId);
 
     /**
      * 관리 화면의 회원 목록 — 이름 부분 검색 (SPEC_API.md §8.1).
@@ -25,9 +25,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
      * 있고, 구분하면 "kim"으로 "Kim"을 못 찾는다.
      */
     Page<Member> findByNameContainingIgnoreCase(String name, Pageable pageable);
-
-    /** 위와 같지만 역할로도 거른다 ({@code status=PENDING}) */
-    Page<Member> findByRoleAndNameContainingIgnoreCase(Role role, String name, Pageable pageable);
 
     /**
      * 자기잠금 방지용 (ARCHITECTURE.md §5.4).

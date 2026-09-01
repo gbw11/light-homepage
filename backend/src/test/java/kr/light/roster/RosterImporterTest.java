@@ -270,7 +270,7 @@ class RosterImporterTest {
         RosterEntry entry = rosterRepository.findAll().get(0);
 
         Member member = memberRepository.save(Member.builder()
-                .email("claim@light.local")
+                .loginId("claim")
                 .name("김도연")
                 .role(Role.MEMBER)
                 .build());

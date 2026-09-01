@@ -8,9 +8,14 @@ package kr.light.common;
  */
 public enum AuditAction {
     /** 회원 승인 — PENDING → MEMBER */
-    MEMBER_APPROVE,
     /** 회원 가입 거절 */
-    MEMBER_REJECT,
+    /**
+     * 계정 삭제 + 명단 재개방 (SPEC_API.md §8.2).
+     *
+     * <p>선점 복구 절차의 기록이다 — 회원 행이 사라지므로 <b>사유가 담긴
+     * 이 로그가 유일한 기록</b>이다.
+     */
+    MEMBER_DELETE,
     /** 역할 부여·변경 */
     ROLE_CHANGE
 }
