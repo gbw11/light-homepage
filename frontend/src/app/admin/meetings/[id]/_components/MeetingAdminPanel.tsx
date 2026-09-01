@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import {
   formatWindow,
   isoToLocalInput,
@@ -68,6 +69,7 @@ export function MeetingAdminPanel({ id }: { id: string }) {
   const [saved, setSaved] = useState(false);
   const [typed, setTyped] = useState("");
   const [dangerOpen, setDangerOpen] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const save = useMutation({
     mutationFn: (next: { from: string; until: string }) =>
@@ -150,11 +152,13 @@ export function MeetingAdminPanel({ id }: { id: string }) {
     save.mutate({ from, until });
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!confirmed || !meeting) return;
-    const ok = window.confirm(
-      `${meeting.title}을(를) 삭제할까요?\n\n${meeting.pageCount}페이지의 이미지가 함께 지워지고 되돌릴 수 없습니다.`,
-    );
+    const ok = await confirm({
+      title: `${meeting.title}을(를) 삭제할까요?`,
+      description: `${meeting.pageCount}페이지의 이미지가 함께 지워지고 되돌릴 수 없습니다.`,
+      confirmLabel: "삭제",
+    });
     if (!ok) return;
     setError(null);
     remove.mutate();
@@ -162,6 +166,7 @@ export function MeetingAdminPanel({ id }: { id: string }) {
 
   return (
     <Section>
+      {confirmDialog}
       <Link
         href="/admin"
         className="text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-ink)]"
