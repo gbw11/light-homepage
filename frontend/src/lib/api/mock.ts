@@ -701,7 +701,12 @@ async function sermonSource(): Promise<Sermon[]> {
   } catch {
     // 폴백으로 넘어간다 — 화면에 에러를 띄울 일이 아니다
   }
-  sermonCache = MOCK_SERMONS;
+
+  /*
+    ⚠️ 폴백은 **캐시하지 않는다.** 캐시하면 한 번의 일시적 실패가 세션 내내
+    옛 스냅샷을 고정한다 (YouTube가 서버 요청에 간헐적 404를 준다 —
+    `app/sermons/feed/route.ts` 주석). 다음 조회에서 다시 시도하게 둔다.
+  */
   return MOCK_SERMONS;
 }
 
