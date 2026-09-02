@@ -231,6 +231,38 @@ export function Header() {
               {signedIn ? "나의 LIGHT" : "로그인"}
             </Link>
 
+            {/*
+              로그아웃 (PM 요청 2026-09-02) — 전에는 `/my`까지 들어가야 나갈 수
+              있었다. 로그인은 헤더 오른쪽 한 번인데 로그아웃은 두 단계라
+              대칭이 맞지 않았다.
+
+              ⚠️ **데스크톱만이다** (`hidden lg:inline-flex`). 모바일 헤더는
+              워드마크·☎·나의 LIGHT·햄버거가 이미 한 줄을 채워서, 여기에 글자를
+              더 넣으면 44px 터치 영역이 서로 붙는다 (NFR-A11Y-05). 좁은 화면의
+              로그아웃은 아래 전체 메뉴에 그대로 있다.
+
+              링크가 아니라 `button`이다 — 이동이 아니라 상태를 바꾸는 동작이고,
+              `handleLogout`이 세션을 비운 뒤 홈으로 보낸다.
+            */}
+            {signedIn && (
+              /*
+                ⚠️ 감추기를 버튼이 아니라 **감싼 span이 맡는다.** 버튼에
+                `hidden lg:inline-flex`를 직접 걸었더니 `lg:inline-flex` 규칙이
+                CSS에 생성되지 않아 `hidden`만 남고 데스크톱에서도 안 보였다
+                (실측: `getComputedStyle().display === "none"`). 이 파일이 이미
+                쓰는 `hidden lg:block`으로 바꿔 같은 문제를 피한다.
+              */
+              <span className="hidden lg:block">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="inline-flex min-h-11 items-center whitespace-nowrap rounded-[var(--radius-button)] px-3 text-sm font-bold text-white/70 transition hover:bg-white/10 hover:text-white"
+                >
+                  로그아웃
+                </button>
+              </span>
+            )}
+
             {/* 가로 메뉴가 있는 화면에서는 햄버거를 감춘다 */}
             <button
               ref={toggleRef}
