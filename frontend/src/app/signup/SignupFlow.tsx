@@ -5,6 +5,7 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { passwordField } from "@/lib/password";
 import { useMutation } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import type { VerifyRosterResult } from "@/types/api";
@@ -47,7 +48,7 @@ const registerSchema = z
       .string()
       .trim()
       .regex(/^[a-z0-9]{4,20}$/, "아이디는 영문 소문자·숫자 4~20자입니다."),
-    password: z.string().min(8, "비밀번호는 8자 이상이어야 합니다."),
+    password: passwordField(),
     passwordConfirm: z.string().min(1, "비밀번호를 한 번 더 입력해주세요."),
   })
   .refine((v) => v.password === v.passwordConfirm, {

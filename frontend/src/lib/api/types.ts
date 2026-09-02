@@ -316,6 +316,11 @@ export type Api = {
     resetPasswordWithCode(input: ResetPasswordWithCodeInput): Promise<void>;
     updateProfile(input: { phone: string }): Promise<AuthUser>;
     changePassword(input: { currentPassword: string; newPassword: string }): Promise<void>;
-    deleteAccount(input: { password: string }): Promise<void>;
+    /**
+     * SPEC_API §2.13 — 탈퇴. `password`는 **비밀번호가 있는 계정에만** 보낸다.
+     * 카카오 가입자(`loginId === null`)는 확인할 비밀번호가 없어, 필수로 두면
+     * 영원히 탈퇴할 수 없다 — BE도 `@RequestBody(required = false)`다.
+     */
+    deleteAccount(input: { password?: string }): Promise<void>;
   };
 };
