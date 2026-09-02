@@ -17,10 +17,17 @@
 export const YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@light4402";
 
 /**
- * Instagram 핸들 미확정 (`PLAN §8`). 예전 값 `https://instagram.com`은
- * 인스타그램 홈으로 가는 링크여서 아무 의미가 없었다.
+ * LIGHT 청년교회 Instagram — **확정 (PM 확인 2026-09-02)**.
+ *
+ * `PLAN §8`의 ❓ 하나가 더 닫혔다. 그동안 `null`이라 헤더·푸터·사이드레일의
+ * Instagram 링크가 아예 그려지지 않았는데, 이제 세 곳이 함께 살아난다.
+ *
+ * ⚠️ PM이 준 주소에는 공유 추적 파라미터(`?igsi=…`)가 붙어 있었는데 **떼고
+ *    넣었다.** 그 값은 공유 경로를 식별하는 토큰이라 우리 방문자 모두를 같은
+ *    토큰으로 보낼 이유가 없고, 시간이 지나면 만료되는 값이다.
  */
-export const INSTAGRAM_URL: string | null = null;
+export const INSTAGRAM_URL: string | null =
+  "https://www.instagram.com/gimhaechurch_light";
 
 /**
  * 모교회(김해교회) 홈페이지 — **확정 (PM 확인 2026-09-01)**.
