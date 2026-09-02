@@ -177,14 +177,19 @@ public class PostCommandService {
     // ── slug ──────────────────────────────────────────────────
 
     /**
-     * 공개 공지만 slug를 갖는다.
+     * <b>모든 분류가 slug를 갖는다.</b>
      *
-     * <p>다른 분류는 공개 주소가 없고, {@code posts_slug_uk} unique 제약 때문에
-     * 빈 문자열을 넣으면 두 번째 글부터 충돌한다. null이어야 한다.
+     * <p>⚠️ 한때 공개 공지에만 만들었다. 계약서(SPEC_API §3.2·§3.3)는 {@code slug}를
+     * 항상 문자열로 보여주는데 우리만 비공개 분류에서 null을 내보내고 있었고,
+     * FE는 문서대로 {@code slug: string}으로 받아 {@code /news/{slug}} 링크를
+     * 만들었다 — <b>회원 전용 공지를 누르면 {@code /news/null}로 갔다.</b>
+     * 문서에 없는 규칙을 우리가 임의로 정한 쪽이 틀렸다 (2026-09-02 통합 확인).
+     *
+     * <p>비공개 글에 읽을 수 있는 주소가 생기지만 <b>새는 것은 없다</b> —
+     * 열람은 서버가 분류별로 막고(§10), 예산안은 존재까지 404로 숨긴다.
+     * slug를 안다고 볼 수 있게 되는 것이 아니다.
      */
     private String slugFor(PostWriteRequest request, Long excludedPostId) {
-        return request.category() == PostCategory.NOTICE_PUBLIC
-                ? slugGenerator.generate(request.title(), excludedPostId)
-                : null;
+        return slugGenerator.generate(request.title(), excludedPostId);
     }
 }
