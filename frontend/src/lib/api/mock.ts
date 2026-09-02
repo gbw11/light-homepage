@@ -2536,11 +2536,12 @@ export const mockApi: Api = {
       passwords.set(current.loginId, input.newPassword);
     },
 
-    async deleteAccount(input: { password: string }): Promise<void> {
+    async deleteAccount(input: { password?: string }): Promise<void> {
       await delay();
       throwIfScenario();
       const current = requireSession();
-      if (!current.loginId || input.password !== passwordOf(current.loginId)) {
+      // 카카오 가입자는 비밀번호가 없다 — 로그인 세션 자체가 본인 확인이다.
+      if (current.loginId && input.password !== passwordOf(current.loginId)) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
           message: "비밀번호가 일치하지 않습니다.",

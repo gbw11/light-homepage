@@ -300,6 +300,14 @@ feat/be-*  ──PR──▶  backend_develop   ──PR──▶  develop  ─�
 feat/infra-* ─PR──▶  server_develop    ──PR──▶  develop  ──PR──▶  main
 ```
 
+> 🤖 **이 표는 `branch-policy.yml`이 검사합니다** (2026-09-01 추가, `CICD.md §4.3`).
+> base가 어긋난 PR에는 ❌와 고치는 법이 뜹니다. 머지를 막지는 못합니다 —
+> 무료 Private 저장소라 required check를 걸 수 없습니다(§6.11).
+> 일부러 우회할 때는 `skip-branch-policy` 라벨을 답니다.
+>
+> 왜 넣었는가: 9/1에 FE PR 6건이 `frontend_develop`을 우회해 `develop`으로
+> 직행했고 아무도 알아차리지 못했다 (`DECISIONS.md` 2026-09-01).
+
 | 단계 | 방식 | 승인 | 시점 |
 |---|---|---|---|
 | `feat/*` → `*_develop` | **Squash merge** | 셀프 머지 허용 | 작업 완료 시 |

@@ -13,6 +13,112 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-09-02 — 브랜치 규약은 **사람의 기억이 아니라 CI가 검사한다** (Branch Policy 워크플로)
+
+**결정**: 작업 브랜치가 올바른 통합 브랜치를 향하는지 GitHub Actions가 매 PR마다
+검사한다. 어긋나면 빨간 X와 함께 고치는 법을 띄운다.
+
+    feat/fe-*    · fix/fe-*    ──▶  frontend_develop
+    feat/be-*    · fix/be-*    ──▶  backend_develop
+    feat/infra-* · fix/infra-* ──▶  server_develop
+
+**배경**: 9/1에 FE PR 6건(#128 #129 #130 #131 #132 #134)이 `frontend_develop`을
+우회해 `develop`으로 직행했다. 아무도 막지 않았고 **아무 신호도 없었다.** 그 결과
+`frontend_develop`이 22커밋 뒤처져 #139로 따로 정리해야 했다. 규약을 사람의 기억에
+맡기면 조용히 새어나간다 — Jenkins에서 시크릿 검사를 Actions로 옮긴 것과 같은 판단.
+
+- **영역**: 공통(인프라). BE·FE 모두 PR을 열 때 영향받는다.
+- **검증**: 셀프테스트 PR #143으로 **실패하는 것까지 눈으로 확인**하고 머지 없이
+  닫았다. 위반(`fix/fe-*`→`develop`)은 FAILURE, 정상(`feat/infra-*`→`server_develop`)은
+  SUCCESS. 실패 로그가 워크플로 오류가 아니라 의도한 안내문임을 확인했다.
+- **한계(알고 들어간다)**: **머지를 막지는 못한다.** Free 플랜 private 저장소라
+  branch protection이 403 — required check로 걸 수 없다. 빨간 X가 할 수 있는 전부다.
+  Pro로 올리면 required check로 승격할 것.
+- **예외**: 핫픽스 등 일부러 우회할 때는 PR에 `skip-branch-policy` 라벨.
+  예외를 없애면 사람들이 검사를 통째로 지우기 때문에, 두되 **라벨로 눈에 보이게** 한다.
+- **검사 대상 아님**: `docs/**` 브랜치 · 통합 브랜치→`develop` · `develop`→`main`.
+  규칙 없는 조합까지 막으면 정상 흐름이 멈춘다.
+- **구현**: `.github/workflows/branch-policy.yml` — PR #142(→`server_develop`) ·
+  #144(→`develop`, `8d43daa`). 근거 문서는 `INTEGRATION.md` §6.3·§6.5.
+
+---
+
+## 2026-09-01 — FE 브랜치 규약을 **문서대로 되돌린다** (`frontend_develop` 경유)
+
+**결정**: `feat/fe-*` · `fix/fe-*`는 `frontend_develop`을 base로 연다.
+`INTEGRATION.md:293`의 규약을 그대로 지킨다.
+
+```
+feat/fe-*  ──PR──▶  frontend_develop  ──PR──▶  develop  ──PR──▶  main
+```
+
+**배경**: 9/1부터 FE PR 6건(#128 #129 #130 #131 #132 #134)이 `develop`으로
+직행했다. 마지막으로 규약을 지킨 것은 #125다. 그 결과 `frontend_develop`에만
+있는 것은 0커밋이고 `develop`이 22커밋 앞선, **문서와 실제가 어긋난** 상태가
+됐다. 8/31의 #115~118 스택 머지 사고도 같은 뿌리다 — 통합 지점을 건너뛰면
+되돌릴 단위가 없어진다.
+
+**검토했지만 택하지 않은 것 — "문서를 현실에 맞춘다"**:
+`frontend-ci.yml`의 push 트리거가 `feat/**` · `fix/**`를 이미 포함해서
+lint · type-check · build 3종이 작업 브랜치에서 다 돈다. Vercel 프리뷰도
+`feat/fe-*`에서 그대로 나온다. 즉 `frontend_develop`을 거친다고 **새로 도는
+검사는 없다.** 그런데도 경유를 유지하는 이유는 검사가 아니라 **되돌릴 단위**다 —
+`develop`에 한 번에 들어가는 덩어리가 커질수록 문제가 생겼을 때 무엇을 되돌려야
+하는지가 흐려진다. `backend_develop`이 오늘 #136에서 해준 역할(계약 게이트)의
+FE판이 이것이다.
+
+**조치**:
+1. PR #139 (`develop → frontend_develop`) 동기화 — 22커밋 뒤처짐 해소.
+   먼저 하지 않으면 이후 FE PR마다 `develop`의 22커밋이 diff에 딸려 들어온다
+   (`backend_develop`에서 #123으로 겪은 것과 같다)
+2. PR #138의 base를 `develop` → `frontend_develop`으로 변경
+3. 앞으로 FE PR은 `frontend_develop`을 base로 연다
+
+**⚠️ 다음에 또 어긋나지 않으려면**: 이 규약은 사람의 기억에 기대고 있다.
+Free 플랜 private 저장소라 branch protection으로 강제할 수 없다
+(`gh api .../protection`이 403). 강제 수단이 생기기 전까지는 PR을 열 때
+base를 눈으로 확인하는 것이 유일한 방어다.
+
+*(→ 이 "눈으로 확인하는 것이 유일한 방어"는 **2026-09-02 결정으로 해소됐다** —
+Branch Policy 워크플로가 매 PR마다 base를 검사한다. 위 항목 참조.)*
+
+---
+
+## 2026-09-01 — 인증 v1.3 BE 구현(PR #136) FE 대조 — 카카오 가입자 탈퇴 경로를 연다
+
+**배경**: BE가 `SPEC_API §2 v1.3`(명단 대조 가입) 전면 구현을 `backend_develop`에
+머지했다(PR #136, `feebf0e`). FE는 8/31에 같은 계약으로 선행 구현해 뒀으므로,
+머지된 BE 코드와 FE를 항목별로 대조했다.
+
+**대조 결과**: 엔드포인트 12개가 1:1로 일치하고, 폐기 엔드포인트·`PENDING`
+잔재는 0건이다. FE가 선행하며 세운 가정 4건(register 쿠키 미발급 · 카카오
+`registrationToken` 쿼리 전달 · 단일 401 문구 · 동명이인 접미사 보존)이 전부
+BE 구현과 같았다. 카카오 문구도 이미 "본인 확인 후 카카오로 계속"로 고쳐져 있다.
+
+**결정 1 — 카카오 가입자는 비밀번호 없이 탈퇴한다.**
+FE가 탈퇴 시 비밀번호를 무조건 요구하고 있었다. 카카오 가입자는 `loginId`가
+`null`이고 비밀번호가 없어, **탈퇴할 수단이 아예 없는 상태**였다. BE는 같은
+이유로 `@RequestBody(required = false)`로 열어 뒀는데 FE 게이트가 막고 있었다.
+`loginId === null`이면 입력란을 숨기고 body 없이 보낸다 — 로그인 세션 자체를
+본인 확인으로 본다.
+
+**결정 2 — 비밀번호 상한은 글자가 아니라 바이트로 잰다.**
+BCrypt 한계는 72**바이트**다. FE는 하한(8자)만 두고 상한이 없어, 한글 25자
+이상이면 클라이언트 검증을 통과한 뒤 서버만 거절했다 — 한국어 사용자만 겪는
+실패다. `lib/password.ts`의 `passwordField()`로 가입·재설정·변경 세 폼이 같은
+규칙을 쓰게 했다. BE가 실서버 확인에서 이 지점의 500을 잡은 것과 짝이 되는
+FE 쪽 조치다.
+
+**미결 — BE 답변 대기 2건**: `MeResponse.phone`의 nullable 여부, 죽은
+`SignupRequest.java` 정리. `BACKEND_HANDOFF.md` 2026-09-01 항목에 적었다.
+
+**참고**: PR #136은 `INTEGRATION.md §5.1` 비호환 변경인데 FE 승인 전에
+`backend_develop`으로 머지됐다. `develop`에는 올라가지 않아 Render 배포와
+`DELETE FROM members` 마이그레이션은 아직 실행되지 않았다. 승인 게이트는
+`backend_develop → develop` PR에서 다시 세운다.
+
+---
+
 ## 2026-09-01 — `/sermons`를 **라이브 우선** 화면으로 재구성 + 썸네일 정상화
 
 **결정**: 말씀 화면이 하는 일을 "지난 설교 아카이브"에서 **"지금 예배를 보러 온
