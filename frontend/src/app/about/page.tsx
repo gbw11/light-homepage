@@ -32,7 +32,12 @@ export default function AboutPage() {
   return (
     <main id="main" tabIndex={-1}>
       <Section className="pb-8 md:pb-8">
-        <p className="text-sm font-bold text-[var(--color-gray-400)]">LIGHT</p>
+        {/*
+          워드마크라 녹색 계열로 둔다 (PM 2026-09-02). 여기는 밝은 배경이므로
+          어두운 표면용 토큰이 아니라 `--color-yellow`(라이트 #57674d 올리브 /
+          다크 #b3b792)를 쓴다 — 라이트 4.63:1 · 다크 8.32:1로 양쪽 AA 통과.
+        */}
+        <p className="text-sm font-bold text-[var(--color-yellow)]">LIGHT</p>
         <h1 className="mt-2 text-2xl font-bold md:text-3xl">
           Live In God, Help The other
         </h1>
