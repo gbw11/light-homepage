@@ -93,7 +93,11 @@ class AuthorizationCoverageTest {
             "DELETE /api/admin/members/{id}",
 
             // 공개 (NewcomerAuthorizationTest)
-            "POST /api/newcomers"
+            "POST /api/newcomers",
+
+            // 설교 — 열린 경로 (SermonAuthorizationTest)
+            "GET /api/sermons",
+            "GET /api/sermons/live"
     );
 
     /**
