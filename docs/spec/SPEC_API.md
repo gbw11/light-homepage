@@ -931,6 +931,7 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 | `POST /admin/members/{id}/password/reset` | 401 | 403 | **403** | 200 |
 | `POST /newcomers` | 200 | 200 | 200 | 200 |
 | `GET /sermons` | 200 | 200 | 200 | 200 |
+| `GET /sermons/live` | 200 | 200 | 200 | 200 |
 | `GET /attendance/sessions` (§13) | 401 | 403 | 200 | 200 |
 | `POST /attendance/sessions` | 401 | 403 | 200 | 200 |
 | `GET /attendance/sessions/{id}` | 401 | 403 | 200 | 200 |
