@@ -7,11 +7,15 @@ import java.text.Normalizer;
 import java.util.Locale;
 
 /**
- * 공개 공지의 slug 생성 — <b>제목에서 만든다</b>.
+ * 게시물 slug 생성 — <b>제목에서 만든다</b>.
  *
  * <p>FE가 `/news/[slug]`로 상세를 열고(WIREFRAME.md §7), 공개 페이지는 검색
  * 노출·공유 미리보기 대상이다(FR-PUB-10). 그래서 id가 아니라 읽을 수 있는
  * 주소가 필요하다.
+ *
+ * <p><b>분류를 가리지 않는다.</b> 계약서가 {@code slug}를 항상 문자열로
+ * 정의하고 FE가 그대로 링크를 만들기 때문이다 ({@code PostCommandService.slugFor}
+ * 주석 참고).
  *
  * <p><b>⚠️ 생성 규칙은 문서에 없다.</b> {@code POST /api/posts}의 요청 본문에
  * slug 필드가 없어 서버가 만들 수밖에 없는데, 어떻게 만들지는 어디에도 정해져

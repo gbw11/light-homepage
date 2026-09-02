@@ -266,7 +266,13 @@ Render 배포와 `DELETE FROM members`는 실행되지 않았으니 지금 문�
 
 ## 2026-09-01 — 🔴 Vercel X를 없애려면 **`backend_develop` 동기화가 먼저**입니다 (PR #123)
 
-**상태**: 실측으로 원인 규명 완료. **백엔드에 요청 1건 있습니다.**
+**상태**: ✅ **PR #123 머지 완료** (07:41 UTC, 머지 커밋 `7eea063`). `backend_develop`
+에 `git.deploymentEnabled`가 들어갔습니다. **백엔드에 남은 요청은 아래 2·3번입니다.**
+
+> PR #136(`feat/be-profile`)의 `Vercel: Deployment was blocked` 빨강은 이 브랜치가
+> #123 머지 **전에** 갈라져 나와 아직 옛 `vercel.json`을 들고 있어서입니다.
+> 아래 2번을 하면 사라집니다. 그전까지 이 빨강은 무시하셔도 됩니다 — 이 저장소는
+> GitHub Free private이라 required check가 없어 **머지를 막지 않습니다**.
 
 오늘 `feat/be-contract-v13`(head `6388cf6`)의 커밋 상태를 확인했더니
 **`Vercel: failure`가 그대로 떴습니다.** 아래 항목에서 "다음 푸시부터 안 뜬다"고
@@ -283,11 +289,11 @@ BE 브랜치에는 그 설정이 아직 없습니다.
 
 **요청**:
 
-1. **PR #123 (`develop → backend_develop`) 머지** — 충돌 없음(7커밋). 내려가는
-   것은 `vercel.json` 2건·Actions 트리거 수정(#109)·스펙 3종 v1.3·문서이고
-   **BE 코드에는 손대지 않습니다**
-2. 이미 갈라져 나온 `feat/be-contract-v13`은 머지 후 **`backend_develop`을 다시
-   머지**해야 새 `vercel.json`을 받습니다
+1. ~~**PR #123 (`develop → backend_develop`) 머지**~~ — ✅ PM이 머지했습니다.
+   내려간 것은 `vercel.json` 2건·Actions 트리거 수정(#109)·스펙 3종 v1.3·문서이고
+   **BE 코드에는 손대지 않았습니다**
+2. 이미 갈라져 나온 BE 브랜치(**`feat/be-profile`** 포함)는 **`backend_develop`을
+   다시 머지**해야 새 `vercel.json`을 받습니다
 3. 그 뒤 첫 푸시에서 Vercel 체크가 **아예 안 생기는지** 알려주세요. 그게 최종
    실측입니다
 

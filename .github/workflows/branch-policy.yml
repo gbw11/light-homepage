@@ -1,0 +1,81 @@
+name: Branch Policy
+
+# ────────────────────────────────────────────────────────────────
+#  작업 브랜치가 올바른 통합 브랜치를 향하는지 검사한다
+#  (INTEGRATION.md §6.3 영역 구분 · §6.5 머지 흐름).
+#
+#      feat/fe-*  · fix/fe-*     ──▶  frontend_develop
+#      feat/be-*  · fix/be-*     ──▶  backend_develop
+#      feat/infra-* · fix/infra-* ─▶  server_develop
+#
+#  ⚠️ 왜 사람이 아니라 기계가 보는가 (PM 결정 2026-09-01)
+#     9/1에 FE PR 6건(#128 #129 #130 #131 #132 #134)이 frontend_develop을
+#     우회해 develop으로 직행했다. 아무도 막지 않았고 아무 신호도 없었다.
+#     그 결과 frontend_develop이 22커밋 뒤처져 #139로 따로 정리해야 했다.
+#     **규약을 사람의 기억에 맡기면 조용히 새어나간다** — Jenkins에서
+#     시크릿 검사를 옮긴 것과 같은 판단이다 (secret-scan.yml 머리말).
+#
+#  ⚠️ 이 검사는 머지를 막지 못한다. Free 플랜 private 저장소라 branch
+#     protection을 걸 수 없어(`gh api .../protection`이 403) required check가
+#     없다. 빨간 X를 띄우는 것이 할 수 있는 전부다 — 그래도 "아무 신호 없음"
+#     보다는 낫다. Pro로 올리면 required check로 승격할 것.
+#
+#  ⚠️ 일부러 우회해야 할 때는 PR에 `skip-branch-policy` 라벨을 단다.
+#     핫픽스처럼 통합 브랜치를 거칠 여유가 없는 경우가 있고, 그때 이 검사가
+#     길을 막으면 사람들은 검사를 통째로 지운다. 예외를 남겨두되
+#     **라벨로 눈에 보이게** 한다.
+#
+#  paths 필터를 두지 않는다 — 어느 파일을 고쳤든 브랜치 방향은 봐야 한다.
+#  대신 잡이 몇 초로 끝나 무료 분에 거의 영향이 없다
+#  (docs/ops/COST_GUARDRAILS.md §3.1).
+# ────────────────────────────────────────────────────────────────
+
+on:
+  pull_request:
+    # ★ edited·labeled가 필요하다. base를 바꾸거나 예외 라벨을 다는 것은
+    #   커밋 없이 일어나므로, synchronize만 걸면 결과가 낡은 채로 남는다.
+    types: [opened, reopened, edited, labeled, unlabeled, synchronize]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 작업 브랜치가 올바른 통합 브랜치를 향하는지 확인
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          case ",$LABELS," in
+            *,skip-branch-policy,*)
+              echo "::notice::skip-branch-policy 라벨이 있어 검사를 건너뜁니다."
+              exit 0
+              ;;
+          esac
+
+          case "$HEAD_REF" in
+            feat/fe-*|fix/fe-*)       expected=frontend_develop ;;
+            feat/be-*|fix/be-*)       expected=backend_develop ;;
+            feat/infra-*|fix/infra-*) expected=server_develop ;;
+            *)
+              # docs/** · 통합 브랜치 → develop · develop → main 등은 검사 대상이
+              # 아니다. 규칙이 없는 조합까지 막으면 정상 흐름이 멈춘다.
+              echo "::notice::$HEAD_REF 는 검사 대상이 아닙니다 (규칙 없음)."
+              exit 0
+              ;;
+          esac
+
+          if [ "$BASE_REF" = "$expected" ]; then
+            echo "::notice::$HEAD_REF → $BASE_REF ✅"
+            exit 0
+          fi
+
+          echo "::error title=브랜치 흐름 위반::$HEAD_REF 는 $expected 로 가야 합니다 (현재 base: $BASE_REF)"
+          echo "::error::INTEGRATION.md §6.5 — feat/fe-* → frontend_develop → develop → main"
+          echo "::error::고치는 법: 이 PR 우측 상단 Edit → base branch 를 $expected 로 변경"
+          echo "::error::일부러 우회하는 것이라면 skip-branch-policy 라벨을 다세요."
+          exit 1
