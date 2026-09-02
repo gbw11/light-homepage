@@ -30,6 +30,56 @@
 
 ---
 
+## 2026-09-02 — 공개 공지 게이트 건은 **FE 결함**이었습니다 (PR #149). BE 확인 2건
+
+BE 통합 확인 보고(공개 공지 상세에 회원 게이트)에 대한 조치 결과다.
+**원인은 FE의 이중 인코딩이었고 고쳤다** — BE가 계약을 어긴 것이 아니다.
+
+Next 16.3에서 `params`가 호출부에 따라 다르게 온다(실측): `generateMetadata`는
+디코드된 값, 페이지 컴포넌트는 **인코드된 값**. 후자를 그대로 API에 넘겨
+`encodeURIComponent`가 한 번 더 걸렸다 →
+`GET /api/posts/%25EC%25A3%25BC%25EC%259D%25BC-...`. 서버는 그 퍼센트 문자열을
+slug로 찾다 실패한다. `/documents/[slug]`(회의록)도 같은 결함이었다.
+
+### 확인 요청 ①: 없는 slug에 401을 주는 환경이 있다
+
+프로덕션(`develop`)은 익명 요청에 **404**를 준다:
+
+```
+GET https://light-homepage.onrender.com/api/posts/nope-does-not-exist
+→ 404 {"error":{"code":"NOT_FOUND","message":"찾을 수 없습니다.","field":null}}
+```
+
+그런데 BE 로컬에서는 같은 부류의 요청(존재하지 않는 slug)에 **401**이 온 것으로
+보인다 — 그래서 화면에 "찾을 수 없는 글"이 아니라 로그인 안내가 떴다.
+**없는 글에 401을 주면 FE가 "로그인하면 보인다"로 오안내한다.** 어느 쪽이
+현재 구현인지 확인 부탁.
+
+### 확인 요청 ②: 인코딩하지 않은 한글 경로는 규약 봉투가 아니라 Tomcat 400 HTML
+
+```
+GET https://light-homepage.onrender.com/api/posts/주일-예배-시간-안내   (raw, 미인코딩)
+→ 400  <!doctype html>...HTTP Status 400 – Bad Request...
+```
+
+FE는 항상 퍼센트 인코딩해 보내므로 실사용 경로는 아니지만, **BE의 4행 측정표가
+raw 한글로 측정된 것이라면 FE가 보내는 요청과 다른 것을 본 셈이다.**
+(참고: 퍼센트 인코딩된 경로는 정상적으로 404 JSON을 준다.)
+
+### FE 쪽 참고 — 서버 HTML로는 게이트를 볼 수 없다
+
+`MemberGate`는 `useAuth().isLoading` 동안 `null`을 렌더하는 클라이언트
+컴포넌트다. **회원 게이트는 서버 응답에 절대 나타나지 않는다** — curl로
+"게이트 문구가 없다"를 확인해도 정상이라는 증거가 되지 않는다. 서버 렌더에서
+분기를 구분하는 표식은 `<title>` 하나다: 정상이면 글 제목, member-only·not-found면
+`소식`.
+
+### slug NOT NULL (BE가 이미 고친 것)
+
+FE는 계속 `slug: string`으로 둔다. **FE 수정 없음**을 확인했다. ✅
+
+---
+
 ## 2026-09-01 — 🔴 [CONTRACT] 신규 엔드포인트 요청: `GET /api/sermons/live`
 
 **상태**: FE 구현 완료(mock). **BE 구현이 있어야 실제로 동작합니다.**
