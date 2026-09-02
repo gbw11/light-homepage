@@ -358,6 +358,7 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `POST /api/admin/members/{id}/password/reset` | 401 | 403 | **403** | 200 |
 | `POST /api/newcomers` | 200 | 200 | 200 | 200 |
 | `GET /api/sermons` | 200 | 200 | 200 | 200 |
+| `GET /api/sermons/live` | 200 | 200 | 200 | 200 |
 | `GET /api/attendance/sessions` (§13) | 401 | 403 | 200 | 200 |
 | `POST /api/attendance/sessions` | 401 | 403 | 200 | 200 |
 | `GET /api/attendance/sessions/{id}` | 401 | 403 | 200 | 200 |
