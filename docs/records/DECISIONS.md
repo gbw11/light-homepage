@@ -13,6 +13,36 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-09-02 — 브랜치 규약은 **사람의 기억이 아니라 CI가 검사한다** (Branch Policy 워크플로)
+
+**결정**: 작업 브랜치가 올바른 통합 브랜치를 향하는지 GitHub Actions가 매 PR마다
+검사한다. 어긋나면 빨간 X와 함께 고치는 법을 띄운다.
+
+    feat/fe-*    · fix/fe-*    ──▶  frontend_develop
+    feat/be-*    · fix/be-*    ──▶  backend_develop
+    feat/infra-* · fix/infra-* ──▶  server_develop
+
+**배경**: 9/1에 FE PR 6건(#128 #129 #130 #131 #132 #134)이 `frontend_develop`을
+우회해 `develop`으로 직행했다. 아무도 막지 않았고 **아무 신호도 없었다.** 그 결과
+`frontend_develop`이 22커밋 뒤처져 #139로 따로 정리해야 했다. 규약을 사람의 기억에
+맡기면 조용히 새어나간다 — Jenkins에서 시크릿 검사를 Actions로 옮긴 것과 같은 판단.
+
+- **영역**: 공통(인프라). BE·FE 모두 PR을 열 때 영향받는다.
+- **검증**: 셀프테스트 PR #143으로 **실패하는 것까지 눈으로 확인**하고 머지 없이
+  닫았다. 위반(`fix/fe-*`→`develop`)은 FAILURE, 정상(`feat/infra-*`→`server_develop`)은
+  SUCCESS. 실패 로그가 워크플로 오류가 아니라 의도한 안내문임을 확인했다.
+- **한계(알고 들어간다)**: **머지를 막지는 못한다.** Free 플랜 private 저장소라
+  branch protection이 403 — required check로 걸 수 없다. 빨간 X가 할 수 있는 전부다.
+  Pro로 올리면 required check로 승격할 것.
+- **예외**: 핫픽스 등 일부러 우회할 때는 PR에 `skip-branch-policy` 라벨.
+  예외를 없애면 사람들이 검사를 통째로 지우기 때문에, 두되 **라벨로 눈에 보이게** 한다.
+- **검사 대상 아님**: `docs/**` 브랜치 · 통합 브랜치→`develop` · `develop`→`main`.
+  규칙 없는 조합까지 막으면 정상 흐름이 멈춘다.
+- **구현**: `.github/workflows/branch-policy.yml` — PR #142(→`server_develop`) ·
+  #144(→`develop`, `8d43daa`). 근거 문서는 `INTEGRATION.md` §6.3·§6.5.
+
+---
+
 ## 2026-09-01 — FE 브랜치 규약을 **문서대로 되돌린다** (`frontend_develop` 경유)
 
 **결정**: `feat/fe-*` · `fix/fe-*`는 `frontend_develop`을 base로 연다.
@@ -48,6 +78,9 @@ FE판이 이것이다.
 Free 플랜 private 저장소라 branch protection으로 강제할 수 없다
 (`gh api .../protection`이 403). 강제 수단이 생기기 전까지는 PR을 열 때
 base를 눈으로 확인하는 것이 유일한 방어다.
+
+*(→ 이 "눈으로 확인하는 것이 유일한 방어"는 **2026-09-02 결정으로 해소됐다** —
+Branch Policy 워크플로가 매 PR마다 base를 검사한다. 위 항목 참조.)*
 
 ---
 
