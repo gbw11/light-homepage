@@ -1,6 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { api, isApiError } from "@/lib/api";
+import { decodeRouteParam } from "@/lib/routeParams";
 import { Section } from "@/components/ui/Section";
 import type { PostDetail } from "@/types/api";
 import { MemberNoticeDetail } from "./_components/MemberNoticeDetail";
@@ -41,7 +42,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const result = await getNotice(slug);
+  const result = await getNotice(decodeRouteParam(slug));
   // 회원 공지는 제목도 싣지 않는다 — 로그인 전에 노출되는 정보를 만들지 않는다
   return { title: result.kind === "ok" ? result.notice.title : "소식" };
 }
@@ -52,7 +53,13 @@ export default async function NoticeDetailPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  /*
+    ⚠️ 인코딩을 여기서 되돌린다 — 이 호출부의 `slug`는 인코드된 채로 온다
+    (`decodeRouteParam` 주석의 실측). 안 하면 한글 slug 글이 전부
+    "찾을 수 없는 글"이 된다.
+  */
+  const { slug: rawSlug } = await params;
+  const slug = decodeRouteParam(rawSlug);
   const result = await getNotice(slug);
 
   if (result.kind === "not-found") {
