@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MemberGate } from "@/components/auth/MemberGate";
+import { decodeRouteParam } from "@/lib/routeParams";
 import { DocumentDetail } from "../_components/DocumentDetail";
 
 /**
@@ -29,7 +30,13 @@ export default async function MyDocumentDetailPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  /*
+    인코딩을 되돌려서 넘긴다 — `DocumentDetail`은 이 값을 그대로 API에 쓴다.
+    한글 slug(예: "9월-첫째-주-임원회의록")가 이중 인코딩되면 회의록 전체가
+    "찾을 수 없는 문서"가 된다 (`decodeRouteParam` 주석 참고).
+  */
+  const { slug: rawSlug } = await params;
+  const slug = decodeRouteParam(rawSlug);
 
   return (
     <main id="main" tabIndex={-1}>

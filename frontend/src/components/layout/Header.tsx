@@ -147,11 +147,21 @@ export function Header() {
 
                   {/*
                     하위 메뉴 — 모교회처럼 상위 항목 아래로 펼친다.
-                    hover만으로 열면 키보드 사용자가 닿지 못하므로
-                    `focus-within`을 함께 건다 (NFR-A11Y).
+                    hover만으로 열면 키보드 사용자가 닿지 못하므로 포커스로도
+                    열어야 한다 (NFR-A11Y).
+
+                    ⚠️ 전에는 `group-focus-within`이었는데, **마우스로 상위 항목을
+                    누르면 링크에 포커스가 남아 메뉴를 벗어나도 목록이 열린 채로
+                    있었다** (PM 지적 2026-09-02). hover가 풀렸는데도 focus-within이
+                    계속 참이기 때문이다.
+
+                    `group-has-[:focus-visible]`로 바꿔 **키보드 포커스일 때만**
+                    열어둔다. 브라우저는 Tab 이동에는 `:focus-visible`을 주고
+                    마우스 클릭에는 주지 않으므로, 키보드 접근성은 그대로면서
+                    마우스를 옮기면 닫힌다.
                   */}
                   {item.children && (
-                    <ul className="invisible absolute left-0 top-full z-50 min-w-44 rounded-b-[var(--radius-card)] bg-[var(--color-navy-900)] py-2 opacity-0 shadow-lg transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+                    <ul className="invisible absolute left-0 top-full z-50 min-w-44 rounded-b-[var(--radius-card)] bg-[var(--color-navy-900)] py-2 opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100 group-has-[:focus-visible]:visible group-has-[:focus-visible]:opacity-100">
                       {item.children.map((child) => (
                         <li key={child.href}>
                           <Link
@@ -176,7 +186,16 @@ export function Header() {
                 하위 항목은 `invisible`이라 탭 순서에서 빠져 있어서
                 **키보드로는 영영 열 수 없다** (NFR-A11Y-06).
               */}
-              <li className="group relative ml-1 border-l border-white/20 pl-1">
+              {/*
+                ⚠️ `자료`는 클릭 토글(`isResourceOpen`)이라, 한 번 누르면 마우스를
+                옮겨도 열린 채로 남았다 (PM 지적 2026-09-02). 포인터가 항목을
+                떠나면 닫는다 — 다른 상위 메뉴가 hover로 닫히는 것과 같은 감각이다.
+                키보드로 연 경우는 마우스가 들어올 일이 없어 영향받지 않는다.
+              */}
+              <li
+                className="group relative ml-1 border-l border-white/20 pl-1"
+                onMouseLeave={() => setIsResourceOpen(false)}
+              >
                 <button
                   type="button"
                   aria-expanded={isResourceOpen}
@@ -196,6 +215,12 @@ export function Header() {
                     <li key={link.href}>
                       <Link
                         href={link.href}
+                        /*
+                          클라이언트 이동은 이 컴포넌트를 다시 만들지 않아
+                          `isResourceOpen`이 그대로 남는다 — 도착한 화면에서도
+                          목록이 펼쳐진 채로 보인다. 눌렀으면 닫는다.
+                        */
+                        onClick={() => setIsResourceOpen(false)}
                         className="flex min-h-11 items-center whitespace-nowrap px-4 text-sm transition hover:bg-white/10"
                       >
                         🔒 {link.label}
@@ -230,6 +255,38 @@ export function Header() {
               <span aria-hidden>{signedIn ? "👤" : "🔒"}</span>
               {signedIn ? "나의 LIGHT" : "로그인"}
             </Link>
+
+            {/*
+              로그아웃 (PM 요청 2026-09-02) — 전에는 `/my`까지 들어가야 나갈 수
+              있었다. 로그인은 헤더 오른쪽 한 번인데 로그아웃은 두 단계라
+              대칭이 맞지 않았다.
+
+              ⚠️ **데스크톱만이다** (`hidden lg:inline-flex`). 모바일 헤더는
+              워드마크·☎·나의 LIGHT·햄버거가 이미 한 줄을 채워서, 여기에 글자를
+              더 넣으면 44px 터치 영역이 서로 붙는다 (NFR-A11Y-05). 좁은 화면의
+              로그아웃은 아래 전체 메뉴에 그대로 있다.
+
+              링크가 아니라 `button`이다 — 이동이 아니라 상태를 바꾸는 동작이고,
+              `handleLogout`이 세션을 비운 뒤 홈으로 보낸다.
+            */}
+            {signedIn && (
+              /*
+                ⚠️ 감추기를 버튼이 아니라 **감싼 span이 맡는다.** 버튼에
+                `hidden lg:inline-flex`를 직접 걸었더니 `lg:inline-flex` 규칙이
+                CSS에 생성되지 않아 `hidden`만 남고 데스크톱에서도 안 보였다
+                (실측: `getComputedStyle().display === "none"`). 이 파일이 이미
+                쓰는 `hidden lg:block`으로 바꿔 같은 문제를 피한다.
+              */
+              <span className="hidden lg:block">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="inline-flex min-h-11 items-center whitespace-nowrap rounded-[var(--radius-button)] px-3 text-sm font-bold text-white/70 transition hover:bg-white/10 hover:text-white"
+                >
+                  로그아웃
+                </button>
+              </span>
+            )}
 
             {/* 가로 메뉴가 있는 화면에서는 햄버거를 감춘다 */}
             <button
