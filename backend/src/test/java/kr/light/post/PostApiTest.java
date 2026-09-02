@@ -324,12 +324,19 @@ class PostApiTest {
         return savePost(title, slug, pinned, publishedAt, PostCategory.NOTICE_PUBLIC);
     }
 
+    private final java.util.concurrent.atomic.AtomicInteger slugSequence =
+            new java.util.concurrent.atomic.AtomicInteger();
+
+    /**
+     * @param slug null이면 자동으로 채운다. <b>slug는 모든 분류가 갖는다</b>
+     *             (§3.2 · V5) — DB가 NOT NULL로 막고 있어 비워둘 수 없다
+     */
     private Post savePost(String title, String slug, boolean pinned,
                           Instant publishedAt, PostCategory category) {
         return postRepository.saveAndFlush(Post.builder()
                 .category(category)
                 .title(title)
-                .slug(slug)
+                .slug(slug != null ? slug : "post-" + slugSequence.incrementAndGet())
                 .body(BODY_JSON)
                 .pinned(pinned)
                 .author(author)

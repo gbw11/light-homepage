@@ -69,6 +69,8 @@ class PostReadAuthorizationTest {
             Post post = postRepository.saveAndFlush(Post.builder()
                     .category(category)
                     .title(secretTitle(category))
+                    // slug는 모든 분류가 갖는다 (§3.2 · V5에서 NOT NULL)
+                    .slug("slug-" + category.name().toLowerCase())
                     .body("{\"blocks\":[]}")
                     .pinned(false)
                     .publishedAt(Instant.now().minusSeconds(3600))

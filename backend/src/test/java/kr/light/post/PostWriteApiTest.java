@@ -120,9 +120,11 @@ class PostWriteApiTest {
     }
 
     @Test
-    @DisplayName("★ 공개 공지가 아니면 slug가 null이다 — unique 제약 때문")
-    void 비공개는_slug가_없다() throws Exception {
-        // 빈 문자열을 넣으면 posts_slug_uk 때문에 두 번째 글부터 저장이 깨진다
+    @DisplayName("★ 비공개 분류도 slug를 갖는다 — FE가 slug로 링크를 만든다")
+    void 비공개도_slug가_있다() throws Exception {
+        // 한때 공개 공지에만 만들었다. 계약서(§3.2·§3.3)는 slug를 항상 문자열로
+        // 정의하는데 우리만 null을 내보냈고, FE는 문서대로 받아
+        // /news/{slug} 링크를 만들어 회원 전용 공지가 /news/null로 갔다.
         mockMvc.perform(write(form("8월 회의록", PostCategory.MINUTES, true)))
                 .andExpect(status().isCreated());
         mockMvc.perform(write(form("9월 회의록", PostCategory.MINUTES, true)))
@@ -130,7 +132,23 @@ class PostWriteApiTest {
 
         assertThat(postRepository.findAll())
                 .extracting(Post::getSlug)
-                .containsOnlyNulls();
+                .doesNotContainNull()
+                .containsExactlyInAnyOrder("8월-회의록", "9월-회의록");
+    }
+
+    @Test
+    @DisplayName("제목이 같으면 분류가 달라도 slug가 겹치지 않는다")
+    void 같은_제목은_접미사로_갈린다() throws Exception {
+        // posts_slug_uk는 분류를 가리지 않는다. 모든 분류가 slug를 갖게 되면서
+        // "공지사항" 같은 흔한 제목이 분류를 넘어 부딪힐 수 있다.
+        mockMvc.perform(write(form("공지사항", PostCategory.NOTICE_PUBLIC, true)))
+                .andExpect(status().isCreated());
+        mockMvc.perform(write(form("공지사항", PostCategory.NOTICE_MEMBER, true)))
+                .andExpect(status().isCreated());
+
+        assertThat(postRepository.findAll())
+                .extracting(Post::getSlug)
+                .containsExactlyInAnyOrder("공지사항", "공지사항-2");
     }
 
     @Test
