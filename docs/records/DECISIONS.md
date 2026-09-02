@@ -13,6 +13,44 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-09-01 — FE 브랜치 규약을 **문서대로 되돌린다** (`frontend_develop` 경유)
+
+**결정**: `feat/fe-*` · `fix/fe-*`는 `frontend_develop`을 base로 연다.
+`INTEGRATION.md:293`의 규약을 그대로 지킨다.
+
+```
+feat/fe-*  ──PR──▶  frontend_develop  ──PR──▶  develop  ──PR──▶  main
+```
+
+**배경**: 9/1부터 FE PR 6건(#128 #129 #130 #131 #132 #134)이 `develop`으로
+직행했다. 마지막으로 규약을 지킨 것은 #125다. 그 결과 `frontend_develop`에만
+있는 것은 0커밋이고 `develop`이 22커밋 앞선, **문서와 실제가 어긋난** 상태가
+됐다. 8/31의 #115~118 스택 머지 사고도 같은 뿌리다 — 통합 지점을 건너뛰면
+되돌릴 단위가 없어진다.
+
+**검토했지만 택하지 않은 것 — "문서를 현실에 맞춘다"**:
+`frontend-ci.yml`의 push 트리거가 `feat/**` · `fix/**`를 이미 포함해서
+lint · type-check · build 3종이 작업 브랜치에서 다 돈다. Vercel 프리뷰도
+`feat/fe-*`에서 그대로 나온다. 즉 `frontend_develop`을 거친다고 **새로 도는
+검사는 없다.** 그런데도 경유를 유지하는 이유는 검사가 아니라 **되돌릴 단위**다 —
+`develop`에 한 번에 들어가는 덩어리가 커질수록 문제가 생겼을 때 무엇을 되돌려야
+하는지가 흐려진다. `backend_develop`이 오늘 #136에서 해준 역할(계약 게이트)의
+FE판이 이것이다.
+
+**조치**:
+1. PR #139 (`develop → frontend_develop`) 동기화 — 22커밋 뒤처짐 해소.
+   먼저 하지 않으면 이후 FE PR마다 `develop`의 22커밋이 diff에 딸려 들어온다
+   (`backend_develop`에서 #123으로 겪은 것과 같다)
+2. PR #138의 base를 `develop` → `frontend_develop`으로 변경
+3. 앞으로 FE PR은 `frontend_develop`을 base로 연다
+
+**⚠️ 다음에 또 어긋나지 않으려면**: 이 규약은 사람의 기억에 기대고 있다.
+Free 플랜 private 저장소라 branch protection으로 강제할 수 없다
+(`gh api .../protection`이 403). 강제 수단이 생기기 전까지는 PR을 열 때
+base를 눈으로 확인하는 것이 유일한 방어다.
+
+---
+
 ## 2026-09-01 — 인증 v1.3 BE 구현(PR #136) FE 대조 — 카카오 가입자 탈퇴 경로를 연다
 
 **배경**: BE가 `SPEC_API §2 v1.3`(명단 대조 가입) 전면 구현을 `backend_develop`에
