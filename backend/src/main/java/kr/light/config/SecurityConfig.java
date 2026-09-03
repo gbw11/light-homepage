@@ -132,7 +132,10 @@ public class SecurityConfig {
      */
     private static final String[] PUBLIC_KAKAO_PATHS = {
             "/api/auth/kakao/authorize",
-            "/api/auth/kakao/callback"
+            "/api/auth/kakao/callback",
+            // 설교 영상 (SPEC_API.md §9.2 · §9.3) — 권한 G, 누구나 본다
+            "/api/sermons",
+            "/api/sermons/live"
     };
 
     private final ObjectMapper objectMapper;
