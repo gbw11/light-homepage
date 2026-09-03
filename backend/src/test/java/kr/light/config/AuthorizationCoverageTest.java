@@ -92,6 +92,10 @@ class AuthorizationCoverageTest {
 
             "DELETE /api/admin/members/{id}",
 
+            // 용량 현황 (StorageAdminAuthorizationTest)
+            //   ⚠️ 같은 /api/admin 아래지만 이것만 L부터다 (§8.5)
+            "GET /api/admin/storage",
+
             // 공개 (NewcomerAuthorizationTest)
             "POST /api/newcomers",
 
