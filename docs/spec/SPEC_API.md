@@ -931,6 +931,7 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 | `POST /admin/members/{id}/password/reset` | 401 | 403 | **403** | 200 |
 | `POST /newcomers` | 200 | 200 | 200 | 200 |
 | `GET /sermons` | 200 | 200 | 200 | 200 |
+| `GET /sermons/live` | 200 | 200 | 200 | 200 |
 | `GET /attendance/sessions` (§13) | 401 | 403 | 200 | 200 |
 | `POST /attendance/sessions` | 401 | 403 | 200 | 200 |
 | `GET /attendance/sessions/{id}` | 401 | 403 | 200 | 200 |
@@ -970,7 +971,7 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 | **M2** | `/auth/*` 전체 · `POST/PUT/DELETE /posts` · `/admin/members/*` |
 | **M3** | `/bulletins/*` · `/albums/*` · `/photos/*` · `/uploads:*` · `/admin/storage` |
 | **M4** | `/meetings/*` · `/attachments` · `/files/{id}` · `/admin/newcomers` · `/photos/{id}/report` |
-| **미배정** | `/attendance/*` (§13) — 로그인·권한 재설계 확정 후. `member_roster` 의존 |
+| **M2 이후** | `/attendance/*` (§13) — `member_roster`에 의존해 인증 재설계(M2) 뒤로 밀렸다. 구현 완료 |
 
 ---
 
