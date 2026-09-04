@@ -3,6 +3,7 @@ import { VENUE } from "@/content/location";
 import {
   VILLAGE_TIME,
   YOUTH_SERVICE_LINE,
+  YOUTH_SERVICE_LINE_PLAIN,
   YOUTH_SERVICE_TIME,
 } from "@/content/worship";
 import { ViewTransition } from "react";
@@ -17,7 +18,7 @@ import { LIGHT_WORDMARK } from "@/lib/viewTransition";
 export const metadata: Metadata = {
   title: "LIGHT — 김해교회 청년교회",
   description:
-    "청년예배 주일 14:00 드림센터 4층. 하나님 안에 살며, 이웃을 돕는 청년 공동체 LIGHT입니다.",
+    `청년예배 ${YOUTH_SERVICE_LINE_PLAIN}. 하나님 안에 살며, 이웃을 돕는 청년 공동체 LIGHT입니다.`,
 };
 
 const ACROSTIC = [

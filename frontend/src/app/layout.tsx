@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { YOUTH_SERVICE_LINE_PLAIN } from "@/content/worship";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { SiteFooter } from "@/components/layout/SiteFooter";
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     template: "%s · LIGHT",
   },
   description:
-    "김해교회 청년교회 LIGHT. 청년예배 주일 14:00 드림센터 4층. 20세~39세 또는 결혼 전 청년이면 누구나 환영합니다.",
+    `김해교회 청년교회 LIGHT. 청년예배 ${YOUTH_SERVICE_LINE_PLAIN}. 20세~39세 또는 결혼 전 청년이면 누구나 환영합니다.`,
   openGraph: {
     type: "website",
     siteName: "LIGHT — 김해교회 청년교회",

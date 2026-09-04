@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { YOUTH_SERVICE_LINE } from "@/content/worship";
+import { YOUTH_SERVICE_LINE, YOUTH_SERVICE_LINE_PLAIN } from "@/content/worship";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { CHURCH_PHONE, CHURCH_PHONE_TEL } from "@/content/contact";
@@ -7,7 +7,7 @@ import { CHURCH_PHONE, CHURCH_PHONE_TEL } from "@/content/contact";
 export const metadata: Metadata = {
   title: "문의",
   description:
-    "김해교회 청년교회 LIGHT 문의처. 청년예배 주일 14:00 드림센터 4층. 전화 055-333-6321.",
+    `김해교회 청년교회 LIGHT 문의처. 청년예배 ${YOUTH_SERVICE_LINE_PLAIN}. 전화 ${CHURCH_PHONE}.`,
 };
 
 /**
