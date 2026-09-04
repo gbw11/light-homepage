@@ -41,7 +41,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 계약을 바꾼다** — 그때까지는 지금 계약을 쓴다. 사실은 `types/api.ts`의
 `BulletinSummary.thumbUrl` 주석에 적었다(이름이 내용을 속이고 있어서).
 
-### FE 조치 (PR #169)
+### FE 조치 (PR #170)
 
 `/bulletin`에 `MemberGate` · mock 세 곳(`latest`·`list`·`get`)에 같은 가드 ·
 주보를 공개 메뉴에서 **자료 그룹으로 이동** · 홈 링크 조건부.
