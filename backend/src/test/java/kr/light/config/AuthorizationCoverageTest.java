@@ -92,6 +92,30 @@ class AuthorizationCoverageTest {
 
             "DELETE /api/admin/members/{id}",
 
+            // 주보 (BulletinAuthorizationTest)
+            //   ★ 읽기 셋은 비로그인에게 열려 있다 — 교회 밖에서도 보는 공개 자료다
+            "GET /api/bulletins/latest",
+            "GET /api/bulletins",
+            "GET /api/bulletins/{id}",
+            "POST /api/bulletins",
+            "DELETE /api/bulletins/{id}",
+
+            // 사진첩 (PhotoAlbumAuthorizationTest)
+            //   ★ 열람은 M이다. §6 본문은 아직 G로 적혀 있지만 §10 매트릭스가
+            //     401이고, 2026-08-31 "열람 M 복귀" 결정이 사진첩을 명시한다
+            "GET /api/albums",
+            "POST /api/albums",
+            "DELETE /api/albums/{id}",
+            "GET /api/albums/{id}/photos",
+            "GET /api/photos/{id}/download",
+            "DELETE /api/photos/{id}",
+            "POST /api/uploads:issue",
+            "POST /api/uploads:commit",
+
+            // 용량 현황 (StorageAdminAuthorizationTest)
+            //   ⚠️ 같은 /api/admin 아래지만 이것만 L부터다 (§8.5)
+            "GET /api/admin/storage",
+
             // 공개 (NewcomerAuthorizationTest)
             "POST /api/newcomers",
 

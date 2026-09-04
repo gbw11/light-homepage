@@ -34,3 +34,12 @@ app:
     # 그래도 값이 있어야 조회 경로가 열린다 (YoutubeProperties.isConfigured).
     api-key: test-youtube-api-key   # allowlist-secret
     channel-id: UCtesttesttesttesttest
+
+  # R2 — 실제로 부르지 않는다. isConfigured()가 false면 R2를 쓰는 테스트가
+  # 통째로 건너뛰어져, 막혀 있는지 열려 있는지 확인할 수 없게 된다.
+  # (카카오·유튜브에서 같은 함정을 이미 밟았다)
+  r2:
+    account-id: 00000000000000000000000000000000
+    bucket: test-bucket
+    access-key-id: test-access-key         # allowlist-secret
+    secret-access-key: test-secret-key     # allowlist-secret
