@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
+import { BuildingSketch } from "@/components/ui/BuildingSketch";
 import { ParkingMap, RouteMap } from "@/components/ui/RouteMap";
 import { ADDRESS, KAKAO_MAP_URL, NAVER_MAP_URL } from "@/content/location";
 import { PARKING_CAUTION, PARKING_LOTS, PARKING_SOURCE_URL } from "@/content/parking";
@@ -127,8 +128,23 @@ export default function LocationPage() {
         */}
         <p className="mt-6 text-base font-bold">{ADDRESS}</p>
 
-        <figure className="mt-6 flex aspect-video items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]">
-          드림센터 외관 사진 (❓ 확인 필요)
+        {/*
+          사진 자리에 그림이 들어왔다. 로드뷰 캡처는 라이선스·번호판 때문에
+          쓸 수 없어서 그걸 보고 파사드를 그렸다 (`BuildingSketch` 주석).
+          실물 사진을 찍어 오면 이 그림을 치운다.
+        */}
+        <figure className="mt-8 w-full max-w-sm">
+          <div className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-3">
+            <BuildingSketch className="h-full w-full" />
+          </div>
+          <figcaption className="mt-3">
+            <p className="font-bold">도착 — 이 건물입니다</p>
+            <p className="mt-1 text-sm text-[var(--color-gray-400)]">
+              모퉁이에 서 있는 노출 콘크리트 4층 건물이고, 옥상 왼쪽에 계단탑이
+              솟아 있어 멀리서도 구분됩니다. 1층 가운데 입구로 들어와 4층으로
+              올라오세요. <strong className="text-[var(--color-ink)]">사진이 아니라 그림</strong>입니다.
+            </p>
+          </figcaption>
         </figure>
       </Section>
 
