@@ -156,6 +156,19 @@ app:
     # ⚠️ 개발용. 켜면 재설정 토큰 평문이 로그에 찍힌다 — 남의 비밀번호를 바꿀 수
     #    있는 값이다. prod 프로필에서는 켜져 있어도 무시한다.
     expose-reset-token: false
+  youtube:
+    # 설교 영상 목록·라이브 판정 (SPEC_API.md §9.2 · §9.3).
+    # ⚠️ API 키를 클라이언트에 실을 수 없어 BE가 프록시한다 (NFR-SEC-22).
+    #    키는 application-local.yml(gitignore) 또는 운영 환경변수로 준다.
+    # ⚠️ 하루 쿼터 10,000 units. 캐시가 없으면 소진되고, 소진되면 그날
+    #    설교 화면이 통째로 빈다 — 캐시는 성능이 아니라 기능 보호 장치다
+    #    (SermonService 주석에 계산이 있다).
+    api-key: ${YOUTUBE_API_KEY:}
+    # 청년교회 채널 (https://www.youtube.com/@light4402). 공개 정보다.
+    channel-id: ${YOUTUBE_CHANNEL_ID:UCiG_caE3_ZPu2y04ei_mC7Q}
+    # 설교만 담은 재생목록이 있으면 그 id. 비면 제목이 날짜로 시작하는 것만
+    # 골라낸다 (SermonTitles) — PM 확인 대기 중인 항목이다.
+    playlist-id: ${YOUTUBE_PLAYLIST_ID:}
   roster:
     import:
       # 교회 명단 CSV 임포트 (local 프로필 전용).

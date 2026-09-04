@@ -93,7 +93,19 @@ class AuthorizationCoverageTest {
             "DELETE /api/admin/members/{id}",
 
             // 공개 (NewcomerAuthorizationTest)
-            "POST /api/newcomers"
+            "POST /api/newcomers",
+
+            // 설교 — 열린 경로 (SermonAuthorizationTest)
+            "GET /api/sermons",
+            "GET /api/sermons/live",
+
+            // 출석부 — 전 경로 L 이상 (AttendanceAuthorizationTest)
+            //   ⚠️ "누가 교회에 안 나왔는지"의 기록이라 예산안과 같은 급이다 (§13.0)
+            "GET /api/attendance/sessions",
+            "POST /api/attendance/sessions",
+            "GET /api/attendance/sessions/{id}",
+            "PUT /api/attendance/sessions/{id}/entries",
+            "DELETE /api/attendance/sessions/{id}"
     );
 
     /**
