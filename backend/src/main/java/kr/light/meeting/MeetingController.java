@@ -6,13 +6,17 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.light.auth.AuthPrincipal;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import kr.light.common.ApiException;
+import kr.light.common.ClientAddress;
 import kr.light.common.ApiResponse;
 import kr.light.common.PageResponse;
 import kr.light.member.Member;
 import kr.light.member.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +59,7 @@ public class MeetingController {
 
     private final MeetingQueryService meetingQueryService;
     private final MeetingUploadService meetingUploadService;
+    private final MeetingPageService meetingPageService;
     private final MemberRepository memberRepository;
 
     @Operation(summary = "월례회 자료 목록",
@@ -124,6 +129,88 @@ public class MeetingController {
             @AuthenticationPrincipal AuthPrincipal principal
     ) {
         return ApiResponse.of(meetingQueryService.get(id, principal.role()));
+    }
+
+    @Operation(summary = "월례회 페이지 이미지 ★",
+            description = """
+                    **응답이 JSON이 아니라 이미지 바이너리**(`image/jpeg`)입니다.
+
+                    ★ **워터마크가 픽셀에 태워져 나갑니다** — `{이름} {연락처 뒷4자리}`
+                    + 열람시각 + 문서ID. CSS 오버레이가 아니라 이미지 자체라
+                    **캡처한 그림에도 그대로 남습니다.**
+
+                    ⚠️ **presigned URL을 발급하지 않습니다.** 발급하면 열람 기간이
+                    끝난 뒤에도 URL이 만료 전까지 살아 있고 공유 가능해집니다.
+                    서버가 직접 읽어 합성해서 보냅니다.
+
+                    ⚠️ **화면 캡처는 막을 수 없습니다** (`ARCHITECTURE §7.7`).
+                    워터마크는 막는 장치가 아니라, 막을 수 없어서 넣은 **추적
+                    장치**입니다. 화면 문구가 이보다 강하게 약속하면 사용자에게
+                    거짓말이 됩니다.
+
+                    기간이 지났으면 **403**입니다 (`L`↑는 통과). 열람은
+                    `meeting_doc_views`에 기록됩니다 (§7.7).
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "이미지 바이너리"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403", description = "열람 기간이 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404", ref = "#/components/responses/NOT_FOUND")
+    })
+    @GetMapping(value = "/{id}/pages/{pageNo}", produces = MediaType.IMAGE_JPEG_VALUE)
+    public ResponseEntity<byte[]> page(
+            @PathVariable Long id,
+            @PathVariable int pageNo,
+            @AuthenticationPrincipal AuthPrincipal principal,
+            HttpServletRequest request
+    ) {
+        Member viewer = actor(principal);
+        byte[] image = meetingPageService.render(id, pageNo, viewer);
+
+        // ⚠️ 응답을 만든 **뒤에** 기록한다. 기록이 실패해도 자료는 보여야 한다
+        meetingPageService.recordView(id, pageNo, viewer,
+                ClientAddress.of(request), request.getHeader("User-Agent"));
+
+        return ResponseEntity.ok()
+                // ⚠️ 캐시를 금지한다. 워터마크에 열람시각이 들어 있어 캐시되면
+                //    다른 사람이 남의 워터마크가 박힌 페이지를 볼 수 있다
+                .cacheControl(CacheControl.noStore().mustRevalidate())
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
+                .contentType(MediaType.IMAGE_JPEG)
+                .body(image);
+    }
+
+    @Operation(summary = "열람 기록",
+            description = """
+                    ⚠️ **유출 시 워터마크와 대조하는 근거입니다** (§7.7). 그래서
+                    이름이 그대로 나갑니다 — 가리면 대조가 안 됩니다.
+
+                    한 사람이 페이지마다 행을 남기므로 **사람 단위로 접어서**
+                    보여줍니다. `maxPageNo`는 그 사람이 가장 멀리 본 페이지입니다.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403", ref = "#/components/responses/FORBIDDEN"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404", ref = "#/components/responses/NOT_FOUND")
+    })
+    @PreAuthorize("hasRole('LEADER')")
+    @GetMapping("/{id}/views")
+    public ApiResponse<MeetingViewsResponse> views(
+            @PathVariable Long id,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size
+    ) {
+        return ApiResponse.of(meetingQueryService.views(id,
+                MeetingQueryService.normalizePage(page),
+                MeetingQueryService.normalizeSize(size)));
     }
 
     // ── 관리 (임원) ──────────────────────────────────────────────────

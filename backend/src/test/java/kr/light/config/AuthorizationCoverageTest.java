@@ -130,6 +130,9 @@ class AuthorizationCoverageTest {
             "GET /api/meetings",
             "GET /api/meetings/{id}",
             //   관리 — 임원 (MeetingUploadApiTest)
+            //   페이지 스트리밍 · 열람 기록 (MeetingPageStreamTest)
+            "GET /api/meetings/{id}/pages/{pageNo}",
+            "GET /api/meetings/{id}/views",
             "POST /api/meetings",
             "PATCH /api/meetings/{id}/window",
             "DELETE /api/meetings/{id}",

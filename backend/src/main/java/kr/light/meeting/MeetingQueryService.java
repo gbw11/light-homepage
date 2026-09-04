@@ -35,6 +35,7 @@ public class MeetingQueryService {
     private static final int MAX_SIZE = 100;
 
     private final MeetingDocRepository meetingDocRepository;
+    private final MeetingDocViewRepository viewRepository;
 
     // ── §7.1 목록 ────────────────────────────────────────────────────
 
@@ -75,6 +76,34 @@ public class MeetingQueryService {
                 remainingSeconds(doc, now),
                 canView,
                 canView ? null : reasonOf(status));
+    }
+
+    // ── §7.7 열람 기록 ───────────────────────────────────────────────
+
+    /**
+     * 누가 어디까지 봤는지 (§7.7).
+     *
+     * <p>⚠️ <b>유출 시 워터마크와 대조하는 근거</b>다. 이름이 그대로 나가는
+     * 것이 목적이고, 그래서 이 경로가 임원(L) 전용이다.
+     */
+    @Transactional(readOnly = true)
+    public MeetingViewsResponse views(Long docId, int page, int size) {
+        find(docId);   // 없는 자료면 404
+
+        var rows = viewRepository.summarizeByDoc(docId, PageRequest.of(page, size));
+
+        return new MeetingViewsResponse(
+                viewRepository.countViewers(docId),
+                rows.getContent().stream()
+                        .map(row -> new MeetingViewerResponse(
+                                (String) row[0],
+                                (String) row[1],
+                                (Instant) row[2],
+                                ((Number) row[3]).intValue()))
+                        .toList(),
+                rows.getNumber(),
+                rows.getSize(),
+                rows.hasNext());
     }
 
     // ── 관문 ─────────────────────────────────────────────────────────

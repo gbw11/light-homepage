@@ -210,6 +210,35 @@ public class R2Client {
     }
 
     /**
+     * 객체를 <b>서버가 직접 읽는다</b> — <b>Class B 1회</b>.
+     *
+     * <p>월례회(§7)만 이 경로를 쓴다. 그 리소스는 <b>presigned URL을 발급하지
+     * 않는다</b> — 발급하면 열람 기간이 끝난 뒤에도 URL이 만료 전까지 살아 있고
+     * 공유된다. 서버가 읽어 워터마크를 합성한 뒤 스트리밍한다.
+     *
+     * <p>⚠️ 그래서 이 메서드는 <b>파일을 힙에 올린다.</b> 요청당 이미지 하나가
+     * 올라오므로 동시 열람자 수만큼 곱해진다. 512MB에서 페이지 하나(약 550KB
+     * JPEG → 압축 해제 시 수 MB)를 다루는 것을 전제로 쓴다.
+     */
+    public byte[] read(String key) {
+        requireConfigured();
+        try {
+            byte[] bytes = s3.getObjectAsBytes(GetObjectRequest.builder()
+                    .bucket(properties.bucket())
+                    .key(key)
+                    .build()).asByteArray();
+            recorder.record(R2OperationClass.B);
+            return bytes;
+        } catch (NoSuchKeyException e) {
+            recorder.record(R2OperationClass.B);
+            throw ApiException.notFound();
+        } catch (RuntimeException e) {
+            log.error("R2 읽기 실패: key={} ({})", key, e.getClass().getSimpleName());
+            throw new IllegalStateException("파일을 읽지 못했습니다.", e);
+        }
+    }
+
+    /**
      * 객체들을 지운다 — <b>무료</b>다 (DeleteObject는 어느 등급도 아니다).
      *
      * <p>⚠️ 지우지 않고 남기면 용량이 조용히 새고, 10GB를 넘는 순간 과금이

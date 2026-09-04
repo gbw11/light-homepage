@@ -18,13 +18,21 @@ public interface MeetingDocViewRepository extends JpaRepository<MeetingDocView, 
      *
      * <p>{@code join fetch}가 아니라 필요한 값만 뽑는다 — 응답에 이름과 마을만
      * 나가므로 회원 엔티티 전체를 끌어올 이유가 없다.
+     *
+     * <p>★ <b>{@code rosterEntry}는 반드시 {@code left join}이다.</b>
+     * {@code m.rosterEntry.village}처럼 점으로 타고 들어가면 하이버네이트가
+     * <b>inner join</b>을 만들어, 명단이 연결되지 않은 회원이 결과에서
+     * <b>사라진다.</b> 명단은 {@code ON DELETE SET NULL}이라 실제로 null이 될 수
+     * 있고, 하필 이 목록은 <b>유출 추적의 근거</b>다 — 사람이 조용히 빠지는 것이
+     * 가장 나쁜 실패다. (테스트가 이걸 잡았다.)
      */
     @Query("""
-            select v.member.name, v.member.rosterEntry.village,
-                   max(v.viewedAt), max(v.pageNo)
+            select m.name, r.village, max(v.viewedAt), max(v.pageNo)
             from MeetingDocView v
+              join v.member m
+              left join m.rosterEntry r
             where v.doc.id = :docId
-            group by v.member.id, v.member.name, v.member.rosterEntry.village
+            group by m.id, m.name, r.village
             order by max(v.viewedAt) desc
             """)
     Page<Object[]> summarizeByDoc(@Param("docId") Long docId, Pageable pageable);
