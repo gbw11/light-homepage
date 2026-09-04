@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { Accordion } from "@/components/ui/Accordion";
+import { BuildingSketch } from "@/components/ui/BuildingSketch";
+import { RouteMap } from "@/components/ui/RouteMap";
 import { KAKAO_MAP_URL } from "@/content/location";
 
 export const metadata: Metadata = {
@@ -60,12 +62,20 @@ export default function WelcomePage() {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]">
-            본당 ↔ 드림센터 약도
+          {/*
+            앞 두 칸은 지도·로드뷰를 보고 직접 그린 그림이다 — 둘 다 화면
+            자체를 가져다 올릴 수 없어서(라이선스 · 로드뷰에 찍힌 차량 번호판)
+            그렸다.
+
+            **입구 사진 한 칸은 여전히 회색 상자다.** 건물 속은 밖에서 보이지
+            않아 그려 맞힐 수가 없고, 인터넷 사진으로 대체하지 않기로 했다
+            (DECISIONS 2026-08-21). 교회에서 찍어오면 넣는다.
+          */}
+          <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-2">
+            <RouteMap className="h-full w-full" />
           </figure>
-          <figure className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]">
-            <span>드림센터 외관 사진</span>
-            <span>&quot;이 건물입니다&quot;</span>
+          <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-2">
+            <BuildingSketch className="h-full w-full" />
           </figure>
           <figure className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]">
             <span>입구 사진</span>
@@ -73,8 +83,14 @@ export default function WelcomePage() {
           </figure>
         </div>
 
+        {/*
+          "도보 ❓"였다. 2026-09-04 카카오맵 도보 길찾기 실측 — 큰길우선·최단거리·
+          편안한길 세 경로가 모두 134m / 2분으로 같다. 갈림길이 사실상 없다는 뜻이라
+          약도가 한 번의 우회전으로 끝난다.
+        */}
         <p className="mt-6 text-base text-[var(--color-gray-400)]">
-          본당 앞에서 도보 ❓ (확인 필요)
+          본당 앞에서 <strong className="text-[var(--color-ink)]">도보 2분</strong> (134m)
+          — 남쪽으로 내려가 초등학교 끝에서 오른쪽입니다.
         </p>
         {/*
           예전에는 "링크 확인 필요"로 영구 비활성이었지만, `/location`이 이미
@@ -116,8 +132,24 @@ export default function WelcomePage() {
       </Section>
 
       <Section title="주차 · 대중교통">
-        <p className="text-sm text-[var(--color-gray-400)]">
-          ❓ 주차장 위치, 버스/도보 안내 확인 필요
+        {/*
+          주차 전문은 `/location`에 있다. 여기서 되풀이하면 교회 규칙이 바뀔 때
+          고칠 곳이 둘이 되고, 이 화면은 "처음 오는 사람이 겁먹지 않게"가
+          목적이라 규칙을 길게 늘어놓을 자리가 아니다. 대신 **주일에만 열리는
+          곳이 둘**이라는 사실만 미리 흘린다 — 그게 헛걸음을 막는다.
+        */}
+        <p className="text-sm">
+          김해교회 주차장 세 곳을 함께 씁니다. 세 곳 중 <strong>두 곳은 주일에만</strong>{" "}
+          주차할 수 있습니다.
+        </p>
+        <Link
+          href="/location#parking"
+          className="mt-3 inline-flex min-h-11 items-center font-bold underline"
+        >
+          ▸ 주차장 위치와 약도 보기
+        </Link>
+        <p className="mt-4 text-sm text-[var(--color-gray-400)]">
+          ❓ 버스 안내는 아직 확인 중입니다.
         </p>
       </Section>
 
