@@ -346,7 +346,10 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `GET /api/albums/{id}/photos` | **401** | 200 | 200 | 200 |
 | `GET /api/photos/{id}/download` | **401** | 200 | 200 | 200 |
 | `POST /api/photos/{id}/report` | **401** | 200 | 200 | 200 |
+| `POST /api/albums` | 401 | 403 | 201 | 201 |
+| `DELETE /api/albums/{id}` | 401 | 403 | 204 | 204 |
 | `POST /api/uploads:issue` | 401 | 403 | 200 | 200 |
+| `POST /api/uploads:commit` | 401 | 403 | 200 | 200 |
 | `DELETE /api/photos/{id}` | 401 | 403 | 200 | 200 |
 | `GET /api/meetings` | **401** | 200 | 200 | 200 |
 | `GET /api/meetings/{id}/pages/{n}` (기간 내) | **401** | 200 | 200 | 200 |

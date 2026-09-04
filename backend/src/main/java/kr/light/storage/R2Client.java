@@ -8,11 +8,14 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -113,6 +116,61 @@ public class R2Client {
                         .build())
                 .url()
                 .toString();
+    }
+
+    /**
+     * 업로드용 임시 URL (§6.5) — <b>연산이 아니다</b>.
+     *
+     * <p>브라우저가 이 URL로 R2에 직접 올린다. 파일이 우리 서버를 통과하지
+     * 않는다 — 512MB 인스턴스에서 수백 장의 스트림을 받으면 메모리가 터진다
+     * (ARCHITECTURE.md §7.3).
+     *
+     * <p>⚠️ 수명이 {@link #URL_TTL}(10분)이 아니라 15분이다. 200장을 배치로
+     * 나눠 올리는 동안 앞쪽 URL이 만료되면 재발급 왕복이 늘어난다.
+     *
+     * <p>★ 여기서 Class A를 세지 않는다. 실제 {@code PutObject}는 브라우저가
+     * 보내므로 우리는 그 시점을 모른다 — {@link #objectSize}가 불리는
+     * 커밋(§6.6) 시점에 <b>업로드가 실제로 일어났음을 확인하고</b> 센다.
+     */
+    public String presignedPutUrl(String key, String contentType, Duration ttl) {
+        requireConfigured();
+        return presigner.presignPutObject(PutObjectPresignRequest.builder()
+                        .signatureDuration(ttl)
+                        .putObjectRequest(PutObjectRequest.builder()
+                                .bucket(properties.bucket())
+                                .key(key)
+                                .contentType(contentType)
+                                .build())
+                        .build())
+                .url()
+                .toString();
+    }
+
+    /**
+     * 객체가 실제로 올라왔는지 확인하고 크기를 읽는다 (§6.6) — <b>Class B 1회</b>.
+     *
+     * <p>⚠️ <b>클라이언트가 말한 크기를 믿지 않는다.</b> 커밋 요청은 브라우저가
+     * 보내는데, 업로드가 실패했거나 아예 하지 않았어도 커밋만 부를 수 있다.
+     * 그러면 R2에 없는 사진이 목록에 뜨고 용량 집계도 틀어진다.
+     *
+     * @return 객체가 없으면 비어 있다
+     */
+    public java.util.Optional<Long> objectSize(String key) {
+        requireConfigured();
+        try {
+            long size = s3.headObject(HeadObjectRequest.builder()
+                    .bucket(properties.bucket())
+                    .key(key)
+                    .build()).contentLength();
+            recorder.record(R2OperationClass.B);
+            return java.util.Optional.of(size);
+        } catch (NoSuchKeyException e) {
+            recorder.record(R2OperationClass.B);
+            return java.util.Optional.empty();
+        } catch (RuntimeException e) {
+            log.error("R2 조회 실패: key={} ({})", key, e.getClass().getSimpleName());
+            return java.util.Optional.empty();
+        }
     }
 
     /**
