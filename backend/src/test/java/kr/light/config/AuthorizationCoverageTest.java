@@ -120,6 +120,10 @@ class AuthorizationCoverageTest {
             //   ⚠️ 같은 /api/admin 아래지만 이것만 L부터다 (§8.5)
             "GET /api/admin/storage",
 
+            // 새가족 신청 목록 (NewcomerAdminApiTest)
+            //   ⚠️ 이름·전화번호가 그대로 나가는 경로다 (§8.6)
+            "GET /api/admin/newcomers",
+
             // 공개 (NewcomerAuthorizationTest)
             "POST /api/newcomers",
 
