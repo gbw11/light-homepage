@@ -97,6 +97,8 @@ class AuthorizationCoverageTest {
             "GET /api/bulletins/latest",
             "GET /api/bulletins",
             "GET /api/bulletins/{id}",
+            //   장별 다운로드 — [CONTRACT] FE 제안 경로 (BulletinAuthorizationTest)
+            "GET /api/bulletins/{id}/pages/{pageNo}/download",
             "POST /api/bulletins",
             "DELETE /api/bulletins/{id}",
 
@@ -111,6 +113,8 @@ class AuthorizationCoverageTest {
             "DELETE /api/photos/{id}",
             "POST /api/uploads:issue",
             "POST /api/uploads:commit",
+            //   신고는 M — 2026-09-04에 G(익명 허용)에서 올렸다 (PhotoReportApiTest)
+            "POST /api/photos/{id}/report",
 
             // 용량 현황 (StorageAdminAuthorizationTest)
             //   ⚠️ 같은 /api/admin 아래지만 이것만 L부터다 (§8.5)
