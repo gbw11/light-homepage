@@ -192,6 +192,11 @@ app:
     bucket: ${R2_BUCKET:}
     access-key-id: ${R2_ACCESS_KEY_ID:}
     secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+  newcomer:
+    # 새가족 신청 보유기간 정리 주기 (SPEC_API.md §8.6 — 1년 후 삭제).
+    # ⚠️ 이름·전화번호가 든 개인정보다. 지우는 것은 기능이 아니라 약속이다 —
+    #    신청 폼에서 동의를 받을 때 보유기간을 고지했다.
+    retention-cleanup-interval: ${NEWCOMER_RETENTION_CLEANUP_INTERVAL:P1D}
   photo:
     # 미커밋(PENDING) 사진 정리 배치 주기 (SPEC_API.md §6.5).
     # ⚠️ 이 배치가 멈추면 R2에 고아 객체가 쌓이는데, DB 합계로 세는 용량
