@@ -1,4 +1,5 @@
 import { CHURCH_PHONE, CHURCH_PHONE_TEL } from "@/content/contact";
+import { YOUTH_SERVICE_LINE } from "@/content/worship";
 import { CHURCH_SITE_URL, INSTAGRAM_URL, YOUTUBE_CHANNEL_URL } from "@/content/links";
 
 /**
@@ -33,7 +34,7 @@ export function Footer() {
           전화는 링크로 둔다: 텍스트로만 두면 모바일에서 눌러도 걸리지 않는다.
         */}
         <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
-          <span>주일 14:00 · 드림센터 4층</span>
+          <span>{YOUTH_SERVICE_LINE}</span>
           <span>경남 김해시 가락로 117</span>
           {/*
             ⚠️ 아래 링크 줄과 같은 이유로 44px를 맞춘다 (NFR-A11Y-05).

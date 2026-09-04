@@ -1,4 +1,10 @@
 import type { Metadata } from "next";
+import { VENUE } from "@/content/location";
+import {
+  VILLAGE_TIME,
+  YOUTH_SERVICE_LINE,
+  YOUTH_SERVICE_TIME,
+} from "@/content/worship";
 import { ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -75,7 +81,7 @@ export default function Home() {
             <h1 className="sr-only">LIGHT — 김해교회 청년교회</h1>
 
             <p className="mt-6 text-base font-bold text-white/90 md:text-lg">
-              주일 14:00 · 드림센터 4층
+              {YOUTH_SERVICE_LINE}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -147,11 +153,17 @@ export default function Home() {
       <Section title="주일에는 이렇게 모입니다">
         <ul className="divide-y divide-[var(--color-navy-100)] rounded-[var(--radius-card)] border border-[var(--color-navy-100)]">
           <li className="p-4">
-            <p className="font-bold">14:00 · 청년예배</p>
-            <p className="text-sm text-[var(--color-gray-400)]">드림센터 4층</p>
+            {/*
+              `YOUTH_GATHERINGS` 배열을 재사용하지 않는다 — 여기는 시각이
+              앞에 오고(표는 이름이 앞이다) 장소 칸도 다르다(`1~9마을 +
+              새가족마을`). 배열을 억지로 끼우면 데이터가 홈의 편집 문구를
+              지배한다. 갈라지면 안 되는 것은 시각이므로 원자만 가져온다.
+            */}
+            <p className="font-bold">{YOUTH_SERVICE_TIME} · 청년예배</p>
+            <p className="text-sm text-[var(--color-gray-400)]">{VENUE}</p>
           </li>
           <li className="p-4">
-            <p className="font-bold">15:30 · 마을모임 (30분)</p>
+            <p className="font-bold">{VILLAGE_TIME} · 마을모임 (30분)</p>
             <p className="text-sm text-[var(--color-gray-400)]">
               1~9마을 + 새가족마을
             </p>
