@@ -24,7 +24,8 @@ export function Footer() {
   return (
     <footer className="mt-auto bg-[var(--color-navy-900)] px-5 py-10 text-center text-sm text-white/80">
       <div className="mx-auto w-full max-w-[var(--container-max)]">
-        <p className="text-lg font-bold text-white">LIGHT</p>
+        {/* 헤더 워드마크와 같은 토큰 — 그쪽 주석 참고 (PM 2026-09-02) */}
+        <p className="text-lg font-bold text-[var(--color-accent-on-dark)]">LIGHT</p>
         <p className="mt-1 text-white/70">Live In God, Help The other</p>
 
         {/*
@@ -34,13 +35,27 @@ export function Footer() {
         <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
           <span>주일 14:00 · 드림센터 4층</span>
           <span>경남 김해시 가락로 117</span>
-          <a href={`tel:${CHURCH_PHONE_TEL}`} className="hover:underline">
+          {/*
+            ⚠️ 아래 링크 줄과 같은 이유로 44px를 맞춘다 (NFR-A11Y-05).
+            이 줄은 텍스트(`span`) 사이에 링크가 하나 섞인 모양이라 높이를
+            글자에 맡겨 20px였다 — **전화를 거는 링크가 모바일에서 가장 누르기
+            어려운 타겟이었다.**
+          */}
+          <a
+            href={`tel:${CHURCH_PHONE_TEL}`}
+            className="inline-flex min-h-11 items-center hover:underline"
+          >
             Tel: {CHURCH_PHONE}
           </a>
         </div>
 
         {/*
           링크 한 줄 — 본문 속 링크가 아니라 개별 타겟이므로 44px를 맞춘다
+
+          ⚠️ 앞의 기호는 `▸`(단순 화살표)에서 **각 목적지를 나타내는 이모지**로
+          바꿨다 (PM 요청 2026-09-02) — 세 링크가 나란히 있어 화살표만으로는
+          어디로 가는지 글자를 읽어야 알 수 있었다. `aria-hidden`으로 감싸
+          스크린리더에는 이모지가 읽히지 않고 링크 글자만 남는다.
           (NFR-A11Y-05). 주소를 모르는 항목은 **아예 그리지 않는다**
           (`content/links.ts` 주석) — 없는 계정으로 보내면 누른 사람이 빈손으로
           돌아온다. 김해교회 홈페이지는 2026-09-01에 주소가 확정되어 살아났다.
@@ -53,18 +68,18 @@ export function Footer() {
             href={YOUTUBE_CHANNEL_URL}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-11 items-center hover:underline"
+            className="inline-flex min-h-11 items-center gap-1.5 hover:underline"
           >
-            ▸ YouTube
+            <span aria-hidden>▶️</span> YouTube
           </a>
           {INSTAGRAM_URL && (
             <a
               href={INSTAGRAM_URL}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-11 items-center hover:underline"
+              className="inline-flex min-h-11 items-center gap-1.5 hover:underline"
             >
-              ▸ Instagram
+              <span aria-hidden>📷</span> Instagram
             </a>
           )}
           {CHURCH_SITE_URL && (
@@ -72,9 +87,9 @@ export function Footer() {
               href={CHURCH_SITE_URL}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-11 items-center hover:underline"
+              className="inline-flex min-h-11 items-center gap-1.5 hover:underline"
             >
-              ▸ 김해교회 홈페이지
+              <span aria-hidden>⛪</span> 김해교회 홈페이지
             </a>
           )}
         </nav>
