@@ -119,6 +119,42 @@ public class R2Client {
     }
 
     /**
+     * <b>내려받기</b>용 임시 URL — 브라우저가 탭에서 열지 않고 저장하게 한다.
+     *
+     * <p>열람용 URL({@link #presignedGetUrl})과 대상은 같은 객체지만,
+     * {@code Content-Disposition: attachment}를 R2가 응답에 붙이도록
+     * 지시한다는 점이 다르다. 그 지시가 없으면 브라우저는 이미지를 그냥
+     * 화면에 띄운다 — "다운로드" 버튼이 동작하지 않는 것처럼 보인다.
+     *
+     * <p>파일명도 여기서 정한다. R2 키는 {@code bulletins/12/1.webp}처럼
+     * 우리 사정이라, 그대로 저장되면 사용자가 나중에 무슨 파일인지 알 수 없다.
+     *
+     * @param filename 사용자에게 저장될 이름
+     */
+    public String presignedDownloadUrl(String key, String filename) {
+        requireConfigured();
+        return presigner.presignGetObject(GetObjectPresignRequest.builder()
+                        .signatureDuration(URL_TTL)
+                        .getObjectRequest(GetObjectRequest.builder()
+                                .bucket(properties.bucket())
+                                .key(key)
+                                // ⚠️ 파일명을 그대로 헤더에 넣지 않는다. 한글·공백이
+                                //    섞이면 헤더가 깨지고, 따옴표·개행이 들어오면
+                                //    헤더를 조작할 수 있다 (RFC 5987 형식으로 인코딩).
+                                .responseContentDisposition(
+                                        "attachment; filename*=UTF-8''" + encode(filename))
+                                .build())
+                        .build())
+                .url()
+                .toString();
+    }
+
+    private static String encode(String filename) {
+        return java.net.URLEncoder.encode(filename, java.nio.charset.StandardCharsets.UTF_8)
+                .replace("+", "%20");
+    }
+
+    /**
      * 업로드용 임시 URL (§6.5) — <b>연산이 아니다</b>.
      *
      * <p>브라우저가 이 URL로 R2에 직접 올린다. 파일이 우리 서버를 통과하지

@@ -432,6 +432,13 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 ### 5.5 `DELETE /api/bulletins/{id}`
 권한 `L` · `204` · R2 객체까지 삭제
 
+### 5.6 `GET /api/bulletins/{id}/pages/{pageNo}/download` — 장별 내려받기
+권한 `M` · **302** → presigned URL
+
+⚠️ **원래 이 문서에 없던 경로입니다.** `FR-BUL-04`가 장별 다운로드를 요구하는데 §5에 경로가 없어, FE가 `types.ts`에 `[CONTRACT]`로 제안한 것을 그대로 채택했습니다 (2026-09-04).
+
+★ **`§5.1`의 `pages[].url`과 다른 값입니다.** 그쪽은 열람용이라 `Content-Disposition`이 없어 브라우저가 탭에서 열어버립니다. 이 경로는 R2에 `attachment`를 지시해 저장되게 하고, 파일명도 `2026-08-24-1쪽.webp` 형태로 지정합니다.
+
 ---
 
 ## 6. 사진첩 (`/api/albums`, `/api/photos`, `/api/uploads`)
@@ -920,6 +927,7 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 | `GET /bulletins` | **401** | 200 | 200 | 200 |
 | `GET /bulletins/{id}` | **401** | 200 | 200 | 200 |
 | `POST /bulletins` | 401 | 403 | 200 | 200 |
+| `GET /bulletins/{id}/pages/{n}/download` (§5.6) | **401** | 302 | 302 | 302 |
 | `DELETE /bulletins/{id}` | 401 | 403 | 204 | 204 |
 | `GET /albums` | **401** | 200 | 200 | 200 |
 | `GET /albums/{id}/photos` | **401** | 200 | 200 | 200 |
