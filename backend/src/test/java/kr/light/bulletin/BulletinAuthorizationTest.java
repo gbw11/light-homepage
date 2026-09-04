@@ -33,10 +33,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 주보 인가 (SPEC_API.md §10 · §5).
  *
- * <p>★ <b>읽기는 비로그인에게 열려 있다.</b> 주보는 교회 밖에서도 보는 공개
- * 자료다 — 게시물(§3)처럼 분류별로 갈리지 않는다. 그래서 클래스 단위로 인가를
- * 걸지 않고 <b>쓰기 두 개에만</b> 걸었는데, 그 방식은 새 메서드에서 빠뜨리기
- * 쉬운 모양이라 여기서 표로 못 박는다.
+ * <p><b>★ 열람은 회원(M)부터다 — 2026-09-04에 G에서 올렸다.</b> 그전까지는
+ * 비로그인도 볼 수 있었고, 문서 세 곳이 그렇게 적고 있었다. 되돌리는 변경이
+ * 조용히 일어나지 않도록 이 표가 기준을 들고 있는다.
+ *
+ * <p>쓰기는 그대로 임원(L)이다.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -53,36 +54,64 @@ class BulletinAuthorizationTest {
         memberRepository.deleteAllInBatch();
     }
 
-    /** 읽기 — 전부 열려 있다 */
+    /** 읽기 — 로그인해야 본다 (M 이상) */
     static Stream<Arguments> readRoles() {
         return Stream.of(
-                arguments((Role) null), arguments(Role.MEMBER),
-                arguments(Role.LEADER), arguments(Role.PASTOR));
+                // ★ 비로그인은 401이다. 예산안(§10 주의 2)처럼 403이 아니다 —
+                //   주보가 있다는 사실 자체는 비밀이 아니라 "로그인하면 볼 수
+                //   있습니다"로 안내해야 하고, FE는 401에서 로그인 화면을 띄운다.
+                arguments(null,        401, "UNAUTHORIZED"),
+                arguments(Role.MEMBER, 200, null),
+                arguments(Role.LEADER, 200, null),
+                arguments(Role.PASTOR, 200, null)
+        );
     }
 
-    @ParameterizedTest(name = "GET latest × {0} → 200")
+    @ParameterizedTest(name = "GET latest × {0} → {1}")
     @MethodSource("readRoles")
-    void 최신_조회는_누구나(Role role) throws Exception {
-        mockMvc.perform(withRole(get("/api/bulletins/latest"), role))
-                .andExpect(status().isOk());
+    void 최신_조회_인가(Role role, int expectedStatus, String expectedCode) throws Exception {
+        expect(get("/api/bulletins/latest"), role, expectedStatus, expectedCode);
     }
 
-    @ParameterizedTest(name = "GET list × {0} → 200")
+    @ParameterizedTest(name = "GET list × {0} → {1}")
     @MethodSource("readRoles")
-    void 목록은_누구나(Role role) throws Exception {
-        mockMvc.perform(withRole(get("/api/bulletins"), role))
-                .andExpect(status().isOk());
+    void 목록_인가(Role role, int expectedStatus, String expectedCode) throws Exception {
+        expect(get("/api/bulletins"), role, expectedStatus, expectedCode);
+    }
+
+    @ParameterizedTest(name = "GET detail × {0} → {1}")
+    @MethodSource("readRoles")
+    void 상세_인가(Role role, int expectedStatus, String expectedCode) throws Exception {
+        // 없는 주보라 통과하면 404다 — 인가가 그보다 먼저 판정된다
+        var result = mockMvc.perform(withRole(get("/api/bulletins/" + ANY_ID), role));
+        if (expectedCode == null) {
+            result.andExpect(status().isNotFound());
+        } else {
+            result.andExpect(status().is(expectedStatus))
+                    .andExpect(jsonPath("$.error.code").value(expectedCode));
+        }
     }
 
     @Test
-    @DisplayName("★ 주보가 없으면 data가 null이다 — 404가 아니다")
+    @DisplayName("★ 로그인했는데 주보가 없으면 data가 null이다 — 404가 아니다")
     void 주보가_없으면_null() throws Exception {
         // "아직 안 올라옴"은 오류가 아니라 정상 상태다. 404를 주면 화면이
         // 에러 처리로 빠져 "주보를 준비 중입니다"를 못 보여준다.
-        mockMvc.perform(get("/api/bulletins/latest"))
+        mockMvc.perform(get("/api/bulletins/latest").with(as(Role.MEMBER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").doesNotExist())
                 .andExpect(jsonPath("$.error").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("⚠️ 막힌 응답에 주보 내용이 새지 않는다")
+    void 막힌_응답이_비어_있다() throws Exception {
+        String body = mockMvc.perform(get("/api/bulletins/latest"))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse().getContentAsString();
+
+        org.assertj.core.api.Assertions.assertThat(body)
+                .doesNotContain("serviceDate").doesNotContain("pages");
     }
 
     /** 쓰기 — 임원부터 */
@@ -140,6 +169,16 @@ class BulletinAuthorizationTest {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(delete("/api/bulletins/" + ANY_ID))
                 .andExpect(status().isUnauthorized());
+    }
+
+    private void expect(MockHttpServletRequestBuilder builder, Role role,
+                        int expectedStatus, String expectedCode) throws Exception {
+        var result = mockMvc.perform(withRole(builder, role))
+                .andExpect(status().is(expectedStatus));
+        if (expectedCode != null) {
+            result.andExpect(jsonPath("$.error.code").value(expectedCode))
+                    .andExpect(jsonPath("$.data").doesNotExist());
+        }
     }
 
     private MockHttpServletRequestBuilder withRole(MockHttpServletRequestBuilder builder, Role role) {

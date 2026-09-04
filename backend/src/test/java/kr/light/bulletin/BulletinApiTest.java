@@ -96,7 +96,7 @@ class BulletinApiTest {
         void 순서가_페이지번호() throws Exception {
             String id = createBulletin("2026-08-24", page(1), page(2), page(3));
 
-            mockMvc.perform(get("/api/bulletins/" + id))
+            mockMvc.perform(get("/api/bulletins/" + id).with(as(leader)))
                     .andExpect(jsonPath("$.data.pages[0].pageNo").value(1))
                     .andExpect(jsonPath("$.data.pages[1].pageNo").value(2))
                     .andExpect(jsonPath("$.data.pages[2].pageNo").value(3));
@@ -180,7 +180,7 @@ class BulletinApiTest {
         @Test
         @DisplayName("★ 주보가 없으면 data가 null이다 — 404가 아니다")
         void 없으면_null() throws Exception {
-            mockMvc.perform(get("/api/bulletins/latest"))
+            mockMvc.perform(get("/api/bulletins/latest").with(as(leader)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data").doesNotExist());
         }
@@ -192,7 +192,7 @@ class BulletinApiTest {
             createBulletin("2026-08-24", page(1));
             createBulletin("2026-08-17", page(1));
 
-            mockMvc.perform(get("/api/bulletins/latest"))
+            mockMvc.perform(get("/api/bulletins/latest").with(as(leader)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.serviceDate").value("2026-08-24"));
         }
@@ -203,7 +203,7 @@ class BulletinApiTest {
             createBulletin("2026-08-10", page(1));
             createBulletin("2026-08-24", page(1), page(2));
 
-            mockMvc.perform(get("/api/bulletins"))
+            mockMvc.perform(get("/api/bulletins").with(as(leader)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.items[0].serviceDate").value("2026-08-24"))
                     .andExpect(jsonPath("$.data.items[0].pageCount").value(2))
@@ -215,7 +215,7 @@ class BulletinApiTest {
         void 키가_새지_않는다() throws Exception {
             String id = createBulletin("2026-08-24", page(1));
 
-            String body = mockMvc.perform(get("/api/bulletins/" + id))
+            String body = mockMvc.perform(get("/api/bulletins/" + id).with(as(leader)))
                     .andExpect(jsonPath("$.data.pages[0].url").value(PRESIGNED))
                     .andReturn().getResponse().getContentAsString();
 
@@ -226,14 +226,14 @@ class BulletinApiTest {
         @Test
         @DisplayName("없는 주보는 404")
         void 없는_주보() throws Exception {
-            mockMvc.perform(get("/api/bulletins/999999"))
+            mockMvc.perform(get("/api/bulletins/999999").with(as(leader)))
                     .andExpect(status().isNotFound());
         }
 
         @Test
         @DisplayName("주보가 없으면 목록은 빈 배열이다")
         void 빈_목록() throws Exception {
-            mockMvc.perform(get("/api/bulletins"))
+            mockMvc.perform(get("/api/bulletins").with(as(leader)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.items").isEmpty());
         }

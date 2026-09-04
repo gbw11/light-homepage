@@ -384,7 +384,7 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 ## 5. 주보 (`/api/bulletins`)
 
 ### 5.1 `GET /api/bulletins/latest`
-권한 `G`
+권한 `M` — ⚠️ **2026-09-04에 `G`에서 올렸습니다.** 비로그인은 `401`입니다.
 ```json
 {
   "data": {
@@ -401,7 +401,7 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 주보가 없으면 `{ "data": null }`.
 
 ### 5.2 `GET /api/bulletins?page=&size=`
-권한 `G`
+권한 `M`
 ```json
 {
   "data": {
@@ -413,7 +413,7 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 }
 ```
 
-### 5.3 `GET /api/bulletins/{id}` — 5.1과 동일 형태
+### 5.3 `GET /api/bulletins/{id}` — 5.1과 동일 형태 (권한 `M`)
 
 ### 5.4 `POST /api/bulletins`
 권한 `L` · `multipart/form-data`
@@ -910,9 +910,9 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 | `GET /files/{공개글첨부id}` | 200 | 200 | 200 | 200 |
 | `GET /files/{내부공지·회의록 첨부id}` | **401** | 200 | 200 | 200 |
 | `GET /files/{예산안첨부id}` | 404 | 404 | 200 | 200 |
-| `GET /bulletins/latest` | 200 | 200 | 200 | 200 |
-| `GET /bulletins` | 200 | 200 | 200 | 200 |
-| `GET /bulletins/{id}` | 200 | 200 | 200 | 200 |
+| `GET /bulletins/latest` | **401** | 200 | 200 | 200 |
+| `GET /bulletins` | **401** | 200 | 200 | 200 |
+| `GET /bulletins/{id}` | **401** | 200 | 200 | 200 |
 | `POST /bulletins` | 401 | 403 | 200 | 200 |
 | `DELETE /bulletins/{id}` | 401 | 403 | 204 | 204 |
 | `GET /albums` | **401** | 200 | 200 | 200 |

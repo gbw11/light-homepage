@@ -28,12 +28,18 @@ import java.util.Map;
 /**
  * 주보 (SPEC_API.md §5).
  *
- * <p>⚠️ <b>읽기는 비로그인에게 열려 있다</b> (§10). 주보는 교회 밖에서도 보는
- * 공개 자료다 — 그래서 클래스 단위로 인가를 걸지 않고, 쓰기 두 개에만 건다.
+ * <p><b>⚠️ 열람은 회원(M)부터다 — 2026-09-04에 G에서 올렸다.</b> 그전까지는
+ * 비로그인도 볼 수 있었다.
+ *
+ * <p>클래스 단위로 {@code hasRole('MEMBER')}를 걸어 <b>기본이 막힘</b>이 되게
+ * 한다. 메서드마다 달면 새 메서드에서 빠뜨릴 수 있는데, 여기서 빠뜨리면
+ * 주보가 인터넷에 열린다. 쓰기 두 개는 메서드 단위 {@code hasRole('LEADER')}가
+ * 덮어쓴다 — 스프링 시큐리티는 더 구체적인 쪽(메서드)을 쓴다.
  */
 @Tag(name = "주보", description = "주보 열람 · 업로드")
 @RestController
 @RequestMapping(value = "/api/bulletins", produces = MediaType.APPLICATION_JSON_VALUE)
+@PreAuthorize("hasRole('MEMBER')")
 @RequiredArgsConstructor
 public class BulletinController {
 
@@ -50,7 +56,9 @@ public class BulletinController {
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200", description = "조회 성공 (없으면 data: null)")
+                    responseCode = "200", description = "조회 성공 (없으면 data: null)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
     })
     @GetMapping("/latest")
     public ApiResponse<BulletinResponse> latest() {
@@ -82,6 +90,8 @@ public class BulletinController {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404", ref = "#/components/responses/NOT_FOUND")
     })
