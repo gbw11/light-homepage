@@ -97,7 +97,13 @@ public class SecurityConfig {
      */
     private static final String[] PUBLIC_GET_PATHS = {
             "/api/posts",
-            "/api/posts/**"
+            "/api/posts/**",
+            // ⚠️ 주보(§5)는 여기 없다 — 2026-09-04에 G에서 M으로 올렸다.
+            //    로그인해야 본다. 인가는 BulletinController의 클래스 단위
+            //    @PreAuthorize("hasRole('MEMBER')")가 건다.
+            // 설교 영상 (SPEC_API.md §9.2 · §9.3) — 권한 G, 누구나 본다
+            "/api/sermons",
+            "/api/sermons/live"
     };
 
     /**
@@ -132,10 +138,7 @@ public class SecurityConfig {
      */
     private static final String[] PUBLIC_KAKAO_PATHS = {
             "/api/auth/kakao/authorize",
-            "/api/auth/kakao/callback",
-            // 설교 영상 (SPEC_API.md §9.2 · §9.3) — 권한 G, 누구나 본다
-            "/api/sermons",
-            "/api/sermons/live"
+            "/api/auth/kakao/callback"
     };
 
     private final ObjectMapper objectMapper;
