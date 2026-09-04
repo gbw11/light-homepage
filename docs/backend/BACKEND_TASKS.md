@@ -354,6 +354,7 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `POST /api/uploads:commit` | 401 | 403 | 200 | 200 |
 | `DELETE /api/photos/{id}` | 401 | 403 | 200 | 200 |
 | `GET /api/meetings` | **401** | 200 | 200 | 200 |
+| `GET /api/meetings/{id}` | **401** | 200 | 200 | 200 |
 | `GET /api/meetings/{id}/pages/{n}` (기간 내) | **401** | 200 | 200 | 200 |
 | `GET /api/meetings/{id}/pages/{n}` (**기간 외**) | 401 | 403 | 200 | 200 |
 | `POST /api/meetings` | 401 | 403 | 200 | 200 |
