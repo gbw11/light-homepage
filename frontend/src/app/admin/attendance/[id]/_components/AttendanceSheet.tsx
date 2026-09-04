@@ -36,7 +36,13 @@ function formatDate(isoDate: string): string {
   return `${d.getMonth() + 1}/${d.getDate()} (${day})`;
 }
 
-function villageLabel(village: Village): string {
+/**
+ * ⚠️ `null`을 함께 다룬다 — 명단 CSV에 마을 열이 비어 있는 사람이 있다
+ * (`AttendanceEntry.village` 주석). `lib/village.ts`의 것과 다른 이유가
+ * 이것이고, 그쪽은 마을이 반드시 있는 회원 화면이 쓴다.
+ */
+function villageLabel(village: Village | null): string {
+  if (village === null) return "마을 미배정";
   return village === "newcomer" ? "새가족" : `${village}마을`;
 }
 
@@ -77,7 +83,7 @@ export function AttendanceSheet({ sessionId }: { sessionId: string }) {
 
   // 마을 단위로 묶는다 — 임원이 자기 마을부터 훑는 흐름 (§7 마을 정렬 전제)
   const groups = useMemo(() => {
-    const byVillage = new Map<Village, AttendanceEntry[]>();
+    const byVillage = new Map<Village | null, AttendanceEntry[]>();
     for (const entry of data?.entries ?? []) {
       const list = byVillage.get(entry.village) ?? [];
       list.push(entry);
@@ -144,7 +150,7 @@ export function AttendanceSheet({ sessionId }: { sessionId: string }) {
 
       <div className="mt-6 space-y-8 pb-28">
         {groups.map(([village, entries]) => (
-          <section key={village} aria-label={villageLabel(village)}>
+          <section key={village ?? "none"} aria-label={villageLabel(village)}>
             <h2 className="mb-2 text-sm font-bold text-[var(--color-gray-400)]">
               {villageLabel(village)}
             </h2>

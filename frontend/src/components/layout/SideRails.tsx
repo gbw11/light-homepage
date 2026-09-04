@@ -39,7 +39,7 @@ export function SideRails() {
             title="YouTube"
             className="flex min-h-11 min-w-11 items-center justify-center text-xl text-white transition hover:bg-white/10"
           >
-            <span aria-hidden>▶</span>
+            <span aria-hidden>▶️</span>
           </a>
           {INSTAGRAM_URL && (
             <a
@@ -50,7 +50,7 @@ export function SideRails() {
               title="Instagram"
               className="flex min-h-11 min-w-11 items-center justify-center text-xl text-white transition hover:bg-white/10"
             >
-              <span aria-hidden>◎</span>
+              <span aria-hidden>📷</span>
             </a>
           )}
         </nav>

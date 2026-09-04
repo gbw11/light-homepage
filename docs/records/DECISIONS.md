@@ -13,6 +13,32 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-09-04 — 출석부(§13)는 **BE 구현본을 남긴다** (중복 착수 정리)
+
+**결정**: 2026-09-03에 PM 쪽 세션에서도 출석부 BE를 구현했으나(전부 미커밋),
+같은 날 BE가 PR #161로 먼저 머지했고 #162로 `develop`까지 들어왔다.
+**이미 `develop`에 있는 BE 구현본을 사실상의 계약으로 삼고, PM 로컬 구현은
+폐기한다.**
+
+폐기 대상: `kr/light/attendance/`(15) · 테스트 2 · `V6__attendance.sql` ·
+`admin`/`post`/`AuthorizationCoverageTest` 수정 ·
+`kr.light.common.PageParams`(`normalizePage`/`normalizeSize` 중복 제거 리팩터).
+**PageParams는 이슈로도 넘기지 않는다** — 동작 변화가 없는 정리라 BE 일감을
+늘릴 이유가 없다.
+
+**왜 갈렸나**: `SPEC_API §13`이 "BE 미구현 · 착수 보류"로 남아 있었고, 보류
+사유(인증 v1.3 · `member_roster`)가 09-02에 해소된 것을 양쪽이 각자 알아챘다.
+같은 상황을 막으려면 **착수 조건이 풀린 절은 그 즉시 §13 같은 상태 머리말을
+갱신**해야 한다 — 이번에 갱신했다.
+
+**살린 것**: 로컬 작업 중 발견한 계약 결함 1건 — `AttendanceEntry.village`는
+`null`일 수 있는데 FE 타입이 non-null이었다(실제 명단이 들어오는 날 화면에
+`null마을`이 떴을 것). FE 수정 + `SPEC_API §13.3` 명시.
+BE판의 `checkedCount`/`rosterCount` 모수 불일치는 `BACKEND_HANDOFF.md`
+2026-09-04 항목으로 확인 요청했다.
+
+---
+
 ## 2026-09-02 — Instagram 주소 확정 · 외부 링크 이모지 · **LIGHT 워드마크는 녹색**
 
 **결정 3건** (프론트엔드만, 백엔드 영향 없음). 구현: PR #158
