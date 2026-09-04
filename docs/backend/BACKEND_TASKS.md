@@ -251,7 +251,7 @@ audit_logs
 
 ### 5.1 역할 계층
 ```
-GUEST    비로그인       → 공개 공지, 주보, 설교, 새가족 등록
+GUEST    비로그인       → 공개 공지, 설교, 새가족 등록
 MEMBER   회원           → + 내부 공지, 회의록, 사진첩, 월례회(기간 내)
 LEADER   임원           → + 콘텐츠 작성/업로드/삭제, 예산안, 월례회(기간 무관), 출석부
 PASTOR   전도사님        → + 계정 삭제·명단 재개방, 역할 부여, 비밀번호 리셋 코드
@@ -337,13 +337,19 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `GET /api/files/{공개글첨부id}` | 200 | 200 | 200 | 200 |
 | `GET /api/files/{내부공지·회의록 첨부id}` | **401** | 200 | 200 | 200 |
 | `GET /api/files/{예산안첨부id}` | **404** | 404 | 200 | 200 |
-| `GET /api/bulletins/latest` | 200 | 200 | 200 | 200 |
+| `GET /api/bulletins/latest` | **401** | 200 | 200 | 200 |
+| `GET /api/bulletins` | **401** | 200 | 200 | 200 |
+| `GET /api/bulletins/{id}` | **401** | 200 | 200 | 200 |
 | `POST /api/bulletins` | 401 | 403 | 200 | 200 |
+| `DELETE /api/bulletins/{id}` | 401 | 403 | 204 | 204 |
 | `GET /api/albums` | **401** | 200 | 200 | 200 |
 | `GET /api/albums/{id}/photos` | **401** | 200 | 200 | 200 |
 | `GET /api/photos/{id}/download` | **401** | 200 | 200 | 200 |
 | `POST /api/photos/{id}/report` | **401** | 200 | 200 | 200 |
+| `POST /api/albums` | 401 | 403 | 201 | 201 |
+| `DELETE /api/albums/{id}` | 401 | 403 | 204 | 204 |
 | `POST /api/uploads:issue` | 401 | 403 | 200 | 200 |
+| `POST /api/uploads:commit` | 401 | 403 | 200 | 200 |
 | `DELETE /api/photos/{id}` | 401 | 403 | 200 | 200 |
 | `GET /api/meetings` | **401** | 200 | 200 | 200 |
 | `GET /api/meetings/{id}/pages/{n}` (기간 내) | **401** | 200 | 200 | 200 |
@@ -541,15 +547,15 @@ FE가 Next.js `rewrites`로 `/api/**`를 프록시해 **동일 출처**로 만�
 **주보 · 사진**
 | Method | Path | 권한 |
 |---|---|---|
-| GET | `/api/bulletins?page=` · `/api/bulletins/latest` | **GUEST** |
+| GET | `/api/bulletins?page=` · `/api/bulletins/latest` · `/api/bulletins/{id}` | **MEMBER** (2026-09-04 G→M) |
 | POST / DELETE | `/api/bulletins` `/api/bulletins/{id}` | LEADER |
-| GET | `/api/albums?page=` | **GUEST** |
+| GET | `/api/albums?page=` | **MEMBER** (2026-08-31 「열람 M 복귀」 — 이 표가 그때 갱신되지 않았다) |
 | POST / DELETE | `/api/albums` `/api/albums/{id}` | LEADER |
-| GET | `/api/albums/{id}/photos?cursor=&size=` | **GUEST** |
+| GET | `/api/albums/{id}/photos?cursor=&size=` | **MEMBER** |
 | POST | `/api/uploads:issue` · `/api/uploads:commit` | LEADER |
 | DELETE | `/api/photos/{id}` | LEADER |
-| GET | `/api/photos/{id}/download` | **GUEST** |
-| POST | `/api/photos/{id}/report` | **GUEST** — 익명 신고 허용 |
+| GET | `/api/photos/{id}/download` | **MEMBER** |
+| POST | `/api/photos/{id}/report` | **MEMBER** (2026-09-04 G→M — 익명은 사진 id를 알 수 없다) |
 | ~~GET~~ | ~~`/api/albums/{id}/download?ids=` (ZIP)~~ | ❌ **폐기 — 만들지 마세요** |
 | GET | `/api/files/{attachmentId}` | 게시물 권한 상속 → **예산안 첨부만 LEADER**(없으면 404) |
 
