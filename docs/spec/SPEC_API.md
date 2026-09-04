@@ -1005,18 +1005,19 @@ API 401 → POST /api/auth/refresh 1회 시도
 
 ## 13. 출석부 (`/api/attendance`) — 신규 2026-08-28
 
-> ### 상태: **FE 선행(mock 완료) — BE 미구현 · 착수 보류**
+> ### 상태: **FE·BE 구현 완료 (BE는 2026-09-03, PR #161)**
 >
 > `SPEC_FUNCTIONAL §9`에서 제외했던 기능을 **2026-08-28 결정으로 편입**했다
 > (범위 결정은 `handoff/2026-08-28-auth-roster-model.md §7·§9-E` ·
-> `DECISIONS.md` 2026-08-28). FE가 mock으로 화면을 완성하며 이 계약을
-> 구체화했다 — **BE는 로그인·권한 재설계(§9 결정 7건)가 확정된 뒤 착수한다.**
-> 신규 엔드포인트 추가는 호환 변경이므로 알림으로 충분하다(`INTEGRATION.md §5.1`) —
-> `BACKEND_HANDOFF.md` 2026-08-28 항목이 그 알림이다.
+> `DECISIONS.md` 2026-08-28). FE가 mock으로 화면을 먼저 완성하며 이 계약을
+> 구체화했고, 착수 조건이었던 로그인·권한 재설계(v1.3)와 `member_roster`가
+> 끝나면서 **BE가 2026-09-03에 구현했다** (PR #161 → `develop` #162).
+>
+> - BE: `backend/src/main/java/kr/light/attendance/` · 마이그레이션 `V6__attendance.sql`
+> - FE: `frontend/src/app/admin/attendance/`
 >
 > ⚠️ **`member_roster` 테이블(재설계 §6.1)에 의존한다.** 출결 대상은
 > 계정(member)이 아니라 **명단**이다 — 계정을 만들지 않은 교인도 체크한다.
-> 명단 스키마가 확정되기 전에는 이 절을 구현할 수 없다.
 
 권한은 **전부 `L`(임원) 이상**이다. 본인 출결 조회(`GET /attendance/me`)와
 마을별 통계(`GET /attendance/stats`)는 **1차 범위에서 제외**했다 (§9-E 권장안).
@@ -1084,6 +1085,11 @@ API 401 → POST /api/auth/refresh 1회 시도
 ```
 - `entries`는 **명단 전원**이다 (체크된 사람만이 아니라). 정렬은
   마을(숫자, `newcomer`는 뒤) → 이름 — 체크 화면이 마을 단위로 도는 것을 전제한다
+- ⚠️ **`village`는 `null`일 수 있다.** 명단의 마을은 교회가 주는 CSV에서 오는데
+  그 열이 비어 있을 수 있다 (`member_roster.village`는 nullable이고 CHECK도 없다).
+  정렬에서는 `newcomer`보다도 **뒤**이고, 화면은 이들을 "마을 미배정"으로 묶는다.
+  숫자가 아닌 값(예: `"청년1"`)이 오면 숫자 마을들 뒤 · `newcomer` 앞에 놓인다
+- `active = false`인 사람(명단에서 빠진 사람)은 나오지 않는다
 - 없는 id는 `NOT_FOUND`
 
 ### 13.4 `PUT /api/attendance/sessions/{id}/entries`
