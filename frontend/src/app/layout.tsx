@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { YOUTH_SERVICE_LINE_PLAIN } from "@/content/worship";
+import { VENUE } from "@/content/location";
+import {
+  FRIDAY_PRAYER_TIME,
+  VILLAGE_END_TIME,
+  YOUTH_SERVICE_LINE_PLAIN,
+  YOUTH_SERVICE_TIME,
+} from "@/content/worship";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { SiteFooter } from "@/components/layout/SiteFooter";
@@ -56,12 +62,43 @@ const CHURCH_JSON_LD = {
     addressRegion: "경남",
     addressCountry: "KR",
   },
-  openingHoursSpecification: {
-    "@type": "OpeningHoursSpecification",
-    dayOfWeek: "Sunday",
-    opens: "14:00",
-    description: "청년예배 · 드림센터 4층",
-  },
+  /*
+    카디널리티가 다중이라 배열이 유효하다. 전에는 객체 하나였고 `opens`만
+    있었다 — 종료 시각이 없는 `OpeningHoursSpecification`은 검증 도구가 경고를
+    내고, 일부 소비자는 "무제한 개방"으로 읽는다.
+
+    ⚠️ **두 항목이 비대칭이다.** 주일에는 `closes`가 있고 금요일에는 없다.
+       주일은 마을모임 종료(16:00)라는 근거 있는 종료 시각이 있지만, 금요기도회는
+       주보에 종료 시각이 없다. 21:00쯤을 짐작해 넣는 것은 숫자를 지어내는
+       것이다 — **비대칭이 조작보다 낫다.**
+
+    ⚠️ **본당 1·2·3부(07:30·09:30·11:30)는 일부러 빠져 있다.** 이 노드의
+       `address`는 드림센터(위 `address`)인데 본당 예배는 가락로 117에서 열린다.
+       같은 노드에 넣으면 *"드림센터가 일요일 07:30에 연다"*는 사실과 다른
+       구조화 데이터를 검색엔진에 먹인다. `location.ts`가 경고하는 본당·드림센터
+       혼동을 기계 판독 데이터로 굳히는 셈이다. 본당은 사람이 읽는 `/worship`
+       섹션에만 둔다 — 필요해지면 `parentOrganization`을 별도 노드로 세운다.
+
+    후속 과제: 예배의 정확한 타입은 `Event` + `eventSchedule`이고 그쪽이라면
+    "매달 둘째 주" 예외도 `byMonthWeek`로 표현할 수 있다. 다만 교회 예배 시간에
+    대해 구글이 주는 리치 결과가 없어 **읽는 소비자가 없는 정밀도**다.
+    `openingHoursSpecification`은 지도류 소비자가 읽으므로 지금은 여기서 멈춘다.
+  */
+  openingHoursSpecification: [
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: "Sunday",
+      opens: YOUTH_SERVICE_TIME,
+      closes: VILLAGE_END_TIME,
+      description: `청년예배 · ${VENUE}`,
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: "Friday",
+      opens: FRIDAY_PRAYER_TIME,
+      description: `금요기도회 · ${VENUE} (매달 둘째 주는 본당)`,
+    },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
