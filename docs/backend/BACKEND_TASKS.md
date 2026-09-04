@@ -555,7 +555,7 @@ FE가 Next.js `rewrites`로 `/api/**`를 프록시해 **동일 출처**로 만�
 | POST | `/api/uploads:issue` · `/api/uploads:commit` | LEADER |
 | DELETE | `/api/photos/{id}` | LEADER |
 | GET | `/api/photos/{id}/download` | **GUEST** |
-| POST | `/api/photos/{id}/report` | **GUEST** — 익명 신고 허용 |
+| POST | `/api/photos/{id}/report` | **MEMBER** (2026-09-04 G→M — 익명은 사진 id를 알 수 없다) |
 | ~~GET~~ | ~~`/api/albums/{id}/download?ids=` (ZIP)~~ | ❌ **폐기 — 만들지 마세요** |
 | GET | `/api/files/{attachmentId}` | 게시물 권한 상속 → **예산안 첨부만 LEADER**(없으면 404) |
 
