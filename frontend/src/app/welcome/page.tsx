@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { Accordion } from "@/components/ui/Accordion";
+import { BuildingSketch } from "@/components/ui/BuildingSketch";
 import { RouteMap } from "@/components/ui/RouteMap";
 import { KAKAO_MAP_URL } from "@/content/location";
 
@@ -62,16 +63,19 @@ export default function WelcomePage() {
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {/*
-            약도만 실물이고 옆 두 칸은 아직 회색 상자다. 사진은 교회에서 직접
-            찍어야 하고 인터넷 사진으로 대체하지 않기로 했다 (DECISIONS 2026-08-21).
-            약도는 지도에서 확인한 사실로 그릴 수 있어서 먼저 채웠다.
+            앞 두 칸은 지도·로드뷰를 보고 직접 그린 그림이다 — 둘 다 화면
+            자체를 가져다 올릴 수 없어서(라이선스 · 로드뷰에 찍힌 차량 번호판)
+            그렸다.
+
+            **입구 사진 한 칸은 여전히 회색 상자다.** 건물 속은 밖에서 보이지
+            않아 그려 맞힐 수가 없고, 인터넷 사진으로 대체하지 않기로 했다
+            (DECISIONS 2026-08-21). 교회에서 찍어오면 넣는다.
           */}
           <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-2">
             <RouteMap className="h-full w-full" />
           </figure>
-          <figure className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]">
-            <span>드림센터 외관 사진</span>
-            <span>&quot;이 건물입니다&quot;</span>
+          <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-2">
+            <BuildingSketch className="h-full w-full" />
           </figure>
           <figure className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]">
             <span>입구 사진</span>
