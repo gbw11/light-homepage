@@ -35,7 +35,16 @@ export function Footer() {
         <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
           <span>주일 14:00 · 드림센터 4층</span>
           <span>경남 김해시 가락로 117</span>
-          <a href={`tel:${CHURCH_PHONE_TEL}`} className="hover:underline">
+          {/*
+            ⚠️ 아래 링크 줄과 같은 이유로 44px를 맞춘다 (NFR-A11Y-05).
+            이 줄은 텍스트(`span`) 사이에 링크가 하나 섞인 모양이라 높이를
+            글자에 맡겨 20px였다 — **전화를 거는 링크가 모바일에서 가장 누르기
+            어려운 타겟이었다.**
+          */}
+          <a
+            href={`tel:${CHURCH_PHONE_TEL}`}
+            className="inline-flex min-h-11 items-center hover:underline"
+          >
             Tel: {CHURCH_PHONE}
           </a>
         </div>
