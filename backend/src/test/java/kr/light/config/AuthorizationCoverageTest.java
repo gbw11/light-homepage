@@ -124,6 +124,12 @@ class AuthorizationCoverageTest {
             //   ⚠️ 이름·전화번호가 그대로 나가는 경로다 (§8.6)
             "GET /api/admin/newcomers",
 
+            // 월례회 (MeetingQueryApiTest)
+            //   ★ 열람은 M — §7 본문의 익명 서술은 공개 열람 시절의 것이고,
+            //     §10 매트릭스·FE·DB(meeting_doc_views.member_id NOT NULL)가 M이다
+            "GET /api/meetings",
+            "GET /api/meetings/{id}",
+
             // 첨부 (AttachmentApiTest)
             //   ★ 다운로드는 원글의 권한을 상속한다 — 규칙을 여기서 다시 쓰지 않는다
             "POST /api/attachments",
