@@ -189,10 +189,16 @@ export function ParkingMap({ className }: { className?: string }) {
       <MapBase titleY={214} floorY={292} labelX={104} />
 
       {/*
-        상자에 이름표를 달지 않는다. "교회 건너편"·"농협"·"합성초"를 붙였더니
-        본당 이름표와 학교 이름표에 차례로 겹쳤다 — 정사각 한 장에 들어갈
-        글자 수가 정해져 있다. 이름은 바로 아래 목록이 전부 말해주므로,
-        그림은 **번호와 위치만** 맡는다.
+        이름표는 **P2에만** 단다.
+        - P1은 본당 상자 바로 건너편에 그려서 "교회 건너편"이 위치로 읽힌다
+        - P3은 학교 블록 안에 있어 "합성초"를 또 쓰면 학교 이름표와 겹치고
+          같은 말을 두 번 하는 셈이다
+        - P2만 아무 것도 붙어 있지 않은 자리에 떠 있어서, 번호만 보면
+          어디인지 알 수 없다
+
+        셋 다 붙였던 처음 판에서는 이름표가 본당·학교 이름표와 차례로 겹쳤다.
+        정사각 한 장에 들어갈 글자 수는 정해져 있고, 나머지 이름은 바로 아래
+        목록이 말해준다.
       */}
       <text x="105" y="116" textAnchor="middle" fontSize="18" fontWeight="700" fill="var(--color-gray-400)">
         김해합성
@@ -228,11 +234,10 @@ export function ParkingMap({ className }: { className?: string }) {
       <ParkingBox x={272} y={44} label="P1" />
       {/* 3주차장 — 학교 안 남쪽. 드림센터에 가장 가깝다 */}
       <ParkingBox x={150} y={140} label="P3" />
-      {/* 2주차장 — 드림센터 남동쪽, 가락로 건너 */}
+      {/* 2주차장 — 드림센터 남동쪽, 가락로 건너. 여기만 이름표가 필요하다 */}
       <ParkingBox x={232} y={286} label="P2" />
-
-      <text x="180" y="344" textAnchor="middle" fontSize="16" fill="var(--color-gray-400)">
-        번호는 교회 공식 안내와 같습니다
+      <text x="258" y="340" textAnchor="middle" fontSize="17" fontWeight="700" fill="var(--color-gray-400)">
+        농협주차장
       </text>
     </svg>
   );
