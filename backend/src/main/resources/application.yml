@@ -192,6 +192,11 @@ app:
     bucket: ${R2_BUCKET:}
     access-key-id: ${R2_ACCESS_KEY_ID:}
     secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+  attachment:
+    # 미연결 첨부 정리 주기 (SPEC_API.md §4.1).
+    # ⚠️ 업로드는 끝났는데 글을 저장하지 않은 경우다 — R2에는 이미 올라가 있어
+    #    행만 지우면 고아 객체가 남고, 용량 화면(§8.5)에 잡히지도 않는다.
+    orphan-cleanup-interval: ${ATTACHMENT_ORPHAN_CLEANUP_INTERVAL:PT1H}
   newcomer:
     # 새가족 신청 보유기간 정리 주기 (SPEC_API.md §8.6 — 1년 후 삭제).
     # ⚠️ 이름·전화번호가 든 개인정보다. 지우는 것은 기능이 아니라 약속이다 —
