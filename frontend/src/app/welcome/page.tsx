@@ -128,8 +128,24 @@ export default function WelcomePage() {
       </Section>
 
       <Section title="주차 · 대중교통">
-        <p className="text-sm text-[var(--color-gray-400)]">
-          ❓ 주차장 위치, 버스/도보 안내 확인 필요
+        {/*
+          주차 전문은 `/location`에 있다. 여기서 되풀이하면 교회 규칙이 바뀔 때
+          고칠 곳이 둘이 되고, 이 화면은 "처음 오는 사람이 겁먹지 않게"가
+          목적이라 규칙을 길게 늘어놓을 자리가 아니다. 대신 **주일에만 열리는
+          곳이 둘**이라는 사실만 미리 흘린다 — 그게 헛걸음을 막는다.
+        */}
+        <p className="text-sm">
+          김해교회 주차장 세 곳을 함께 씁니다. 세 곳 중 <strong>두 곳은 주일에만</strong>{" "}
+          주차할 수 있습니다.
+        </p>
+        <Link
+          href="/location#parking"
+          className="mt-3 inline-flex min-h-11 items-center font-bold underline"
+        >
+          ▸ 주차장 위치와 약도 보기
+        </Link>
+        <p className="mt-4 text-sm text-[var(--color-gray-400)]">
+          ❓ 버스 안내는 아직 확인 중입니다.
         </p>
       </Section>
 

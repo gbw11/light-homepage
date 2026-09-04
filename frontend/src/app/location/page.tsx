@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
-import { RouteMap } from "@/components/ui/RouteMap";
+import { ParkingMap, RouteMap } from "@/components/ui/RouteMap";
 import { ADDRESS, KAKAO_MAP_URL, NAVER_MAP_URL } from "@/content/location";
+import { PARKING_CAUTION, PARKING_LOTS, PARKING_SOURCE_URL } from "@/content/parking";
 
 export const metadata: Metadata = {
   title: "오시는 길",
@@ -73,8 +74,58 @@ export default function LocationPage() {
         </figure>
       </Section>
 
-      <Section title="주차 안내" className="pt-0">
-        <p className="text-sm text-[var(--color-gray-400)]">❓ 확인 필요</p>
+      <Section id="parking" title="주차 안내" className="pt-0">
+        {/*
+          드림센터 전용 주차장은 없다 — 모교회 주차장 세 곳을 같이 쓴다.
+          그래서 규칙도 우리가 정한 게 아니라 교회 것이고, 바뀌면 우리가 먼저
+          알기 어렵다. 목록 끝에 출처 링크를 두는 이유다.
+        */}
+        <p className="text-sm text-[var(--color-gray-400)]">
+          드림센터 전용 주차장은 없고, 김해교회 주차장 세 곳을 함께 씁니다.
+        </p>
+
+        <figure className="mx-auto mt-4 flex aspect-square w-full max-w-sm items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-3">
+          <ParkingMap className="h-full w-full" />
+        </figure>
+
+        <ul className="mt-6 space-y-4">
+          {PARKING_LOTS.map((lot) => (
+            <li
+              key={lot.no}
+              className="rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-4"
+            >
+              <p className="font-bold">
+                {lot.no}주차장 · {lot.name}
+              </p>
+              <p className="mt-1 text-sm">{lot.toVenue}</p>
+              {/*
+                "언제 댈 수 있나"를 가장 눈에 띄게 둔다. 세 곳 중 두 곳이
+                주일에만 열려서, 평일에 왔다가 헛걸음하는 게 가장 흔한 사고다.
+              */}
+              <p className="mt-2 text-sm font-bold">{lot.when}</p>
+              {lot.needs && (
+                <p className="mt-1 text-sm text-[var(--color-gray-400)]">{lot.needs}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-4 rounded-[var(--radius-card)] border border-[var(--color-red-500)] bg-[var(--color-red-500)]/10 p-4 text-sm">
+          {PARKING_CAUTION}
+        </p>
+
+        <p className="mt-4 text-sm text-[var(--color-gray-400)]">
+          김해교회 공식 안내를 옮긴 것입니다. 찬양대별 지정 주차 등 전체 규칙은{" "}
+          <a
+            href={PARKING_SOURCE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold underline"
+          >
+            교회 주차안내
+          </a>
+          에서 확인하세요.
+        </p>
       </Section>
 
       <Section title="대중교통 안내" className="pt-0">
