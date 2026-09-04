@@ -124,7 +124,17 @@ export function Header() {
           워드마크·로그인을 밀지 않고 자기들끼리 좁아진다.
         */}
         <div className="mx-auto flex min-h-14 w-full max-w-[var(--container-max)] items-center gap-2 px-5">
-          <Link href="/" className="inline-flex min-h-11 shrink-0 items-center text-lg font-bold">
+          {/*
+            워드마크는 **녹색 계열**로 둔다 (PM 2026-09-02) — LIGHT의 원래 로고가
+            녹색이다. 갈색 띠(`--color-navy-900`) 위에 얹으므로 스킴을 따라
+            뒤집지 않는 `--color-accent-on-dark`(#b3b792 세이지)를 쓴다.
+            대비 4.73:1 — WCAG AA 통과 (흰색은 9.82:1이었다).
+            홈 Hero의 아크로스틱 첫 글자도 같은 토큰이라 색이 맞물린다.
+          */}
+          <Link
+            href="/"
+            className="inline-flex min-h-11 shrink-0 items-center text-lg font-bold text-[var(--color-accent-on-dark)]"
+          >
             LIGHT
           </Link>
 
@@ -389,18 +399,18 @@ export function Header() {
                 href={INSTAGRAM_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-11 items-center"
+                className="inline-flex min-h-11 items-center gap-1.5"
               >
-                ▸ Instagram
+                <span aria-hidden>📷</span> Instagram
               </a>
             )}
             <a
               href={YOUTUBE_CHANNEL_URL}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-11 items-center"
+              className="inline-flex min-h-11 items-center gap-1.5"
             >
-              ▸ YouTube
+              <span aria-hidden>▶️</span> YouTube
             </a>
           </div>
 

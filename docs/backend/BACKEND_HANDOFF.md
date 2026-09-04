@@ -30,6 +30,40 @@
 
 ---
 
+## 2026-09-04 — 출석부(§13) 확인 요청 1건 · FE 수정 1건
+
+PR #161(출석부) 잘 받았습니다. 계약대로 동작합니다. 두 가지만 남깁니다.
+
+### 확인 요청: `checkedCount`와 `rosterCount`의 모수가 다릅니다
+
+`AttendanceService.list()`에서
+
+- `rosterCount` = `rosterRepository.countByActiveTrue()` — **active 명단**
+- `checkedCount`/`presentCount` = `entryRepository.countBySessionIds(...)` —
+  **명단의 active 여부를 보지 않고** 그 회차의 `attendance_entries` 전부
+
+그래서 **체크한 뒤 명단에서 빠진 사람**(전출·졸업으로 `active = false`)이 생기면
+두 값의 기준이 어긋납니다. 극단적으로는 `checkedCount > rosterCount`가 됩니다.
+
+화면이 이 두 값으로 진행 상태를 가릅니다
+(`SessionList.tsx`: `checkedCount < rosterCount` ? `체크 4/15` : `출석 3명`).
+어긋나면 **아직 안 찍은 사람이 남았는데도 "완료"로 보입니다.**
+
+`countBySessionIds`의 집계에 `e.rosterEntry.active = true` 조건을 더하면
+모수가 맞습니다. 다만 "빠진 사람이 찍은 기록도 세야 한다"는 판단이라면
+그대로 두셔도 됩니다 — 그 경우 FE가 `min(checkedCount, rosterCount)`로
+막겠습니다. **어느 쪽인지만 알려주세요.**
+
+### FE 수정 (알림만 — BE 조치 불필요)
+
+`AttendanceEntry.village`가 FE 타입에서 non-null이었습니다. 실제로는
+`member_roster.village`가 nullable이고 PR #161도 `village: null`을 맨 뒤에
+그대로 내려줍니다 — **실제 명단이 들어오는 날 체크 화면에 `null마을`이라는
+제목이 떴을 겁니다.** `Village | null`로 고치고 "마을 미배정"으로 묶었습니다.
+정렬 규칙(숫자 → `newcomer` → `null`)과 함께 `SPEC_API §13.3`에 적었습니다.
+
+---
+
 ## 2026-09-02 — 공개 공지 게이트 건은 **FE 결함**이었습니다 (PR #149). BE 확인 2건
 
 BE 통합 확인 보고(공개 공지 상세에 회원 게이트)에 대한 조치 결과다.
