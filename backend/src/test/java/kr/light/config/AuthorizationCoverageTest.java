@@ -129,6 +129,10 @@ class AuthorizationCoverageTest {
             //     §10 매트릭스·FE·DB(meeting_doc_views.member_id NOT NULL)가 M이다
             "GET /api/meetings",
             "GET /api/meetings/{id}",
+            //   관리 — 임원 (MeetingUploadApiTest)
+            "POST /api/meetings",
+            "PATCH /api/meetings/{id}/window",
+            "DELETE /api/meetings/{id}",
 
             // 첨부 (AttachmentApiTest)
             //   ★ 다운로드는 원글의 권한을 상속한다 — 규칙을 여기서 다시 쓰지 않는다

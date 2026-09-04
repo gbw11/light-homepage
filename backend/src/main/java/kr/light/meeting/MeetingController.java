@@ -5,17 +5,33 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.light.auth.AuthPrincipal;
+import jakarta.validation.Valid;
+import kr.light.common.ApiException;
 import kr.light.common.ApiResponse;
 import kr.light.common.PageResponse;
+import kr.light.member.Member;
+import kr.light.member.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Map;
 
 /**
  * 월례회 자료 (SPEC_API.md §7).
@@ -38,6 +54,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class MeetingController {
 
     private final MeetingQueryService meetingQueryService;
+    private final MeetingUploadService meetingUploadService;
+    private final MemberRepository memberRepository;
 
     @Operation(summary = "월례회 자료 목록",
             description = """
@@ -106,5 +124,101 @@ public class MeetingController {
             @AuthenticationPrincipal AuthPrincipal principal
     ) {
         return ApiResponse.of(meetingQueryService.get(id, principal.role()));
+    }
+
+    // ── 관리 (임원) ──────────────────────────────────────────────────
+
+    @Operation(summary = "월례회 자료 업로드",
+            description = """
+                    `multipart/form-data`로 **PDF**를 보냅니다 (Word에서 「PDF로 저장」).
+
+                    ⚠️ **동기 처리입니다.** 서버가 PDFBox로 페이지 이미지(장변
+                    2048px JPEG)로 변환하고, 10페이지 기준 **15~30초** 걸립니다.
+                    FE는 진행 상태를 표시하세요.
+
+                    ★ **업로드한 PDF 원본은 보관하지 않습니다.** 남기면 그 자체가
+                    유출 경로가 됩니다 — 워터마크도 없고 열람 기간도 걸리지 않은
+                    원본이 저장소에 있는 셈이기 때문입니다.
+
+                    페이지 순서는 PDF 순서를 따르고, 최대 50쪽입니다.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201", description = "업로드·변환 완료"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403", ref = "#/components/responses/FORBIDDEN"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409", description = "용량 초과 (STORAGE_LIMIT)")
+    })
+    @PreAuthorize("hasRole('LEADER')")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> create(
+            @RequestParam String title,
+
+            @Parameter(description = "월례회 날짜 (YYYY-MM-DD)")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate meetingDate,
+
+            @Parameter(description = "열람 시작 (ISO-8601 UTC)")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant viewableFrom,
+
+            @Parameter(description = "열람 종료. 시작보다 뒤여야 한다")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant viewableUntil,
+
+            @Parameter(description = "PDF 파일")
+            @RequestParam(name = "file", required = false) MultipartFile file,
+
+            @AuthenticationPrincipal AuthPrincipal principal
+    ) {
+        MeetingUploadService.Created created = meetingUploadService.create(
+                title, meetingDate, viewableFrom, viewableUntil, file, actor(principal));
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(
+                Map.of("id", created.id(), "pageCount", created.pageCount())));
+    }
+
+    @Operation(summary = "열람 기간 수정",
+            description = "연장·조기 종료. 자료를 다시 올리지 않고 기간만 바꿉니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "204", description = "변경 완료"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", ref = "#/components/responses/VALIDATION_ERROR"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403", ref = "#/components/responses/FORBIDDEN"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404", ref = "#/components/responses/NOT_FOUND")
+    })
+    @PreAuthorize("hasRole('LEADER')")
+    @PatchMapping("/{id}/window")
+    public ResponseEntity<Void> changeWindow(
+            @PathVariable Long id,
+            @Valid @RequestBody MeetingWindowRequest request
+    ) {
+        meetingUploadService.changeWindow(id, request.viewableFrom(), request.viewableUntil());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "월례회 자료 삭제",
+            description = "⚠️ **페이지 이미지까지 지웁니다.**")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "204", description = "삭제 완료"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403", ref = "#/components/responses/FORBIDDEN"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404", ref = "#/components/responses/NOT_FOUND")
+    })
+    @PreAuthorize("hasRole('LEADER')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        meetingUploadService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    private Member actor(AuthPrincipal principal) {
+        return memberRepository.findById(principal.memberId())
+                .orElseThrow(ApiException::unauthorized);
     }
 }
