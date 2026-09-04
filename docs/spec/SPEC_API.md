@@ -911,7 +911,10 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 | `GET /files/{내부공지·회의록 첨부id}` | **401** | 200 | 200 | 200 |
 | `GET /files/{예산안첨부id}` | 404 | 404 | 200 | 200 |
 | `GET /bulletins/latest` | 200 | 200 | 200 | 200 |
+| `GET /bulletins` | 200 | 200 | 200 | 200 |
+| `GET /bulletins/{id}` | 200 | 200 | 200 | 200 |
 | `POST /bulletins` | 401 | 403 | 200 | 200 |
+| `DELETE /bulletins/{id}` | 401 | 403 | 204 | 204 |
 | `GET /albums` | **401** | 200 | 200 | 200 |
 | `GET /albums/{id}/photos` | **401** | 200 | 200 | 200 |
 | `GET /photos/{id}/download` | **401** | 200 | 200 | 200 |
