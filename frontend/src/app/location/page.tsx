@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
+import { RouteMap } from "@/components/ui/RouteMap";
 import { ADDRESS, KAKAO_MAP_URL, NAVER_MAP_URL } from "@/content/location";
 
 export const metadata: Metadata = {
@@ -17,6 +18,8 @@ const linkButtonClass =
  * WIREFRAME.md §8 — 오시는 길.
  * ❓ 표시는 아직 확정되지 않은 정보(드림센터 외관 사진, 주차/대중교통 안내)다.
  * 지도는 이미지 + 외부 앱 링크 방식만 사용한다 (JS 지도 SDK는 Phase 3 재검토).
+ * 그 "이미지"가 2026-09-04에 `RouteMap`으로 들어왔다 — 왜 스크린샷이 아니라
+ * 직접 그린 SVG인지는 그 파일 주석에 있다.
  */
 export default function LocationPage() {
   return (
@@ -26,10 +29,18 @@ export default function LocationPage() {
       </Section>
 
       <Section className="pt-0">
-        <figure className="flex aspect-video flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-4 text-center text-sm text-[var(--color-ink)]">
-          <span>지도 미리보기는 준비 중입니다.</span>
-          <span>아래 버튼으로 카카오맵·네이버지도에서 바로 확인하세요.</span>
+        {/*
+          `aspect-video`가 아니라 정사각이다 — 본당에서 드림센터로 가는 길이
+          남쪽으로 길고 서쪽으로 짧아서, 가로로 넓은 상자에 넣으면 그림이
+          가운데만 쓰고 양옆이 빈다. `max-w-sm`은 데스크톱에서 약도가 필요
+          이상으로 커지지 않게 잡아둔 것이다.
+        */}
+        <figure className="mx-auto flex aspect-square w-full max-w-sm items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-3">
+          <RouteMap className="h-full w-full" />
         </figure>
+        <p className="mt-3 text-center text-sm text-[var(--color-gray-400)]">
+          실제 지도는 아래 버튼으로 카카오맵·네이버지도에서 확인하세요.
+        </p>
 
         <div className="mt-4 flex flex-wrap gap-3">
           <a

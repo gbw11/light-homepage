@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { Accordion } from "@/components/ui/Accordion";
+import { RouteMap } from "@/components/ui/RouteMap";
 import { KAKAO_MAP_URL } from "@/content/location";
 
 export const metadata: Metadata = {
@@ -60,8 +61,13 @@ export default function WelcomePage() {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]">
-            본당 ↔ 드림센터 약도
+          {/*
+            약도만 실물이고 옆 두 칸은 아직 회색 상자다. 사진은 교회에서 직접
+            찍어야 하고 인터넷 사진으로 대체하지 않기로 했다 (DECISIONS 2026-08-21).
+            약도는 지도에서 확인한 사실로 그릴 수 있어서 먼저 채웠다.
+          */}
+          <figure className="flex aspect-square items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-navy-100)] p-2">
+            <RouteMap className="h-full w-full" />
           </figure>
           <figure className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--color-navy-100)] text-sm text-[var(--color-ink)]">
             <span>드림센터 외관 사진</span>
@@ -73,8 +79,14 @@ export default function WelcomePage() {
           </figure>
         </div>
 
+        {/*
+          "도보 ❓"였다. 2026-09-04 카카오맵 도보 길찾기 실측 — 큰길우선·최단거리·
+          편안한길 세 경로가 모두 134m / 2분으로 같다. 갈림길이 사실상 없다는 뜻이라
+          약도가 한 번의 우회전으로 끝난다.
+        */}
         <p className="mt-6 text-base text-[var(--color-gray-400)]">
-          본당 앞에서 도보 ❓ (확인 필요)
+          본당 앞에서 <strong className="text-[var(--color-ink)]">도보 2분</strong> (134m)
+          — 남쪽으로 내려가 초등학교 끝에서 오른쪽입니다.
         </p>
         {/*
           예전에는 "링크 확인 필요"로 영구 비활성이었지만, `/location`이 이미
