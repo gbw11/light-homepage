@@ -3,6 +3,7 @@ import { ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
+import { BulletinLink } from "./_components/BulletinLink";
 import { RecentSermon } from "./_components/RecentSermon";
 import { WeeklyNotices } from "./_components/WeeklyNotices";
 import { LIGHT_WORDMARK } from "@/lib/viewTransition";
@@ -112,10 +113,8 @@ export default function Home() {
           <Link href="/news" className="inline-flex min-h-11 items-center">
             ▸ 공지 전체보기
           </Link>
-          {/* 공개 열람 전환(PM 결정 2026-08-25)으로 주보가 로그인 없이 열린다 */}
-          <Link href="/bulletin" className="inline-flex min-h-11 items-center">
-            ▸ 주보 보기
-          </Link>
+          {/* 주보는 회원 전용이 됐다 — 로그인한 사람에게만 그린다 (그 조각 주석) */}
+          <BulletinLink />
         </div>
       </Section>
 
