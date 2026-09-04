@@ -81,7 +81,17 @@ export default function Home() {
             </ViewTransition>
             <h1 className="sr-only">LIGHT — 김해교회 청년교회</h1>
 
-            <p className="mt-6 text-base font-bold text-white/90 md:text-lg">
+            {/*
+              주보 로고가 `LIGHT`와 함께 쓰는 성구다. 워드마크(이름 뜻)와 시간
+              줄(실용 정보) 사이가 제 자리다 — 이름이 왜 LIGHT인지를 잇는 줄이다.
+              어두운 표면이라 `--color-accent-on-dark`를 쓴다 (`--color-yellow`는
+              스킴을 따라 뒤집혀 이 표면에서 대비가 깨진다).
+            */}
+            <p className="mt-5 text-sm text-[var(--color-accent-on-dark)] md:text-base">
+              &ldquo;너의 빛으로 세상을 비추라&rdquo; <span className="text-white/60">마태복음 5:16</span>
+            </p>
+
+            <p className="mt-4 text-base font-bold text-white/90 md:text-lg">
               {YOUTH_SERVICE_LINE}
             </p>
 
