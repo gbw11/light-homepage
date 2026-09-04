@@ -98,6 +98,11 @@ public class SecurityConfig {
     private static final String[] PUBLIC_GET_PATHS = {
             "/api/posts",
             "/api/posts/**",
+            // 첨부 다운로드 (§4.2) — 여기서도 "통과"가 "누구나 볼 수 있다"가 아니다.
+            //   공개공지 첨부는 익명도 받아야 하고, 예산안 첨부는 404여야 한다.
+            //   그 판단은 AttachmentService가 **원글의 분류**로 한다 —
+            //   필터에서 막으면 공개공지 첨부까지 함께 막힌다.
+            "/api/files/**",
             // ⚠️ 주보(§5)는 여기 없다 — 2026-09-04에 G에서 M으로 올렸다.
             //    로그인해야 본다. 인가는 BulletinController의 클래스 단위
             //    @PreAuthorize("hasRole('MEMBER')")가 건다.
