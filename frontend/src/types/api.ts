@@ -560,7 +560,14 @@ export type AttendanceSessionSummary = {
 export type AttendanceEntry = {
   rosterId: string;
   name: string;
-  village: Village;
+  /**
+   * ⚠️ **null일 수 있다.** 출결 대상은 계정이 아니라 명단(`member_roster`)이고,
+   * 명단의 마을은 교회가 준 CSV에서 오는데 **그 열이 비어 있을 수 있다**
+   * (BE `member_roster.village`는 nullable이며 CHECK 제약도 없다).
+   * 화면은 이 사람들을 "마을 미배정"으로 묶는다 — 여기서 non-null로 두면
+   * 실제 명단이 들어온 날 `null마을`이라는 제목이 화면에 뜬다.
+   */
+  village: Village | null;
   /** null = 아직 체크하지 않음 (ABSENT와 다르다 — "기록 없음") */
   status: AttendanceStatus | null;
 };
