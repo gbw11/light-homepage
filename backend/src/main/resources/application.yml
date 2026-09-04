@@ -4,6 +4,17 @@
 #  ⚠️ 시크릿은 이 파일에 쓰지 않는다. 전부 환경변수로 주입한다.
 # ─────────────────────────────────────────────────────────────
 spring:
+  servlet:
+    multipart:
+      # 주보 업로드 (SPEC_API.md §5.4). 사진첩과 달리 파일이 서버를 통과한다.
+      # ⚠️ Render 무료 인스턴스는 RAM 512MB다. 임계값을 넘는 부분은 디스크로
+      #    흘려서 힙에 통째로 올라오지 않게 한다.
+      file-size-threshold: 256KB
+      # 2048px WebP 한 장은 보통 1MB 미만이다. 8MB면 충분히 여유롭고,
+      # 실수로 원본 사진을 올렸을 때 여기서 먼저 걸린다.
+      max-file-size: 8MB
+      # 주보 한 번에 최대 20장 (BulletinService.MAX_PAGES)
+      max-request-size: 64MB
   application:
     name: light-api
 

@@ -92,6 +92,14 @@ class AuthorizationCoverageTest {
 
             "DELETE /api/admin/members/{id}",
 
+            // 주보 (BulletinAuthorizationTest)
+            //   ★ 읽기 셋은 비로그인에게 열려 있다 — 교회 밖에서도 보는 공개 자료다
+            "GET /api/bulletins/latest",
+            "GET /api/bulletins",
+            "GET /api/bulletins/{id}",
+            "POST /api/bulletins",
+            "DELETE /api/bulletins/{id}",
+
             // 용량 현황 (StorageAdminAuthorizationTest)
             //   ⚠️ 같은 /api/admin 아래지만 이것만 L부터다 (§8.5)
             "GET /api/admin/storage",

@@ -6,6 +6,7 @@ import kr.light.common.ErrorCode;
 import kr.light.photo.Photo;
 import kr.light.photo.PhotoRepository;
 import kr.light.photo.PhotoStatus;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,18 @@ class StorageUsageServiceTest {
         photoRepository.deleteAllInBatch();
         albumRepository.deleteAllInBatch();
         album = albumRepository.saveAndFlush(Album.builder().title("테스트 앨범").build());
+    }
+
+    /**
+     * ⚠️ <b>끝나고도 치운다.</b> 이 클래스는 용량을 차단선(95%)까지 채우는데,
+     * 테스트 DB가 클래스 사이에 공유되므로 남겨두면 <b>뒤에 도는 업로드
+     * 테스트가 전부 STORAGE_LIMIT으로 실패한다.</b> 실제로 주보 테스트가
+     * 그렇게 깨졌다 — 원인이 자기 코드에 없어서 찾는 데 시간이 걸린다.
+     */
+    @AfterEach
+    void tearDown() {
+        photoRepository.deleteAllInBatch();
+        albumRepository.deleteAllInBatch();
     }
 
     // ── 합계 ─────────────────────────────────────────────────

@@ -97,7 +97,15 @@ public class SecurityConfig {
      */
     private static final String[] PUBLIC_GET_PATHS = {
             "/api/posts",
-            "/api/posts/**"
+            "/api/posts/**",
+            // 주보 (SPEC_API.md §5) — 권한 G. 교회 밖에서도 보는 공개 자료다.
+            //   ⚠️ GET 한정이라 POST(업로드)·DELETE는 열리지 않는다.
+            //      그 둘은 BulletinController에 @PreAuthorize("hasRole('LEADER')")로 걸려 있다.
+            "/api/bulletins",
+            "/api/bulletins/**",
+            // 설교 영상 (SPEC_API.md §9.2 · §9.3) — 권한 G, 누구나 본다
+            "/api/sermons",
+            "/api/sermons/live"
     };
 
     /**
@@ -132,10 +140,7 @@ public class SecurityConfig {
      */
     private static final String[] PUBLIC_KAKAO_PATHS = {
             "/api/auth/kakao/authorize",
-            "/api/auth/kakao/callback",
-            // 설교 영상 (SPEC_API.md §9.2 · §9.3) — 권한 G, 누구나 본다
-            "/api/sermons",
-            "/api/sermons/live"
+            "/api/auth/kakao/callback"
     };
 
     private final ObjectMapper objectMapper;

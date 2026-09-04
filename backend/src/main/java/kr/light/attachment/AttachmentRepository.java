@@ -25,6 +25,23 @@ public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
             """)
     List<PostAttachmentCount> countByPostIds(@Param("postIds") Collection<Long> postIds);
 
+    /** 주보 페이지 — sort_order가 페이지 번호다 (SPEC_API.md §5.1) */
+    List<Attachment> findByBulletinIdOrderBySortOrderAsc(Long bulletinId);
+
+    /**
+     * 목록의 pageCount·thumbUrl용 — 주보 여러 건의 페이지를 한 번에 읽는다.
+     *
+     * <p>주보마다 따로 읽으면 페이지당 20번의 추가 쿼리가 나간다.
+     * {@code join fetch bulletin} — 결과를 주보별로 묶어야 하는데
+     * {@code open-in-view: false}라 LAZY로 두면 꺼낼 수 없다.
+     */
+    @Query("""
+            select a from Attachment a join fetch a.bulletin
+            where a.bulletin.id in :bulletinIds
+            order by a.sortOrder asc
+            """)
+    List<Attachment> findByBulletinIds(@Param("bulletinIds") Collection<Long> bulletinIds);
+
     /**
      * 첨부와 <b>주보</b>가 차지하는 바이트 (SPEC_API.md §8.5).
      *
