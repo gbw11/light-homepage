@@ -334,6 +334,7 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `GET /api/posts/{내부공지·회의록id}` | **401** | **200** | 200 | 200 |
 | `GET /api/posts/{예산안id}` | **404** | 404 | 200 | 200 |
 | `POST /api/posts` | 401 | 403 | 200 | 200 |
+| `POST /api/attachments` | 401 | 403 | 201 | 201 |
 | `GET /api/files/{공개글첨부id}` | 200 | 200 | 200 | 200 |
 | `GET /api/files/{내부공지·회의록 첨부id}` | **401** | 200 | 200 | 200 |
 | `GET /api/files/{예산안첨부id}` | **404** | 404 | 200 | 200 |
@@ -341,6 +342,7 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `GET /api/bulletins` | **401** | 200 | 200 | 200 |
 | `GET /api/bulletins/{id}` | **401** | 200 | 200 | 200 |
 | `POST /api/bulletins` | 401 | 403 | 200 | 200 |
+| `GET /api/bulletins/{id}/pages/{n}/download` | **401** | 302 | 302 | 302 |
 | `DELETE /api/bulletins/{id}` | 401 | 403 | 204 | 204 |
 | `GET /api/albums` | **401** | 200 | 200 | 200 |
 | `GET /api/albums/{id}/photos` | **401** | 200 | 200 | 200 |
@@ -352,6 +354,7 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `POST /api/uploads:commit` | 401 | 403 | 200 | 200 |
 | `DELETE /api/photos/{id}` | 401 | 403 | 200 | 200 |
 | `GET /api/meetings` | **401** | 200 | 200 | 200 |
+| `GET /api/meetings/{id}` | **401** | 200 | 200 | 200 |
 | `GET /api/meetings/{id}/pages/{n}` (기간 내) | **401** | 200 | 200 | 200 |
 | `GET /api/meetings/{id}/pages/{n}` (**기간 외**) | 401 | 403 | 200 | 200 |
 | `POST /api/meetings` | 401 | 403 | 200 | 200 |
@@ -548,6 +551,7 @@ FE가 Next.js `rewrites`로 `/api/**`를 프록시해 **동일 출처**로 만�
 | Method | Path | 권한 |
 |---|---|---|
 | GET | `/api/bulletins?page=` · `/api/bulletins/latest` · `/api/bulletins/{id}` | **MEMBER** (2026-09-04 G→M) |
+| GET | `/api/bulletins/{id}/pages/{n}/download` | **MEMBER** (§5.6 — FE 제안 채택) |
 | POST / DELETE | `/api/bulletins` `/api/bulletins/{id}` | LEADER |
 | GET | `/api/albums?page=` | **MEMBER** (2026-08-31 「열람 M 복귀」 — 이 표가 그때 갱신되지 않았다) |
 | POST / DELETE | `/api/albums` `/api/albums/{id}` | LEADER |

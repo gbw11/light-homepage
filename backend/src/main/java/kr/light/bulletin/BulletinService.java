@@ -142,6 +142,44 @@ public class BulletinService {
         return new Created(String.valueOf(bulletin.getId()), saved.size());
     }
 
+    // ── 장별 다운로드 (FE 제안 · FR-BUL-04) ──────────────────────────
+
+    /**
+     * 한 쪽을 내려받을 URL.
+     *
+     * <p>⚠️ <b>계약(§5)에 없는 엔드포인트다.</b> FE가 {@code types.ts}에
+     * {@code [CONTRACT]}로 제안했고, 경로도 그쪽이 정한 것을 그대로 쓴다.
+     * {@code FR-BUL-04}가 장별 다운로드를 요구하는데 §5에 그 경로가 없었다.
+     *
+     * <p>권한을 {@code M}으로 둔 근거: FE 제안이 {@code M}이었고,
+     * 2026-09-04에 주보 열람 자체가 {@code M}이 되면서 앞뒤가 맞았다.
+     * (제안 시점에는 열람이 공개라 다운로드만 로그인을 요구하는 모양이었다.)
+     *
+     * <p>★ {@code §5.1}의 {@code pages[].url}과 <b>다른 값이 필요하다.</b>
+     * 그쪽은 열람용이라 브라우저가 탭에서 열어버린다 — 여기서는 R2에
+     * {@code Content-Disposition: attachment}를 지시해 저장되게 한다.
+     */
+    @Transactional(readOnly = true)
+    public String pageDownloadUrl(Long bulletinId, int pageNo) {
+        Bulletin bulletin = bulletinRepository.findById(bulletinId)
+                .orElseThrow(ApiException::notFound);
+
+        Attachment page = attachmentRepository
+                .findByBulletinIdOrderBySortOrderAsc(bulletin.getId()).stream()
+                .filter(a -> a.getSortOrder() == pageNo)
+                .findFirst()
+                .orElseThrow(ApiException::notFound);
+
+        return r2Client.presignedDownloadUrl(page.getR2Key(),
+                "%s-%d쪽.%s".formatted(
+                        bulletin.getServiceDate(), pageNo, extensionOf(page.getFilename())));
+    }
+
+    private static String extensionOf(String filename) {
+        int dot = filename.lastIndexOf('.');
+        return dot < 0 ? "webp" : filename.substring(dot + 1);
+    }
+
     // ── §5.5 삭제 ────────────────────────────────────────────────────
 
     /**

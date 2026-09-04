@@ -81,6 +81,19 @@ jobs:
         if: steps.guard.outputs.skip != 'true'
         run: chmod +x ./gradlew
 
+      # ⚠️ 월례회 워터마크(SPEC_API §7.3)가 이름을 이미지에 태우므로 한글
+      #    글리프가 필요하다. ubuntu-latest 러너에는 CJK 폰트가 없어서
+      #    (실측: 폰트 8개 · 한글 가능 0개) 워터마크가 □□□로 나온다.
+      #
+      #    ★ 이걸 넣는 이유는 테스트를 통과시키려는 것이 아니라, **CI가 운영과
+      #      같은 조건에서 검증**하게 하려는 것이다. 운영 이미지는
+      #      backend/Dockerfile에서 font-noto-cjk를 설치한다 — 여기서 빠지면
+      #      "CI는 초록인데 배포하면 □□□"가 된다.
+      - name: Install Korean font (월례회 워터마크)
+        if: steps.guard.outputs.skip != 'true'
+        working-directory: .
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+
       # ★ 인가 테스트 매트릭스가 여기서 돌아야 한다.
       #   권한 회귀를 사람의 기억으로 막을 수는 없다.
       - name: Build & Test

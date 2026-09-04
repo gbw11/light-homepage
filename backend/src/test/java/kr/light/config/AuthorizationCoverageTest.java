@@ -97,6 +97,8 @@ class AuthorizationCoverageTest {
             "GET /api/bulletins/latest",
             "GET /api/bulletins",
             "GET /api/bulletins/{id}",
+            //   장별 다운로드 — [CONTRACT] FE 제안 경로 (BulletinAuthorizationTest)
+            "GET /api/bulletins/{id}/pages/{pageNo}/download",
             "POST /api/bulletins",
             "DELETE /api/bulletins/{id}",
 
@@ -111,10 +113,34 @@ class AuthorizationCoverageTest {
             "DELETE /api/photos/{id}",
             "POST /api/uploads:issue",
             "POST /api/uploads:commit",
+            //   신고는 M — 2026-09-04에 G(익명 허용)에서 올렸다 (PhotoReportApiTest)
+            "POST /api/photos/{id}/report",
 
             // 용량 현황 (StorageAdminAuthorizationTest)
             //   ⚠️ 같은 /api/admin 아래지만 이것만 L부터다 (§8.5)
             "GET /api/admin/storage",
+
+            // 새가족 신청 목록 (NewcomerAdminApiTest)
+            //   ⚠️ 이름·전화번호가 그대로 나가는 경로다 (§8.6)
+            "GET /api/admin/newcomers",
+
+            // 월례회 (MeetingQueryApiTest)
+            //   ★ 열람은 M — §7 본문의 익명 서술은 공개 열람 시절의 것이고,
+            //     §10 매트릭스·FE·DB(meeting_doc_views.member_id NOT NULL)가 M이다
+            "GET /api/meetings",
+            "GET /api/meetings/{id}",
+            //   관리 — 임원 (MeetingUploadApiTest)
+            //   페이지 스트리밍 · 열람 기록 (MeetingPageStreamTest)
+            "GET /api/meetings/{id}/pages/{pageNo}",
+            "GET /api/meetings/{id}/views",
+            "POST /api/meetings",
+            "PATCH /api/meetings/{id}/window",
+            "DELETE /api/meetings/{id}",
+
+            // 첨부 (AttachmentApiTest)
+            //   ★ 다운로드는 원글의 권한을 상속한다 — 규칙을 여기서 다시 쓰지 않는다
+            "POST /api/attachments",
+            "GET /api/files/{attachmentId}",
 
             // 공개 (NewcomerAuthorizationTest)
             "POST /api/newcomers",
