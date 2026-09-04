@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
-import { YOUTH_GATHERINGS } from "@/content/worship";
+import {
+  VILLAGE_LINE,
+  YOUTH_GATHERINGS,
+  YOUTH_SERVICE_LINE,
+} from "@/content/worship";
 
 export const metadata: Metadata = {
   title: "예배와 모임",
   description:
-    "청년예배(주일 14:00 · 드림센터 4층), 마을모임(예배 후 15:30~16:00), 그 외 모임 안내.",
+    `청년예배(${YOUTH_SERVICE_LINE}), 마을모임(${VILLAGE_LINE}), 기도회 안내.`,
 };
 
 /*

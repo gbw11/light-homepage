@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { YOUTH_SERVICE_LINE_PLAIN } from "@/content/worship";
 import { LandingGate } from "./_components/LandingGate";
 
 export const metadata: Metadata = {
   title: "LIGHT — 김해교회 청년교회",
   description:
-    "청년예배 주일 14:00 드림센터 4층. 하나님 안에 살며, 이웃을 돕는 청년 공동체 LIGHT입니다.",
+    `청년예배 ${YOUTH_SERVICE_LINE_PLAIN}. 하나님 안에 살며, 이웃을 돕는 청년 공동체 LIGHT입니다.`,
 };
 
 /**
