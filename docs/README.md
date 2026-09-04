@@ -13,6 +13,10 @@
 | [`handoff/`](handoff/) | 날짜별 FE→BE 전달 브리핑 | 큰 제안·설계 전달 (요약 로그는 `backend/BACKEND_HANDOFF.md`) |
 | [`handover/`](handover/) | 날짜별 작업 인계 | **하루를 시작할 때 최신 파일부터** |
 
+### 방향이 반대일 때 — BE→FE 요청
+
+위 `handoff/`와 `backend/BACKEND_HANDOFF.md`는 **FE→BE 방향 전용**이다. 반대로 BE가 FE에 요청하는 것은 **GitHub 이슈와 BE PR 본문**으로 온다. 그 회신은 반드시 **해당 이슈 댓글**로 남긴다 — 문서는 기록용 사본이지 전달 채널이 아니다. (2026-09-04 이슈 #169: 대응을 마치고도 문서에만 적어 BE는 미대응으로 알고 있었다.)
+
 ## 처음이라면 이 순서로
 
 1. [`ops/FLOW.md`](ops/FLOW.md) — 브랜치를 파는 것부터 사용자 화면까지 전체 흐름 한 장
