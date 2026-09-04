@@ -169,6 +169,18 @@ app:
     # 설교만 담은 재생목록이 있으면 그 id. 비면 제목이 날짜로 시작하는 것만
     # 골라낸다 (SermonTitles) — PM 확인 대기 중인 항목이다.
     playlist-id: ${YOUTUBE_PLAYLIST_ID:}
+  r2:
+    # Cloudflare R2 — 사진·주보·첨부·월례회 문서의 파일 본체 (ARCHITECTURE.md §4.4).
+    # ★ 키를 여기에 쓰지 않는다 — 커밋되는 파일이다.
+    #   로컬은 application-local.yml(gitignore), 운영은 환경변수로 준다.
+    # ⚠️ Account API 토큰을 쓴다 (User 토큰이 아니다). User 토큰은 만든 사람이
+    #    계정에서 빠지면 죽어서, 배포된 뒤 예고 없이 사진첩이 안 열린다.
+    # ⚠️ 권한은 Object Read & Write · 버킷 하나로 한정. Admin 권한을 주면
+    #    키가 샜을 때 버킷 삭제까지 가능해진다.
+    account-id: ${R2_ACCOUNT_ID:}
+    bucket: ${R2_BUCKET:}
+    access-key-id: ${R2_ACCESS_KEY_ID:}
+    secret-access-key: ${R2_SECRET_ACCESS_KEY:}
   storage:
     # 저장 용량 가드 (SPEC_API.md §8.5 · COST_GUARDRAILS.md §3.6).
     # ⚠️ 2026-09-03에 R2에 결제 수단을 등록해서, "카드가 없으니 과금이
