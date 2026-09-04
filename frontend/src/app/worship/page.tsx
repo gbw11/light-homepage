@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
+import { YOUTH_GATHERINGS } from "@/content/worship";
 
 export const metadata: Metadata = {
   title: "예배와 모임",
@@ -8,17 +9,14 @@ export const metadata: Metadata = {
     "청년예배(주일 14:00 · 드림센터 4층), 마을모임(예배 후 15:30~16:00), 그 외 모임 안내.",
 };
 
-/**
- * 예배·모임 시간표.
- *
- * 화면이 아니라 여기에 두는 이유: 같은 정보가 홈·푸터·모교회 표에도 나오는데,
- * 값이 바뀌면 한 곳만 고치면 되도록 출처를 하나로 만든다.
- * ❓는 아직 확정되지 않은 정보다 (`PLAN §8`).
- */
-const SCHEDULE: { name: string; time: string; place: string }[] = [
-  { name: "청년예배", time: "주일 14:00", place: "드림센터 4층" },
-  { name: "마을모임", time: "예배 후 15:30~16:00", place: "드림센터 4층" },
-];
+/*
+  시간표 데이터는 `content/worship.ts`에 있다.
+
+  전에는 이 자리에 `SCHEDULE` 상수가 있고 주석이 "값이 바뀌면 한 곳만 고치면
+  되도록 출처를 하나로 만든다"고 적혀 있었다. **그게 사실이 아니었다** — 같은
+  문자열이 홈·푸터·헤더·문의·등록 폼과 metadata 6곳에 각자 박혀 있었다.
+  이제는 정말로 한 곳이다.
+*/
 
 /**
  * WIREFRAME.md §4 — 예배와 모임 (FR-PUB-04).
@@ -54,7 +52,7 @@ export default function WorshipPage() {
               </tr>
             </thead>
             <tbody>
-              {SCHEDULE.map((row) => (
+              {YOUTH_GATHERINGS.map((row) => (
                 <tr key={row.name} className="border-b border-[var(--color-navy-100)]">
                   <th
                     scope="row"

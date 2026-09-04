@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { YOUTH_SERVICE_LINE } from "@/content/worship";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { CHURCH_PHONE, CHURCH_PHONE_TEL } from "@/content/contact";
@@ -55,7 +56,7 @@ export default function ContactPage() {
 
         <div className="mt-6 rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-6">
           <p className="text-sm font-bold text-[var(--color-gray-400)]">직접 찾아오시려면</p>
-          <p className="mt-3 text-base font-bold">주일 14:00 · 드림센터 4층</p>
+          <p className="mt-3 text-base font-bold">{YOUTH_SERVICE_LINE}</p>
           <p className="mt-1 text-sm text-[var(--color-gray-400)]">
             드림센터는 본당과 별개 건물입니다. 처음이시면 길찾기 안내를 먼저
             보시는 편이 빠릅니다.
