@@ -192,6 +192,11 @@ app:
     bucket: ${R2_BUCKET:}
     access-key-id: ${R2_ACCESS_KEY_ID:}
     secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+  photo:
+    # 미커밋(PENDING) 사진 정리 배치 주기 (SPEC_API.md §6.5).
+    # ⚠️ 이 배치가 멈추면 R2에 고아 객체가 쌓이는데, DB 합계로 세는 용량
+    #    화면(§8.5)에는 안 잡힌다 — 보이지 않는 곳에서 용량이 샌다.
+    pending-cleanup-interval: ${PHOTO_PENDING_CLEANUP_INTERVAL:PT1H}
   storage:
     # 저장 용량 가드 (SPEC_API.md §8.5 · COST_GUARDRAILS.md §3.6).
     # ⚠️ 2026-09-03에 R2에 결제 수단을 등록해서, "카드가 없으니 과금이

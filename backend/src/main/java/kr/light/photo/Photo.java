@@ -59,6 +59,17 @@ public class Photo {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    /**
+     * R2 키를 채운다 (§6.5).
+     *
+     * <p>키에 사진 id가 들어가는데 id는 DB가 채우는 값이라, 행을 저장한
+     * <b>뒤에</b> 정해진다. 그래서 두 단계로 나뉜다.
+     */
+    public void assignKeys(String r2KeyView, String r2KeyThumb) {
+        this.r2KeyView = r2KeyView;
+        this.r2KeyThumb = r2KeyThumb;
+    }
+
     /** 업로드 확정 — R2에 실제로 올라간 것을 확인한 뒤 호출한다 */
     public void commit(long actualSizeBytes) {
         this.status = PhotoStatus.COMMITTED;
