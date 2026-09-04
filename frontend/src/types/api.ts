@@ -411,11 +411,24 @@ export type Bulletin = {
   pages: BulletinPage[];
 };
 
-/** 지난 주보 목록 항목 (SPEC_API §5.2) — 여기서는 썸네일을 쓴다 */
+/** 지난 주보 목록 항목 (SPEC_API §5.2) */
 export type BulletinSummary = {
   id: string;
   serviceDate: string;
   pageCount: number;
+  /**
+   * ⚠️ **이름과 달리 썸네일이 아니다.** 1쪽 **원본**(장변 2048px WebP)의
+   * presigned URL이다 — 서버가 이미지를 재가공하지 않는다 (WebP 디코딩에
+   * 네이티브 라이브러리가 필요해 512MB 인스턴스에서 돌리지 않기로 했다.
+   * BE 전달 2026-09-04).
+   *
+   * 그래서 목록은 **작게 그리고 반드시 지연 로딩한다** (`PastBulletinList`는
+   * 48×64 + `loading="lazy"`). 사진첩의 `Photo.thumbUrl`(640px)과 다르다.
+   *
+   * 주보는 주 1회씩 쌓여 목록이 짧아 지금은 이 계약을 그대로 쓴다. 목록이
+   * 길어져 부담되면 업로드 시 축소본을 함께 올리는 쪽으로 계약을 바꾼다
+   * (PM 판단 2026-09-04 — 보류).
+   */
   thumbUrl: string;
 };
 

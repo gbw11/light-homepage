@@ -48,10 +48,6 @@ export const MENU_LINKS: NavItem[] = [
     href: "/news",
     label: "소식",
   },
-  {
-    href: "/bulletin",
-    label: "주보",
-  },
 ];
 
 /**
@@ -61,6 +57,13 @@ export const MENU_LINKS: NavItem[] = [
  * 것이 한 줄에 뒤섞여서, 방문자가 절반을 눌러보고 나서야 그 사실을 안다.
  */
 export const RESOURCE_LINKS: { href: string; label: string }[] = [
+  /*
+    주보는 2026-09-04에 이 줄로 옮겨왔다. 열람이 `G`에서 `M`으로 올라가면서
+    (BE 전달 2026-09-04, 2026-08-25 결정을 대체) 공개 메뉴에 남겨둘 이유가
+    사라졌다 — 남겨두면 위 원칙이 말하는 "절반을 눌러보고 나서야 아는" 그
+    항목이 된다.
+  */
+  { href: "/bulletin", label: "주보" },
   { href: "/photos", label: "사진첩" },
   { href: "/meetings", label: "월례회 자료" },
   { href: "/documents", label: "회의록" },
