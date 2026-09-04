@@ -124,6 +124,11 @@ class AuthorizationCoverageTest {
             //   ⚠️ 이름·전화번호가 그대로 나가는 경로다 (§8.6)
             "GET /api/admin/newcomers",
 
+            // 첨부 (AttachmentApiTest)
+            //   ★ 다운로드는 원글의 권한을 상속한다 — 규칙을 여기서 다시 쓰지 않는다
+            "POST /api/attachments",
+            "GET /api/files/{attachmentId}",
+
             // 공개 (NewcomerAuthorizationTest)
             "POST /api/newcomers",
 

@@ -55,6 +55,18 @@ public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
     @Query("select coalesce(sum(a.sizeBytes), 0) from Attachment a")
     long sumSizeBytes();
 
+    /**
+     * 어디에도 연결되지 않은 채 오래된 첨부 (§4.1 정리 배치).
+     *
+     * <p>업로드는 끝났는데 글을 저장하지 않은 경우다 — <b>R2에는 이미
+     * 올라가 있다.</b> 그래서 행만 지우면 고아 객체가 남는다.
+     */
+    @Query("""
+            select a from Attachment a
+            where a.post is null and a.bulletin is null and a.createdAt < :cutoff
+            """)
+    List<Attachment> findOrphansCreatedBefore(@Param("cutoff") java.time.Instant cutoff);
+
     /** {@link #countByPostIds} 결과 한 행 */
     interface PostAttachmentCount {
         Long getPostId();
