@@ -22,8 +22,10 @@ import { SITE_URL } from "@/lib/site";
  *    실측했다. robots·헤더는 크롤러에게 부탁하는 것일 뿐 직접 접근을 막지
  *    못하므로, 그것들만 믿으면 안 된다.
  *
- *    `/bulletins`는 `public/`에 남아 있다 — "PLACEHOLDER" 생성물이고 개인정보가
- *    아니다. 색인만 막는다.
+ *    주보도 2026-09-04에 `mock-assets/`로 옮겼다 — 실물로 교체하면서
+ *    "PLACEHOLDER 생성물이라 개인정보가 아니다"라는 근거가 사라졌다.
+ *    `/bulletins` 경로는 이제 존재하지 않지만, 옛 배포가 남아 있을 수 있어
+ *    disallow는 남겨 둔다.
  */
 export default function robots(): MetadataRoute.Robots {
   return {

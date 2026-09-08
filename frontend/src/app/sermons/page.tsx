@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { toKoreanTime, YOUTH_SERVICE_LINE_PLAIN, YOUTH_SERVICE_TIME } from "@/content/worship";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { YOUTUBE_CHANNEL_URL } from "@/content/links";
@@ -7,7 +8,7 @@ import { LiveSection } from "./_components/LiveSection";
 export const metadata: Metadata = {
   title: "말씀",
   description:
-    "김해교회 청년교회 LIGHT 주일 예배 라이브와 최근 예배 영상입니다. 주일 14:00 드림센터 4층.",
+    `김해교회 청년교회 LIGHT 주일 예배 라이브와 최근 예배 영상입니다. ${YOUTH_SERVICE_LINE_PLAIN}.`,
 };
 
 /**
@@ -39,7 +40,7 @@ export default function SermonsPage() {
       <Section className="pb-8 md:pb-8">
         <h1 className="text-2xl font-bold md:text-3xl">말씀</h1>
         <p className="mt-2 text-[var(--color-gray-400)]">
-          주일 청년예배는 오후 2시에 라이브로 올라옵니다.
+          주일 청년예배는 {toKoreanTime(YOUTH_SERVICE_TIME)}에 라이브로 올라옵니다.
         </p>
       </Section>
 

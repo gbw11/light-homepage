@@ -1,4 +1,11 @@
 import type { Metadata } from "next";
+import { VENUE } from "@/content/location";
+import {
+  VILLAGE_TIME,
+  YOUTH_SERVICE_LINE,
+  YOUTH_SERVICE_LINE_PLAIN,
+  YOUTH_SERVICE_TIME,
+} from "@/content/worship";
 import { ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,7 +18,7 @@ import { LIGHT_WORDMARK } from "@/lib/viewTransition";
 export const metadata: Metadata = {
   title: "LIGHT — 김해교회 청년교회",
   description:
-    "청년예배 주일 14:00 드림센터 4층. 하나님 안에 살며, 이웃을 돕는 청년 공동체 LIGHT입니다.",
+    `청년예배 ${YOUTH_SERVICE_LINE_PLAIN}. 하나님 안에 살며, 이웃을 돕는 청년 공동체 LIGHT입니다.`,
 };
 
 const ACROSTIC = [
@@ -74,8 +81,18 @@ export default function Home() {
             </ViewTransition>
             <h1 className="sr-only">LIGHT — 김해교회 청년교회</h1>
 
-            <p className="mt-6 text-base font-bold text-white/90 md:text-lg">
-              주일 14:00 · 드림센터 4층
+            {/*
+              주보 로고가 `LIGHT`와 함께 쓰는 성구다. 워드마크(이름 뜻)와 시간
+              줄(실용 정보) 사이가 제 자리다 — 이름이 왜 LIGHT인지를 잇는 줄이다.
+              어두운 표면이라 `--color-accent-on-dark`를 쓴다 (`--color-yellow`는
+              스킴을 따라 뒤집혀 이 표면에서 대비가 깨진다).
+            */}
+            <p className="mt-5 text-sm text-[var(--color-accent-on-dark)] md:text-base">
+              &ldquo;너의 빛으로 세상을 비추라&rdquo; <span className="text-white/60">마태복음 5:16</span>
+            </p>
+
+            <p className="mt-4 text-base font-bold text-white/90 md:text-lg">
+              {YOUTH_SERVICE_LINE}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -147,11 +164,17 @@ export default function Home() {
       <Section title="주일에는 이렇게 모입니다">
         <ul className="divide-y divide-[var(--color-navy-100)] rounded-[var(--radius-card)] border border-[var(--color-navy-100)]">
           <li className="p-4">
-            <p className="font-bold">14:00 · 청년예배</p>
-            <p className="text-sm text-[var(--color-gray-400)]">드림센터 4층</p>
+            {/*
+              `YOUTH_GATHERINGS` 배열을 재사용하지 않는다 — 여기는 시각이
+              앞에 오고(표는 이름이 앞이다) 장소 칸도 다르다(`1~9마을 +
+              새가족마을`). 배열을 억지로 끼우면 데이터가 홈의 편집 문구를
+              지배한다. 갈라지면 안 되는 것은 시각이므로 원자만 가져온다.
+            */}
+            <p className="font-bold">{YOUTH_SERVICE_TIME} · 청년예배</p>
+            <p className="text-sm text-[var(--color-gray-400)]">{VENUE}</p>
           </li>
           <li className="p-4">
-            <p className="font-bold">15:30 · 마을모임 (30분)</p>
+            <p className="font-bold">{VILLAGE_TIME} · 마을모임 (30분)</p>
             <p className="text-sm text-[var(--color-gray-400)]">
               1~9마을 + 새가족마을
             </p>

@@ -4,7 +4,12 @@ import { Section } from "@/components/ui/Section";
 import { Accordion } from "@/components/ui/Accordion";
 import { BuildingSketch } from "@/components/ui/BuildingSketch";
 import { RouteMap } from "@/components/ui/RouteMap";
-import { KAKAO_MAP_URL } from "@/content/location";
+import { KAKAO_MAP_URL, VENUE } from "@/content/location";
+import {
+  VILLAGE_END_TIME,
+  VILLAGE_TIME,
+  YOUTH_SERVICE_TIME,
+} from "@/content/worship";
 
 export const metadata: Metadata = {
   title: "처음 오시는 분",
@@ -12,12 +17,24 @@ export const metadata: Metadata = {
     "청년예배는 본당이 아니라 드림센터 4층입니다. 혼자 오셔도 괜찮습니다.",
 };
 
+/**
+ * 주일 흐름. **`content/worship.ts`로 옮기지 않았다.**
+ *
+ * 다섯 줄 중 셋(`~13:50`·`~15:20`·`16:00 마치고`)은 예배 시각이 아니라 "처음
+ * 온 사람 눈에 그날이 어떻게 흐르는지"다. `~` 물결이 붙은 것 자체가 확정
+ * 시각이 아니라는 표시이고, 주보에도 근거가 없다. 쓰는 곳도 이 화면 하나뿐이라
+ * `CONVENTIONS.md`의 "재사용 시점에 모은다"에 걸린다.
+ *
+ * 다만 청년예배·마을모임 시각은 진짜 확정값이라 상수를 가져온다. 리터럴과
+ * 상수가 섞여 보기엔 어색하지만 **그 어색함이 곧 정보다** — 어느 값이 확정이고
+ * 어느 값이 근사인지 한눈에 보인다.
+ */
 const TIMELINE = [
   { time: "~13:50", label: "도착", detail: "입구에서 안내받기" },
-  { time: "14:00", label: "청년예배", detail: "드림센터 4층" },
+  { time: YOUTH_SERVICE_TIME, label: "청년예배", detail: VENUE },
   { time: "~15:20", label: "예배 종료 · 교제", detail: null },
-  { time: "15:30", label: "마을모임 (30분)", detail: "처음이면 새가족마을" },
-  { time: "16:00", label: "마치고 자유롭게", detail: null },
+  { time: VILLAGE_TIME, label: "마을모임 (30분)", detail: "처음이면 새가족마을" },
+  { time: VILLAGE_END_TIME, label: "마치고 자유롭게", detail: null },
 ];
 
 const FAQ_ITEMS = [

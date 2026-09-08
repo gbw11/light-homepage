@@ -9,11 +9,30 @@ export const metadata: Metadata = {
 
 const ACROSTIC = ["L", "I", "G", "H", "T"];
 
+/**
+ * 출처: 실제 LIGHT 주보 2026-08-23 (YEAR 2026 · ISSUE 34) "청년교회를 섬기는 이들".
+ *
+ * **주보에 있는 이름을 다 옮기지 않았다.** 칸이 넷인데 주보에는 교역자 3명 ·
+ * 장로 1명 · 멘토집사 4명 · 임원 6명이 실려 있다. 넣은 기준은 이렇다.
+ *
+ * - **청년전도사 유운형** — 모교회가 `gloria.or.kr/blank-9`에 **사진까지 공개**
+ *   하고 있다. 우리 화면에 적는 것이 새로운 노출이 아니다
+ * - **회장·부회장·총무** — 청년부에 처음 오는 사람이 실제로 마주치는 사람들이다
+ * - 회계·부회계·서기·장로·멘토집사는 넣지 않았다. 칸이 없고, 앞의 세 명과 달리
+ *   방문자가 먼저 만날 일이 적다
+ *
+ * ⚠️ **임원 세 명의 이름은 모교회 공개 목록에 없다** — 청년부 내부 정보다.
+ *    주보는 회원에게 배포되는 문서이고 이 화면은 공개다. 본인 동의 확인은
+ *    PM 몫으로 남겨 뒀다 (PM 판단 2026-09-04, `DECISIONS.md`).
+ *    빼야 한다면 이 배열에서 지우면 된다 — 다른 곳에 흩어져 있지 않다.
+ *
+ * 얼굴 사진은 여전히 없다. 아래 `<figure>`는 회색 상자로 남는다.
+ */
 const SERVING_LEADERS = [
-  { role: "담당 교역자", detail: "❓ 이름 · 직함 확인 필요" },
-  { role: "임원 1", detail: "❓ 확인 필요" },
-  { role: "임원 2", detail: "❓ 확인 필요" },
-  { role: "임원 3", detail: "❓ 확인 필요" },
+  { role: "청년전도사", detail: "유운형" },
+  { role: "회장", detail: "이재현" },
+  { role: "부회장", detail: "이소연" },
+  { role: "총무", detail: "박진민" },
 ];
 
 const YEAR_FLOW = [
@@ -25,7 +44,8 @@ const YEAR_FLOW = [
 
 /**
  * WIREFRAME.md §3 — LIGHT 아크로스틱을 그대로 페이지 구조로 사용 (PLAN §1.5).
- * ❓ 표시는 아직 확정되지 않은 정보(담당 교역자·임원진 정보, 한 해의 흐름 상세)다.
+ * ❓ 표시는 아직 확정되지 않은 정보다 — **한 해의 흐름**과 **사진 3장**.
+ * 담당 교역자·임원 명단은 2026-09-04에 실제 주보에서 확보했다(위 배열 주석).
  * 확정되기 전까지 이 페이지는 완성이 아니다.
  */
 export default function AboutPage() {
@@ -41,6 +61,17 @@ export default function AboutPage() {
         <h1 className="mt-2 text-2xl font-bold md:text-3xl">
           Live In God, Help The other
         </h1>
+        {/*
+          주보 로고가 `LIGHT`와 함께 쓰는 성구다. h1을 대체하지 않는다 —
+          **둘은 경쟁이 아니다.** 마 5:16은 성구고, `Live In God, Help The other`는
+          LIGHT라는 이름의 뜻이다 (`PLAN §1.5`). 주보 로고도 둘을 같이 쓴다.
+        */}
+        <p className="mt-4 text-base text-[var(--color-gray-400)]">
+          <strong className="text-[var(--color-ink)]">
+            &ldquo;너의 빛으로 세상을 비추라&rdquo;
+          </strong>{" "}
+          — 마태복음 5장 16절
+        </p>
       </Section>
 
       <Section title="LIGHT" className="pt-0">
