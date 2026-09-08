@@ -7,7 +7,7 @@
 | 폴더 | 무엇이 있나 | 언제 여는가 |
 |---|---|---|
 | [`spec/`](spec/) | PLAN · WORKPLAN · ARCHITECTURE · WIREFRAME · SPEC_API · SPEC_FUNCTIONAL · SPEC_NONFUNCTIONAL | **무엇을 만드는가** — 기획·화면·계약의 기준. 구현 전에 여기부터 |
-| [`ops/`](ops/) | FLOW · CICD · TESTING · TOOLCHAIN · INTEGRATION · COST_GUARDRAILS | **어떻게 만들고 운영하는가** — 브랜치·CI·버전·비용 규칙 |
+| [`ops/`](ops/) | FLOW · CICD · TESTING · TOOLCHAIN · INTEGRATION · COST_GUARDRAILS · JIRA | **어떻게 만들고 운영하는가** — 브랜치·CI·버전·비용·일감 규칙 |
 | [`backend/`](backend/) | BACKEND_TASKS · BACKEND_DEPLOY · ONBOARDING_BACKEND · BACKEND_HANDOFF | BE 협업 — 작업 지시서·배포·온보딩·FE→BE 인계 로그 |
 | [`records/`](records/) | DECISIONS · DAILY_LOG · LIGHTHOUSE\_\* · PERF_SWEEP\_\* | 시간순 기록 — 결정·일지·측정 결과 |
 | [`handoff/`](handoff/) | 날짜별 FE→BE 전달 브리핑 | 큰 제안·설계 전달 (요약 로그는 `backend/BACKEND_HANDOFF.md`) |
@@ -30,6 +30,7 @@
 | API 계약 (엔드포인트·응답 형태) | [`spec/SPEC_API.md`](spec/SPEC_API.md) |
 | 인가 매트릭스 (누가 뭘 볼 수 있나) | `spec/SPEC_API.md` §10 |
 | PM 결정 이력 | [`records/DECISIONS.md`](records/DECISIONS.md) |
+| 일감·티켓 규약 (Jira) | [`ops/JIRA.md`](ops/JIRA.md) · 전수 백로그는 [`ops/jira-backlog.csv`](ops/jira-backlog.csv) |
 | CI가 왜 이렇게 생겼나 | [`ops/CICD.md`](ops/CICD.md) |
 | 외부 서비스 추가 전 필독 | [`ops/COST_GUARDRAILS.md`](ops/COST_GUARDRAILS.md) |
 | 프론트 작업 방식 | [`../frontend/docs/WORKFLOW.md`](../frontend/docs/WORKFLOW.md) (frontend 전용 문서는 `frontend/docs/`에 따로 있다) |

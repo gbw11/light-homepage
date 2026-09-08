@@ -1,0 +1,298 @@
+Epic,Type,Summary,StoryPoints,Labels,Component,Status,Phase,Description
+,에픽,E1 공개 사이트,,,frontend,진행중,S1,FR-PUB 10건 · 공개 열람 영역과 그 백엔드 API
+,에픽,E2 인증·회원,,,backend,진행중,S2,FR-AUTH 11건 + FR-MEM 3건 · 명단 대조 기반 v1.3 인증
+,에픽,E3 주보,,,frontend,진행중,S3,FR-BUL 6건 · 회원 열람 + 임원 업로드
+,에픽,E4 사진첩,,,backend,진행중,S3,FR-PHO 10건 · 브라우저→R2 직접 업로드 파이프라인 포함
+,에픽,E5 월례회 자료,,,backend,대기,S4,FR-MTG 9건 · PDF→이미지 변환과 열람 기간 제한
+,에픽,E6 게시판·문서,,,backend,대기,S4,FR-DOC 6건 · 리치텍스트·회의록·예산안·첨부
+,에픽,E7 출석부,,,backend,대기,S4,FR-ATT · 명단(roster) 기반 출결 체크
+,에픽,E8 관리·회원운영,,,backend,대기,S4,FR-ADM 8건 · 회원 관리·역할·새가족 내역
+,에픽,E9 인프라·배포·CI,,,infra,진행중,S1,Vercel·Render·Neon·R2·Actions·Jenkins
+,에픽,E10 품질·보안·오픈,,,docs,대기,S5,인가 매트릭스·성능·접근성·PWA·개인정보·정식 오픈
+E1 공개 사이트,작업,[FE] 홈 Hero — LIGHT 아크로스틱·예배시간·CTA 2개,3,,frontend,완료,S0,FR-PUB-01 Hero 블록
+E1 공개 사이트,작업,[FE] 홈 — 이번주 공지 블록 API 연동,3,,frontend,완료,S0,클라이언트 페치 · 서버 컴포넌트에서 호출하면 정적 생성이 멈춘다
+E1 공개 사이트,작업,[FE] 홈 — 최근 말씀 블록,2,,frontend,완료,S0,RecentSermon · YouTube 최신 1편
+E1 공개 사이트,작업,[FE] 홈 — 갤러리 미리보기 블록,2,,frontend,완료,S0,앨범 최근 사진 미리보기
+E1 공개 사이트,작업,[FE] 홈 — 모임안내·처음오시나요 블록,2,,frontend,완료,S0,FR-PUB-01 하단 섹션
+E1 공개 사이트,작업,[FE] 랜딩 클릭 게이트 — 신규/기존 분기,3,,frontend,완료,S0,/ 진입 시 단체사진 게이트 → /welcome 또는 /login
+E1 공개 사이트,작업,[FE] /welcome 처음 오시는 분,5,,frontend,완료,S0,FR-PUB-02 길찾기·주일 타임라인·FAQ 아코디언
+E1 공개 사이트,작업,[FE] /about 소개,3,,frontend,완료,S0,FR-PUB-03 아크로스틱·표어 성구·섬기는 사람들
+E1 공개 사이트,작업,[FE] /worship 예배와 모임 4섹션,3,,frontend,완료,S0,FR-PUB-04 청년예배·마을모임·금요기도회·본당
+E1 공개 사이트,작업,[FE] /location 오시는 길,3,,frontend,완료,S0,FR-PUB-05 약도 2장·외부 지도앱 링크·주차 안내
+E1 공개 사이트,작업,[FE] /news 공개 공지 목록,3,,frontend,완료,S0,FR-PUB-06 상단고정 우선 → 최신순
+E1 공개 사이트,작업,[FE] /news/[slug] 공지 상세,2,,frontend,완료,S0,FR-PUB-07 제목·작성일·본문·첨부
+E1 공개 사이트,작업,[FE] /welcome/register 새가족 등록 폼,5,,frontend,완료,S0,FR-PUB-08 필수/선택 항목 + 개인정보 동의
+E1 공개 사이트,작업,[FE] /sermons 라이브 우선 구성,3,,frontend,완료,S0,FR-PUB-09 주일 라이브 → 최근 말씀
+E1 공개 사이트,작업,[FE] /sermons/all 지난 말씀 무한 스크롤,3,,frontend,완료,S0,useInfiniteQuery · 한 행 4개
+E1 공개 사이트,작업,[FE] /contact 문의,2,,frontend,완료,S0,사무실 전화 · 터치 타겟 44px
+E1 공개 사이트,작업,[FE] SEO — 메타·OG·sitemap·robots·JSON-LD,3,,frontend,완료,S0,FR-PUB-10 Church/Event 스키마
+E1 공개 사이트,작업,[FE] 사이트 뼈대 — 헤더·푸터·양옆 레일·햄버거,5,,frontend,완료,S0,navigation.ts 공유 · 레일은 xl부터
+E1 공개 사이트,작업,[BE] GET /api/posts 공개 공지 목록,5,contract,backend,대기,S1,category·page·size · 상단고정 정렬
+E1 공개 사이트,작업,[BE] GET /api/posts/{id} 상세,5,contract,backend,대기,S1,분류별 권한 · 예산안은 404 은닉
+E1 공개 사이트,작업,[BE] POST /api/newcomers 등록 저장,3,contract,backend,대기,S1,동의 서버 재검증 · agreed_at 기록
+E1 공개 사이트,작업,[BE] 새가족 등록 알림 메일 발송,3,,backend,대기,S1,임원 수신 · 실패해도 등록은 성공 처리
+E1 공개 사이트,작업,[BE] 새가족 폼 rate limit — 동일 IP 5분 5회,3,security,backend,대기,S1,NFR-SEC-26 · 429 RATE_LIMITED
+E1 공개 사이트,작업,[BE] 새가족 폼 honeypot 필드 처리,1,security,backend,대기,S1,NFR-SEC-27 봇 차단
+E1 공개 사이트,작업,[BE] GET /api/sermons YouTube 프록시,5,contract,backend,대기,S1,API 키를 클라이언트에 실을 수 없어 BE가 프록시
+E1 공개 사이트,작업,[BE] GET /api/sermons/live 주일 라이브,3,blocked-be,backend,대기,S1,이슈 #133 항목 2 · FE는 mock으로 완성
+E1 공개 사이트,작업,[BE] 공개 API 정적 생성 대응 확인,2,,backend,대기,S1,NFR-AVAIL-05 빌드 시점 페치가 백엔드를 깨우지 않게
+E1 공개 사이트,작업,[TEST] posts 목록·상세 단위 테스트,3,,backend,대기,S1,정렬·페이징·slug 조회
+E1 공개 사이트,작업,[TEST] posts 분류별 인가 테스트,3,security,backend,대기,S1,공지·회의록 G / 예산안 L · 매트릭스 기준
+E1 공개 사이트,작업,[TEST] newcomers 검증·rate limit 통합 테스트,3,,backend,대기,S1,필수값 누락 400 · 6회째 429
+E1 공개 사이트,작업,[TEST] sermons 프록시 실패·쿼터 초과 테스트,2,,backend,대기,S1,실패 시 빈 목록이 아니라 에러 코드
+E1 공개 사이트,작업,[TEST] 공개 화면 반응형 점검 6종,3,verify,frontend,대기,S5,모바일 390 / 데스크톱 1200 두 폭
+E1 공개 사이트,작업,[TEST] 새가족 폼 검증·에러 표시 테스트,3,,frontend,대기,S1,미동의 제출 차단 · 필드 에러 문구
+E1 공개 사이트,작업,[TEST] SEO 메타·JSON-LD 스키마 검증,2,verify,frontend,대기,S5,구조화 데이터 테스트 도구로 확인
+E1 공개 사이트,작업,[TEST] 통합 #1 — 공개 공지·새가족 실연동,5,verify,frontend,대기,S1,USE_MOCK=0 전환 후 두 경로 관통
+E1 공개 사이트,작업,[TEST] 카카오톡 공유 미리보기 실측,2,verify,frontend,대기,S5,배포 후에만 확인 가능
+E2 인증·회원,작업,[FE] /signup 1단계 명단 확인 폼,5,,frontend,완료,S0,FR-AUTH-01 이름·생년월일·전화 대조
+E2 인증·회원,작업,[FE] /signup 2단계 계정 생성,5,,frontend,완료,S0,FR-AUTH-02 아이디+비밀번호 또는 카카오
+E2 인증·회원,작업,[FE] 동명이인 안내·단일 실패 문구 처리,2,,frontend,완료,S0,어느 필드가 틀렸는지 노출하지 않는다
+E2 인증·회원,작업,[FE] /login 로그인 (loginId),3,,frontend,완료,S0,FR-AUTH-04 이메일이 아니라 아이디
+E2 인증·회원,작업,[FE] 카카오 로그인 버튼·리다이렉트,3,,frontend,완료,S0,FR-AUTH-03 302 왕복은 BE 필요
+E2 인증·회원,작업,[FE] 401 자동 갱신 single-flight,5,,frontend,완료,S0,FR-AUTH-05 refresh 1회 후 원요청 재시도
+E2 인증·회원,작업,[FE] 로그아웃,1,,frontend,완료,S0,FR-AUTH-06 쿠키 삭제
+E2 인증·회원,작업,[FE] 로그아웃 버튼을 /my 최상단으로 분리,2,pm-decision,frontend,대기,S2,탈퇴는 프로필 안쪽 유지 · 카카오 분기 깨지지 않게
+E2 인증·회원,작업,[FE] /password/reset 리셋 코드 입력,3,,frontend,완료,S0,FR-AUTH-08 전도사 발급 코드 30분 1회용
+E2 인증·회원,작업,[FE] /my 회원 홈 타일,3,,frontend,완료,S0,FR-MEM-01 권한 있으면 관리 타일
+E2 인증·회원,작업,[FE] /my 주보·최근 앨범 미리보기,3,,frontend,완료,S0,데이터 없으면 스스로 렌더하지 않는다
+E2 인증·회원,작업,[FE] /my/profile 내 정보·연락처 수정,3,,frontend,완료,S0,FR-AUTH-09
+E2 인증·회원,작업,[FE] 비밀번호 변경,2,,frontend,완료,S0,FR-AUTH-10 현재 비밀번호 확인 후
+E2 인증·회원,작업,[FE] 회원 탈퇴 — 카카오 가입자 분기,3,,frontend,완료,S0,FR-AUTH-11 loginId null이면 비밀번호를 묻지 않는다
+E2 인증·회원,작업,[FE] /my/notices 내부 공지 목록·상세,3,,frontend,완료,S0,FR-MEM-02 내부 글 자물쇠 표시
+E2 인증·회원,작업,[FE] 권한별 메뉴 노출 분기,3,,frontend,완료,S0,UI 숨김은 보안이 아니다 · 실제 차단은 서버
+E2 인증·회원,작업,[BE] Spring Security 설정·필터 체인,5,,backend,완료,S2,공개/보호 경로 분리
+E2 인증·회원,작업,[BE] JWT 발급·검증 (access 30m / refresh 14d),5,security,backend,완료,S2,NFR-SEC-04
+E2 인증·회원,작업,[BE] refresh 토큰 DB 해시 저장·로그아웃 폐기,3,security,backend,완료,S2,NFR-SEC-05
+E2 인증·회원,작업,[BE] POST /auth/verify-roster 명단 대조,5,contract,backend,완료,S2,registrationToken 5분 1회용
+E2 인증·회원,작업,[BE] POST /auth/register 계정 생성,5,contract,backend,완료,S2,생성 즉시 role=MEMBER
+E2 인증·회원,작업,[BE] POST /auth/login + 5회 실패 15분 잠금,5,security,backend,완료,S2,잠금도 일반 실패와 같은 응답
+E2 인증·회원,작업,[BE] POST /auth/refresh,3,,backend,완료,S2,쿠키 재발급
+E2 인증·회원,작업,[BE] POST /auth/logout,2,,backend,완료,S2,쿠키 삭제 + 토큰 폐기
+E2 인증·회원,작업,[BE] GET /auth/me,2,,backend,완료,S2,세션 사용자 정보
+E2 인증·회원,작업,[BE] 카카오 OAuth authorize/callback,8,,backend,대기,S2,FR-AUTH-03 · 카카오만으로 가입 불가
+E2 인증·회원,작업,[BE] 카카오 계정 연결·명단 선점 처리,5,,backend,대기,S2,명단 대조를 통과한 사용자만 연결
+E2 인증·회원,작업,[BE] 비밀번호 리셋 코드 발급·검증,5,security,backend,대기,S2,30분 1회용 · FR-AUTH-08
+E2 인증·회원,작업,[BE] RoleHierarchy + @PreAuthorize 적용,3,security,backend,완료,S2,NFR-SEC-10
+E2 인증·회원,작업,[BE] 내 정보 조회·수정 API,3,,backend,대기,S2,연락처 수정
+E2 인증·회원,작업,[BE] 비밀번호 변경 API,2,,backend,대기,S2,현재 비밀번호 확인
+E2 인증·회원,작업,[BE] 탈퇴 — 계정 삭제 + 명단 claimed_at 해제,3,,backend,대기,S2,재가입 가능해야 한다
+E2 인증·회원,작업,[BE] 감사 로그 기록,3,security,backend,대기,S2,FR-ADM-06 삭제·역할변경·리셋코드 발급
+E2 인증·회원,작업,[TEST] JWT 만료·위조·다른 서명키 401 테스트,3,security,backend,대기,S2,NFR-SEC-06
+E2 인증·회원,작업,[TEST] 쿠키 속성 HttpOnly/Secure/SameSite 테스트,2,security,backend,대기,S2,NFR-SEC-02
+E2 인증·회원,작업,[TEST] 로그인 5회 실패 잠금 테스트,3,security,backend,대기,S2,15분 경과 후 해제까지
+E2 인증·회원,작업,[TEST] 명단 대조 실패 단일 응답 테스트,2,security,backend,대기,S2,필드별 차이가 응답에 드러나지 않는다
+E2 인증·회원,작업,[TEST] 리셋 코드 1회용·만료 테스트,3,security,backend,대기,S2,NFR-SEC-08
+E2 인증·회원,작업,[TEST] 카카오 콜백 시나리오 테스트,5,,backend,대기,S2,신규·기존 연결·거부 3갈래
+E2 인증·회원,작업,[TEST] 탈퇴 후 재가입 회귀 테스트,3,,backend,대기,S2,claimed_at 해제 확인
+E2 인증·회원,작업,[TEST] 로그인·가입 폼 검증 테스트,3,,frontend,대기,S2,mock 실패 케이스 포함
+E2 인증·회원,작업,[TEST] 401 → refresh → 재시도 테스트,3,,frontend,대기,S2,single-flight 중복 호출 없음
+E2 인증·회원,작업,[TEST] 권한별 메뉴 렌더 테스트,2,,frontend,대기,S2,GUEST/MEMBER/LEADER/PASTOR 4갈래
+E2 인증·회원,작업,[TEST] 통합 #2 — 실서버 401 왕복 실측,5,verify,frontend,대기,S2,만료 → 자동 갱신 → 원요청 성공
+E2 인증·회원,작업,[TEST] 인증 시나리오 10건 회귀 재실행,3,verify,frontend,대기,S2,실서버 기준으로 다시
+E3 주보,작업,[FE] /bulletin 최신 주보 자동 열림,3,,frontend,완료,S0,FR-BUL-01 목록을 먼저 보여주지 않는다
+E3 주보,작업,[FE] 지난 주보 목록·더 보기,3,,frontend,완료,S0,FR-BUL-02 페이지네이션 미검증(mock hasNext false)
+E3 주보,작업,[FE] 주보 뷰어 스와이프·키보드 이동,3,,frontend,완료,S0,FR-BUL-03 1페이지면 페이저 미렌더
+E3 주보,작업,[FE] 주보 뷰어 핀치 줌·팬·더블탭,5,,frontend,완료,S0,usePinchZoom — 라이트박스와 공유
+E3 주보,작업,[FE] 주보 장별 다운로드,2,contract,frontend,완료,S0,FR-BUL-04 엔드포인트는 신규 제안 상태
+E3 주보,작업,[FE] 주보 업로드 — 순서 지정·WebP 변환,5,,frontend,완료,S0,FR-BUL-05 한 장이라도 실패하면 전체 미전송
+E3 주보,작업,[FE] 주보 교체·삭제 흐름,3,,frontend,완료,S0,FR-BUL-06 DUPLICATE → 확인 → 삭제 후 재업로드
+E3 주보,작업,[FE] 주보 회원 게이트,3,security,frontend,완료,S0,2026-09-04 G→M · 게이트 없이 배포하면 에러 텍스트만 남는다
+E3 주보,작업,[BE] GET /api/bulletins 목록,3,,backend,완료,S3,주일 날짜 최신순 페이징
+E3 주보,작업,[BE] GET /api/bulletins/latest,2,,backend,완료,S3,진입 시 자동 열림용
+E3 주보,작업,[BE] GET /api/bulletins/{id},2,,backend,완료,S3,장별 이미지 목록
+E3 주보,작업,[BE] POST /api/bulletins multipart 업로드,5,,backend,완료,S3,순서 보존 · 장변 2048
+E3 주보,작업,[BE] DELETE /api/bulletins/{id} + R2 객체 삭제,3,,backend,완료,S3,고아 객체를 남기지 않는다
+E3 주보,작업,[BE] 주보 장별 다운로드 엔드포인트,3,contract,backend,대기,S3,FE가 요청한 신규 계약
+E3 주보,작업,[BE] 같은 주일 중복 업로드 409 DUPLICATE,2,,backend,완료,S3,FE 교체 흐름의 전제
+E3 주보,작업,[TEST] 주보 CRUD 통합 테스트,3,,backend,대기,S3,업로드→목록→상세→삭제
+E3 주보,작업,[TEST] 주보 인가 테스트,3,security,backend,대기,S3,열람 M · 쓰기 L · 익명 401
+E3 주보,작업,[TEST] 뷰어 제스처 테스트,3,,frontend,대기,S3,스와이프·키보드·확대 중 가로 이동
+E3 주보,작업,[TEST] 업로드 전체 미전송 규칙 테스트,3,,frontend,대기,S3,변환 실패 1장이면 아무것도 올리지 않는다
+E3 주보,작업,[TEST] 주보 실연동 검증,3,verify,frontend,대기,S3,업로드 → 열람 → 다운로드 → 삭제 관통
+E4 사진첩,작업,[FE] /photos 앨범 목록,3,,frontend,완료,S0,FR-PHO-01 사진 0장 앨범 처리 포함
+E4 사진첩,작업,[FE] 앨범 상세 그리드·무한 스크롤,5,,frontend,완료,S0,FR-PHO-02 커서 기반
+E4 사진첩,작업,[FE] 라이트박스 — 스와이프·키보드·포커스 트랩,5,,frontend,완료,S0,FR-PHO-03
+E4 사진첩,작업,[FE] 라이트박스 핀치 줌 공유 훅,3,,frontend,완료,S0,확대 전에는 아무것도 가로채지 않는다
+E4 사진첩,작업,[FE] 사진 개별 다운로드,2,,frontend,완료,S0,FR-PHO-04 파일명은 서버 Content-Disposition
+E4 사진첩,작업,[FE] 사진 신고·삭제 요청,3,,frontend,완료,S0,FR-PHO-06 초상권 대응
+E4 사진첩,작업,[FE] 앨범 생성,2,,frontend,완료,S0,FR-PHO-07 제목·행사일
+E4 사진첩,작업,[FE] 업로더 — 다중 선택·드래그앤드롭,3,,frontend,완료,S0,FR-PHO-08
+E4 사진첩,작업,[FE] 업로더 — 브라우저 리사이즈 2560/640 WebP,5,,frontend,완료,S0,EXIF 회전 보정 포함
+E4 사진첩,작업,[FE] 업로더 — 동시 4개 큐·진행률,5,,frontend,완료,S0,이탈 경고 포함
+E4 사진첩,작업,[FE] 업로더 — 20장 배치 issue/commit,5,,frontend,완료,S0,고아 방지를 위해 같은 photoId로 재발급
+E4 사진첩,작업,[FE] 업로더 — 실패 항목만 재시도,3,,frontend,완료,S0,전체 재업로드를 강요하지 않는다
+E4 사진첩,작업,[FE] HEIC 등 디코딩 실패 건너뛰기·목록 표시,2,,frontend,완료,S0,사용자에게 어떤 파일이 빠졌는지 알린다
+E4 사진첩,작업,[FE] 사진·앨범 삭제,3,,frontend,완료,S0,FR-PHO-09 앨범은 제목 타이핑 확인
+E4 사진첩,작업,[FE] 저장 용량 게이지 80%/95%,3,cost,frontend,완료,S0,FR-PHO-10 임계값은 응답에서 읽는다
+E4 사진첩,작업,[BE] R2 클라이언트·버킷 완전 비공개 설정,3,security,backend,완료,S3,NFR-SEC-15 공개 URL 없음
+E4 사진첩,작업,[BE] POST /api/uploads:issue presigned PUT 발급,5,contract,backend,완료,S3,원본·썸네일 2개 · 15분 유효
+E4 사진첩,작업,[BE] POST /api/uploads:commit,5,contract,backend,완료,S3,COMMITTED 전환 + 용량 기록
+E4 사진첩,작업,[BE] 용량 한도 검사 — 95% 거부,3,cost,backend,완료,S3,STORAGE_LIMIT 409
+E4 사진첩,작업,[BE] 미커밋(PENDING) 정리 배치,3,cost,backend,대기,S3,이탈로 남은 고아 객체 회수
+E4 사진첩,작업,[BE] GET /api/albums 목록,3,,backend,완료,S3,커버·사진 수 집계
+E4 사진첩,작업,[BE] POST/DELETE /api/albums,3,,backend,완료,S3,앨범 삭제 시 사진·R2 객체 함께
+E4 사진첩,작업,[BE] GET /api/albums/{id}/photos 커서 페이징,5,contract,backend,완료,S3,사진만 커서 방식
+E4 사진첩,작업,[BE] GET /api/photos/{id}/download 302,3,,backend,완료,S3,presigned URL로 리다이렉트
+E4 사진첩,작업,[BE] POST /api/photos/{id}/report,3,,backend,대기,S3,임원에게 전달
+E4 사진첩,작업,[BE] DELETE /api/photos/{id} + R2 삭제,3,,backend,완료,S3,대량 삭제는 제공하지 않는다
+E4 사진첩,작업,[BE] GET /api/admin/storage 용량 집계,3,cost,backend,완료,S3,게이지 데이터원
+E4 사진첩,작업,[BE] 앨범 아카이브,5,,backend,대기,S4,FR-PHO-11 · FE 트리거 UI 필요 여부 미정
+E4 사진첩,작업,[TEST] presigned URL 만료·재발급 테스트,3,security,backend,대기,S3,15분 경과 후 거부
+E4 사진첩,작업,[TEST] 용량 한도 경계 테스트 80/95%,3,cost,backend,대기,S3,경고와 차단 경계값
+E4 사진첩,작업,[TEST] 커서 페이징 경계 테스트,3,,backend,대기,S3,마지막 페이지·삭제 중 커서
+E4 사진첩,작업,[TEST] 사진첩 인가 테스트,3,security,backend,대기,S3,열람 M · 업로드/삭제 L
+E4 사진첩,작업,[TEST] 업로드 큐 부분 실패·재시도 테스트,3,,frontend,대기,S3,4개 중 1개 실패 시나리오
+E4 사진첩,작업,[TEST] 라이트박스 제스처·접근성 테스트,3,,frontend,대기,S3,Esc·화살표·포커스 트랩
+E4 사진첩,작업,[TEST] 통합 #3 — 브라우저→R2 실왕복 관통,8,verify,frontend,대기,S3,최대 위험 접점 · mock으로는 검증 불가
+E4 사진첩,작업,[TEST] R2 버킷 CORS 설정 검증,3,verify,infra,대기,S3,PUT 프리플라이트 통과 확인
+E4 사진첩,작업,[TEST] 삭제 시 R2 객체 실제 제거 확인,2,verify,backend,대기,S3,DB만 지워지고 객체가 남지 않는지
+E5 월례회 자료,작업,[FE] /meetings 목록 3상태 표시,3,,frontend,완료,S0,FR-MTG-01 SCHEDULED/OPEN/CLOSED
+E5 월례회 자료,작업,[FE] 뷰어 — 페이지 이미지 스와이프,5,,frontend,완료,S0,FR-MTG-02 URL을 저장·캐시하지 않는다
+E5 월례회 자료,작업,[FE] 남은 시간 카운트다운,2,,frontend,완료,S0,열람 종료까지
+E5 월례회 자료,작업,[FE] 저장 제스처 마찰·한계 문구,2,,frontend,완료,S0,FR-MTG-04 막았다고 말하지 않는다
+E5 월례회 자료,작업,[FE] 기간 종료 상태 처리,2,,frontend,완료,S0,FR-MTG-05 존재는 알리되 내용은 차단
+E5 월례회 자료,작업,[FE] 임원 상시 열람 배지,2,,frontend,완료,S0,FR-MTG-06
+E5 월례회 자료,작업,[FE] /admin/meetings/new PDF 업로드·진행 표시,5,,frontend,완료,S0,FR-MTG-07 변환 15~30초
+E5 월례회 자료,작업,[FE] 열람 기간 수정,3,,frontend,완료,S0,FR-MTG-08 연장·조기 종료
+E5 월례회 자료,작업,[FE] 열람 로그 화면,3,,frontend,완료,S0,FR-MTG-09 누가·언제·몇 페이지
+E5 월례회 자료,작업,[BE] PDFBox 페이지 렌더링 변환 파이프라인,8,,backend,대기,S4,10페이지 내외 동기 처리
+E5 월례회 자료,작업,[BE] 변환 실패 처리·PDF 원본 폐기,3,security,backend,대기,S4,NFR-SEC-20 원본을 보관하지 않는다
+E5 월례회 자료,작업,[BE] POST /api/meetings multipart PDF,5,contract,backend,대기,S4,열람 기간과 함께 생성
+E5 월례회 자료,작업,[BE] GET /api/meetings 목록,3,,backend,대기,S4,상태별 노출
+E5 월례회 자료,작업,[BE] GET /api/meetings/{id} 기간 검사,3,security,backend,대기,S4,기간 외 403
+E5 월례회 자료,작업,[BE] GET /meetings/{id}/pages/{no} 직접 스트리밍,5,security,backend,대기,S4,NFR-SEC-18 presigned 미발급
+E5 월례회 자료,작업,[BE] 워터마크 합성 — 이름·연락처 뒷4자리·시각,8,security,backend,대기,S4,FR-MTG-03 BE 전용
+E5 월례회 자료,작업,[BE] 익명/세션 두 갈래 워터마크 분기,3,security,backend,대기,S4,익명은 OPEN 자료만
+E5 월례회 자료,작업,[BE] PATCH /meetings/{id}/window,3,,backend,대기,S4,기간 수정
+E5 월례회 자료,작업,[BE] DELETE /meetings/{id},2,,backend,대기,S4,페이지 이미지까지 삭제
+E5 월례회 자료,작업,[BE] GET /meetings/{id}/views 열람 로그 조회,3,,backend,대기,S4,임원 이상
+E5 월례회 자료,작업,[BE] 열람 로그 기록,3,,backend,대기,S4,페이지 단위 기록
+E5 월례회 자료,작업,[TEST] 기간 외 403 테스트 3역할,3,security,backend,대기,S4,익명·회원·임원 각각
+E5 월례회 자료,작업,[TEST] 응답에 R2 키 미포함 검증,2,security,backend,대기,S4,NFR-SEC-19
+E5 월례회 자료,작업,[TEST] PDF 10p 변환 40초 이내 측정,3,,backend,대기,S4,NFR-PERF-10
+E5 월례회 자료,작업,[TEST] 워터마크 페이지 p95 2s 측정,3,,backend,대기,S4,NFR-PERF-09
+E5 월례회 자료,작업,[TEST] 뷰어 상태 3종 렌더 테스트,3,,frontend,대기,S4,예정·열람중·종료
+E5 월례회 자료,작업,[TEST] 월례회 실연동 관통,5,verify,frontend,대기,S4,업로드 → 변환 → 열람 → 로그
+E6 게시판·문서,작업,[FE] Tiptap 리치텍스트 에디터 통합,8,,frontend,완료,S0,FR-DOC-01
+E6 게시판·문서,작업,[FE] POST_BODY_NODES — 에디터·읽기 노드 집합 일치,3,,frontend,완료,S0,한 곳에 선언해 구조적으로 맞춘다
+E6 게시판·문서,작업,[FE] 첨부 추가·제거 UI,3,,frontend,완료,S0,작성·수정 공용
+E6 게시판·문서,작업,[FE] 분류 선택·상단고정 토글,2,,frontend,완료,S0,NOTICE_PUBLIC/INTERNAL/MINUTES/BUDGET
+E6 게시판·문서,작업,[FE] 글 수정 화면 — 작성과 같은 폼,3,,frontend,완료,S0,FR-DOC-02 PostForm 재사용
+E6 게시판·문서,작업,[FE] 공개 범위 실시간 경고,3,,frontend,완료,S0,FR-DOC-06 분류 변경 시 누가 보는지 표시
+E6 게시판·문서,작업,[FE] /documents 회의록·예산안 탭,3,,frontend,완료,S0,FR-DOC-03 FR-DOC-04
+E6 게시판·문서,작업,[FE] 첨부 다운로드 링크,2,blocked-be,frontend,대기,S4,FR-DOC-05 GET /api/files/{id} 없어 열리지 않는다
+E6 게시판·문서,작업,[BE] posts CRUD — PostQueryService 단일 관문,8,security,backend,대기,S4,NFR-SEC-13 id로 찾고 그 글의 분류 권한 확인
+E6 게시판·문서,작업,[BE] 분류별 권한·예산안 404 은닉,5,security,backend,대기,S4,NFR-SEC-12
+E6 게시판·문서,작업,[BE] 첨부 업로드 API,5,,backend,대기,S4,게시물에 종속
+E6 게시판·문서,작업,[BE] GET /api/files/{attachmentId} 서명 URL,3,contract,backend,대기,S4,게시물 권한 상속 · 없으면 404
+E6 게시판·문서,작업,[BE] 첨부 삭제·고아 파일 정리,3,cost,backend,대기,S4,글 삭제 시 R2 객체까지
+E6 게시판·문서,작업,[BE] 리치텍스트 HTML 새니타이즈,3,security,backend,대기,S4,NFR-SEC-30 XSS
+E6 게시판·문서,작업,[BE] slug 생성·중복 처리,3,,backend,대기,S4,상세 URL 기준
+E6 게시판·문서,작업,[TEST] posts 분류 × 역할 인가 테스트,5,security,backend,대기,S4,4분류 × 5역할
+E6 게시판·문서,작업,[TEST] 예산안 상세 404 은닉 테스트,3,security,backend,대기,S4,403이 아니라 404여야 한다
+E6 게시판·문서,작업,[TEST] 첨부 권한 상속 테스트,3,security,backend,대기,S4,예산안 첨부는 L만
+E6 게시판·문서,작업,[TEST] XSS 페이로드 새니타이즈 테스트,3,security,backend,대기,S4,script·onerror·javascript URL
+E6 게시판·문서,작업,[TEST] 에디터 저장·재편집 왕복 테스트,3,,frontend,대기,S4,노드 손실 없는지
+E6 게시판·문서,작업,[TEST] 공개 범위 경고 분기 테스트,2,,frontend,대기,S4,분류 4종
+E6 게시판·문서,작업,[TEST] 문서 게시판 실연동 검증,3,verify,frontend,대기,S4,작성 → 첨부 → 열람 → 다운로드
+E7 출석부,작업,[FE] /admin/attendance 회차 목록,3,,frontend,완료,S0,진행 상태 우측 표시
+E7 출석부,작업,[FE] 인라인 회차 만들기 폼,3,,frontend,완료,S0,별도 페이지 없이 목록 위
+E7 출석부,작업,[FE] 진행 상태 표시 — 체크 n/m · 출석 n명,2,,frontend,완료,S0,체크 중과 완료를 구분
+E7 출석부,작업,[FE] 출결 체크 화면 — 마을 그룹 명단,3,,frontend,완료,S0,계정 없는 교인도 포함
+E7 출석부,작업,[FE] 상태 버튼 4종·미저장 표시,3,,frontend,완료,S0,출석·지각·결석·공결 · 이름 옆 점
+E7 출석부,작업,[FE] 하단 고정 저장 바,2,,frontend,완료,S0,미저장 개수 + 저장 버튼
+E7 출석부,작업,[FE] 회차 삭제,2,,frontend,완료,S0,확인 다이얼로그
+E7 출석부,작업,[BE] roster 테이블·마을 컬럼 스키마,3,,backend,대기,S4,출결 대상은 계정이 아니라 명단
+E7 출석부,작업,[BE] 명단 시드 스크립트 (CSV),3,security,backend,대기,S4,원본 CSV는 저장소에 커밋하지 않는다
+E7 출석부,작업,[BE] GET /attendance/sessions 목록·집계,5,contract,backend,대기,S4,checkedCount/presentCount/rosterCount
+E7 출석부,작업,[BE] POST /attendance/sessions,3,contract,backend,대기,S4,같은 날짜+종류 중복 409 DUPLICATE
+E7 출석부,작업,[BE] GET /attendance/sessions/{id} 명단 전원,5,contract,backend,대기,S4,status null = 기록 없음
+E7 출석부,작업,[BE] PUT /attendance/sessions/{id}/entries upsert,5,contract,backend,대기,S4,보낸 것만 덮는다
+E7 출석부,작업,[BE] DELETE /attendance/sessions/{id},2,,backend,대기,S4,204
+E7 출석부,작업,[BE] 출석부 인가 — 전부 LEADER 이상,2,security,backend,대기,S4,회원은 접근 불가
+E7 출석부,작업,[TEST] 회차 중복 생성 409 테스트,2,,backend,대기,S4,같은 날짜+종류
+E7 출석부,작업,[TEST] upsert 부분 저장 테스트,3,,backend,대기,S4,보내지 않은 항목이 지워지지 않는다
+E7 출석부,작업,[TEST] status null vs ABSENT 구분 테스트,3,,backend,대기,S4,둘을 섞으면 통계가 틀어진다
+E7 출석부,작업,[TEST] 출석부 인가 테스트,3,security,backend,대기,S4,G/M 403 · L/T 200
+E7 출석부,작업,[TEST] 미저장 표시·저장 후 초기화 테스트,3,,frontend,대기,S4,점 표시와 카운트
+E7 출석부,작업,[TEST] 마을 그룹 렌더 테스트,2,,frontend,대기,S4,1~9마을 + 새가족마을
+E7 출석부,작업,[TEST] 출석부 실연동 관통,5,verify,frontend,대기,S4,회차 생성 → 체크 → 저장 → 재진입
+E7 출석부,작업,[COMMON] 명단 CSV 전달·보관 절차 문서화,2,security,docs,대기,S4,개인정보 취급 경로를 남긴다
+E7 출석부,작업,[COMMON] 명단 CSV 전달 방법 결정,1,pm-decision,docs,대기,S4,저장소 밖 경로 확정
+E8 관리·회원운영,작업,[FE] /admin 관리 홈·역할 배지·진입점,3,,frontend,완료,S0,FR-ADM-01 그룹 3개
+E8 관리·회원운영,작업,[FE] 관리 홈 용량 게이지 배치,2,cost,frontend,완료,S0,80% 경고 · 95% 차단 배지
+E8 관리·회원운영,작업,[FE] /admin/members 목록·검색,3,,frontend,완료,S0,FR-ADM-03 이름 검색
+E8 관리·회원운영,작업,[FE] 역할 부여 확인 모달,3,,frontend,완료,S0,FR-ADM-04 되돌리기 어려운 동작
+E8 관리·회원운영,작업,[FE] 계정 삭제 — 사유 필수,3,,frontend,완료,S0,FR-ADM-02 명단 재개방 절차
+E8 관리·회원운영,작업,[FE] 리셋 코드 발급 UI,3,,frontend,완료,S0,FR-ADM-08 코드·만료 시각 표시
+E8 관리·회원운영,작업,[FE] /admin/newcomers 내역·보유기간 안내,3,,frontend,완료,S0,FR-ADM-07 1년 후 삭제 고지
+E8 관리·회원운영,작업,[BE] GET /api/admin/members 검색·페이징,3,,backend,대기,S4,PASTOR 전용
+E8 관리·회원운영,작업,[BE] DELETE /api/admin/members/{id} + 명단 재개방,5,,backend,대기,S4,claimed_at 해제
+E8 관리·회원운영,작업,[BE] PATCH /api/admin/members/{id}/role,3,security,backend,대기,S4,MEMBER ↔ LEADER
+E8 관리·회원운영,작업,[BE] 자기 잠금 방지 — 마지막 PASTOR 거부,3,security,backend,대기,S4,FR-ADM-05 NFR-SEC-14
+E8 관리·회원운영,작업,[BE] POST /api/admin/members/{id}/password/reset,3,security,backend,대기,S4,리셋 코드 발급
+E8 관리·회원운영,작업,[BE] GET /api/admin/newcomers,3,,backend,대기,S4,LEADER 이상
+E8 관리·회원운영,작업,[BE] 새가족 1년 보유 후 삭제 배치,3,security,backend,대기,S5,NFR-PRIV-05
+E8 관리·회원운영,작업,[TEST] 관리 API PASTOR 전용 인가 테스트,3,security,backend,대기,S4,LEADER는 403
+E8 관리·회원운영,작업,[TEST] 마지막 PASTOR 강등 거부 테스트,3,security,backend,대기,S4,자기 잠금 방지
+E8 관리·회원운영,작업,[TEST] 계정 삭제 후 재가입 가능 테스트,3,,backend,대기,S4,시드 계정으로 회귀
+E8 관리·회원운영,작업,[TEST] 감사 로그 기록 검증,3,security,backend,대기,S4,3개 동작이 남는지
+E8 관리·회원운영,작업,[TEST] 회원 관리 확인 모달 테스트,2,,frontend,대기,S4,취소 시 아무 일도 일어나지 않는다
+E8 관리·회원운영,작업,[TEST] 관리 화면 실연동 검증,3,verify,frontend,대기,S4,목록 → 역할 변경 → 삭제 → 리셋 코드
+E9 인프라·배포·CI,작업,[COMMON] Vercel 프로젝트 설정·환경변수,3,,infra,완료,S0,API_ORIGIN에 NEXT_PUBLIC 금지
+E9 인프라·배포·CI,작업,[COMMON] Vercel Production Branch 정합성 확인,2,verify,infra,완료,S0,13커밋 동결 사고 재발 방지
+E9 인프라·배포·CI,작업,[COMMON] 옛 preview 배포 5건 삭제,1,security,infra,대기,S5,보호를 풀기 전에 실행
+E9 인프라·배포·CI,작업,[COMMON] 프로덕션 공개 전 개인정보 자산 미배포 검증,3,security,infra,대기,S5,실인물 사진·주보 404를 curl로 확인
+E9 인프라·배포·CI,작업,[COMMON] Render 서비스·Deploy Hook,3,,infra,완료,S0,Auto-Deploy는 Off
+E9 인프라·배포·CI,작업,[COMMON] Dockerfile 2단계 빌드·비루트,3,,infra,완료,S0,Dockerfile Path는 Root Directory 기준
+E9 인프라·배포·CI,작업,[COMMON] Neon 연결·Flyway V1 적용,3,,infra,완료,S0,기동 시 마이그레이션
+E9 인프라·배포·CI,작업,[COMMON] cron 핑 재가동,1,cost,infra,대기,S5,USE_MOCK=0 시점 · */10 6-23 Asia/Seoul
+E9 인프라·배포·CI,작업,[COMMON] Actions 경로 필터·동시성 취소,3,cost,infra,완료,S0,무료 분 절약
+E9 인프라·배포·CI,작업,[COMMON] Actions → Render 배포 게이트,3,,infra,완료,S0,skipped 빌드로 배포하지 않는다
+E9 인프라·배포·CI,작업,[COMMON] CI 시크릿 스캔,3,security,infra,완료,S0,NFR-SEC-21
+E9 인프라·배포·CI,작업,[COMMON] Jenkins 로컬 파이프라인,5,,infra,완료,S0,검증 전용 · 배포에 관여하지 않는다
+E9 인프라·배포·CI,작업,[COMMON] 브랜치 5개 규약·통합 브랜치 운영,2,,infra,완료,S0,스택 머지 사고 재발 방지 규칙 포함
+E9 인프라·배포·CI,작업,[COMMON] PR 템플릿·CONTRACT 승인 규칙,2,contract,infra,완료,S0,계약 변경은 상대 승인
+E9 인프라·배포·CI,작업,[COMMON] 백엔드 CI Postgres 16 서비스,3,,infra,완료,S0,테스트에 실DB 필요
+E9 인프라·배포·CI,작업,[COMMON] 프론트 CI mock 0/1 이중 빌드,3,,infra,완료,S0,백엔드 없이도 통과해야 한다
+E9 인프라·배포·CI,작업,[COMMON] 비용 가드레일 주기 점검 루틴,3,cost,infra,대기,S5,Render 750h · Neon · R2 10GB
+E9 인프라·배포·CI,작업,[COMMON] Neon 자동 정지·커넥션 누수 점검,3,cost,infra,완료,S0,핑 경로는 /health/alive
+E9 인프라·배포·CI,작업,[COMMON] R2 버킷 CORS·비공개 설정,3,security,infra,대기,S3,브라우저 PUT 프리플라이트
+E9 인프라·배포·CI,작업,[COMMON] 새 환경변수 등록 누락 방지 체크,2,,infra,대기,S5,등록 전 머지되면 기동 실패
+E9 인프라·배포·CI,작업,[COMMON] DB 백업 — 일 1회 덤프,3,,infra,대기,S5,NFR-AVAIL-09 RPO 24시간
+E9 인프라·배포·CI,작업,[COMMON] 도메인 연결·HTTPS,3,,infra,대기,S5,정식 오픈 전
+E9 인프라·배포·CI,작업,[COMMON] 배포 롤백 절차 문서화,2,,docs,대기,S5,Render 이전 이미지로 되돌리기
+E9 인프라·배포·CI,작업,[COMMON] 사용량 주간 점검 루틴,2,cost,infra,대기,S5,Render·Neon·R2·Vercel
+E10 품질·보안·오픈,작업,[TEST] 인가 테스트 매트릭스 — 전 엔드포인트 × 5역할,8,security,backend,대기,S5,RLS가 없는 이 구조의 마지막 방어선
+E10 품질·보안·오픈,작업,[TEST] 인가 매트릭스 CI 필수화,3,security,infra,대기,S5,NFR-SEC-09
+E10 품질·보안·오픈,작업,[TEST] Bean Validation 전 입력 검증 점검,3,security,backend,대기,S5,NFR-SEC-25
+E10 품질·보안·오픈,작업,[TEST] CSRF SameSite + Origin 검증 테스트,3,security,backend,대기,S5,NFR-SEC-28
+E10 품질·보안·오픈,작업,[TEST] 회원·운영 응답 X-Robots-Tag noindex 확인,2,security,backend,대기,S5,NFR-SEC-29
+E10 품질·보안·오픈,작업,[TEST] 토큰 저장소 금지 코드 검색,1,security,frontend,대기,S5,NFR-SEC-03 localStorage
+E10 품질·보안·오픈,작업,[TEST] 클라이언트 번들 서버 키 미포함 확인,1,security,frontend,대기,S5,NFR-SEC-23
+E10 품질·보안·오픈,작업,[TEST] Lighthouse 성능 90+ 실측,3,verify,frontend,대기,S5,NFR-PERF-05 오래 이월됨
+E10 품질·보안·오픈,작업,[TEST] LCP/CLS/INP 측정·개선,5,verify,frontend,대기,S5,NFR-PERF-01~03
+E10 품질·보안·오픈,작업,[TEST] 초기 JS 번들 120KB 이하 확인,3,verify,frontend,대기,S5,NFR-PERF-04
+E10 품질·보안·오픈,작업,[TEST] 앨범 200장 전송량 20MB 이하 측정,3,cost,frontend,대기,S5,NFR-PERF-12
+E10 품질·보안·오픈,작업,[TEST] API p95 응답 측정,3,verify,backend,대기,S5,조회 500ms · 로그인 800ms · presigned 300ms
+E10 품질·보안·오픈,작업,[TEST] 접근성 — 키보드 내비·포커스 링,3,verify,frontend,대기,S5,모달 포커스 트랩 포함
+E10 품질·보안·오픈,작업,[TEST] 접근성 — 색 대비 AA 재검증,3,verify,frontend,대기,S5,팔레트 교체 후 24조합
+E10 품질·보안·오픈,작업,[TEST] 접근성 — 스크린리더 레이블 점검,3,verify,frontend,대기,S5,아이콘 전용 버튼 위주
+E10 품질·보안·오픈,작업,[TEST] 모바일 실기기 폭 확인,2,verify,frontend,대기,S5,햄버거·양옆 레일이 본문을 가리지 않는지
+E10 품질·보안·오픈,작업,[TEST] 다크 모드 육안 확인,2,verify,frontend,대기,S5,계산으로만 확인했다
+E10 품질·보안·오픈,작업,[COMMON] 다크 모드 정식 지원 범위 결정,1,pm-decision,docs,대기,S5,고친 것은 안 보이던 글자뿐
+E10 품질·보안·오픈,작업,[FE] PWA manifest·아이콘,3,,frontend,완료,S0,FR-MEM-03
+E10 품질·보안·오픈,작업,[FE] 서비스워커·오프라인 폴백,5,,frontend,완료,S0,/offline
+E10 품질·보안·오픈,작업,[FE] 회원 데이터 미캐싱 화이트리스트,3,security,frontend,완료,S0,캐시 전량 덤프로 검증
+E10 품질·보안·오픈,작업,[FE] 설치 배너 1회 노출·iOS 안내,3,,frontend,완료,S0,카카오 인앱은 설치 불가라 안내 없음
+E10 품질·보안·오픈,작업,[TEST] PWA 설치 실기기 검증,3,verify,frontend,대기,S5,안드로이드·iOS 각 1회
+E10 품질·보안·오픈,작업,[COMMON] 개인정보 처리방침 페이지 작성·게시,3,security,frontend,대기,S5,NFR-PRIV-01 수집항목·목적·보유기간·파기
+E10 품질·보안·오픈,작업,[TEST] 수집 동의 서버 재검증 확인,2,security,backend,대기,S5,NFR-PRIV-02 agreed 재검증
+E10 품질·보안·오픈,작업,[COMMON] 운영 매뉴얼(임원용) 작성,5,,docs,대기,S5,업로드·회원관리·출석부 사용법
+E10 품질·보안·오픈,작업,[COMMON] 백엔드 운영 문서,3,,docs,대기,S5,배포·롤백·장애 대응
+E10 품질·보안·오픈,작업,[COMMON] 채널 RSS 502 대응 결정,1,pm-decision,docs,대기,S5,그냥 둠 / YouTube API 키 / 수동 갱신
+E10 품질·보안·오픈,작업,[COMMON] 첫 화면 워드마크 가독성 판단,1,pm-decision,docs,대기,S5,사진 속 밝은 스크린과 겹친다
+E10 품질·보안·오픈,작업,[COMMON] Instagram 핸들·가입 동의 문구 확정,1,pm-decision,docs,대기,S5,값이 들어오면 3곳이 함께 살아난다
+E10 품질·보안·오픈,작업,[TEST] 배포 전 보안 체크리스트 공동 검증,5,security,docs,대기,S5,ARCHITECTURE §13 · FE·BE 함께
+E10 품질·보안·오픈,작업,[TEST] 정식 오픈 리허설 — 실사용 시나리오 관통,5,verify,frontend,대기,S5,새가족·회원·임원 3역할 시나리오
