@@ -58,3 +58,9 @@ node_modules/
 *.dump
 *.sql.gz
 light-[0-9]*.sql
+
+# ─────────── 로컬 스크래치 ───────────
+# PM PC에서 문서·키 정리하며 만든 임시 파일. 키 목록이 섞여 있을 수 있어
+# 절대 커밋하지 않는다. 필요 없어지면 그냥 지우면 된다.
+scratch_*.txt
+pm_chunks.json
