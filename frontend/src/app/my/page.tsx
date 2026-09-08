@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Section } from "@/components/ui/Section";
+import { Button } from "@/components/ui/Button";
 import { HomeTile } from "./_components/HomeTile";
 import { MyPreviews } from "./_components/MyPreviews";
 
@@ -37,11 +40,23 @@ export default function MyHomePage() {
  * 자료(주보·사진첩·공지·월례회·회의록)는 공개 주소로 옮겨가 헤더 메뉴에서
  * 바로 갈 수 있으므로, 여기는 **로그인한 사람에게만 의미가 있는 것**만 남긴다:
  * 내 정보와, 권한이 있으면 관리 진입점. 익명에게는 로그인 안내를 보여준다.
+ *
+ * LIGHT-26: 로그아웃은 `/my` → 내 정보 → 계정 관리로 3단계 깊이였다 —
+ * 가장 자주 쓰는 동작인데 가장 깊은 곳에 있었다. 여기 최상단으로 옮겨
+ * 바로 눌리게 한다. 회원 탈퇴는 되돌릴 수 없는 파괴적 동작이라 여기로
+ * 같이 옮기지 않고 `/my/profile`의 `AccountActions`에 그대로 둔다
+ * (로그아웃 옆에 두면 오클릭 위험이 커진다).
  */
 function MyHomeContent() {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, logout } = useAuth();
   const member = user;
   const isAdmin = member?.role === "LEADER" || member?.role === "PASTOR";
+
+  const logoutMutation = useMutation({
+    mutationFn: logout,
+    onSuccess: () => router.push("/"),
+  });
 
   if (!member) {
     return (
@@ -67,7 +82,17 @@ function MyHomeContent() {
   return (
     <main id="main" tabIndex={-1}>
       <Section>
-        <h1 className="text-2xl font-bold md:text-3xl">안녕하세요, {member.name}님</h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-2xl font-bold md:text-3xl">안녕하세요, {member.name}님</h1>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
+          >
+            {logoutMutation.isPending ? "로그아웃 중..." : "로그아웃"}
+          </Button>
+        </div>
 
         {/* 이번 주 주보 · 최근 앨범 (FR-MEM-01) — `_components/MyPreviews.tsx` */}
         <div className="mt-8">
