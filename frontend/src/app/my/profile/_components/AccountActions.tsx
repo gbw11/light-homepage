@@ -5,16 +5,22 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { Button } from "@/components/ui/Button";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 const inputClass =
   "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]";
 
-/** WIREFRAME.md §14 — ▸ 로그아웃 · ▸ 회원 탈퇴 */
+/**
+ * WIREFRAME.md §14 — ▸ 회원 탈퇴.
+ *
+ * 로그아웃 버튼은 LIGHT-26로 `/my` 최상단(`src/app/my/page.tsx`)으로
+ * 옮겼다 — 로그인 안 됨/승인대기 등 3단계 깊이는 자주 쓰는 동작치고 너무
+ * 멀었다. 회원 탈퇴는 되돌릴 수 없는 파괴적 동작이라 로그아웃 옆에 두면
+ * 오클릭 위험이 커서 여기(내 정보 하위)에 그대로 남겨둔다.
+ */
 export function AccountActions() {
   const router = useRouter();
-  const { user, logout, refetch } = useAuth();
+  const { user, refetch } = useAuth();
 
   // 카카오 가입자는 비밀번호가 없다 (SPEC_API §2.6 — loginId가 null).
   // 비밀번호를 요구하면 이 사람들은 탈퇴할 수단이 아예 없어진다. BE도 같은
@@ -25,11 +31,6 @@ export function AccountActions() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [confirm, confirmDialog] = useConfirm();
-
-  const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: () => router.push("/"),
-  });
 
   const deleteMutation = useMutation({
     mutationFn: (pw: string | undefined) => api.auth.deleteAccount(pw ? { password: pw } : {}),
@@ -60,16 +61,6 @@ export function AccountActions() {
   return (
     <div className="space-y-6">
       {confirmDialog}
-      <div>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => logoutMutation.mutate()}
-          disabled={logoutMutation.isPending}
-        >
-          {logoutMutation.isPending ? "로그아웃 중..." : "▸ 로그아웃"}
-        </Button>
-      </div>
 
       <div>
         {!isWithdrawOpen ? (
