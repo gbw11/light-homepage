@@ -34,8 +34,13 @@ const nextConfig: NextConfig = {
   },
 
   /**
-   * 옛 회원 전용 주소 → 공개 주소 (PM 결정 2026-08-25: 열람 공개).
+   * 옛 `/my/*` 주소 → 지금 주소 (PM 결정 2026-08-25).
    * 이미 공유된 링크·북마크·PWA 바로가기가 깨지지 않게 영구 리다이렉트한다.
+   *
+   * ⚠️ 원래 주석은 "열람 공개"라고 적혀 있었는데 **더 이상 사실이 아니다** —
+   *    주보는 2026-09-04에 회원 전용(`M`)으로 돌아갔다 (BE 전달, `app/bulletin/page.tsx`).
+   *    리다이렉트 자체는 그대로 유효하다: 주소가 옮겨간 것과 그 주소의 권한은
+   *    별개 문제다.
    */
   async redirects() {
     const moved = ["photos", "bulletin", "meetings", "documents"].flatMap((seg) => [
@@ -84,15 +89,17 @@ const nextConfig: NextConfig = {
         /**
          * mock 개발용 자산. 색인만 막는다.
          *
-         * ⚠️ 헤더로는 **직접 접근을 막을 수 없다.** 실제 방어는 사진 자산을
+         * ⚠️ 헤더로는 **직접 접근을 막을 수 없다.** 실제 방어는 자산을
          *    `public/` 밖(`frontend/mock-assets/`)에 두고 `/mock-assets/*`
          *    route handler가 **배포에서 404를 주는 것**이다
          *    (PM 결정 2026-08-27, 1안 — `docs/records/DECISIONS.md`).
          *
-         * `bulletins`는 `public/`에 남아 있다 — "PLACEHOLDER" 문구가 찍힌
-         * 생성물이고 개인정보가 아니다 (`mock.ts` 주보 mock 주석에서 확인).
+         * **2026-09-04: 주보도 여기로 들어왔다.** 전에는 `public/bulletins/`에
+         * 남겨두고 "PLACEHOLDER 생성물이라 개인정보가 아니다"를 근거로 삼았는데,
+         * 실제 주보로 교체하면서 그 근거가 사라졌다 — 실물에는 헌금 계좌번호·
+         * 개인 휴대폰·실명·얼굴이 있다. 옛 경로 `/bulletins/*`는 이제 없다.
          */
-        source: "/(mock-assets|bulletins)/:path*",
+        source: "/mock-assets/:path*",
         headers: noindex,
       },
     ];

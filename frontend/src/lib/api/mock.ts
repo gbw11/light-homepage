@@ -593,28 +593,53 @@ const dynamicAlbums: AlbumSummary[] = [];
 
 // ── 주보 mock (SPEC_API §5) ────────────────────────────────
 /**
- * ⚠️ **실제 주보 이미지가 아니다.** `public/bulletins/`의 이미지는 "PLACEHOLDER"
- *    문구가 찍힌 생성물이다. 남의 주보를 가져다 쓰지 않았고, 실제 주보처럼
- *    보이는 가짜를 만들지도 않았다 — 실물이 준비되면 교체한다.
+ * **2026-08-23 한 건은 실제 LIGHT 주보다** (YEAR 2026 · ISSUE 34). 나머지 두 건은
+ * "PLACEHOLDER" 문구가 찍힌 생성물이다 — 남의 주보를 가져다 쓰지 않았다.
  *
- * 크기는 스펙대로 1448×2048(장변 2048px)이다. 주보는 글자가 작아 큰 이미지를
- * 바로 로드해야 하므로(FR-BUL-03), 뷰어가 실제 크기에서 검증되어야 한다.
+ * ⚠️ **그래서 이 자산은 `public/`에 둘 수 없다.** 실물 2쪽에는 헌금 계좌번호·
+ *    헌금 금액·개인 휴대폰 번호·청년 실명·단체 사진이 있다. `public/`은 Next가
+ *    인증 없이 정적 서빙하므로, `/bulletin`에 `MemberGate`를 걸어도 이미지 URL
+ *    직접 접근은 열린다. `frontend/mock-assets/`로 옮겨 `/mock-assets/*` route
+ *    handler가 **프로덕션에서 404**를 주게 했다 — 사진 47장에 대해 2026-08-27에
+ *    만들고 실측 검증한 그 장치를 그대로 쓴다 (DECISIONS 2026-08-27 · 2026-09-04).
+ *
+ * **크기가 두 비율로 섞여 있다.** 실물은 **가로형 1231×875**이고 placeholder는
+ * 세로형 1448×2048이다. 일부러 섞어 뒀다 — 뷰어가 `page.width/height`로
+ * `aspectRatio`를 예약하는데(`BulletinViewer`), 지금까지 세로형만 있어서 가로형
+ * CLS 예약이 한 번도 검증되지 않았다. 실제 운영도 두 비율이 섞일 수 있다.
+ *
+ * 실물이 스펙의 "장변 2048px"보다 작다(1231px). **업스케일하지 않았다** — 정보를
+ * 늘리지 않고 흐려지기만 한다. 그래서 이 자산으로는 2048px 경로가 검증되지 않는다.
+ *
+ * ⚠️ 실물 주보에는 **`ISSUE 34`라는 발행 번호**가 있는데 계약(`types/api.ts`
+ *    `Bulletin`)에는 `issueNo`가 없다 — BE에 판단을 넘겼다 (`BACKEND_HANDOFF`).
  */
 const BULLETIN_DATES: { id: string; date: string; pages: number }[] = [
-  { id: "12", date: "2026-08-24", pages: 2 },
-  { id: "11", date: "2026-08-17", pages: 2 },
-  { id: "10", date: "2026-08-10", pages: 1 },
+  // 날짜는 실제 주일이어야 한다. 2026년 8월 주일은 2·9·16·23·30일이고,
+  // 예전 값(08-10 / 08-17 / 08-24)은 전부 주일이 아니었다.
+  { id: "12", date: "2026-08-23", pages: 2 },
+  { id: "11", date: "2026-08-16", pages: 2 },
+  { id: "10", date: "2026-08-09", pages: 1 },
 ];
 
+/** 실물 주보(2026-08-23)의 실제 픽셀 크기. 가로형이다 */
+const REAL_BULLETIN_SIZE = { width: 1231, height: 875 };
+/** placeholder 생성물의 크기. 스펙대로 장변 2048px 세로형 */
+const PLACEHOLDER_BULLETIN_SIZE = { width: 1448, height: 2048 };
+
+function bulletinPageSize(date: string) {
+  return date === "2026-08-23" ? REAL_BULLETIN_SIZE : PLACEHOLDER_BULLETIN_SIZE;
+}
+
 function bulletinOf(entry: (typeof BULLETIN_DATES)[number]): Bulletin {
+  const size = bulletinPageSize(entry.date);
   return {
     id: entry.id,
     serviceDate: entry.date,
     pages: Array.from({ length: entry.pages }, (_, i) => ({
       pageNo: i + 1,
-      url: `/bulletins/${entry.date}-p${i + 1}.webp`,
-      width: 1448,
-      height: 2048,
+      url: `/mock-assets/bulletins/${entry.date}-p${i + 1}.webp`,
+      ...size,
     })),
   };
 }
@@ -1139,7 +1164,7 @@ function allMockBulletins(): MockBulletin[] {
     id: entry.id,
     serviceDate: entry.date,
     pages: bulletinOf(entry).pages,
-    thumbUrl: `/bulletins/${entry.date}-thumb.webp`,
+    thumbUrl: `/mock-assets/bulletins/${entry.date}-thumb.webp`,
   }));
 
   return [...dynamicBulletins, ...seeded]

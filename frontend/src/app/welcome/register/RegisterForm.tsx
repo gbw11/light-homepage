@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { YOUTH_SERVICE_LINE } from "@/content/worship";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
@@ -296,7 +297,7 @@ function RegisterUnavailable() {
       </div>
 
       <p className="mt-4 text-sm text-[var(--color-gray-400)]">
-        주일 14:00 · 드림센터 4층. 등록 없이 오셔도 맞이합니다.
+        {YOUTH_SERVICE_LINE}. 등록 없이 오셔도 맞이합니다.
       </p>
     </div>
   );

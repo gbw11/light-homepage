@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 export interface AccordionItem {
   question: string;
-  answer: string;
+  /**
+   * 문자열이거나 블록 마크업이다.
+   *
+   * FAQ는 한 문장이면 되지만 `/worship`의 본당 예배 시간표는 경고 블록 +
+   * `<table>`을 접어 넣는다. `string`이었을 때는 그게 안 됐다 — 아래 `<p>`
+   * 래퍼를 조건부로 바꾼 것도 그래서다 (`<p>` 안에 `<table>`은 못 들어간다).
+   */
+  answer: ReactNode;
 }
 
 interface AccordionProps {
@@ -33,9 +40,9 @@ export function Accordion({ items }: AccordionProps) {
               </span>
             </button>
             {isOpen && (
-              <p className="pb-4 text-base leading-[1.7] text-[var(--color-gray-400)]">
-                {item.answer}
-              </p>
+              <div className="pb-4 text-base leading-[1.7] text-[var(--color-gray-400)]">
+                {typeof item.answer === "string" ? <p>{item.answer}</p> : item.answer}
+              </div>
             )}
           </li>
         );

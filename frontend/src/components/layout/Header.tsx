@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { YOUTH_SERVICE_LINE } from "@/content/worship";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -372,7 +373,7 @@ export function Header() {
 
           <hr className="my-6 border-[var(--color-navy-100)]" />
 
-          <p className="text-base text-[var(--color-gray-400)]">주일 14:00 · 드림센터 4층</p>
+          <p className="text-base text-[var(--color-gray-400)]">{YOUTH_SERVICE_LINE}</p>
           <Link
             href="/contact"
             className="mt-2 inline-flex min-h-11 items-center text-base text-[var(--color-gray-400)]"
