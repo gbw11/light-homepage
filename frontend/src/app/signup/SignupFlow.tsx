@@ -380,6 +380,20 @@ function RegisterStep({
           </p>
         )}
 
+        {/*
+          새가족 등록(RegisterForm.tsx)에서 이미 개인정보 수집·이용에
+          동의받았으므로 여기서 다시 체크박스를 받지는 않는다 — 여기서 새로
+          수집하는 건 아이디·비밀번호뿐이다. 대신 처리방침 링크를 안내한다
+          (PM 결정 2026-09-09, docs/records/DECISIONS.md).
+        */}
+        <p className="text-xs text-[var(--color-gray-400)]">
+          가입하면 아이디·비밀번호가 저장됩니다. 자세한 내용은{" "}
+          <Link href="/privacy" className="underline">
+            개인정보 처리방침
+          </Link>
+          을 확인해주세요.
+        </p>
+
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
           {mutation.isPending ? "가입 중..." : "가입하기"}
         </Button>
