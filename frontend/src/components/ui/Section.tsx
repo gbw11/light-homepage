@@ -10,6 +10,12 @@ interface SectionProps {
   titleAs?: "h1" | "h2";
   children: ReactNode;
   className?: string;
+  /**
+   * 다른 화면에서 이 섹션으로 곧장 링크할 때만 준다 (`/location#parking`).
+   * 값은 **영문**으로 둔다 — 한글 id는 주소창에서 퍼센트 인코딩으로 늘어져
+   * 링크를 눈으로 확인하기 어렵다.
+   */
+  id?: string;
 }
 
 /** 컨테이너 max-w 1200px, 섹션 여백 64/96 (ARCHITECTURE.md §11) */
@@ -18,9 +24,11 @@ export function Section({
   titleAs: Heading = "h2",
   children,
   className = "",
+  id,
 }: SectionProps) {
   return (
     <section
+      id={id}
       className={`mx-auto w-full max-w-[var(--container-max)] px-5 py-16 md:px-10 md:py-24 ${className}`}
     >
       {title && <Heading className="mb-6 text-xl font-bold md:text-2xl">{title}</Heading>}

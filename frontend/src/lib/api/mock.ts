@@ -2211,7 +2211,13 @@ export const mockApi: Api = {
     async latest(): Promise<Bulletin | null> {
       await delay();
       throwIfScenario();
-      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
+      /*
+        열람은 회원(`M`)부터다 (BE 전달 2026-09-04 — 2026-08-25의 공개 열람
+        전환 결정을 대체한다). mock이 가드를 갖지 않으면
+        `NEXT_PUBLIC_USE_MOCK=1`로 개발하는 동안 게이트가 보이지 않아,
+        실서버에 붙이고 나서야 빠진 것을 알게 된다 (MemberGate 주석).
+      */
+      requireSession();
 
       // 주보가 아직 없는 상태도 화면이 처리해야 한다 (SPEC_API §5.1: data null)
       if (scenario() === "empty") return null;
@@ -2222,7 +2228,7 @@ export const mockApi: Api = {
     async list({ page = 0, size = 20 } = {}): Promise<Page<BulletinSummary>> {
       await delay();
       throwIfScenario();
-      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
+      requireSession(); // 열람은 회원부터 — `latest()` 주석 참고
 
       const all: BulletinSummary[] =
         scenario() === "empty"
@@ -2240,7 +2246,7 @@ export const mockApi: Api = {
     async get(id: string): Promise<Bulletin> {
       await delay();
       throwIfScenario();
-      // 공개 열람 전환(PM 결정 2026-08-25): 열람은 로그인 없이 허용한다
+      requireSession(); // 열람은 회원부터 — `latest()` 주석 참고
 
       const found = allMockBulletins().find((b) => b.id === id);
       if (!found) {

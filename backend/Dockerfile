@@ -51,13 +51,21 @@ WORKDIR /app
 #    → M4에서 렌더링 품질 문제가 생기면 `eclipse-temurin:21-jre-jammy`(Debian)로
 #      바꾸는 것이 다음 수단이다. 이미지가 커지는 대신 폰트 환경이 안정적이다.
 #
-#    ⚠️ **DejaVu에는 한글 글리프가 없다.** M4에서 한글 월례회 PDF를 렌더링하면
-#       "죽지는 않지만 글자가 □□□로 나온다" — 죽는 것보다 발견이 늦다. M4 착수 시
-#       한글 폰트(alpine community의 `font-nanum` 등)를 여기에 추가해야 한다.
-#       ⚠️ 지금 넣지 않는 이유: 패키지명·저장소를 이미지 빌드로 확인해야 하는데
-#       2026-08-27 시점에 로컬 Docker 데몬이 꺼져 있어 검증할 수 없었다. 검증 없이
-#       `apk add`를 늘리면 **배포 빌드가 깨지고**, 그 대가가 이득보다 크다.
-RUN apk add --no-cache fontconfig ttf-dejavu
+#    ✅ **한글 폰트 추가 (2026-09-04, 실측 검증)** — M4 월례회 워터마크(§7.3)가
+#       이름을 이미지에 태우므로 한글 글리프가 반드시 필요하다. DejaVu에는 없다.
+#
+#       컨테이너에서 직접 재본 값:
+#         fontconfig + ttf-dejavu 만  → 폰트 12개 · **한글 가능 0개** (□□□로 나온다)
+#         + font-noto-cjk            → 폰트 27개 · 한글 가능 20개 (정상)
+#
+#       ⚠️ 2026-08-27 주석이 후보로 적어둔 `font-nanum`은 **alpine 저장소에 없다.**
+#          `apk search font-nanum*`이 아무것도 내지 않는다. `font-noto-cjk`가 맞다.
+#
+#       ⚠️ 이미지가 **89MB 늘어난다** (202MB → 291MB). 한국어 전용 alpine 패키지가
+#          없어 CJK 전체(JP·KR·HK·SC·TC)가 들어오기 때문이다. 줄이려면 Noto Sans KR
+#          단독 폰트를 jar 리소스로 넣고 Font.createFont로 읽는 방법이 있다(~16MB).
+#          지금은 이미지 크기보다 "배포 환경에서 확실히 동작하는 것"을 택했다.
+RUN apk add --no-cache fontconfig ttf-dejavu font-noto-cjk
 
 # 루트로 돌리지 않는다 — 컨테이너가 뚫렸을 때 할 수 있는 일을 줄인다
 RUN addgroup -S light && adduser -S light -G light

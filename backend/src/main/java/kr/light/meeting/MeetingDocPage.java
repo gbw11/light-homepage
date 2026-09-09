@@ -33,6 +33,10 @@ public class MeetingDocPage {
     @Column(name = "r2_key", nullable = false, length = 500)
     private String r2Key;
 
+    /** 용량 한도 계산의 근거 (SPEC_API.md §8.5). M4 업로드 구현 시 실측값을 채운다 */
+    @Column(name = "size_bytes", nullable = false)
+    private long sizeBytes;
+
     private Integer width;
 
     private Integer height;
