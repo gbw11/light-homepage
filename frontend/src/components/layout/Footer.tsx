@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CHURCH_PHONE, CHURCH_PHONE_TEL } from "@/content/contact";
 import { YOUTH_SERVICE_LINE } from "@/content/worship";
 import { CHURCH_SITE_URL, INSTAGRAM_URL, YOUTUBE_CHANNEL_URL } from "@/content/links";
@@ -96,8 +97,11 @@ export function Footer() {
         </nav>
 
         <p className="mt-4 border-t border-white/15 pt-4 text-white/60">
-          © 2026 김해교회 청년교회 LIGHT
+          <Link href="/privacy" className="hover:underline">
+            개인정보 처리방침
+          </Link>
         </p>
+        <p className="mt-2 text-white/60">© 2026 김해교회 청년교회 LIGHT</p>
       </div>
     </footer>
   );
