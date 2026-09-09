@@ -55,6 +55,16 @@ public class Attachment {
     @Column(name = "size_bytes", nullable = false)
     private long sizeBytes;
 
+    /**
+     * 이미지인 경우의 픽셀 크기 (SPEC_API.md §5.1 {@code pages[].width}).
+     *
+     * <p>뷰어가 이미지를 받기 <b>전에</b> 자리를 잡는 데 쓴다 — 없으면 로딩 중
+     * 화면이 튄다. 게시물 첨부(pdf·hwp 등)에는 의미가 없어 null이다.
+     */
+    private Integer width;
+
+    private Integer height;
+
     /** 주보 페이지 순서 */
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
@@ -87,5 +97,15 @@ public class Attachment {
      */
     public void unlink() {
         this.post = null;
+    }
+
+    /**
+     * R2 키를 채운다 (§4.1).
+     *
+     * <p>키에 첨부 id가 들어가는데 id는 DB가 채우는 값이라, 행을 저장한
+     * <b>뒤에</b> 정해진다.
+     */
+    public void assignKey(String r2Key) {
+        this.r2Key = r2Key;
     }
 }
