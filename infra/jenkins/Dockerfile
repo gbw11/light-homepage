@@ -22,6 +22,14 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends docker-ce-cli \
  && rm -rf /var/lib/apt/lists/*
 
+# 월례회 자료(§7) 워터마크가 페이지 이미지에 열람자 이름을 한글로 그린다.
+# jenkins/jenkins:lts-jdk21(Debian)에는 CJK 폰트가 없어 □□□로 나오고
+# MeetingPageStreamTest.한글_렌더링이 실패한다. backend/Dockerfile(alpine)의
+# font-noto-cjk와 같은 폰트, Debian 패키지명만 다르다(fonts-noto-cjk).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends fonts-noto-cjk \
+ && rm -rf /var/lib/apt/lists/*
+
 # compose가 user: root로 실행하므로 USER를 되돌리지 않아도 동작은 같지만,
 # 이미지 단독 사용 시의 기본값은 원본과 동일하게 유지한다
 USER jenkins
