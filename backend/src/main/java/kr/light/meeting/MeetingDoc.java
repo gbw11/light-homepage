@@ -66,6 +66,16 @@ public class MeetingDoc {
         return MeetingDocStatus.OPEN;
     }
 
+    /**
+     * 변환이 끝난 뒤 페이지 수를 채운다 (§7.4).
+     *
+     * <p>업로드 시점에는 몇 쪽인지 알 수 없다 — PDF를 열어봐야 안다.
+     * 그런데 R2 키에 문서 id가 들어가서 행을 먼저 만들어야 한다.
+     */
+    public void setPageCount(int pageCount) {
+        this.pageCount = pageCount;
+    }
+
     public void changeWindow(Instant from, Instant until) {
         this.viewableFrom = from;
         this.viewableUntil = until;

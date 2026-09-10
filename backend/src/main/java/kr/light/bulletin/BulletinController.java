@@ -148,6 +148,34 @@ public class BulletinController {
                 Map.of("id", created.id(), "pageCount", created.pageCount())));
     }
 
+    @Operation(summary = "주보 한 쪽 내려받기",
+            description = """
+                    **302 리다이렉트**로 presigned URL을 줍니다.
+
+                    ⚠️ **계약(§5)에 없는 엔드포인트입니다.** FE가 `types.ts`에
+                    `[CONTRACT]`로 제안한 경로를 그대로 씁니다 — `FR-BUL-04`가
+                    장별 다운로드를 요구하는데 §5에 경로가 없었습니다.
+
+                    ★ `§5.1`의 `pages[].url`과 **다른 값입니다.** 그쪽은 열람용이라
+                    브라우저가 탭에서 열어버립니다. 여기서는 R2에
+                    `Content-Disposition: attachment`를 지시해 저장되게 하고,
+                    파일명도 `2026-08-24-1쪽.webp` 형태로 지정합니다.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "302", description = "presigned URL로 리다이렉트"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404", ref = "#/components/responses/NOT_FOUND")
+    })
+    @GetMapping("/{id}/pages/{pageNo}/download")
+    public ResponseEntity<Void> downloadPage(@PathVariable Long id, @PathVariable int pageNo) {
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(java.net.URI.create(bulletinService.pageDownloadUrl(id, pageNo)))
+                .build();
+    }
+
     @Operation(summary = "주보 삭제",
             description = "⚠️ **R2 객체까지 지웁니다.** 남기면 용량이 조용히 샙니다.")
     @ApiResponses({

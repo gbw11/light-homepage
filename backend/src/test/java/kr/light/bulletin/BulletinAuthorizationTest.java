@@ -92,6 +92,23 @@ class BulletinAuthorizationTest {
         }
     }
 
+    @ParameterizedTest(name = "GET page download × {0} → {1}")
+    @MethodSource("readRoles")
+    void 장별_다운로드_인가(Role role, int expectedStatus, String expectedCode) throws Exception {
+        // ⚠️ 계약(§5)에 없는 경로다 — FE가 [CONTRACT]로 제안했고 권한을 M으로
+        //    맞췄다. 주보 열람이 M이 되면서 앞뒤가 맞았다 (2026-09-04).
+        var result = mockMvc.perform(
+                withRole(get("/api/bulletins/" + ANY_ID + "/pages/1/download"), role));
+
+        if (expectedCode == null) {
+            // 없는 주보라 통과하면 404다 — 인가가 그보다 먼저 판정된다
+            result.andExpect(status().isNotFound());
+        } else {
+            result.andExpect(status().is(expectedStatus))
+                    .andExpect(jsonPath("$.error.code").value(expectedCode));
+        }
+    }
+
     @Test
     @DisplayName("★ 로그인했는데 주보가 없으면 data가 null이다 — 404가 아니다")
     void 주보가_없으면_null() throws Exception {
