@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { YOUTH_SERVICE_LINE } from "@/content/worship";
 import { usePathname, useRouter } from "next/navigation";
@@ -135,8 +136,16 @@ export function Header() {
           */}
           <Link
             href="/"
-            className="inline-flex min-h-11 shrink-0 items-center text-lg font-bold text-[var(--color-accent-on-dark)]"
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 text-lg font-bold text-[var(--color-accent-on-dark)]"
           >
+            <Image
+              src="/images/logo.png"
+              alt=""
+              width={32}
+              height={32}
+              className="h-8 w-8 shrink-0 object-contain"
+              priority
+            />
             LIGHT
           </Link>
 
