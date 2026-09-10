@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/ui/Section";
-import { LightIntro } from "./_components/LightIntro";
+import { AboutHero } from "./_components/AboutHero";
 
 export const metadata: Metadata = {
   title: "소개",
@@ -51,16 +51,16 @@ export default function AboutPage() {
   return (
     <main id="main" tabIndex={-1}>
       {/*
-        워드마크라 녹색 계열로 둔다 (PM 2026-09-02). 여기는 밝은 배경이므로
-        어두운 표면용 토큰이 아니라 `--color-yellow`(라이트 #57674d 올리브 /
-        다크 #b3b792)를 쓴다 — 라이트 4.63:1 · 다크 8.32:1로 양쪽 AA 통과.
+        원래 `/`에 있던 전체화면 사진 게이트를 정적 히어로로 옮겨왔다
+        (`AboutHero`, PM 요청 2026-09-10) — 대신 애니메이션되는 글자
+        (`LightIntro`였던 것)는 `/`으로 옮겨서 첫 화면의 인트로가 됐다.
 
         h1은 시각적으로 숨기지 않고 스크린리더 전용으로만 둔다 — 페이지 제목은
-        여전히 필요하지만(SPEC_NONFUNCTIONAL.md §6), 화면에는 애니메이션되는
-        `LightIntro` 글자만 보이게 한다 (PM 요청 2026-09-10, "글씨가 너무 많다").
+        여전히 필요하지만(SPEC_NONFUNCTIONAL.md §6), 화면에는 히어로 안의
+        워드마크만 보이게 한다.
       */}
+      <AboutHero />
       <h1 className="sr-only">LIGHT — Live In God, Help The other</h1>
-      <LightIntro />
 
       <Section className="pt-0 pb-8 text-center md:pb-8">
         {/*
