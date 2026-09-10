@@ -74,7 +74,13 @@ export function LightIntro() {
                     expanded ? "opacity-100" : "opacity-0"
                   }`}
                 >
-                  {item.word}
+                  {/*
+                    첫 글자(아크로스틱 글자)는 원래 색을 그대로 유지하고,
+                    나머지는 옅게 — 단어로 펼쳐져도 "L·I·G·H·T"가 눈에 띄게
+                    남아야 한다 (PM 요청 2026-09-10)
+                  */}
+                  <span>{item.word.slice(0, 1)}</span>
+                  <span className="opacity-50">{item.word.slice(1)}</span>
                 </span>
               </div>
             );
