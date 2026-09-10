@@ -58,6 +58,16 @@ public interface PhotoRepository extends JpaRepository<Photo, Long> {
             """)
     List<Object[]> countCommittedByAlbumIds(@Param("albumIds") Collection<Long> albumIds);
 
+    /** 정리 대상 미리보기용 — 앨범별 커밋 용량 합계 (§6.11) */
+    @Query("""
+            select p.album.id, coalesce(sum(p.sizeBytes), 0)
+            from Photo p
+            where p.album.id in :albumIds
+              and p.status = kr.light.photo.PhotoStatus.COMMITTED
+            group by p.album.id
+            """)
+    List<Object[]> sumCommittedSizeByAlbumIds(@Param("albumIds") Collection<Long> albumIds);
+
     /** 앨범 삭제 시 R2 키를 모으려면 전부 필요하다 (PENDING 포함) */
     List<Photo> findByAlbumId(Long albumId);
 
