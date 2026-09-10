@@ -30,6 +30,37 @@
 
 ---
 
+## 2026-09-10 (3) — 🔴 R2 크레덴셜 없이 서버가 안 뜬다 (온보딩 #199 미완)
+
+**증상**: `application-local.yml`에 `app.r2.access-key-id` 등을 비워두면
+서버 기동 자체가 실패한다 (`NullPointerException: Access key ID cannot be
+blank`, `R2ClientConfig.r2S3Client` 빈 생성 단계). `application-local.example.yml`
+주석은 "R2를 비워도 서버가 뜨고 사진첩/주보/월례회/첨부만 500이 된다"고
+안내하는데, **실제로는 서버 전체가 안 뜬다.** #199("크레덴셜 없이 백엔드를
+띄울 수 있게 한다")가 의도한 대로 동작하지 않는 상태.
+
+**원인 (코드 대조 결과)**: `R2Properties.isConfigured()`는 `notBlank()`로
+null과 빈 문자열을 둘 다 걸러내는데, `R2ClientConfig.credentials()`는
+`accessKeyId() == null` 체크만 한다:
+
+```java
+properties.accessKeyId() == null ? "unconfigured" : properties.accessKeyId()
+```
+
+YAML에 `access-key-id:` (콜론 뒤 빈 값)을 두면 Spring이 `null`이 아니라
+**빈 문자열 `""`**로 바인딩해서 이 null 체크를 통과해버리고, 빈 문자열이
+그대로 AWS SDK `AwsBasicCredentials.create()`로 들어가 터진다.
+
+**제안**: `R2ClientConfig.credentials()`의 null 체크를
+`R2Properties.notBlank()`와 같은 blank 체크로 바꾸면 된다 (한 줄 수정).
+`r2S3Presigner`도 같은 패턴이라 같이 봐야 한다.
+
+**확인 방법**: `backend/src/main/resources/application-local.yml`에서
+`app.r2.*` 넷을 전부 비워두고 `./gradlew bootRun --args='--spring.profiles.active=local'`
+실행 — 2026-09-10 기준 `light-homepage` `frontend_develop` 브랜치에서 재현됨.
+
+---
+
 ## 2026-09-10 (2) — FE-1 새가족 알림 화면 **FE 대응 완료**. 계약대로 구현하면 바로 연동됩니다
 
 **상태**: 계약 변경 없음. BE 담당자가 전달한 §14 계약 그대로 프론트 mock
