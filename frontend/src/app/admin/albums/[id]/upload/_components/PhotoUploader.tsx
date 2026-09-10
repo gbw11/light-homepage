@@ -171,7 +171,7 @@ export function PhotoUploader({ albumId }: { albumId: string }) {
       */}
       <ul className="mt-6 space-y-1 text-sm text-[var(--color-gray-400)]">
         <li>
-          · 사진은 브라우저에서 장변 2560px으로 줄여 올립니다. 촬영 원본은 보관되지
+          · 사진은 브라우저에서 장변 1280px으로 줄여 올립니다. 촬영 원본은 보관되지
           않습니다.
         </li>
         <li>· 업로드가 끝날 때까지 창을 닫지 마세요.</li>

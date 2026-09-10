@@ -24,7 +24,7 @@ import {
 const PROGRESS_FLUSH_MS = 150;
 
 /**
- * 전체 진행률에서 view(2560px)가 차지하는 비중.
+ * 전체 진행률에서 view(1280px)가 차지하는 비중.
  *
  * view는 thumb보다 10배 이상 크다. 둘을 50:50으로 세면 진행률이 절반에서
  * 오래 멈춘 것처럼 보인다.
@@ -35,7 +35,7 @@ const VIEW_WEIGHT = 0.9;
  * 업로드 큐 (WIREFRAME §18 · FR-PHO-08).
  *
  * 흐름은 세 단계다 (ARCHITECTURE.md §7.3):
- *   ① 브라우저 리사이즈 (2560/640 WebP)
+ *   ① 브라우저 리사이즈 (1280/640 WebP)
  *   ② `uploads:issue` → **R2로 직접 PUT** (동시 4개, 20장 배치)
  *   ③ `uploads:commit` (20장 배치) → `COMMITTED`
  *
