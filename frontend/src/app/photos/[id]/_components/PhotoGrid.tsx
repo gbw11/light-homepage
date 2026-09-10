@@ -63,7 +63,7 @@ const PhotoTile = memo(function PhotoTile({
 /**
  * WIREFRAME.md §13-2 — 앨범 상세 3열 썸네일 그리드 + 무한 스크롤.
  *
- * ⚠️ 그리드는 `thumbUrl`(640px, ~80KB)만 쓴다. `viewUrl`(2560px)을 여기에
+ * ⚠️ 그리드는 `thumbUrl`(640px, ~80KB)만 쓴다. `viewUrl`(1280px)을 여기에
  * 쓰면 200장 열람에 수백 MB가 나간다 (SPEC_API §6.4).
  *
  * 사진 비율이 섞여 있으므로(4:3 · 16:9 · 세로 1200x1600) 그리드 칸은

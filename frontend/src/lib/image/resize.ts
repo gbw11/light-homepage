@@ -5,12 +5,17 @@ import { readTakenAt } from "./exif";
  *
  * 사진은 **백엔드를 통과하지 않는다** — 브라우저가 줄여서 R2로 직접 올린다
  * (ARCHITECTURE.md §7.3). 그래서 화질 정책이 서버가 아니라 여기에 있다:
- * 열람용 썸네일 640px, 확대·다운로드용 2560px. **촬영 원본은 보관하지 않는다**
+ * 열람용 썸네일 640px, 확대용 1280px. **촬영 원본은 보관하지 않는다**
  * (SPEC_FUNCTIONAL FR-PHO-04 — 화면에도 이 경계를 안내한다).
+ *
+ * LIGHT-304 (2026-09-10) — 원래 2560px였으나 다운로드 버튼을 없애면서
+ * 화면 열람 용도로는 그렇게까지 클 필요가 없어졌다. 용량의 94%를 view
+ * 한 장이 차지했다 — 10GB 기준 수용량이 7,500장 → 23,000장이 된다.
+ * 기존 사진은 재변환하지 않는다(원본 미보관), 신규 업로드만 적용.
  */
 
-/** 확대·다운로드용 장변 (SPEC_API §6.4 `viewUrl`) */
-const VIEW_MAX_EDGE = 2560;
+/** 확대용 장변 (SPEC_API §6.4 `viewUrl`) */
+const VIEW_MAX_EDGE = 1280;
 /** 그리드 열람용 장변 — 200장 열람 전송량을 16MB 안에 두는 근거 (§6.4) */
 const THUMB_MAX_EDGE = 640;
 /**
@@ -26,7 +31,7 @@ const THUMB_QUALITY = 0.75;
 const MIME = "image/webp";
 
 export type ResizedPhoto = {
-  /** 2560px WebP — `viewPutUrl`로 PUT */
+  /** 1280px WebP — `viewPutUrl`로 PUT */
   view: Blob;
   /** 640px WebP — `thumbPutUrl`로 PUT */
   thumb: Blob;
@@ -148,7 +153,7 @@ export async function resizeToWebp(
 }
 
 /**
- * 파일 하나를 사진 업로드용 2종(2560/640)으로 만든다.
+ * 파일 하나를 사진 업로드용 2종(1280/640)으로 만든다.
  *
  * @throws {ResizeError} 디코딩 불가(HEIC 등)·변환 실패
  */

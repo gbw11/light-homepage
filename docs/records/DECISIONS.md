@@ -13,6 +13,34 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-09-10 (3) — 사진첩은 홍보용이다 — 다운로드 버튼 제거, view 2560px → 1280px
+
+**결정**: 사진첩을 "회원이 원본을 내려받는 보관소"가 아니라 "홍보·기록용
+갤러리"로 전제를 바꾼다. 그 전제 아래 두 가지를 정리한다 (LIGHT-304).
+
+1. **개별 다운로드 버튼(`⬇`) 제거.** `WIREFRAME.md §13-4`가 "회원의 가장
+   중요한 동작"이라고 적어뒀던 바로 그 기능이다 — 이미 §13-3(ZIP 다운로드)은
+   폐기됐고, 이번에 개별 다운로드까지 없어지면서 사진첩에 다운로드 화면
+   자체가 남지 않는다.
+2. **열람용 view를 장변 2560px → 1280px로 축소.** 용량의 94%를 view
+   한 장이 차지했다(2560px 1.25MB vs thumb 80KB) — 다운로드가 없어지면
+   2560px일 이유가 없다. **10GB 수용량이 7,500장 → 23,000장이 된다.**
+
+- **영역**: 프론트엔드(`Lightbox.tsx`·`lib/api/{real,mock,types}.ts`·
+  `lib/image/resize.ts`·`PhotoUploader.tsx` 등) + 문서(`WIREFRAME.md §13-4`).
+  BE 몫은 별도(`LIGHT-90`, 오래된 앨범 아카이브)
+- **스펙 문서 반영 상태**: `WIREFRAME.md §13-4`·머리말 ③ 정정 완료
+- **미확정 사항**: 없음 — 즉시 착수 지시
+- ⚠️ **기존에 업로드된 사진은 재변환하지 않는다**(촬영 원본 미보관) — 이
+  값은 신규 업로드부터 적용된다
+- **구현**: `frontend/src/app/photos/[id]/_components/Lightbox.tsx`(다운로드
+  버튼·`MAX_STORED_LONG_EDGE` 제거/변경) · `frontend/src/lib/image/resize.ts`
+  (`VIEW_MAX_EDGE`) · `frontend/src/lib/api/{real,mock,types}.ts`(photos의
+  `downloadUrl` 제거) · `PhotoGrid.tsx`·`PhotoUploader.tsx`·`queue.ts`·
+  `useUploadQueue.ts`·`types/api.ts` 주석 갱신
+
+---
+
 ## 2026-09-10 (2) — 조직도 마을 이름·임원단 명단은 **맨 마지막에 채운다**
 
 **결정**: 마을 이름과 임원단 명단은 이미 확정됐지만, `/about/organization`
