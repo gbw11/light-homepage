@@ -28,6 +28,7 @@ export const MENU_LINKS: NavItem[] = [
     label: "소개",
     children: [
       { href: "/about", label: "청년교회 소개" },
+      { href: "/about/organization", label: "조직도" },
       { href: "/welcome", label: "처음 오시는 분" },
       { href: "/location", label: "오시는 길" },
     ],

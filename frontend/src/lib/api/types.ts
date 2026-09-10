@@ -4,6 +4,7 @@ import type {
   AttendanceSessionInput,
   AttendanceSessionSummary,
   AdminMember,
+  AdminNotificationsResponse,
   AlbumInput,
   AlbumSummary,
   AttachmentUpload,
@@ -219,6 +220,20 @@ export type Api = {
     storage(): Promise<StorageUsage>;
     /** SPEC_API §8.6 — 권한 `L`. ⚠️ 개인정보, 보유기간 1년 */
     newcomers(params?: { page?: number; size?: number }): Promise<Page<NewcomerRecord>>;
+    /**
+     * ⚠️ **[CONTRACT] §14 신설** — 새가족 알림 (BE PR `feat/be-newcomer-notification`,
+     * `DECISIONS.md` 2026-09-09). 권한 `L`(임원) 이상.
+     *
+     * 헤더 배지는 `unreadCount`로 그린다(`items`는 최근 20건으로 잘림 —
+     * `AdminNotificationsResponse` 타입 주석 참고). 폴링이다(30초~1분 권장),
+     * 서버가 밀어주지 않는다.
+     */
+    notifications(): Promise<AdminNotificationsResponse>;
+    /**
+     * 응답의 `readMarker`를 그대로 `until`에 넣어 호출한다 — 클라이언트가
+     * 만든 타임스탬프를 넣지 않는다 (`AdminNotificationsResponse` 타입 주석).
+     */
+    markNotificationsRead(input: { until: string }): Promise<void>;
   };
   attendance: {
     /**

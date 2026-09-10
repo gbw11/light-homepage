@@ -283,7 +283,12 @@ export type MeetingWindowInput = {
  */
 export type MeetingView = {
   memberName: string;
-  village: Village;
+  /**
+   * ⚠️ **null일 수 있다.** `member_roster.village`가 nullable이고 CHECK
+   * 제약도 없어서, 교회 CSV에 마을 칸이 비면 그대로 null이 온다
+   * (`AttendanceEntry.village`와 같은 이유 — 화면은 "마을 미배정"으로 묶는다).
+   */
+  village: Village | null;
   lastViewedAt: string;
   /** 어디까지 봤는지 — 워터마크 대조 시 페이지 범위를 좁혀준다 */
   maxPageNo: number;
@@ -332,6 +337,34 @@ export type NewcomerRecord = {
   referrer: Referrer | null;
   message: string | null;
   createdAt: string;
+};
+
+/**
+ * 헤더 알림 배지·목록 한 건 (§14 신설, BE PR `feat/be-newcomer-notification`,
+ * `DECISIONS.md` 2026-09-09). 권한 `L`(임원) 이상. 본문(`message`)에 새가족
+ * 이름이 그대로 들어간다.
+ */
+export type AdminNotification = {
+  id: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
+};
+
+/**
+ * `GET /api/admin/notifications` 응답.
+ *
+ * ⚠️ **배지는 `unreadCount`로 그린다.** `items`는 최근 20건으로 잘려서 오므로,
+ * 21건째부터는 `items.length`를 세면 계속 "20"이 나온다 (BE 지적).
+ *
+ * ⚠️ **`readMarker`를 그대로 `POST .../read`의 `until`에 넣는다.** 클라이언트
+ * 시계로 만든 타임스탬프를 넣으면, 읽는 사이 서버에 새로 들어온 알림이
+ * 안 읽음으로 남는다.
+ */
+export type AdminNotificationsResponse = {
+  unreadCount: number;
+  items: AdminNotification[];
+  readMarker: string;
 };
 
 // ── 주보 (SPEC_API §5) ─────────────────────────────────────

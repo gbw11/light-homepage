@@ -1,5 +1,6 @@
 import type {
   AdminMember,
+  AdminNotificationsResponse,
   AttendanceEntryInput,
   AttendanceSessionDetail,
   AttendanceSessionInput,
@@ -823,6 +824,8 @@ const MEETING_VIEWS: Record<string, MeetingView[]> = {
     { memberName: "이OO", village: "1", lastViewedAt: "2026-08-24T12:41:00Z", maxPageNo: 7 },
     { memberName: "박OO", village: "newcomer", lastViewedAt: "2026-08-25T01:12:00Z", maxPageNo: 2 },
     { memberName: "최OO", village: "5", lastViewedAt: "2026-08-25T02:30:00Z", maxPageNo: 10 },
+    // 명단 CSV에 마을 칸이 비어 있던 사람 — "마을 미배정"으로 뜨는지 확인 (FE-3)
+    { memberName: "정OO", village: null, lastViewedAt: "2026-08-25T03:05:00Z", maxPageNo: 4 },
   ],
   // 아직 아무도 안 본 자료 — 빈 목록도 화면이 처리해야 한다
   "4": [],
@@ -852,6 +855,28 @@ const ADMIN_NEWCOMERS: NewcomerRecord[] = [
     createdAt: "2026-08-12T04:10:00Z",
   },
 ];
+
+/**
+ * 헤더 알림 (§14 신설, BE PR `feat/be-newcomer-notification`). 새가족이
+ * 등록될 때마다 하나씩 쌓인다고 가정한 mock 데이터 — 22건을 넣어 "최근 20건
+ * 초과" 상황(BE 주의 ①)을 화면에서 실제로 확인할 수 있게 한다.
+ */
+const NEWCOMER_NOTIFICATIONS: { id: string; message: string; createdAt: string }[] = [
+  { id: "n22", message: "새가족 김OO님이 등록했습니다.", createdAt: "2026-08-19T10:22:00Z" },
+  { id: "n21", message: "새가족 박OO님이 등록했습니다.", createdAt: "2026-08-12T04:10:00Z" },
+  ...Array.from({ length: 20 }, (_, i) => ({
+    id: `n${20 - i}`,
+    message: `새가족 이OO님이 등록했습니다.`,
+    createdAt: new Date(Date.UTC(2026, 6, 20 - i, 3, 0, 0)).toISOString(),
+  })),
+];
+
+/**
+ * 계정별 마지막으로 읽음 처리한 시각 (실제로는 서버 DB 컬럼).
+ * 키 = `user.id` — 처음 쓰는 계정은 엔트리가 없어 **전부 안 읽음**으로 보인다
+ * (BE 주의 ④, 보유기간 1년만큼 남아 있는 신청이 그대로 쌓여 있기 때문).
+ */
+const notificationReadUntil = new Map<string, string>();
 
 // ── 인증 mock 세션 ────────────────────────────────────────
 // 실제 백엔드는 httpOnly 쿠키로 세션을 유지한다 (SPEC_API §1.4). mock에는
@@ -2050,6 +2075,45 @@ export const mockApi: Api = {
 
       const all = scenario() === "empty" ? [] : ADMIN_NEWCOMERS;
       return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
+    },
+
+    async notifications(): Promise<AdminNotificationsResponse> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+      if (user.role !== "LEADER" && user.role !== "PASTOR") {
+        throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
+      }
+
+      const readUntil = notificationReadUntil.get(user.id) ?? null;
+      const sorted = [...NEWCOMER_NOTIFICATIONS].sort((a, b) =>
+        b.createdAt.localeCompare(a.createdAt),
+      );
+      const isRead = (createdAt: string) => readUntil !== null && createdAt <= readUntil;
+
+      return {
+        unreadCount: sorted.filter((n) => !isRead(n.createdAt)).length,
+        // 최근 20건만 — 21건째부터는 unreadCount로만 알 수 있다 (BE 주의 ①)
+        items: sorted.slice(0, 20).map((n) => ({ ...n, read: isRead(n.createdAt) })),
+        // 클라이언트 시계가 아니라 이 응답 시점의 최신 알림 시각을 커서로 준다
+        readMarker: sorted[0]?.createdAt ?? new Date(0).toISOString(),
+      };
+    },
+
+    async markNotificationsRead(input: { until: string }): Promise<void> {
+      await delay();
+      throwIfScenario();
+      const user = requireSession();
+      if (user.role !== "LEADER" && user.role !== "PASTOR") {
+        throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
+      }
+
+      // 이미 그 이후 시점까지 읽음 처리돼 있으면 뒤로 물리지 않는다
+      // (동시에 두 번 호출돼도 더 이른 `until`이 나중에 도착하는 경우)
+      const current = notificationReadUntil.get(user.id);
+      if (!current || input.until > current) {
+        notificationReadUntil.set(user.id, input.until);
+      }
     },
   },
   attendance: {
