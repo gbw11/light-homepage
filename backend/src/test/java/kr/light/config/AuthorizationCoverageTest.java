@@ -124,6 +124,12 @@ class AuthorizationCoverageTest {
             //   ⚠️ 이름·전화번호가 그대로 나가는 경로다 (§8.6)
             "GET /api/admin/newcomers",
 
+            // 오래된 앨범 정리 (AlbumPurgeAuthorizationTest)
+            //   ★ 사진첩 안에서 유일하게 T다 — 열람 M · 앨범 삭제 L과 갈린다.
+            //     한 번의 호출로 여러 앨범이 되돌릴 수 없이 사라지는 창구다 (§6.11)
+            "GET /api/admin/albums/purge-candidates",
+            "POST /api/admin/albums/purge",
+
             // 전도사·임원 알림 (NotificationAuthorizationTest)
             //   ⚠️ 알림 본문에 새가족 이름이 들어간다 — 회원에게 열면 그것이 샌다 (§12)
             "GET /api/admin/notifications",

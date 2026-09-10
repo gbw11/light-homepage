@@ -436,6 +436,8 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `GET /api/photos/{id}/download` | 401 | 403 | 200 | 200 | 200 |
 | `GET /api/admin/members` | 401 | 403 | 403 | **403** | 200 |
 | `GET /api/admin/newcomers` | 401 | 403 | **403** | 200 | 200 |
+| `GET /api/admin/albums/purge-candidates` | 401 | 403 | 403 | **403** | 200 |
+| `POST /api/admin/albums/purge` | 401 | 403 | 403 | **403** | 200 |
 | `GET /api/admin/notifications` | 401 | 403 | **403** | 200 | 200 |
 | `POST /api/admin/notifications/read` | 401 | 403 | **403** | 200 | 200 |
 | `GET /api/meetings/{id}/pages/{n}` (기간 내) | 401 | 403 | 200 | 200 | 200 |
@@ -521,6 +523,8 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | PATCH | `/api/admin/members/{id}/role` | PASTOR |
 | GET | `/api/admin/storage` | LEADER |
 | GET | `/api/admin/newcomers` | LEADER |
+| GET | `/api/admin/albums/purge-candidates` | **PASTOR** | 정리 대상 미리보기 (§6.11) |
+| POST | `/api/admin/albums/purge` | **PASTOR** | 오래된 앨범 삭제 — 되돌릴 수 없다 (§6.11) |
 | GET | `/api/admin/notifications` | LEADER | 새가족 알림 (§14) |
 | POST | `/api/admin/notifications/read` | LEADER | 읽음 표시 — 사람별 (§14) |
 | POST | `/api/newcomers` | GUEST |
