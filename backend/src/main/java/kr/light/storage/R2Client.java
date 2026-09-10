@@ -274,11 +274,27 @@ public class R2Client {
         if (!properties.isConfigured()) {
             // 개발 중 키가 없는 것은 정상이다. 다만 R2가 필요한 기능은 여기서 멈춘다 —
             // 설정이 없는 채로 "성공"을 돌려주면 파일이 사라진 것을 나중에 안다.
-            throw new IllegalStateException("app.r2 설정이 없습니다.");
+            //
+            // ★ 2026-09-10: IllegalStateException을 던지고 있었다. 그러면
+            //   GlobalExceptionHandler가 INTERNAL_ERROR 500으로 감싸서,
+            //   키를 넣지 않은 사람이 "정체불명의 500"만 보게 된다. 아래
+            //   notConfigured()가 정확히 이 자리를 위해 만들어져 있었는데
+            //   아무도 부르지 않았다 — 이제 여기서 쓴다.
+            throw notConfigured();
         }
     }
 
-    /** 설정이 없을 때 R2가 필요한 엔드포인트가 내보낼 응답 */
+    /**
+     * 설정이 없을 때 R2가 필요한 엔드포인트가 내보낼 응답.
+     *
+     * <p>{@code STORAGE_LIMIT}(409)을 쓴다 — 계약이 정한 6개 집합 안에 있고,
+     * "저장소 때문에 이 요청을 처리할 수 없다"는 뜻이 가장 가깝다. 500으로
+     * 내보내면 FE의 공통 에러 파서에는 걸리지만 원인을 알려주지 못한다.
+     *
+     * <p>운영에서는 이 경로가 돌지 않는다(키가 있다). 키 없이 띄우는
+     * 로컬·온보딩 환경을 위한 것이다 —
+     * {@code docs/backend/ONBOARDING_BACKEND.md} 참고.
+     */
     public static ApiException notConfigured() {
         return ApiException.storageLimit("파일 저장소가 준비되지 않았습니다.");
     }

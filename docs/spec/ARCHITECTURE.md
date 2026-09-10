@@ -166,10 +166,12 @@ members
   phone             varchar(20)
   village           varchar(16)              -- '1'~'9' | 'newcomer'
   role              varchar(16)  not null    -- PENDING|MEMBER|LEADER|PASTOR
-  approved_at       timestamptz
-  approved_by       bigint FK members
+  login_id          varchar(30)  unique      -- v1.3에서 추가. 로그인 식별자
   created_at        timestamptz  not null
   -- 제약: email 과 kakao_id 중 최소 하나는 존재
+
+  -- ⚠️ approved_at · approved_by는 v1.3(2026-08-31)에서 DROP됐다.
+  --    승인 절차가 소멸했다 (V3__auth_roster.sql). 아래 §7.2 참고
 
 refresh_tokens
   id                bigserial PK
@@ -269,6 +271,61 @@ newcomer_requests
 -- 감사 로그 (권한 변경 등)
 audit_logs
   id / actor_id / action / target / detail / created_at
+
+-- ═══════════════════════════════════════════════════════════════════
+--  ⚠️ 아래는 이 문서가 오래 빠뜨리고 있던 테이블이다 (2026-09-10 보강).
+--     실제 스키마는 backend/src/main/resources/db/migration/ 이 기준이다.
+-- ═══════════════════════════════════════════════════════════════════
+
+-- ── v1.3 인증 재설계 (명단 대조 가입) — V3__auth_roster.sql ──────────
+-- 교회가 준 명단. 출결 대상은 계정이 아니라 이것이다
+member_roster
+  id                bigserial PK
+  name              varchar(50)  not null
+  village           varchar(16)              -- ⚠️ nullable. CSV에 칸이 비면 null
+  created_at        timestamptz  not null
+
+-- 명단 대조 성공 후 5분간 유효한 1회용 가입 토큰 (§2.1)
+registration_tokens
+  id / roster_id FK member_roster
+  token_hash        varchar(255) not null    -- ★ SHA-256. 평문 저장 금지
+  expires_at        timestamptz  not null    -- 5분
+  used_at           timestamptz              -- 1회용
+
+-- 비밀번호 재설정 토큰 (§2.9 · §2.10)
+password_reset_tokens
+  id / member_id FK members
+  token_hash        varchar(255) not null    -- ★ 평문 저장 금지
+  expires_at        timestamptz  not null
+  used_at           timestamptz              -- 1회용
+
+-- 로그인 5회 실패 잠금 (§2.3)
+login_attempts
+  id / login_id / attempted_at / succeeded
+
+-- 카카오 OAuth CSRF 방어용 state
+oauth_states
+  id / state / created_at
+
+-- ── 출석부 (§13) ────────────────────────────────────────────────────
+attendance_sessions
+  id / date / created_by FK members / created_at
+attendance_entries
+  id / session_id FK attendance_sessions / roster_id FK member_roster
+  status            varchar(16)              -- null = 기록 없음 (ABSENT와 다르다)
+
+-- ── 월례회 열람 로그 (§7.7) ─────────────────────────────────────────
+-- ★ member_id가 NOT NULL이다 — 익명 열람이 불가능한 근거
+meeting_doc_views
+  id / doc_id FK meeting_docs / member_id FK members (NOT NULL)
+  page_no / viewed_at
+
+-- ── 새가족 알림 읽음 (§14) ──────────────────────────────────────────
+-- ★ 알림 행을 저장하지 않는다. 사람마다 "어디까지 봤는지" 하나뿐
+newcomer_notification_reads
+  member_id         bigint PK FK members ON DELETE CASCADE
+  last_seen_at      timestamptz  not null
+  updated_at        timestamptz  not null
 ```
 
 ### 3.1 게시판을 하나의 테이블로 합친 이유
@@ -378,7 +435,9 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `POST /api/uploads:issue` | 401 | 403 | **403** | 200 | 200 |
 | `GET /api/photos/{id}/download` | 401 | 403 | 200 | 200 | 200 |
 | `GET /api/admin/members` | 401 | 403 | 403 | **403** | 200 |
-| `POST /api/admin/members/{id}/approve` | 401 | 403 | 403 | **403** | 200 |
+| `GET /api/admin/newcomers` | 401 | 403 | **403** | 200 | 200 |
+| `GET /api/admin/notifications` | 401 | 403 | **403** | 200 | 200 |
+| `POST /api/admin/notifications/read` | 401 | 403 | **403** | 200 | 200 |
 | `GET /api/meetings/{id}/pages/{n}` (기간 내) | 401 | 403 | 200 | 200 | 200 |
 | `GET /api/meetings/{id}/pages/{n}` (**기간 외**) | 401 | 403 | **403** | 200 | 200 |
 | `POST /api/meetings` | 401 | 403 | **403** | 200 | 200 |
@@ -386,6 +445,11 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 
 - 굵게 표시된 칸이 **실제 사고가 나는 지점**이다
 - 엔드포인트를 추가하면 이 표에 행을 추가한다. **표에 없는 보호 엔드포인트는 미완성으로 본다**
+- ⚠️ `POST /api/admin/members/{id}/approve`·`reject` 행을 2026-09-10에 **제거했다.**
+  v1.3(2026-08-31) 인증 재설계로 **승인 절차가 소멸**해 그 엔드포인트가 존재하지 않는다.
+  없는 경로가 표에 남아 있으면 "미완성"과 구분되지 않는다
+- 실제 실행 기준은 `AuthorizationCoverageTest.COVERED`다. Jenkinsfile이
+  `--tests "*Authorization*"`으로 항상 돌린다 — RLS가 없어 이것이 마지막 방어선이다
 
 ### 5.4 자기 잠금 방지
 마지막 `PASTOR`가 자신을 강등·탈퇴하면 아무도 회원을 승인할 수 없다. Service에서 `PASTOR` 수가 0이 되는 변경을 거부한다(RLS가 없으므로 애플리케이션 검사).
@@ -454,12 +518,14 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | Method | Path | 권한 |
 |---|---|---|
 | GET | `/api/admin/members?status=` | PASTOR |
-| POST | `/api/admin/members/{id}/approve` | PASTOR |
-| POST | `/api/admin/members/{id}/reject` | PASTOR |
 | PATCH | `/api/admin/members/{id}/role` | PASTOR |
 | GET | `/api/admin/storage` | LEADER |
 | GET | `/api/admin/newcomers` | LEADER |
+| GET | `/api/admin/notifications` | LEADER | 새가족 알림 (§14) |
+| POST | `/api/admin/notifications/read` | LEADER | 읽음 표시 — 사람별 (§14) |
 | POST | `/api/newcomers` | GUEST |
+
+> ⚠️ `approve`·`reject`를 2026-09-10에 제거했다 — v1.3에서 **승인 절차가 소멸**했다.
 
 ### 6.3 인증 방식 — 동일 출처 + httpOnly 쿠키
 FE(`vercel.app`)와 BE(`onrender.com`)가 다른 도메인이면 쿠키가 서드파티가 되어 `SameSite=None` 강제, Safari 차단 위험, CSRF 설정 복잡화가 따라온다.
@@ -505,12 +571,23 @@ FE [카카오로 로그인] → GET /api/auth/kakao/authorize → 카카오 동�
 → 이메일 없이도 동작하도록 설계했다(`email` nullable, `kakao_id`로 식별). **전환 불가해도 진행 가능.**
 → 카카오 닉네임은 실명이 아닌 경우가 많으므로 **실명은 앱에서 직접 받는다**(승인 대조용).
 
-### 7.2 가입 → 승인
-```
-가입 → role=PENDING → PASTOR 알림 → /admin/members 승인
-  → role=MEMBER, approved_at/by 기록, audit_logs 기록 → 안내 메일
-```
-`PENDING`은 로그인은 되지만 회원 API가 전부 403 → FE는 `/pending` 화면에 고정.
+### 7.2 가입 → 승인 — ⚠️ **v1.3에서 폐지됐다**
+
+**아래는 v1.x 서술이며 더 이상 구현과 맞지 않는다** (2026-09-10 표시).
+v1.3(2026-08-31)에서 **명단 대조 가입**으로 바뀌면서 승인 절차가 소멸했다:
+교회가 준 명단(`member_roster`)과 대조가 되면 그 자리에서 `MEMBER`가 된다.
+`approved_at`·`approved_by` 컬럼도 `V3__auth_roster.sql`에서 DROP됐다.
+
+기준 문서는 `SPEC_API.md §2`다.
+
+~~```~~
+~~가입 → role=PENDING → PASTOR 알림 → /admin/members 승인~~
+~~  → role=MEMBER, approved_at/by 기록, audit_logs 기록 → 안내 메일~~
+~~```~~
+
+> `PENDING`은 남아 있지만 뜻이 달라졌다 — "승인 대기"가 아니라
+> **"아직 아무것도 아님"**이다. 카카오로 처음 들어와 명단 대조를 아직
+> 통과하지 않은 상태다. 최하위 회원이 아니므로 회원 API는 전부 403이다.
 
 ### 7.3 사진 대량 업로드 (두 팀의 최대 접점)
 파일이 **Spring을 통과하지 않는다.** 브라우저 → R2 직접 전송. 무료 호스팅(512MB)에서 파일 스트림을 받으면 메모리가 터진다.
