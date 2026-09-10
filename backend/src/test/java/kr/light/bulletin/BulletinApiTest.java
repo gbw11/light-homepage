@@ -118,6 +118,30 @@ class BulletinApiTest {
         }
 
         @Test
+        @DisplayName("★ width·height가 채워진다 — FE 타입이 non-null이고 뷰어가 자리를 잡는다")
+        void 크기가_기록된다() throws Exception {
+            // 실제로 이 값이 비어 있던 채로 한 번 배포됐다 — V8에서 컬럼은
+            // 만들었는데 채우는 코드가 없었고, 화면을 열어보고 나서야 알았다.
+            var webp = new MockMultipartFile(
+                    "pages", "1.webp", "image/webp", vp8lWebp(1448, 2048));
+
+            String id = createBulletin("2026-08-24", webp);
+
+            mockMvc.perform(get("/api/bulletins/" + id).with(as(leader)))
+                    .andExpect(jsonPath("$.data.pages[0].width").value(1448))
+                    .andExpect(jsonPath("$.data.pages[0].height").value(2048));
+        }
+
+        @Test
+        @DisplayName("크기를 못 읽어도 업로드는 성공한다 — 뷰어 편의값 때문에 주보가 막히면 안 된다")
+        void 크기를_못_읽어도_올라간다() throws Exception {
+            var odd = new MockMultipartFile("pages", "x.webp", "image/webp", "깨진헤더".getBytes());
+
+            mockMvc.perform(upload("2026-08-24", odd))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
         @DisplayName("★ 같은 날짜는 DUPLICATE — 서버가 조용히 덮어쓰지 않는다")
         void 중복_날짜() throws Exception {
             createBulletin("2026-08-24", page(1));
@@ -266,6 +290,24 @@ class BulletinApiTest {
     }
 
     // ── 보조 ─────────────────────────────────────────────────
+
+    /** 크기를 읽을 수 있는 최소 VP8L WebP */
+    private static byte[] vp8lWebp(int width, int height) throws Exception {
+        int bits = ((width - 1) & 0x3FFF) | (((height - 1) & 0x3FFF) << 14);
+        var out = new java.io.ByteArrayOutputStream();
+        out.write("RIFF".getBytes());
+        out.write(new byte[]{0, 0, 0, 0});
+        out.write("WEBP".getBytes());
+        out.write("VP8L".getBytes());
+        out.write(new byte[]{0, 0, 0, 0});
+        out.write(0x2F);
+        out.write(bits & 0xFF);
+        out.write((bits >> 8) & 0xFF);
+        out.write((bits >> 16) & 0xFF);
+        out.write((bits >> 24) & 0xFF);
+        out.write(new byte[16]);
+        return out.toByteArray();
+    }
 
     private MockMultipartFile page(int pageNo) {
         return new MockMultipartFile(
