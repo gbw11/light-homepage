@@ -361,6 +361,8 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `GET /api/meetings/{id}/views` | 401 | 403 | 200 | 200 |
 | `GET /api/admin/storage` | 401 | 403 | 200 | 200 |
 | `GET /api/admin/newcomers` | 401 | 403 | 200 | 200 |
+| `GET /api/admin/notifications` (§14) | 401 | 403 | 200 | 200 |
+| `POST /api/admin/notifications/read` (§14) | 401 | 403 | 200 | 200 |
 | `GET /api/admin/members` | 401 | 403 | **403** | 200 |
 | `DELETE /api/admin/members/{id}` | 401 | 403 | **403** | 200 |
 | `PATCH /api/admin/members/{id}/role` | 401 | 403 | **403** | 200 |
@@ -583,6 +585,8 @@ FE가 Next.js `rewrites`로 `/api/**`를 프록시해 **동일 출처**로 만�
 | PATCH | `/api/admin/members/{id}/role` | PASTOR |
 | GET | `/api/admin/storage` | LEADER |
 | GET | `/api/admin/newcomers` | LEADER |
+| GET | `/api/admin/notifications` | LEADER — 🙏 신규(`§9.1` 알림 메일 대체, `SPEC_API §14`) |
+| POST | `/api/admin/notifications/read` | LEADER — 읽음은 **사람별**이다 (`SPEC_API §14.3`) |
 | POST | `/api/newcomers` | GUEST |
 | GET | `/api/sermons?page=&size=` | **GUEST** — 🙏 신규(YouTube 프록시, `SPEC_API §9.2`) |
 
