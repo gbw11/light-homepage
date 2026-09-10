@@ -8,6 +8,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { CHURCH_PHONE } from "@/content/contact";
 import { INSTAGRAM_URL, YOUTUBE_CHANNEL_URL } from "@/content/links";
 import { MENU_LINKS, RESOURCE_LINKS } from "./navigation";
+import { NotificationBell } from "./NotificationBell";
 
 const MENU_ID = "site-menu";
 const RESOURCE_MENU_ID = "site-menu-resources";
@@ -258,6 +259,9 @@ export function Header() {
             >
               <span aria-hidden>☎</span>
             </Link>
+
+            {/* 임원(L) 이상에게만 보인다 — 컴포넌트 내부에서 role 체크 후 null 반환 (§14, FE-1) */}
+            <NotificationBell />
 
             <Link
               href={signedIn ? "/my" : "/login"}

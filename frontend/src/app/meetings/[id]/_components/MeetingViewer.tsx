@@ -100,6 +100,14 @@ function RemainingCountdown({
  * 손가락이 2개 이상이면 판정을 포기한다(브라우저 기본 핀치 줌 보호).
  */
 export function MeetingViewer({ detail }: { detail: MeetingDetail }) {
+  /*
+    월례회 열람은 M(회원) 전용이라 이 컴포넌트는 항상 `MemberGate`
+    (`app/meetings/[id]/page.tsx`) 안에서만 렌더된다 — `user`는 아래
+    워터마크 문구에서 쓰는 시점에 항상 존재한다 (SPEC_API §10 매트릭스,
+    DB `meeting_doc_views.member_id NOT NULL`). 익명 열람 분기는
+    2026-08-25 결정으로 없어졌다 (BE 지적, FE-2) — 지우지 않고 남아
+    있으면 "로그인 안 하면 이름이 안 박힌다"는 잘못된 안심을 준다.
+  */
   const { user } = useAuth();
   const total = detail.pageCount;
 
@@ -337,25 +345,14 @@ export function MeetingViewer({ detail }: { detail: MeetingDetail }) {
         가장 위험하다 (ARCHITECTURE §7.7 "정직하게 알려야 할 것").
       */}
       <div className="mt-8 rounded-[var(--radius-card)] bg-[var(--color-navy-100)]/50 p-4 text-sm leading-relaxed">
-        {/*
-          ⚠️ 로그인 여부에 따라 **실제로 박히는 것이 다르다** (PM 결정 2026-08-25).
-          익명 열람자에게 "이름과 연락처가 인쇄된다"고 말하면 거짓이고, 거짓인
-          안심·거짓인 경고 둘 다 이 화면에서 가장 위험한 것이다
-          (ARCHITECTURE §7.7 "정직하게 알려야 할 것").
-        */}
         <p className="font-bold">
           <span aria-hidden>🔒</span> 이 페이지에는{" "}
-          {user
-            ? `${user.name} ${phoneTail(user.phone)}, 열람 시각이 함께 인쇄되어 있습니다.`
-            : "열람 시각과 문서 번호가 함께 인쇄되어 있습니다."}
+          {`${user!.name} ${phoneTail(user!.phone)}, 열람 시각이 함께 인쇄되어 있습니다.`}
         </p>
         <p className="mt-2 text-[var(--color-gray-400)]">
           다운로드 파일은 제공되지 않지만 화면 캡처를 기술적으로 막을 방법은
           없습니다. 캡처한 이미지에도 위 정보가 그대로 남으니 자료를 외부로
-          옮기지 말아 주세요.
-          {user
-            ? " 누가 몇 페이지까지 열람했는지도 기록됩니다."
-            : " 로그인해서 열람하면 이름과 연락처 뒷자리도 함께 인쇄됩니다."}
+          옮기지 말아 주세요. 누가 몇 페이지까지 열람했는지도 기록됩니다.
         </p>
       </div>
     </div>
