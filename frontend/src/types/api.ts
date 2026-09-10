@@ -519,7 +519,7 @@ export type AlbumInput = {
 export type UploadFileMeta = {
   /** 브라우저가 붙이는 임시 식별자. 응답의 `photoId`와 짝지을 때만 쓴다 */
   clientId: string;
-  /** 2560px WebP 크기 */
+  /** 1280px WebP 크기 */
   sizeBytes: number;
   /** 640px WebP 크기 */
   thumbSizeBytes: number;

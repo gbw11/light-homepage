@@ -78,10 +78,10 @@ export type Api = {
     /**
      * SPEC_API §4.2 — 다운로드.
      *
-     * ⚠️ `photos.downloadUrl`과 같은 이유로 **fetch가 아니라 URL을 만든다.**
-     *    서버가 302로 presigned URL(10분)로 보내므로 브라우저가 직접 이동해야
-     *    한다. fetch로 받으면 리다이렉트를 따라가 파일을 메모리에 담게 된다.
-     *    열람 권한은 게시물 권한을 상속하며, 로그아웃 상태면 `UNAUTHORIZED`다.
+     * ⚠️ **fetch가 아니라 URL을 만든다.** 서버가 302로 presigned URL(10분)로
+     *    보내므로 브라우저가 직접 이동해야 한다. fetch로 받으면 리다이렉트를
+     *    따라가 파일을 메모리에 담게 된다. 열람 권한은 게시물 권한을
+     *    상속하며, 로그아웃 상태면 `UNAUTHORIZED`다.
      */
     downloadUrl(attachmentId: string): string;
   };
@@ -138,14 +138,6 @@ export type Api = {
   photos: {
     /** SPEC_API §6.10 — 초상권 대응 신고·삭제 요청. 권한 `M` */
     report(photoId: string, input: { reason: string }): Promise<void>;
-    /**
-     * SPEC_API §6.7 — 개별 다운로드.
-     *
-     * ⚠️ **fetch가 아니라 URL을 만든다.** 서버가 302로 presigned URL
-     *    (`Content-Disposition: attachment`)로 보내므로 브라우저가 직접
-     *    이동해야 한다. fetch로 받으면 리다이렉트를 따라가 메모리에 담게 된다.
-     */
-    downloadUrl(photoId: string): string;
     /** SPEC_API §6.9 — 권한 `L`. ⚠️ R2 객체까지 삭제한다. 되돌릴 수 없다 */
     remove(photoId: string): Promise<void>;
   };
