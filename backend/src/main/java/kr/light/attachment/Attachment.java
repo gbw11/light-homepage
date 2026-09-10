@@ -98,4 +98,14 @@ public class Attachment {
     public void unlink() {
         this.post = null;
     }
+
+    /**
+     * R2 키를 채운다 (§4.1).
+     *
+     * <p>키에 첨부 id가 들어가는데 id는 DB가 채우는 값이라, 행을 저장한
+     * <b>뒤에</b> 정해진다.
+     */
+    public void assignKey(String r2Key) {
+        this.r2Key = r2Key;
+    }
 }

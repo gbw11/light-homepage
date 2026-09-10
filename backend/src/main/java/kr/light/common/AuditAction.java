@@ -34,5 +34,15 @@ public enum AuditAction {
      * <p>회원 행이 사라지므로 actor는 {@code ON DELETE SET NULL}로 null이
      * 된다. 그래도 대상과 시각은 남아 "언제 누가 나갔는지"를 알 수 있다.
      */
-    MEMBER_WITHDRAW
+    MEMBER_WITHDRAW,
+
+    /**
+     * 사진 신고·삭제 요청 (SPEC_API.md §6.10).
+     *
+     * <p>다른 값들과 달리 <b>무언가를 바꾼 기록이 아니라 요청의 기록</b>이다.
+     * 그래도 여기에 남기는 이유는 같다 — 초상권 요청은 <b>이 기록이
+     * 사라지면 요청 자체가 사라지기 때문</b>이다. 계약(§6.10)에 임원이
+     * 신고를 조회하는 경로가 없어, 지금은 이 로그가 유일한 보관처다.
+     */
+    PHOTO_REPORT
 }
