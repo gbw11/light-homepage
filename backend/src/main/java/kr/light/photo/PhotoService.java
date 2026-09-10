@@ -3,6 +3,9 @@ package kr.light.photo;
 import kr.light.album.Album;
 import kr.light.album.AlbumRepository;
 import kr.light.common.ApiException;
+import kr.light.common.AuditAction;
+import kr.light.common.AuditLogger;
+import kr.light.member.Member;
 import kr.light.storage.R2Client;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +37,8 @@ public class PhotoService {
     private final PhotoRepository photoRepository;
     private final AlbumRepository albumRepository;
     private final R2Client r2Client;
+    private final AuditLogger auditLogger;
+    private final PhotoReportNotifier notifier;
 
     // ── §6.7 개별 다운로드 ───────────────────────────────────────────
 
@@ -72,6 +77,29 @@ public class PhotoService {
         r2Client.deleteAll(List.of(photo.getR2KeyView(), photo.getR2KeyThumb()));
         photoRepository.delete(photo);
         log.info("사진 삭제: id={} album={}", photoId, album.getId());
+    }
+
+    // ── §6.10 신고 ───────────────────────────────────────────────────
+
+    /**
+     * 사진 신고·삭제 요청 — 초상권 대응 (§6.10).
+     *
+     * <p><b>★ 사진을 지우지 않는다.</b> 요청을 접수할 뿐이고, 실제 삭제는
+     * 임원이 판단해서 {@link #delete}로 한다. 신고만으로 지워지면 아무나
+     * 남의 사진을 내릴 수 있다.
+     *
+     * <p>⚠️ <b>기록을 남기는 것이 이 기능의 전부다.</b> 알림 발송이 아직
+     * 없어서(계정·키 없음), 감사 로그가 사라지면 요청 자체가 사라진다.
+     * 그래서 알림은 실패해도 넘어가지만 기록은 트랜잭션에 묶는다.
+     */
+    @Transactional
+    public void report(Long photoId, String reason, Member reporter) {
+        Photo photo = find(photoId);
+
+        auditLogger.log(reporter, AuditAction.PHOTO_REPORT,
+                "photo:" + photoId, reason);
+
+        notifier.notifyPhotoReported(photo, reporter);
     }
 
     // ── 미커밋 정리 배치 (§6.5) ──────────────────────────────────────
