@@ -13,6 +13,57 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-09-10 — 문서를 구현에 맞춘다 (코드는 거의 그대로)
+
+**배경**: 이슈를 쓰려고 항목을 하나씩 확인하다가, **이미 구현이 끝난 것을
+"안 됐다"고 적고 있거나 문서끼리 어긋나는 곳**이 여럿 나왔다. 코드가 문서를
+어긴 경우는 사실상 없었고, **문서가 현실을 못 따라온 것**이 대부분이다.
+
+- **영역**: 문서 6개 + Java 주석 2개. **동작 변경 없음**
+- **고친 것**
+  1. `ARCHITECTURE.md §3` 데이터 모델 — **테이블 9개가 빠져 있었다**
+     (`member_roster` `registration_tokens` `password_reset_tokens`
+     `login_attempts` `oauth_states` `attendance_sessions` `attendance_entries`
+     `meeting_doc_views` `newcomer_notification_reads`). `members`에서 v1.3이
+     DROP한 `approved_at`·`approved_by`를 지우고 `login_id`를 넣었다
+  2. `ARCHITECTURE.md §5.3` 인가 매트릭스 — **존재하지 않는**
+     `POST /api/admin/members/{id}/approve` 행을 지우고(승인 절차 소멸)
+     §14 알림 2행과 `GET /api/admin/newcomers`를 넣었다. §6.2 표도 같이
+  3. `ARCHITECTURE.md §7.2` 「가입 → 승인」 — v1.3에서 폐지된 흐름임을 명시
+  4. `SPEC_API.md §1.2` — **자기모순 해소.** `INTERNAL_ERROR`는 "PR #74에서
+     합의됨"이라 적어놓고 두 줄 아래에서 "`INTERNAL_ERROR`와 함께 아직 합의가
+     남아 있다"고 했다. 두 코드는 같은 PR로 들어갔으므로 상태가 다를 수 없다.
+     `RATE_LIMITED` 표 행을 추가했다
+  5. `SPEC_API.md §3.2` — 명세에 없어 BE가 정한 3건을 못박았다
+     (임시저장 제외 · `size` 100 클램프 · `authorName` 실명)
+  6. `INTEGRATION.md §3.2` 집합 블록에 `RATE_LIMITED` 명시 /
+     **§6.3 인프라 담당 정정** — 「BE가 `server_develop`을 함께 쓴다」는 팀 구성이
+     바뀌어 맞지 않는다. 인프라 전담자가 따로 있다
+  7. `BACKEND_TASKS.md §3.2` — `application-prod.yml`은 `.gitignore`에 막혀
+     만들지 않았다. prod 설정은 `application.yml`의 문서 분리(`---`)에 있다
+  8. `SPEC_NONFUNCTIONAL.md` **NFR-AVAIL-05** — 아래 따로
+  9. 주석 2건 — `PostQueryService.normalizeSize`(무효해진 근거) ·
+     `NewcomerController`(「아직 합의되지 않은 에러 코드」)
+
+- **★ NFR-AVAIL-05는 고치지 않고 결정을 요청했다.** 「공개 공지를 빌드 시점에
+  정적 생성」인데 구현은 **반대로** 갔다(클라이언트 조회, ISR 제거). 두 요구가
+  양립하지 않기 때문이다 — 정적 생성하려면 빌드 때 백엔드를 불러야 하고,
+  그러면 백엔드 없는 환경에서 빌드가 60초 타임아웃으로 죽는다(실제로 CI가
+  이렇게 죽었다). **철회할지 되살릴지는 BE가 정할 일이 아니라 PM 결정**이라,
+  세 가지 안을 적고 표시만 해뒀다. BE 권고는 철회 + `NFR-AVAIL-04`(헬스체크
+  핑)가 실제로 도는지 확인하는 쪽이다 — 근본 원인은 Render 슬립이다
+
+- **★ `RATE_LIMITED` 합의 상태도 단정하지 않았다.** PR #74가 `[CONTRACT]`로
+  머지됐고 두 코드가 같은 PR이므로 합의된 것으로 읽히지만, **FE에 한 번 확인이
+  필요하다**고 적었다. 표에 행을 넣은 것은 코드와 문서의 형태를 맞추기 위한
+  것이지 합의 내용을 새로 만드는 것이 아니다
+
+- **하지 않은 것**: FE 코드(`MeetingViewer.tsx`의 익명 워터마크 문구,
+  `api.ts`의 `MeetingView.village` non-null, `sermons/feed` 임시 라우트)는
+  건드리지 않았다. FE 영역이라 이슈로 넘긴다
+
+---
+
 ## 2026-09-09 — 새가족 알림을 **메일 대신 웹 알림**으로 (전도사·임원 배지)
 
 **결정**: "메일로 말고 전도사랑 임원한테 웹에서 알림이 뜨게 하고 싶어."

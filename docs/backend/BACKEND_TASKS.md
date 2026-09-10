@@ -128,8 +128,13 @@ backend/
       ├─ db/migration/ V1__init.sql ...
       ├─ application.yml
       ├─ application-local.yml   ← .gitignore
-      └─ application-prod.yml
+      └─ (application-prod.yml 은 만들지 않았다 — 아래 참고)
 ```
+
+> ⚠️ **2026-09-10 정정 — prod 설정은 별도 파일이 아닙니다.**
+> 루트 `.gitignore`가 `application-prod.yml`을 막고 있어 **커밋도 배포도 되지
+> 않습니다.** 그래서 prod 설정은 `application.yml` 안의 **문서 분리(`---`)**로
+> 넣었습니다. 위 구조도와 어긋나는 지점이며, 코드가 맞고 이 구조도가 낡았습니다.
 
 ### 3.3 환경 변수
 ```
