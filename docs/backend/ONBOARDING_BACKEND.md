@@ -133,7 +133,7 @@ docker run -d --name light-db -p 5432:5432 -e POSTGRES_PASSWORD=local -e POSTGRE
 
 ```bash
 cd backend/src/main/resources
-cp application-local.yml.example application-local.yml
+cp application-local.example.yml application-local.yml
 ```
 
 **그대로 두고 아무것도 채우지 않아도 됩니다.** 크레덴셜 칸은 비어 있는 게 정상입니다.
