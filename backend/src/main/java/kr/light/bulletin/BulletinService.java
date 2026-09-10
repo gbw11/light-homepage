@@ -16,6 +16,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.Dimension;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -127,12 +133,21 @@ public class BulletinService {
 
             r2Client.put(key, file);
 
+            // ★ 크기를 여기서 읽는다. §5.1이 pages[].width·height를 요구하고,
+            //   FE 타입은 non-null이다 — 뷰어가 이미지를 받기 **전에** 자리를
+            //   잡아야 로딩 중 화면이 튀지 않는다.
+            //   ⚠️ 사진첩(§6.5)은 FE가 크기를 보내주지만 주보는 그런 필드가
+            //      없다. 서버가 파일을 열어 읽는 수밖에 없다.
+            Dimension size = dimensionOf(file);
+
             saved.add(attachmentRepository.save(Attachment.builder()
                     .bulletin(bulletin)
                     .r2Key(key)
                     .filename(filenameOf(file, pageNo))
                     .contentType(file.getContentType())
                     .sizeBytes(file.getSize())
+                    .width(size == null ? null : size.width)
+                    .height(size == null ? null : size.height)
                     .sortOrder(pageNo)
                     .build()));
         }
@@ -273,6 +288,37 @@ public class BulletinService {
      */
     private static String keyOf(Long bulletinId, int pageNo, MultipartFile file) {
         return "bulletins/%d/%d.%s".formatted(bulletinId, pageNo, extensionOf(file));
+    }
+
+    /**
+     * 이미지의 픽셀 크기.
+     *
+     * <p>⚠️ <b>{@code ImageIO}는 WebP를 못 읽는다.</b> FE가 2048px WebP로 변환해
+     * 올리므로 이 경로가 기본값이고, 그때는 {@code null}이 된다 — 헤더에서
+     * 직접 읽어낸다.
+     *
+     * <p>읽지 못해도 업로드를 실패시키지 않는다. 크기는 뷰어의 편의값이고,
+     * 그것 때문에 주보가 안 올라가는 것이 더 나쁘다.
+     */
+    private static Dimension dimensionOf(MultipartFile file) {
+        try (InputStream in = file.getInputStream()) {
+            byte[] head = in.readNBytes(64);
+            Dimension webp = WebpHeader.dimensionOf(head);
+            if (webp != null) {
+                return webp;
+            }
+        } catch (IOException e) {
+            log.warn("이미지 크기를 읽지 못했다: {}", file.getOriginalFilename());
+            return null;
+        }
+        // WebP가 아니면 ImageIO가 읽을 수 있다 (jpeg·png)
+        try (InputStream in = file.getInputStream()) {
+            BufferedImage image = ImageIO.read(in);
+            return image == null ? null : new Dimension(image.getWidth(), image.getHeight());
+        } catch (IOException e) {
+            log.warn("이미지 크기를 읽지 못했다: {}", file.getOriginalFilename());
+            return null;
+        }
     }
 
     private static String extensionOf(MultipartFile file) {
