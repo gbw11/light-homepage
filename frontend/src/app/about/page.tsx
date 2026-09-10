@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/ui/Section";
+import { LightIntro } from "./_components/LightIntro";
 
 export const metadata: Metadata = {
   title: "소개",
   description:
     "LIGHT — Live In God, Help The other. 하나님 안에 사는 것과 이웃을 돕는 것, 두 축으로 세워지는 청년교회를 소개합니다.",
 };
-
-const ACROSTIC = ["L", "I", "G", "H", "T"];
 
 /**
  * 출처: 실제 LIGHT 주보 2026-08-23 (YEAR 2026 · ISSUE 34) "청년교회를 섬기는 이들".
@@ -51,40 +50,32 @@ const YEAR_FLOW = [
 export default function AboutPage() {
   return (
     <main id="main" tabIndex={-1}>
-      <Section className="pb-8 md:pb-8">
+      {/*
+        워드마크라 녹색 계열로 둔다 (PM 2026-09-02). 여기는 밝은 배경이므로
+        어두운 표면용 토큰이 아니라 `--color-yellow`(라이트 #57674d 올리브 /
+        다크 #b3b792)를 쓴다 — 라이트 4.63:1 · 다크 8.32:1로 양쪽 AA 통과.
+
+        h1은 시각적으로 숨기지 않고 스크린리더 전용으로만 둔다 — 페이지 제목은
+        여전히 필요하지만(SPEC_NONFUNCTIONAL.md §6), 화면에는 애니메이션되는
+        `LightIntro` 글자만 보이게 한다 (PM 요청 2026-09-10, "글씨가 너무 많다").
+      */}
+      <h1 className="sr-only">LIGHT — Live In God, Help The other</h1>
+      <LightIntro />
+
+      <Section className="pt-0 pb-8 text-center md:pb-8">
         {/*
-          워드마크라 녹색 계열로 둔다 (PM 2026-09-02). 여기는 밝은 배경이므로
-          어두운 표면용 토큰이 아니라 `--color-yellow`(라이트 #57674d 올리브 /
-          다크 #b3b792)를 쓴다 — 라이트 4.63:1 · 다크 8.32:1로 양쪽 AA 통과.
-        */}
-        <p className="text-sm font-bold text-[var(--color-yellow)]">LIGHT</p>
-        <h1 className="mt-2 text-2xl font-bold md:text-3xl">
-          Live In God, Help The other
-        </h1>
-        {/*
-          주보 로고가 `LIGHT`와 함께 쓰는 성구다. h1을 대체하지 않는다 —
+          주보 로고가 `LIGHT`와 함께 쓰는 성구다. `LightIntro`를 대체하지 않는다 —
           **둘은 경쟁이 아니다.** 마 5:16은 성구고, `Live In God, Help The other`는
           LIGHT라는 이름의 뜻이다 (`PLAN §1.5`). 주보 로고도 둘을 같이 쓴다.
+          (PM 판단 2026-09-04 "표어는 둘 다 산다" — 인트로를 정리해도 이 문구는
+          지우지 않는다.)
         */}
-        <p className="mt-4 text-base text-[var(--color-gray-400)]">
+        <p className="text-base text-[var(--color-gray-400)]">
           <strong className="text-[var(--color-ink)]">
             &ldquo;너의 빛으로 세상을 비추라&rdquo;
           </strong>{" "}
           — 마태복음 5장 16절
         </p>
-      </Section>
-
-      <Section title="LIGHT" className="pt-0">
-        <div className="flex flex-col items-center gap-2 md:gap-4">
-          {ACROSTIC.map((letter) => (
-            <span
-              key={letter}
-              className="text-6xl font-bold text-[var(--color-yellow)] md:text-8xl"
-            >
-              {letter}
-            </span>
-          ))}
-        </div>
       </Section>
 
       <Section title="Live In God">
