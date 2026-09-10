@@ -1732,15 +1732,6 @@ export const mockApi: Api = {
       // mock은 정적 자산이라 실제로 지우지 않는다 — 화면은 성공으로 처리하고
       // 목록을 다시 불러오면 사진이 그대로 있다. 통합 시 실제 삭제로 검증해야 한다
     },
-
-    downloadUrl(photoId: string): string {
-      // 실제 서버는 302 → presigned URL(attachment)로 보낸다.
-      // mock은 정적 view 이미지를 그대로 가리킨다 — 브라우저가 저장하면 된다.
-      const index = RETREAT_PHOTOS.findIndex((p) => p.id === photoId);
-      return index >= 0
-        ? RETREAT_PHOTOS[index].viewUrl
-        : `/api/photos/${encodeURIComponent(photoId)}/download`;
-    },
   },
   meetings: {
     async list({ page = 0, size = 20 } = {}): Promise<Page<MeetingSummary>> {

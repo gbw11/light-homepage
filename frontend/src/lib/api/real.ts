@@ -357,8 +357,6 @@ export const realApi: Api = {
         method: "POST",
         body: JSON.stringify(input),
       }),
-    // 302 → presigned(attachment) — 브라우저가 따라가야 한다 (SPEC_API §6.7)
-    downloadUrl: (photoId) => `/api/photos/${encodeURIComponent(photoId)}/download`,
     remove: (photoId) => request(`/photos/${encodeURIComponent(photoId)}`, { method: "DELETE" }),
   },
   meetings: {

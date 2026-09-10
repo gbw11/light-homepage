@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "@/lib/api";
 import { isLeaderOrAbove } from "@/components/auth/RequireLeader";
 import { useAuth } from "@/components/providers/AuthProvider";
 import type { Photo } from "@/types/api";
@@ -13,13 +12,17 @@ import { usePinchZoom } from "@/lib/gesture/usePinchZoom";
 const SWIPE_THRESHOLD = 50;
 
 /**
- * SPEC_FUNCTIONAL §5.1 (FR-PHO-04) — 보관되는 최대 화질은 **장변 2560px**이고
- * 촬영 원본은 보관하지 않는다. 스펙의 경계값이므로 여기서만 정의하고 문구를
- * 여기서 만든다 — mock 자산은 git에 커밋된 데모 데이터라 1600px이지만, 그건
- * 데모의 사정이고 회원에게 약속하는 경계는 실서비스 기준(2560px)이다.
- * 그래서 이 사진의 실제 크기는 `Photo.width/height`로 따로 보여준다.
+ * LIGHT-304 (2026-09-10) — 보관되는 최대 화질은 **장변 1280px**이고 촬영
+ * 원본은 보관하지 않는다. 원래 2560px였으나 다운로드 버튼을 없애면서(같은
+ * 티켓) 화면에 보여주는 용도로는 그렇게까지 클 필요가 없어졌다 — 용량의
+ * 94%를 이 view 한 장이 차지했다(10GB 기준 7,500장 → 23,000장).
+ *
+ * ⚠️ 기존에 업로드된 사진은 재변환하지 않는다(원본 미보관) — 이 값은 신규
+ * 업로드부터 적용된다. 스펙의 경계값이므로 여기서만 정의한다 — mock 자산은
+ * git에 커밋된 데모 데이터라 실제 크기가 다를 수 있고, 그래서 이 사진의
+ * 실제 크기는 `Photo.width/height`로 따로 보여준다.
  */
-const MAX_STORED_LONG_EDGE = 2560;
+const MAX_STORED_LONG_EDGE = 1280;
 
 /**
  * `⋮`로 열리는 겹침 패널. 라이트박스는 한 번에 하나만 띄운다 — 두 개를 따로
@@ -50,7 +53,7 @@ type LightboxProps = {
 /**
  * WIREFRAME.md §13-4 — 확대 보기(라이트박스).
  *
- * · 표시 이미지는 `viewUrl`(2560px)을 쓴다. 그리드의 `thumbUrl`과 다르다
+ * · 표시 이미지는 `viewUrl`(1280px)을 쓴다. 그리드의 `thumbUrl`과 다르다
  *   (SPEC_API §6.4 — 열람 전송량 때문에 그리드에는 절대 쓰지 않는다).
  * · 사진 비율이 섞여 있어(4:3 · 16:9 · 세로 1200x1600) `object-contain` +
  *   `max-h`/`max-w`로 어떤 비율이든 잘리지 않고 화면에 들어오게 한다.
@@ -247,34 +250,12 @@ export function Lightbox({
 
         <div className="flex items-center gap-1">
           {/*
-            `⬇` 개별 다운로드 (WIREFRAME §13-4 — "회원의 가장 중요한 동작",
-            FR-PHO-04). `api.photos.downloadUrl`은 fetch가 아니라 URL 빌더다:
-            실서비스는 302 → presigned(`Content-Disposition: attachment`)이므로
-            **브라우저가 직접 이동**해야 한다. 그래서 앵커를 쓴다 — fetch로
-            받으면 리다이렉트를 따라가 파일 전체를 메모리에 담게 된다.
-
-            `download`에 파일명을 지정하지 않는다: 실서비스 응답은 R2(다른
-            오리진)로 넘어가므로 `download` 속성값이 무시되고 서버의
-            `Content-Disposition`이 파일명을 정한다. 여기서 확장자를 추측해
-            붙이면 mock에서만 맞고 실서비스에서는 틀린 이름이 된다.
-          */}
-          <a
-            href={api.photos.downloadUrl(photo.id)}
-            download
-            aria-label={`사진 ${index + 1} 다운로드`}
-            className="flex h-11 w-11 items-center justify-center rounded-full text-2xl text-white hover:bg-white/10"
-          >
-            ⬇
-          </a>
-
-          {/*
             WIREFRAME §13-4의 `⋮`.
             · 익명·일반 회원: 항목이 신고·요청 하나뿐이라 중간 메뉴 없이 바로 연다.
               익명에게도 보여준다 — 사진에 얼굴이 찍힌 비회원이 '내려달라'고
               알릴 유일한 창구다 (PM 결정 2026-08-25).
             · 임원 이상: 삭제(§6.9)가 붙어 항목이 둘이므로 메뉴를 한 단계 둔다.
-              파괴적 동작을 헤더의 `⬇` 옆에 나란히 놓지 않는 것이 목적이다 —
-              다운로드를 누르려던 손가락이 삭제에 닿으면 안 된다.
+              파괴적 동작을 바로 노출하지 않는 것이 목적이다.
           */}
           <button
             type="button"
@@ -322,7 +303,7 @@ export function Lightbox({
         </button>
 
         {/*
-          이웃 사진 미리 받기 — viewUrl(2560px)은 수백 KB라 화살표를 누른 뒤에
+          이웃 사진 미리 받기 — viewUrl(1280px)은 수백 KB라 화살표를 누른 뒤에
           받기 시작하면 빈 화면이 한 박자 보인다. display:none이어도 브라우저는
           src를 받아두므로, 넘기는 순간 캐시에서 바로 뜬다.
         */}
@@ -386,9 +367,9 @@ export function Lightbox({
  * `⋮` 액션 메뉴 (임원 이상에만 렌더 — 호출부 참고).
  *
  * 삭제를 헤더 아이콘으로 직접 노출하지 않고 이 한 단계를 두는 이유:
- * 헤더에는 `⬇`(다운로드)가 이미 있고, 44px 아이콘 두 개가 붙어 있으면
- * "받으려다 지운다"가 실제로 일어난다. 메뉴 안에서는 항목마다 글자 라벨이
- * 있고 삭제는 빨간색으로 분리돼 있어 무엇을 누르는지가 분명하다.
+ * 헤더 아이콘 하나만 누르면 바로 삭제되는 구조는 위험하다. 메뉴 안에서는
+ * 항목마다 글자 라벨이 있고 삭제는 빨간색으로 분리돼 있어 무엇을 누르는지가
+ * 분명하다.
  */
 function PhotoActionsMenu({
   position,
