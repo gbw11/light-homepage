@@ -413,6 +413,10 @@ export const realApi: Api = {
     storage: () => request("/admin/storage"),
     newcomers: ({ page = 0, size = 20 } = {}) =>
       request("/admin/newcomers", { query: { page, size } }),
+    notifications: () => request("/admin/notifications"),
+    // 본문 생략 가능이지만 항상 `readMarker`를 그대로 보낸다 (types.ts 계약 주석)
+    markNotificationsRead: (input) =>
+      request("/admin/notifications/read", { method: "POST", body: JSON.stringify(input) }),
   },
   sermons: {
     // [CONTRACT] 신규 제안 경로 — 백엔드가 다르게 정하면 여기만 바꾼다

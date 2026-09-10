@@ -5,9 +5,20 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
-import { villageLabel } from "@/lib/village";
+import type { Village } from "@/types/api";
 
 const PAGE_SIZE = 20;
+
+/**
+ * ⚠️ `null`을 함께 다룬다 — 명단 CSV에 마을 열이 비어 있는 사람이 있다
+ * (`MeetingView.village`/`AttendanceEntry.village` 주석). `lib/village.ts`의
+ * 것과 다른 이유가 이것이고, 그쪽은 마을이 반드시 있는 회원 화면이 쓴다
+ * (`AttendanceSheet.tsx`의 같은 이름 로컬 함수와 동일 패턴).
+ */
+function villageLabel(village: Village | null): string {
+  if (village === null) return "마을 미배정";
+  return village === "newcomer" ? "새가족" : `${village}마을`;
+}
 
 /** `2026-08-24T12:03:00Z` → `8/24 21:03` (현지 시각) */
 function formatViewedAt(iso: string): string {
