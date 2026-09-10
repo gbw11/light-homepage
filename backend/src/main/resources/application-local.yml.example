@@ -1,0 +1,82 @@
+# ─────────────────────────────────────────────────────────────
+#  application-local.yml.example
+#
+#  이 파일을 복사해서 쓴다 (복사본은 .gitignore에 걸려 커밋되지 않는다):
+#    cp application-local.yml.example application-local.yml
+#
+#  ★ 이 example 파일에는 실제 크레덴셜을 절대 넣지 않는다. 커밋되는 파일이다.
+#  ★ 실행: ./gradlew bootRun --args='--spring.profiles.active=local'
+# ─────────────────────────────────────────────────────────────
+
+# ── 먼저 로컬 DB를 띄운다 ─────────────────────────────────────
+#   docker run -d --name light-db -p 5432:5432 -e POSTGRES_PASSWORD=local -e POSTGRES_DB=light postgres:16
+#
+#   ⚠️ 테스트는 light_test DB를 쓴다. 없으면 만들어 준다:
+#     docker exec light-db psql -U postgres -c "CREATE DATABASE light_test"
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/light
+    username: postgres
+    password: local
+
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    kr.light: DEBUG
+
+app:
+  jwt:
+    # 로컬 전용 더미. 운영 시크릿이 아니다 — 아무 값이나 256bit 이상이면 된다.
+    secret: local-development-only-secret-do-not-use-in-production-0123456789
+  auth:
+    # 개발용 — 메일 발송부가 없어 비밀번호 재설정 코드를 로그로 확인한다.
+    # prod에서는 켜져 있어도 무시된다.
+    expose-reset-token: true
+
+  seed:
+    # ★ 켜면 시드 계정 3개 + 그에 대응하는 명단 행이 생긴다.
+    #   로그인 아이디:  pastor(전도사) · leader(임원) · member(회원)
+    #   비밀번호:       아래 값
+    #
+    #   v1.3에서 계정은 "명단에서 확인된 사람"이므로 명단 행도 함께 만든다.
+    #   그래서 출석부·계정 삭제·명단 재개방 흐름도 이 시드로 테스트할 수 있다.
+    #
+    #   ⚠️ 배포 전에 반드시 끄거나 비밀번호를 바꾼다.
+    enabled: true
+    password: local1234!
+
+  # ── 아래 셋은 비워 둬도 서버가 뜬다 ────────────────────────
+  #  각 기능만 못 쓰고 나머지는 정상 동작한다. 아래 주석 참고.
+
+  kakao:
+    # 비우면: 카카오 로그인 버튼이 400 VALIDATION_ERROR
+    #        ("카카오 로그인이 설정되지 않았습니다.") — 500으로 터지지 않는다.
+    #        아이디/비밀번호 로그인은 그대로 되므로 대부분의 테스트에 지장 없다.
+    # 발급: https://developers.kakao.com → 내 애플리케이션 → REST API 키
+    rest-api-key:
+    client-secret:
+    redirect-uri: http://localhost:8080/api/auth/kakao/callback
+
+  youtube:
+    # 비우면: /api/sermons가 빈 목록, /api/sermons/live가 data:null.
+    #        500으로 터지지 않으므로 화면은 "아직 등록된 영상이 없습니다"가 뜬다.
+    # 발급: Google Cloud Console → YouTube Data API v3 → API 키 (무료)
+    api-key:
+    # 김해교회 청년교회 LIGHT — 공개 정보라 그대로 둬도 된다
+    channel-id: UCiG_caE3_ZPu2y04ei_mC7Q
+    # 설교 전용 재생목록. 비우면 채널 전체에서 제목 규칙으로 걸러낸다
+    playlist-id:
+
+  r2:
+    # ⚠️ 비우면: 사진첩 업로드 · 주보 · 월례회 · 첨부가 500이 된다.
+    #    (게시판·출석부·회원관리·새가족·인증은 영향 없다)
+    #
+    # 팀원에게 이 값을 받아 쓰지 말 것 — 과금·전체 파일 접근이 걸려 있다.
+    # 파일 기능을 테스트해야 하면 인프라 담당에게 **별도 버킷 + 별도 키**를
+    # 요청한다 (INTEGRATION.md §6.3 — R2 설정은 인프라 영역이다).
+    account-id:
+    bucket:
+    access-key-id:
+    secret-access-key:
