@@ -133,6 +133,8 @@ STORAGE_LIMIT      저장 용량 초과 (409)
 DUPLICATE          중복 (409)
 
 INTERNAL_ERROR     서버 오류 (500) — ★ FE는 분기하지 않는다. 공통 안내만
+RATE_LIMITED       요청이 너무 잦음 (429) — ★ 분기하지 않는다. 안내 문구만
+                   POST /api/newcomers(§9.1) 전용
 ```
 ⚠️ `PENDING_APPROVAL`은 v1.3(2026-08-31)에서 폐기됐습니다 — 승인 절차 소멸.
 ⚠️ `RATE_LIMITED`(429)는 `POST /api/newcomers`(§9.1)에서만 씁니다. **인증(§2)에서는
@@ -258,7 +260,17 @@ git checkout frontend_develop
 | **`server_develop`** | BE(주) | Docker·Render·Neon·R2 설정·CI·환경변수·배포 스크립트·운영 문서 | `.github/**`, `backend/Dockerfile`, 인프라 설정 |
 
 > ✅ **`server_develop` = 서버 배포·인프라 담당** (2026-08-20 확정)
-> 2인 팀이므로 실제로는 BE 담당자가 `backend_develop`과 `server_develop`을 함께 씁니다.
+>
+> ⚠️ **2026-09-10 정정 — 아래 「BE 담당자가 함께 씁니다」는 더 이상 맞지 않습니다.**
+> ~~2인 팀이므로 실제로는 BE 담당자가 `backend_develop`과 `server_develop`을 함께 씁니다.~~
+> **인프라 전담자가 따로 있습니다**(2026-08-26 확인). BE 담당자는
+> `backend/src/**`(애플리케이션 코드)만 맡습니다 — Docker·Render·Neon·R2 설정·CI·
+> 환경변수·배포 스크립트는 인프라 담당자에게 요청합니다.
+>
+> 이 문서를 그대로 믿고 인프라 작업을 시작하면 안 됩니다. 실제로 2026-08-26에
+> `Dockerfile`·Render prod 설정을 만들다 중단한 일이 있었습니다.
+> `BACKEND_TASKS.md §10` M1 체크리스트의 「Render 배포 관통 + Neon 연결」도
+> 같은 이유로 BE 항목이 아닙니다.
 > **애플리케이션 코드와 인프라 설정을 분리하는 것이 목적**입니다 — 배포 설정을 고치다 API 코드를 깨뜨리는 일을 막습니다.
 >
 > `server_develop`이 다루는 범위:
