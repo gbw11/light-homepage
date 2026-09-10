@@ -124,6 +124,11 @@ class AuthorizationCoverageTest {
             //   ⚠️ 이름·전화번호가 그대로 나가는 경로다 (§8.6)
             "GET /api/admin/newcomers",
 
+            // 전도사·임원 알림 (NotificationAuthorizationTest)
+            //   ⚠️ 알림 본문에 새가족 이름이 들어간다 — 회원에게 열면 그것이 샌다 (§12)
+            "GET /api/admin/notifications",
+            "POST /api/admin/notifications/read",
+
             // 월례회 (MeetingQueryApiTest)
             //   ★ 열람은 M — §7 본문의 익명 서술은 공개 열람 시절의 것이고,
             //     §10 매트릭스·FE·DB(meeting_doc_views.member_id NOT NULL)가 M이다
