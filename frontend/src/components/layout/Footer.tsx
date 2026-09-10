@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CHURCH_PHONE, CHURCH_PHONE_TEL } from "@/content/contact";
 import { YOUTH_SERVICE_LINE } from "@/content/worship";
 import { CHURCH_SITE_URL, INSTAGRAM_URL, YOUTUBE_CHANNEL_URL } from "@/content/links";
+import { ADDRESS } from "@/content/location";
 
 /**
  * 공통 푸터.
@@ -36,7 +37,8 @@ export function Footer() {
         */}
         <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
           <span>{YOUTH_SERVICE_LINE}</span>
-          <span>경남 김해시 가락로 117</span>
+          {/* ⚠️ 본교회(가락로 117) 아님 — 이 사이트는 청년교회(드림센터) 주소를 쓴다 */}
+          <span>{ADDRESS}</span>
           {/*
             ⚠️ 아래 링크 줄과 같은 이유로 44px를 맞춘다 (NFR-A11Y-05).
             이 줄은 텍스트(`span`) 사이에 링크가 하나 섞인 모양이라 높이를
