@@ -1,0 +1,109 @@
+name: Mobile CI
+
+# ────────────────────────────────────────────────────────────────
+#  mobile/ (Flutter, Android 우선) 검증 — 2026-10-07 추가.
+#
+#  frontend-ci.yml · backend-ci.yml과 같은 모양이다. 다른 점:
+#    · 배포 잡이 없다. 앱 릴리스는 mobile-v* 태그로 mobile-release.yml이 한다
+#      (웹처럼 develop push = 배포가 아니다 — 스토어 심사·사용자 업데이트가 끼어 있다).
+#    · APK 빌드는 통합 브랜치 push에서만 한다. analyze+test는 2~3분이지만
+#      Gradle 빌드는 5~8분이라 작업 브랜치마다 돌리면 무료 분이 샌다
+#      (docs/ops/COST_GUARDRAILS.md §3.1).
+#
+#  ⚠️ Flutter 버전은 여기·Jenkinsfile·docs/ops/TOOLCHAIN.md 세 곳이 같아야 한다.
+#     mobile/.metadata의 revision(5fc3468) = Flutter 3.47.6 (Dart 3.13.5).
+# ────────────────────────────────────────────────────────────────
+
+on:
+  pull_request:
+    branches: [develop, main, mobile_develop, server_develop]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-ci.yml'
+  push:
+    branches: [develop, main, mobile_develop, server_develop, 'feat/**', 'fix/**', 'docs/**']
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-ci.yml'
+  workflow_dispatch:
+
+# develop은 취소하지 않는다 — 다른 워크플로와 같은 규칙으로 통일한다.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
+
+env:
+  FLUTTER_VERSION: '3.47.6'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install
+        run: flutter pub get
+
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+  # Gradle·AGP 설정이 깨지는 부류(analyze·test로는 안 보인다)를 잡는다.
+  build-apk:
+    needs: verify
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/mobile_develop' || github.ref == 'refs/heads/develop'))
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # ⚠️ mobile/android/gradle.properties가 -Xmx8G를 요구한다. 호스티드 러너는
+      #    메모리가 약 7GB라 그대로 두면 OOM·스왑으로 느려진다. 사용자 홈의
+      #    gradle.properties가 프로젝트 것보다 우선하므로 CI에서만 낮춘다.
+      - name: Gradle 메모리 제한
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" >> ~/.gradle/gradle.properties
+
+      - name: Install
+        run: flutter pub get
+
+      - name: Build APK (debug)
+        # env/dev.json이 없던 시절의 커밋에서도 빌드가 되게 한다 (기본값 = 에뮬레이터 주소)
+        run: |
+          defines=""
+          [ -f env/dev.json ] && defines="--dart-define-from-file=env/dev.json"
+          flutter build apk --debug $defines
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: light-debug-apk-${{ github.sha }}
+          path: mobile/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
