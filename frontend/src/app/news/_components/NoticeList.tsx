@@ -20,6 +20,22 @@ const NOTICE_LIST = "divide-y divide-[var(--color-navy-100)]";
  */
 const SKELETON_ROWS = 6;
 
+/**
+ * 두 분류를 합친 목록의 정렬 — **고정 글 먼저**, 그 안에서 `publishedAt` 최신순
+ * (SPEC_API §3.2와 같은 규칙). 임시저장(publishedAt null)은 날짜가 없으니 맨 뒤.
+ *
+ * ⚠️ 2026-10-07 전에는 날짜로만 다시 정렬해서, 서버가 고정 글을 위로 보내도
+ * 합치는 순간 순서가 깨졌다 — 📌는 붙는데 상단에 오지 않았다.
+ */
+export function sortNotices(items: PostSummary[]): PostSummary[] {
+  return [...items].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    const pa = a.publishedAt ?? "";
+    const pb = b.publishedAt ?? "";
+    return pa === pb ? 0 : pa < pb ? 1 : -1;
+  });
+}
+
 /** 임시저장(`publish: false`) 글은 `publishedAt`이 null이다 (SPEC_API §3.4) */
 function formatDate(iso: string | null): string {
   if (!iso) return "임시저장";
@@ -71,11 +87,10 @@ export function NoticeList() {
     );
   }
 
-  // 임시저장(publishedAt null)은 날짜가 없으니 목록 맨 뒤로 보낸다
-  const items: PostSummary[] = [
+  const items: PostSummary[] = sortNotices([
     ...(publicQuery.data?.items ?? []),
     ...(memberQuery.data?.items ?? []),
-  ].sort((a, b) => ((a.publishedAt ?? "") < (b.publishedAt ?? "") ? 1 : -1));
+  ]);
 
   if (items.length === 0) {
     return (
