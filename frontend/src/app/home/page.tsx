@@ -10,6 +10,7 @@ import { ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
+import { Reveal, RevealNoScript } from "@/components/ui/Reveal";
 import { BulletinLink } from "./_components/BulletinLink";
 import { RecentSermon } from "./_components/RecentSermon";
 import { WeeklyNotices } from "./_components/WeeklyNotices";
@@ -57,13 +58,22 @@ const GALLERY = [
   },
 ];
 
+/** 갤러리 사진을 차례로 띄우는 간격 (ms) */
+const STAGGER_MS = 120;
+
 /**
  * WIREFRAME.md §1 — HOME.
  * Hero 원칙: 모바일에서 스크롤 없이 예배 시간 + 장소 + CTA 2개가 모두 보여야 한다.
+ *
+ * Hero 아래의 제목·글·사진·링크는 스크롤로 화면에 들어올 때 떠오른다 (`Reveal`,
+ * PM 요청 2026-10-07). Hero는 감싸지 않는다 — 처음부터 보이는 자리이고, Hero 사진은
+ * LCP 대상이라 투명하게 시작하면 첫 화면이 늦게 그려진다. 워드마크에는
+ * `/`에서 넘어오는 ViewTransition도 걸려 있다.
  */
 export default function Home() {
   return (
     <main id="main" tabIndex={-1}>
+      <RevealNoScript />
       {/* Hero */}
       <section className="flex min-h-[calc(100dvh-3.5rem)] items-center bg-[var(--color-navy-900)] text-white">
         <div className="mx-auto grid w-full max-w-[var(--container-max)] gap-8 px-5 py-10 md:grid-cols-2 md:items-center md:px-10">
@@ -123,99 +133,108 @@ export default function Home() {
       </section>
 
       {/* 이번 주 */}
-      <Section title="이번 주">
+      <Section title="이번 주" revealTitle>
         {/* 공지는 API에서 온다 — `_components/WeeklyNotices.tsx` 주석 참고 */}
-        <WeeklyNotices />
-        <div className="mt-6 flex gap-4 text-sm font-bold">
+        <Reveal>
+          <WeeklyNotices />
+        </Reveal>
+        <Reveal delay={100} className="mt-6 flex gap-4 text-sm font-bold">
           <Link href="/news" className="inline-flex min-h-11 items-center">
             ▸ 공지 전체보기
           </Link>
           {/* 주보는 회원 전용이 됐다 — 로그인한 사람에게만 그린다 (그 조각 주석) */}
           <BulletinLink />
-        </div>
+        </Reveal>
       </Section>
 
       {/* 우리는 */}
-      <Section title="우리는">
-        <p className="text-xl font-bold leading-relaxed md:text-2xl">
-          하나님 안에 살며,
-          <br />
-          이웃을 돕는 청년 공동체
-        </p>
+      <Section title="우리는" revealTitle>
+        <Reveal>
+          <p className="text-xl font-bold leading-relaxed md:text-2xl">
+            하나님 안에 살며,
+            <br />
+            이웃을 돕는 청년 공동체
+          </p>
+        </Reveal>
 
         {/* 기존 4칸 정사각 placeholder → 공개 가능한 사진이 3장뿐이라
             같은 사진을 반복하지 않고 공동체 사진 1장(16:9)으로 대체했다. */}
-        <figure className="relative mt-6 aspect-video overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-navy-100)]">
-          <Image
-            src="/images/gathering.webp"
-            alt="드림센터 4층 예배실에 함께 모여 있는 청년교회 공동체"
-            fill
-            sizes="(min-width: 768px) 720px, 100vw"
-            className="object-cover"
-          />
-        </figure>
+        <Reveal delay={100}>
+          <figure className="relative mt-6 aspect-video overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-navy-100)]">
+            <Image
+              src="/images/gathering.webp"
+              alt="드림센터 4층 예배실에 함께 모여 있는 청년교회 공동체"
+              fill
+              sizes="(min-width: 768px) 720px, 100vw"
+              className="object-cover"
+            />
+          </figure>
+        </Reveal>
 
-        <Link href="/about" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
-          ▸ 더 알아보기
-        </Link>
+        <Reveal>
+          <Link href="/about" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
+            ▸ 더 알아보기
+          </Link>
+        </Reveal>
       </Section>
 
       {/* 주일에는 이렇게 모입니다 */}
-      <Section title="주일에는 이렇게 모입니다">
-        <ul className="divide-y divide-[var(--color-navy-100)] rounded-[var(--radius-card)] border border-[var(--color-navy-100)]">
-          <li className="p-4">
-            {/*
-              `YOUTH_GATHERINGS` 배열을 재사용하지 않는다 — 여기는 시각이
-              앞에 오고(표는 이름이 앞이다) 장소 칸도 다르다(`1~9마을 +
-              새가족마을`). 배열을 억지로 끼우면 데이터가 홈의 편집 문구를
-              지배한다. 갈라지면 안 되는 것은 시각이므로 원자만 가져온다.
-            */}
-            <p className="font-bold">{YOUTH_SERVICE_TIME} · 청년예배</p>
-            <p className="text-sm text-[var(--color-gray-400)]">{VENUE}</p>
-          </li>
-          <li className="p-4">
-            <p className="font-bold">{VILLAGE_TIME} · 마을모임 (30분)</p>
-            <p className="text-sm text-[var(--color-gray-400)]">
-              1~9마을 + 새가족마을
-            </p>
-          </li>
-        </ul>
+      <Section title="주일에는 이렇게 모입니다" revealTitle>
+        <Reveal>
+          <ul className="divide-y divide-[var(--color-navy-100)] rounded-[var(--radius-card)] border border-[var(--color-navy-100)]">
+            <li className="p-4">
+              {/*
+                `YOUTH_GATHERINGS` 배열을 재사용하지 않는다 — 여기는 시각이
+                앞에 오고(표는 이름이 앞이다) 장소 칸도 다르다(`1~9마을 +
+                새가족마을`). 배열을 억지로 끼우면 데이터가 홈의 편집 문구를
+                지배한다. 갈라지면 안 되는 것은 시각이므로 원자만 가져온다.
+              */}
+              <p className="font-bold">{YOUTH_SERVICE_TIME} · 청년예배</p>
+              <p className="text-sm text-[var(--color-gray-400)]">{VENUE}</p>
+            </li>
+            <li className="p-4">
+              <p className="font-bold">{VILLAGE_TIME} · 마을모임 (30분)</p>
+              <p className="text-sm text-[var(--color-gray-400)]">
+                1~9마을 + 새가족마을
+              </p>
+            </li>
+          </ul>
+        </Reveal>
 
-        <Link href="/worship" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
-          ▸ 자세히 보기
-        </Link>
+        <Reveal>
+          <Link href="/worship" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
+            ▸ 자세히 보기
+          </Link>
+        </Reveal>
       </Section>
 
       {/* 최근 말씀 */}
-      <Section title="최근 말씀">
-        <RecentSermon />
+      <Section title="최근 말씀" revealTitle>
+        <Reveal>
+          <RecentSermon />
+        </Reveal>
 
         {/* 라이브 우선 화면(`/sermons`)이 아니라 아카이브로 보낸다 — 이 링크를
             누르는 사람은 "지난 것"을 찾고 있다 (PM 요청 2026-09-01) */}
-        <Link href="/sermons/all" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
-          ▸ 지난 말씀 전체보기
-        </Link>
+        <Reveal>
+          <Link href="/sermons/all" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
+            ▸ 지난 말씀 전체보기
+          </Link>
+        </Reveal>
       </Section>
 
       {/* 함께한 순간들 */}
-      <Section title="함께한 순간들">
+      <Section title="함께한 순간들" revealTitle>
         {/* 갤러리 미리보기. 기존 6칸 placeholder → 공개 가능한 3장으로 축소.
             모바일에서도 3열 썸네일 스트립을 유지한다 — 세로로 쌓으면 섹션이
             과도하게 길어지고, 작게 노출되는 편이 초상권 측면에서도 안전하다. */}
         <div className="grid grid-cols-3 gap-3">
-          {GALLERY.map((photo) => (
-            <figure
-              key={photo.src}
-              className="relative aspect-video overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-navy-100)]"
-            >
-              <Image
-                src={photo.src}
-                alt={photo.alt}
-                fill
-                sizes="33vw"
-                className="object-cover"
-              />
-            </figure>
+          {GALLERY.map((photo, i) => (
+            <Reveal key={photo.src} delay={i * STAGGER_MS}>
+              <figure className="relative aspect-video overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-navy-100)]">
+                <Image src={photo.src} alt={photo.alt} fill sizes="33vw" className="object-cover" />
+              </figure>
+            </Reveal>
           ))}
         </div>
 
@@ -225,14 +244,16 @@ export default function Home() {
           누구에게나 열렸다. 위 3장은 공개용 실사진이고, 눌러서 들어가는 앨범
           쪽은 얼굴이 식별되는 사진이 있어 색인은 계속 막혀 있다(robots.ts).
         */}
-        <Link href="/photos" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
-          ▸ 사진첩
-        </Link>
+        <Reveal>
+          <Link href="/photos" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
+            ▸ 사진첩
+          </Link>
+        </Reveal>
       </Section>
 
       {/* 처음 오시나요 (강조 블록) */}
       <Section>
-        <div className="rounded-[var(--radius-card)] bg-[var(--color-navy-900)] p-6 text-white md:p-10">
+        <Reveal className="rounded-[var(--radius-card)] bg-[var(--color-navy-900)] p-6 text-white md:p-10">
           <h2 className="text-xl font-bold md:text-2xl">처음 오시나요?</h2>
           <p className="mt-4 leading-relaxed text-white/80">
             드림센터가 본당과 다른 건물이라 헷갈리기 쉬워요. 길 안내부터 예배
@@ -241,7 +262,7 @@ export default function Home() {
           <Link href="/welcome" className={`${CTA_PRIMARY} mt-6`}>
             처음 오시는 분 안내
           </Link>
-        </div>
+        </Reveal>
       </Section>
     </main>
   );
