@@ -1,0 +1,148 @@
+name: Mobile Release
+
+# ────────────────────────────────────────────────────────────────
+#  서명된 Android 릴리스 빌드 (APK + AAB) — 2026-10-07 추가.
+#
+#  트리거: `mobile-v1.2.3` 태그 push → GitHub Release에 APK·AAB를 붙인다.
+#          Actions 탭의 수동 실행(workflow_dispatch)은 산출물만 남긴다(14일).
+#
+#  ⚠️ 웹과 달리 "develop 머지 = 배포"가 아니다. 앱은 사람이 설치해야 바뀌므로
+#     언제 내보낼지를 태그로 사람이 정한다 (docs/ops/CICD.md §3.8).
+#
+#  ⚠️ 서명 키는 GitHub Secrets에만 있다 — 저장소에 커밋하지 않는다
+#     (secret-scan.yml이 .jks·.keystore·key.properties를 막는다).
+#     키 생성·백업·분실 대응: infra/mobile/README.md
+#
+#  Play 스토어 업로드 단계는 아직 없다 — 계정 명의(교회/개인)·등록 결정 후 추가한다
+#  (docs/records/DECISIONS.md 2026-10-07).
+# ────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    tags: ['mobile-v*']
+  workflow_dispatch:
+
+# 같은 태그를 두 번 빌드하지 않는다. 릴리스는 중간에 취소하지 않는다.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # GitHub Release 생성
+
+env:
+  FLUTTER_VERSION: '3.47.6'   # mobile-ci.yml · Jenkinsfile · TOOLCHAIN.md와 같게
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # mobile-ci.yml과 같은 이유 — 러너 메모리(약 7GB) < 프로젝트 설정(8GB)
+      - name: Gradle 메모리 제한
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" >> ~/.gradle/gradle.properties
+
+      - name: 버전 결정
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/mobile-v* ]]; then
+            name="${GITHUB_REF#refs/tags/mobile-v}"
+          else
+            # 수동 실행은 pubspec의 버전 이름을 그대로 쓴다
+            name="$(grep -E '^version:' pubspec.yaml | sed -E 's/version:[[:space:]]*([^+]+).*/\1/')"
+          fi
+          if ! [[ "$name" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::버전 이름이 x.y.z 형식이 아닙니다: $name (태그는 mobile-v1.2.3 형식)"
+            exit 1
+          fi
+          # versionCode는 단조 증가해야 한다 — 이 워크플로의 실행 번호를 쓴다
+          echo "name=$name"              >> "$GITHUB_OUTPUT"
+          echo "number=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "📦 $name (build ${{ github.run_number }})"
+
+      - name: 서명 키 복원
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ]; then
+            echo "::error::서명 키 시크릿이 없습니다 — infra/mobile/README.md §2를 보세요"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/upload-keystore.jks
+          # PKCS12 키스토어는 store·key 비밀번호가 같다
+          {
+            echo "storeFile=upload-keystore.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEYSTORE_PASSWORD"
+          } > android/key.properties
+
+      - name: Install
+        run: flutter pub get
+
+      - name: Test
+        run: flutter test
+
+      - name: Build
+        run: |
+          common="--release --dart-define-from-file=env/prod.json --build-name=${{ steps.ver.outputs.name }} --build-number=${{ steps.ver.outputs.number }}"
+          flutter build apk $common
+          flutter build appbundle $common
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/light-${{ steps.ver.outputs.name }}.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "dist/light-${{ steps.ver.outputs.name }}.aab"
+
+      # debug 키로 서명된 채 나가는 사고를 막는다 — debug 인증서는 CN=Android Debug.
+      # ⚠️ keytool -printcert -jarfile은 쓰지 않는다: minSdk 24+ APK는 v1(JAR) 서명이
+      #    없어 아무것도 출력하지 않고, 그러면 이 검사가 조용히 통과한다(2026-10-07 실측).
+      - name: 서명 확인
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          cert=$("$apksigner" verify --print-certs "dist/light-${{ steps.ver.outputs.name }}.apk")
+          echo "$cert" | grep -E 'Signer #1 certificate (DN|SHA-256)'
+          if ! echo "$cert" | grep -q 'Signer #1 certificate DN'; then
+            echo "::error::서명 정보를 읽지 못했습니다"; exit 1
+          fi
+          if echo "$cert" | grep -q 'CN=Android Debug'; then
+            echo "::error::debug 키로 서명됐습니다 — key.properties가 적용되지 않았습니다"
+            exit 1
+          fi
+
+      - name: 서명 파일 정리
+        if: always()
+        run: rm -f android/upload-keystore.jks android/key.properties
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: light-${{ steps.ver.outputs.name }}-${{ steps.ver.outputs.number }}
+          path: mobile/dist/*
+          retention-days: 14
+
+      - name: GitHub Release
+        if: startsWith(github.ref, 'refs/tags/mobile-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "LIGHT 앱 ${{ steps.ver.outputs.name }}" \
+            --notes "Android 릴리스 (build ${{ steps.ver.outputs.number }}). 설치: APK를 폰에서 열기 — infra/mobile/README.md §4" \
+            --prerelease
