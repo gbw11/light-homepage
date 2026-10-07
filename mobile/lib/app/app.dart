@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api/api_client.dart';
 import '../core/theme/app_theme.dart';
+import 'app_intro.dart';
 import 'router.dart';
 
 class LightApp extends StatefulWidget {
@@ -52,6 +53,10 @@ class _LightAppState extends State<LightApp> {
       theme: buildAppTheme(),
       scaffoldMessengerKey: _messenger,
       routerConfig: _router,
+      // 앱을 켤 때 인트로를 앱 본체 위에 덮는다 (app_intro.dart). 라우터 밖에 두어
+      // 탭·화면 구성과 무관하게 한 번만 뜬다
+      builder: (context, child) =>
+          AppIntro(child: child ?? const SizedBox.shrink()),
     );
   }
 }
