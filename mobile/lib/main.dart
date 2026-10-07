@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'core/config.dart';
+
 void main() {
+  checkConfig();
   runApp(const LightApp());
 }
 
