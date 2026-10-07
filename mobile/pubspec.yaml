@@ -38,6 +38,7 @@ dependencies:
   dio_cookie_manager: ^3.5.0
   cookie_jar: ^4.0.9
   path_provider: ^2.1.6
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:
@@ -95,6 +96,9 @@ flutter:
   # 라이선스 페이지에 띄우려고 번들한다 (SIL OFL 1.1 — 글꼴과 함께 배포해야 한다)
   assets:
     - assets/fonts/pretendard/LICENSE.txt
+    # 웹 `frontend/public/images/`와 같은 파일. 얼굴이 식별되지 않는 공개용 사진만 넣는다
+    # (DECISIONS "수련회 실사진 공개 페이지 적용 범위")
+    - assets/images/worship-hero.webp
 
   # Pretendard v1.3.9 (한글·영문 공통). 쓰는 굵기만 넣는다 — 하나에 약 1.5MB다.
   # 여기 없는 굵기(w300 등)를 요청하면 가장 가까운 굵기로 그려진다.
