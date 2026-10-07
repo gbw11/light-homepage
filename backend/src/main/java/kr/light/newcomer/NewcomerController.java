@@ -43,9 +43,10 @@ public class NewcomerController {
                       저장도 알림도 하지 않습니다.
                     - 동일 IP에서 **5분에 5회**를 넘기면 `429 RATE_LIMITED`입니다.
 
-                    ⚠️ `RATE_LIMITED`는 아직 합의되지 않은 에러 코드입니다
-                    (SPEC_API.md §1.2의 7개 집합 밖). 명세가 "거부한다"고만 적고 코드를
-                    정하지 않아 임시로 쓰고 있습니다.
+                    `RATE_LIMITED`는 `SPEC_API.md §1.2`에 표로 올라가 있습니다.
+                    명세가 "거부한다"고만 적고 코드를 정하지 않아 BE가 골랐고,
+                    `INTERNAL_ERROR`와 같은 PR #74(`[CONTRACT]`)로 머지됐습니다.
+                    FE는 이 코드로 분기하지 않고 안내 문구만 띄우면 됩니다.
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
