@@ -20,20 +20,8 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl git unzip xz-utils \
  && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL -o /tmp/flutter.tar.xz \
-      "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" \
- && echo "${FLUTTER_SHA256}  /tmp/flutter.tar.xz" | sha256sum -c - \
- && tar -xJf /tmp/flutter.tar.xz -C /opt \
- && rm /tmp/flutter.tar.xz \
- && git config --system --add safe.directory '*' \
- && chmod -R a+rwX /opt/flutter
+ENV PATH="/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:${PATH}"     FLUTTER_SUPPRESS_ANALYTICS=true     PUB_CACHE=/opt/pub-cache
 
-ENV PATH="/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:${PATH}" \
-    FLUTTER_SUPPRESS_ANALYTICS=true \
-    PUB_CACHE=/opt/pub-cache
-
-# 엔진·Dart SDK 아티팩트를 이미지에 미리 받아둔다 (빌드마다 내려받지 않게)
-RUN flutter config --no-analytics --no-cli-animations \
- && flutter precache --no-android --no-ios --no-web --no-linux \
- && dart --disable-analytics \
- && mkdir -p /opt/pub-cache && chmod -R a+rwX /opt/pub-cache /opt/flutter
+# ⚠️ 한 레이어로 묶는다 — chmod -R을 따로 RUN하면 SDK 전체가 레이어에 한 번 더
+#    복사돼 이미지가 두 배(약 5GB)가 된다. 엔진·Dart 아티팩트도 여기서 미리 받는다.
+RUN curl -fsSL -o /tmp/flutter.tar.xz       "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"  && echo "${FLUTTER_SHA256}  /tmp/flutter.tar.xz" | sha256sum -c -  && tar -xJf /tmp/flutter.tar.xz -C /opt  && rm /tmp/flutter.tar.xz  && git config --system --add safe.directory '*'  && flutter config --no-analytics --no-cli-animations  && flutter precache --no-android --no-ios --no-web --no-linux  && dart --disable-analytics  && mkdir -p /opt/pub-cache  && chmod -R a+rwX /opt/flutter /opt/pub-cache
