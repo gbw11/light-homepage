@@ -2,17 +2,17 @@
 <!-- 한 줄 요약 -->
 
 ## 상대에게 영향이 있나요?
-- [ ] 없음 — 내 디렉터리(`frontend/` 또는 `backend/`) 안에서만
+- [ ] 없음 — 내 디렉터리(`frontend/`·`backend/`·`mobile/`) 안에서만
 - [ ] **있음 — API 계약 변경** → PR 제목에 `[CONTRACT]` 붙이고 상대 승인 필요
 - [ ] 있음 — `docs/` 변경
 - [ ] 있음 — 루트 설정·CI 변경 → 상대 승인 필요
 
 ## ✅ CI — ❌가 있으면 머지하지 않습니다
-> 무료 Private 상황이라 기술적 강제가 없습니다. 이것이 사실상의 마지리 게이트입니다 (docs/ops/CICD.md §4)
+> 무료 Private 상황이라 기술적 강제가 없습니다. 이것이 사실상의 머지 게이트입니다 (docs/ops/CICD.md §4)
 
 - [ ] Jenkins 또는 GitHub Actions가 ✅ 상태
-- [ ] 상태가 보이지 않음 → Jenkins에서 볓드 결과를 도압토 확인함
-- [ ] 시킬릿(`.env`, 키, DB 밀번호)을 추가하지 않았음
+- [ ] 상태가 보이지 않음 → Jenkins에서 빌드 결과를 직접 확인함
+- [ ] 시크릿(`.env`, 키, DB 비밀번호, 서명 키 `.jks`·`key.properties`)을 추가하지 않았음
 
 ## 확인한 것
 
@@ -28,6 +28,11 @@
 - [ ] 실패 시 `{ "error": { code, message, field } }` 규약대로 응답
 - [ ] Flyway 마이그레이션 재현 가능
 - [ ] Swagger에 반영됨
+
+**모바일인 경우**
+- [ ] `flutter analyze` · `flutter test` 통과
+- [ ] Android 에뮬레이터(또는 실기기)에서 실제 화면 확인
+- [ ] API 계약에 기대는 부분이 바뀌었으면 백엔드 담당과 확인
 
 ## 관련 문서
 <!-- 예: docs/backend/BACKEND_TASKS.md §7 월례회 -->
