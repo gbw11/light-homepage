@@ -14,17 +14,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -499,6 +504,42 @@ class AuthApiTest {
     void logout_쿠키없음() throws Exception {
         mockMvc.perform(post("/api/auth/logout"))
                 .andExpect(status().isNoContent());
+    }
+
+    // ── 탈퇴 후 재가입 (LIGHT-50 회귀) ───────────────────────────
+
+    @Test
+    @DisplayName("★ 탈퇴 → 같은 사람이 명단 대조 → 재가입 → 로그인까지 완주한다")
+    void 탈퇴_후_재가입_전체_왕복() throws Exception {
+        register();
+        Member first = memberRepository.findByLoginId(LOGIN_ID).orElseThrow();
+
+        mockMvc.perform(json(delete("/api/auth/me"), Map.of("password", PASSWORD)).with(as(first)))
+                .andExpect(status().isNoContent());
+        assertThat(memberRepository.findById(first.getId())).isEmpty();
+
+        // claimed_at이 해제되지 않았다면 여기서 401로 막힌다 — 회귀의 핵심 지점
+        String token = verifyAndGetToken();
+
+        Map<String, Object> secondForm = registerForm(token);
+        String newPassword = "새비밀번호1234!";
+        secondForm.put("password", newPassword);
+        mockMvc.perform(json(post("/api/auth/register"), secondForm))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.name").value(NAME));
+
+        Map<String, Object> secondLogin = loginForm();
+        secondLogin.put("password", newPassword);
+        mockMvc.perform(json(post("/api/auth/login"), secondLogin))
+                .andExpect(status().isOk())
+                .andExpect(cookie().exists(AuthCookies.ACCESS_TOKEN));
+    }
+
+    private RequestPostProcessor as(Member actor) {
+        AuthPrincipal principal = new AuthPrincipal(actor.getId(), actor.getRole());
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                principal, null, principal.authorities());
+        return authentication(authentication);
     }
 
     // ── 보조 ──────────────────────────────────────────────────
