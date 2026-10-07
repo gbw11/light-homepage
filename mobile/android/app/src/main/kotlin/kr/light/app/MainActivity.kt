@@ -1,4 +1,4 @@
-package kr.light.light_mobile
+package kr.light.app
 
 import io.flutter.embedding.android.FlutterActivity
 

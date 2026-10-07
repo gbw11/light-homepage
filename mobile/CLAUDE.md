@@ -34,22 +34,31 @@
 
 ## "됐다"의 기준
 
-아래 두 개가 모두 통과해야 완료다. **CI는 아직 `mobile/`을 검사하지 않으므로**
-로컬에서 직접 돌린다.
+아래가 모두 통과해야 완료다. CI(`.github/workflows/mobile-ci.yml`, Jenkins
+`Mobile` 스테이지)가 같은 것을 돌린다 — 로컬에서 먼저 돌리면 왕복이 줄어든다.
 
 ```sh
+dart format lib test
 flutter analyze
 flutter test
 ```
+
+Flutter 버전은 **3.47.6**으로 맞춘다 (`../docs/ops/TOOLCHAIN.md §1`).
 
 화면이 의도에 맞는지는 사람이 에뮬레이터로 보고 판단한다 — 테스트 통과와 별개다.
 
 ## 실행
 
 ```sh
-flutter run                                         # 에뮬레이터 → PC의 로컬 백엔드(10.0.2.2:8080)
-flutter run --dart-define=API_BASE_URL=https://<백엔드 주소>/api
+flutter run --dart-define-from-file=env/dev.json    # 에뮬레이터 → PC의 로컬 백엔드(10.0.2.2:8080)
+flutter run --dart-define-from-file=env/prod.json   # 운영 백엔드(Render)
 ```
+
+release 빌드는 `env/prod.json`이 없으면 **켜자마자 실패한다** (`checkConfig()` —
+에뮬레이터 주소로 나간 앱이 배포되는 것을 막는다). 릴리스·서명 키는
+[`../infra/mobile/README.md`](../infra/mobile/README.md).
+
+- 앱 ID: **`kr.light.app`** (Android·iOS 공통, 스토어 업로드 후 변경 불가 — DECISIONS 2026-10-07)
 
 로컬 백엔드는 http라서 debug 빌드에서만 평문 통신을 연다
 (`android/app/src/debug/AndroidManifest.xml`).
@@ -74,4 +83,4 @@ develop
 - `mobile_develop` → `develop`: **Merge commit**, 통합 체크포인트(§7)에 맞춰
 - 커밋 scope는 `mobile` — `feat(mobile): 주보 목록 화면`
 - ⚠️ PR을 만들면 GitHub 기본 대상이 `develop`이다. **`mobile_develop`으로 바꾼다.**
-  `branch-policy.yml`이 아직 `feat/mobile-*`을 검사하지 않아 잘못 올려도 경고가 안 뜬다
+  잘못 올리면 `branch-policy.yml`이 빨간 X를 띄운다
