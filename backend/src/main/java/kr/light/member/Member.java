@@ -117,23 +117,23 @@ public class Member {
     // ── 상태 변경 ─────────────────────────────────────────────
 
     /**
-     * 역할 변경 (SPEC_API.md §8.3).
+     * 역할 변경 (SPEC_API.md §8.4).
      *
-     * <p>⚠️ <b>{@code MEMBER ↔ LEADER}만 허용한다</b> (FR-ADM-04). PASTOR 부여를
-     * API로 열면 전도사 계정이 조용히 늘어나는 사고가 가능해진다. 전도사 임명이
-     * 필요하면 DB에서 직접 한다 — 드물고, 되돌리기 어려운 일이다.
+     * <p><b>세 역할 모두 오갈 수 있다</b> (PM 결정 2026-10-07). 예전에는
+     * {@code MEMBER ↔ LEADER}만 허용하고 전도사 임명은 DB에서 직접 했는데, 그러면
+     * 앱 안에서 전도사를 인수인계할 방법이 없었다(화면은 PASTOR를 고를 수 있게
+     * 해 두어 항상 400이 났다 — 사용자 흐름 점검 2026-10-07 🔴-4).
+     *
+     * <p>전도사 계정이 조용히 늘어나는 사고는 다른 장치로 막는다: 이 API 자체가
+     * 전도사 전용이고({@code MemberAdminController}), 화면이 확인 모달을 띄우며,
+     * 모든 변경이 감사로그({@code ROLE_CHANGE})에 남는다. 마지막 전도사 강등은
+     * {@code MemberAdminService}가 막는다.
      */
     public void changeRole(Role newRole) {
-        if (!isAssignableRole(role) || !isAssignableRole(newRole)) {
-            throw new IllegalStateException(
-                    "MEMBER↔LEADER만 변경할 수 있다: %s → %s".formatted(role, newRole));
+        if (newRole == null) {
+            throw new IllegalStateException("역할이 비어 있다");
         }
         this.role = newRole;
-    }
-
-    /** API로 오갈 수 있는 역할인가 */
-    public static boolean isAssignableRole(Role role) {
-        return role == Role.MEMBER || role == Role.LEADER;
     }
 
     /** 연락처 변경 (SPEC_API.md §2.10). 이름은 바꿀 수 없다 — 명단에서 온 값이다 */

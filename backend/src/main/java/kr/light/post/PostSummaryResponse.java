@@ -36,7 +36,8 @@ public record PostSummaryResponse(
                 example = "박도연", nullable = true)
         String authorName,
 
-        @Schema(description = "게시 시각. ISO-8601 UTC.", example = "2026-08-24T01:00:00Z")
+        @Schema(description = "게시 시각. ISO-8601 UTC. 임시저장 글 목록(§3.6)에서는 null이다.",
+                example = "2026-08-24T01:00:00Z", nullable = true)
         Instant publishedAt,
 
         @Schema(description = "첨부파일 개수", example = "1")
