@@ -96,6 +96,23 @@ export default function AboutPage() {
         </figure>
       </Section>
 
+      <Section title="우리가 모이는 곳 — 드림센터">
+        <p className="text-base">
+          본당 예배 후에는 드림센터에 모여 청년부 시간을 갖습니다.
+        </p>
+        {/*
+          `/welcome/route`(오는 길 미리보기)에 쓴 것과 같은 사진이다 — PM이
+          전달한 제3자(네이버) 사진, 도착지(드림센터) 컷 1장만 재사용한다.
+          `/mock-assets/*`는 개발 전용 경로라 배포 시 404 — 실사진 확보 전까지
+          임시로 쓴다(`DECISIONS.md` 2026-09-15, 2026-09-16 재확인).
+        */}
+        <img
+          src="/mock-assets/_selected/route-to-dreamcenter/dreamcenter-naver.jpg"
+          alt="드림센터 외관"
+          className="mt-6 aspect-video w-full rounded-[var(--radius-card)] object-cover"
+        />
+      </Section>
+
       <Section title="섬기는 사람들">
         <div className="grid gap-4 md:grid-cols-4">
           {SERVING_LEADERS.map((person) => (

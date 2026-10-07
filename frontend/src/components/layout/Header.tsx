@@ -244,7 +244,7 @@ export function Header() {
                         onClick={() => setIsResourceOpen(false)}
                         className="flex min-h-11 items-center whitespace-nowrap px-4 text-sm transition hover:bg-white/10"
                       >
-                        🔒 {link.label}
+                        {link.label}
                       </Link>
                     </li>
                   ))}
@@ -379,7 +379,7 @@ export function Header() {
                 className="inline-flex min-h-11 items-center py-1 text-base font-bold"
                 onClick={() => setIsMenuOpen(false)}
               >
-                🔒 {link.label}
+                {link.label}
               </Link>
             ))}
           </nav>

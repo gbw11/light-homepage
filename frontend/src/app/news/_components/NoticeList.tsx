@@ -35,7 +35,8 @@ function formatDate(iso: string | null): string {
  *   · 비로그인 — `NOTICE_PUBLIC`만 조회한다 (`enabled`). 회원 공지를
  *     조회하면 서버가 401을 주는데, 그걸 목록 전체의 에러로 보여줄 이유가
  *     없다 — 대신 하단에 로그인 안내 한 줄을 남긴다
- *   · 로그인 — 두 분류를 합쳐 `publishedAt` 최신순. `🔒 회원` 뱃지로 구분
+ *   · 로그인 — 두 분류를 합쳐 `publishedAt` 최신순으로 섞어 보여준다
+ *     (회원 전용 뱃지는 2026-09-16 PM 결정으로 뺐다 — `DECISIONS.md` 참고)
  *
  * 쿼리 키는 분류별(`["posts", category]`)이라 다른 화면과 캐시를 공유한다.
  */
@@ -94,12 +95,6 @@ export function NoticeList() {
               className="flex items-center justify-between gap-4 py-4"
             >
               <span className="flex items-center gap-2">
-                {/* 회원 전용 표시 (SPEC_API §3.1 v1.3) — 목록에 섞여 있어도 구분된다 */}
-                {item.category === "NOTICE_MEMBER" && (
-                  <span className="rounded-[var(--radius-button)] bg-[var(--color-navy-100)] px-2 py-0.5 text-xs font-bold">
-                    🔒 회원
-                  </span>
-                )}
                 {item.pinned && <span aria-label="고정됨">📌</span>}
                 <span className="font-bold">{item.title}</span>
               </span>
@@ -110,11 +105,6 @@ export function NoticeList() {
           </li>
         ))}
       </ul>
-      {!user && (
-        <p className="mt-6 text-sm text-[var(--color-gray-400)]">
-          🔒 회원 공지는 로그인하면 볼 수 있습니다.
-        </p>
-      )}
     </Section>
   );
 }

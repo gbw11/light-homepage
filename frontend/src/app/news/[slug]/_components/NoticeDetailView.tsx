@@ -27,8 +27,6 @@ export function NoticeDetailView({ notice }: { notice: PostDetail }) {
   return (
     <Section>
       <p className="text-sm font-bold text-[var(--color-gray-400)]">
-        {/* 회원 전용 표시 (SPEC_API §3.1 v1.3) */}
-        {notice.category === "NOTICE_MEMBER" && "🔒 회원 · "}
         {notice.pinned && "📌 "}
         공지
       </p>
