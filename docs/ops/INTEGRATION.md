@@ -133,6 +133,8 @@ STORAGE_LIMIT      저장 용량 초과 (409)
 DUPLICATE          중복 (409)
 
 INTERNAL_ERROR     서버 오류 (500) — ★ FE는 분기하지 않는다. 공통 안내만
+RATE_LIMITED       요청이 너무 잦음 (429) — ★ 분기하지 않는다. 안내 문구만
+                   POST /api/newcomers(§9.1) 전용
 ```
 ⚠️ `PENDING_APPROVAL`은 v1.3(2026-08-31)에서 폐기됐습니다 — 승인 절차 소멸.
 ⚠️ `RATE_LIMITED`(429)는 `POST /api/newcomers`(§9.1)에서만 씁니다. **인증(§2)에서는
@@ -220,8 +222,10 @@ main                    배포 (마일스톤 릴리스만)
    │   └─ feat/fe-*         ← 실제 작업은 여기서
    ├─ backend_develop   백엔드(Spring 애플리케이션) 통합
    │   └─ feat/be-*         ← 실제 작업은 여기서
-   └─ server_develop    서버·인프라·배포 통합
-       └─ feat/infra-*      ← 실제 작업은 여기서
+   ├─ server_develop    서버·인프라·배포 통합
+   │   └─ feat/infra-*      ← 실제 작업은 여기서
+   └─ mobile_develop    모바일 앱(Flutter) 통합 — 2026-10-06 추가
+       └─ feat/mobile-*     ← 실제 작업은 여기서
 ```
 
 ### 6.2 ★ 작업 규칙 — 통합 브랜치에서 직접 작업하지 않는다
@@ -256,9 +260,20 @@ git checkout frontend_develop
 | **`frontend_develop`** | FE | 화면·컴포넌트·라우팅·PWA·SEO·mock 계층 | `frontend/**` |
 | **`backend_develop`** | BE | API·엔티티·인증·인가·비즈니스 로직·테스트 | `backend/src/**` |
 | **`server_develop`** | BE(주) | Docker·Render·Neon·R2 설정·CI·환경변수·배포 스크립트·운영 문서 | `.github/**`, `backend/Dockerfile`, 인프라 설정 |
+| **`mobile_develop`** | 모바일 | Flutter 앱 화면·API 호출 계층·Android/iOS 설정 | `mobile/**` |
 
 > ✅ **`server_develop` = 서버 배포·인프라 담당** (2026-08-20 확정)
-> 2인 팀이므로 실제로는 BE 담당자가 `backend_develop`과 `server_develop`을 함께 씁니다.
+>
+> ⚠️ **2026-09-10 정정 — 아래 「BE 담당자가 함께 씁니다」는 더 이상 맞지 않습니다.**
+> ~~2인 팀이므로 실제로는 BE 담당자가 `backend_develop`과 `server_develop`을 함께 씁니다.~~
+> **인프라 전담자가 따로 있습니다**(2026-08-26 확인). BE 담당자는
+> `backend/src/**`(애플리케이션 코드)만 맡습니다 — Docker·Render·Neon·R2 설정·CI·
+> 환경변수·배포 스크립트는 인프라 담당자에게 요청합니다.
+>
+> 이 문서를 그대로 믿고 인프라 작업을 시작하면 안 됩니다. 실제로 2026-08-26에
+> `Dockerfile`·Render prod 설정을 만들다 중단한 일이 있었습니다.
+> `BACKEND_TASKS.md §10` M1 체크리스트의 「Render 배포 관통 + Neon 연결」도
+> 같은 이유로 BE 항목이 아닙니다.
 > **애플리케이션 코드와 인프라 설정을 분리하는 것이 목적**입니다 — 배포 설정을 고치다 API 코드를 깨뜨리는 일을 막습니다.
 >
 > `server_develop`이 다루는 범위:
@@ -285,8 +300,9 @@ git checkout frontend_develop
 feat/fe-<기능>        프론트엔드 기능      예: feat/fe-photo-lightbox
 feat/be-<기능>        백엔드 기능          예: feat/be-jwt-auth
 feat/infra-<기능>     인프라·배포          예: feat/infra-render-deploy
+feat/mobile-<기능>    모바일 앱            예: feat/mobile-bulletin-list
 
-fix/fe-*  fix/be-*  fix/infra-*     버그 수정
+fix/fe-*  fix/be-*  fix/infra-*  fix/mobile-*     버그 수정
 docs/<주제>                          문서 (develop에서 직접 분기 가능)
 ```
 - 소문자 + 하이픈. 한글·공백·대문자 사용하지 않음
@@ -298,7 +314,11 @@ docs/<주제>                          문서 (develop에서 직접 분기 가�
 feat/fe-*  ──PR──▶  frontend_develop  ──PR──▶  develop  ──PR──▶  main
 feat/be-*  ──PR──▶  backend_develop   ──PR──▶  develop  ──PR──▶  main
 feat/infra-* ─PR──▶  server_develop    ──PR──▶  develop  ──PR──▶  main
+feat/mobile-* ─PR─▶  mobile_develop    ──PR──▶  develop  ──PR──▶  main
 ```
+
+> ✅ **`feat/mobile-*` · `fix/mobile-*`도 `branch-policy.yml`이 검사합니다** (2026-10-07 추가).
+> 모바일 CI는 `.github/workflows/mobile-ci.yml`과 Jenkins `Mobile` 스테이지입니다 (`CICD.md §3.8`).
 
 > 🤖 **이 표는 `branch-policy.yml`이 검사합니다** (2026-09-01 추가, `CICD.md §4.3`).
 > base가 어긋난 PR에는 ❌와 고치는 법이 뜹니다. 머지를 막지는 못합니다 —
@@ -341,7 +361,8 @@ git push origin backend_develop
 - ⚠️ **GitHub "Automatically delete head branches" 옵션은 켜지 않습니다.** `frontend_develop`
   같은 **영구 브랜치가 PR head가 될 때 같이 삭제되는 사고가 실제로 한 번 발생**했습니다.
   삭제는 아래 절차대로 **수동으로** 합니다
-- `main` · `develop` · `*_develop` 5개는 **영구 브랜치**입니다. 삭제하지 않습니다
+- `main` · `develop` · `*_develop` 6개는 **영구 브랜치**입니다. 삭제하지 않습니다
+  (`mobile_develop`이 2026-10-06에 추가돼 5개 → 6개)
 
 **삭제 절차** (순서 고정)
 ```bash
@@ -357,17 +378,18 @@ git push origin --delete feat/fe-foo
 - `-D`(강제 삭제)는 `git rev-list --count <상위브랜치>..<브랜치>`가 **0임을 확인한 경우에만**
   씁니다. 이 확인 없이 `-D`를 쓰면 커밋이 조용히 사라집니다
 - **삭제 권한은 디렉터리 소유권을 따릅니다**: FE는 `feat/fe-*`만, 인프라 담당은
-  `feat/infra-*`만 지웁니다. 상대 영역의 브랜치를 임의로 지우지 않습니다
+  `feat/infra-*`만, 모바일 담당은 `feat/mobile-*`만 지웁니다. 상대 영역의 브랜치를 임의로 지우지 않습니다
 
 ### 6.8 커밋 메시지
 ```
 <type>(<scope>): <내용>
 
 type   feat · fix · refactor · docs · test · chore
-scope  fe · be · infra · docs
+scope  fe · be · infra · mobile · docs
 ```
 ```
 feat(fe): 사진 그리드 무한 스크롤
+feat(mobile): 주보 목록 화면
 feat(be): 카카오 OAuth 콜백 처리
 feat(infra): Render 배포 파이프라인 구성
 fix(be): 예산안 조회 시 인가 검사 누락
@@ -401,6 +423,7 @@ docs: API 계약 에러코드 STORAGE_LIMIT 추가
 ## 확인한 것
 <!-- FE: 모바일/데스크톱, 로딩·빈·에러 상태 -->
 <!-- BE: 권한별 접근 테스트(허용/거부), 마이그레이션 재현 -->
+<!-- MOBILE: flutter analyze·test, 에뮬레이터에서 실제 화면 확인 -->
 ```
 
 ### 6.10 머지 방식 요약
