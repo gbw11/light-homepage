@@ -13,6 +13,30 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
 
 ---
 
+## 2026-10-07 — 모바일 앱 인프라: Android 우선 · 앱 ID `kr.light.app` · Jenkins까지
+
+**배경**: Flutter 앱(`mobile/`, #204)이 생겼는데 CI가 `mobile/`을 전혀 검사하지
+않았다(시크릿 검사만 돎). release 빌드는 debug 키로 서명되고, API 주소를 안 넘기면
+에뮬레이터 주소(`10.0.2.2`)로 나가는 상태였다.
+
+- **결정 (PM)**
+  1. **앱 ID를 `kr.light.app` 하나로 통일한다** — Android `kr.light.light_mobile`,
+     iOS `kr.light.lightMobile`로 갈라져 있었다. "제일 간단한 것"으로. 스토어에 처음
+     올리면 바꿀 수 없으므로 첫 업로드 전에 못박는다. 앱 표시 이름도 두 플랫폼
+     모두 `LIGHT`. Dart 패키지명(`light_mobile`)은 앱 ID가 아니므로 그대로 둔다
+  2. **Android 우선.** iOS는 Android 출시 후 다시 본다(Windows PC, Apple $99/년,
+     macOS 러너 10배 차감)
+  3. **Jenkins에서도 모바일을 돌린다** — `Mobile` 스테이지(format·analyze·test).
+     머지 게이트는 지금처럼 GitHub Actions(`mobile-ci.yml`)
+  4. **앱 릴리스는 `mobile-v*` 태그로 끊는다** — 웹처럼 develop 머지 = 배포가 아니다
+- **가정 (다르면 알려주세요)**
+  - 첫 배포 채널: 서명된 APK를 GitHub Release로 받아 교회 내부에 직접 배포.
+    Play 등록($25)·계정 명의(교회/개인)는 아직 결정 전 — 업로드 단계는 비워둠
+  - API 주소: `env/prod.json` = 지금 Render 백엔드 하나(스테이징 없음)
+- **근거·문서**: `docs/ops/CICD.md §3.8` · `infra/mobile/README.md` · `TOOLCHAIN.md §1`
+
+---
+
 ## 2026-09-10 — 문서를 구현에 맞춘다 (코드는 거의 그대로)
 
 **배경**: 이슈를 쓰려고 항목을 하나씩 확인하다가, **이미 구현이 끝난 것을

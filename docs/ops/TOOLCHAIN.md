@@ -37,6 +37,12 @@ FE와 BE는 **다른 언어·다른 프로세스·다른 배포**입니다. 서�
 | **Docker Desktop** | 최신 (Compose v2 포함) | BE·인프라 | `docker compose version` |
 | Git | 2.4x 이상 | 전원 | `git --version` |
 | Jenkins | `jenkins/jenkins:lts-jdk21` | 인프라 | `infra/jenkins/docker-compose.yml` |
+| **Flutter** | **3.47.6 stable** (Dart 3.13.5) | 모바일 | `flutter --version` |
+| JDK (Android 빌드) | **17** | 모바일 | AGP·Kotlin `jvmTarget` 17 |
+
+> 📱 **Flutter 버전은 세 곳이 같아야 합니다** — `.github/workflows/mobile-ci.yml`의
+> `FLUTTER_VERSION`, `infra/jenkins/flutter/Dockerfile`의 `FLUTTER_VERSION`(Jenkins `FLUTTER_IMAGE`
+> 태그), 그리고 이 표. 기준은 `mobile/.metadata`의 revision이다 (2026-10-07: `5fc3468` = 3.47.6).
 
 > ⚠️ **Node를 BE가, Java를 FE가 설치할 필요는 없습니다.** 상대 프로젝트를 실행해야 하는 건 통합 시점(§7)뿐입니다.
 
@@ -199,6 +205,8 @@ docker run -d --name light-db -p 5432:5432 \
 - 이미지 **`jenkins/jenkins:lts-jdk21`** · 포트 **8090** (8080은 Spring Boot가 사용)
 - 기동: `cd infra/jenkins && docker compose up -d`
 - Global Tool Configuration에 **NodeJS 22**를 `node22`라는 이름으로 등록 (§2①)
+- Flutter는 Jenkins에 설치하지 않는다. `Mobile` 스테이지가 `infra/jenkins/flutter/Dockerfile`로
+  `light-flutter:<버전>` 이미지를 만들어 그 안에서 돈다 (첫 빌드만 2분 남짓, 이후 캐시)
 
 ### 5.3 Git
 - 2.4x 이상. **개행은 `.gitattributes`가 관리**하므로 `core.autocrlf`를 임의로 바꾸지 마세요
