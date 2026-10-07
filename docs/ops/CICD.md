@@ -225,17 +225,17 @@ docker exec light-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 Checkout
   ↓
-Detect Changes          변경 경로 감지 (frontend/ backend/)
+Detect Changes          변경 경로 감지 (frontend/ backend/ mobile/)
   ↓
 Secret Scan             시크릿 패턴 검사 (allowlist-secret 주석은 예외)
   ↓
-┌────────────────┬────────────────┐
-│ Frontend       │ Backend        │   (병렬)
-│ · npm ci       │ · Postgres 기동 │
-│ · lint         │ · compile      │
-│ · tsc --noEmit │ · ★ 인가 매트릭스│
-│ · build        │ · 전체 테스트   │
-└────────────────┴────────────────┘
+┌────────────────┬────────────────┬──────────────────┐
+│ Frontend       │ Backend        │ Mobile           │   (병렬)
+│ · npm ci       │ · Postgres 기동 │ · Flutter 이미지  │
+│ · lint         │ · compile      │ · pub get        │
+│ · tsc --noEmit │ · ★ 인가 매트릭스│ · format·analyze │
+│ · build        │ · 전체 테스트   │ · flutter test   │
+└────────────────┴────────────────┴──────────────────┘
   ↓
 Quality Gate            하나라도 실패하면 여기서 중단
   ↓
@@ -254,7 +254,7 @@ CI용 더미 시크릿은 해당 줄에 `allowlist-secret` 주석을 붙여 예�
 | 브랜치 | 테스트 | 배포 |
 |---|---|---|
 | `feat/*` `fix/*` `docs/*` | ✅ 전체 | ✕ |
-| `frontend_develop` `backend_develop` `server_develop` | ✅ 전체 | ✕ |
+| `frontend_develop` `backend_develop` `server_develop` `mobile_develop` | ✅ 전체 | ✕ |
 | **`develop`** | ✅ 전체 | **✅ 백엔드 배포 (Render)** |
 | `main` | ✅ 전체 | ✕ (공개 시점에 여기로 옮긴다) |
 
@@ -264,6 +264,30 @@ CI용 더미 시크릿은 해당 줄에 `allowlist-secret` 주석을 붙여 예�
 ⚠️ **스테이징을 따로 둘 수 없습니다.** Render Free 750시간/월은 **서비스 하나를
 24시간** 돌리는 양입니다. 두 개면 1500시간이라 한도를 넘어 과금됩니다
 (`ARCHITECTURE.md §8.1`). 그래서 배포 대상은 언제나 하나입니다.
+
+### 3.8 모바일 (Flutter) — 2026-10-07 추가
+
+`mobile/`이 생기면서(#204) 네 번째 영역의 CI를 붙였습니다. **Android 우선**입니다 —
+PM PC가 Windows라 iOS 빌드는 하지 않습니다(macOS 러너는 무료 분을 10배로 소모).
+
+| | GitHub Actions `mobile-ci.yml` | Jenkins `Mobile` 스테이지 |
+|---|---|---|
+| 트리거 | `mobile/**` 변경 push·PR | `mobile/` 변경 감지 |
+| format · analyze · test | ✅ (`verify` 잡) | ✅ |
+| debug APK 빌드 | ✅ `mobile_develop`·`develop` push만 (`build-apk` 잡, 산출물 7일 보관) | ✕ |
+| 릴리스(서명된 AAB/APK) | `mobile-release.yml` — `mobile-v*` 태그 | ✕ |
+| Flutter | `subosito/flutter-action`, 3.47.6 | `infra/jenkins/flutter/Dockerfile` → `light-flutter:3.47.6` |
+
+- ⚠️ **앱에는 "develop 머지 = 배포"가 없습니다.** 웹은 머지하면 곧바로 반영되지만,
+  앱은 사람이 설치·업데이트해야 바뀝니다. 그래서 릴리스는 브랜치가 아니라
+  **태그**로 끊습니다 (`infra/mobile/README.md`).
+- ⚠️ **APK 빌드를 작업 브랜치마다 돌리지 않는 이유** — analyze+test는 2~3분,
+  Gradle 빌드는 5~8분입니다. 필요하면 Actions 탭에서 `workflow_dispatch`로 수동 실행합니다.
+- ⚠️ `mobile/android/gradle.properties`의 `-Xmx8G`는 호스티드 러너(약 7GB)보다 큽니다.
+  CI는 `~/.gradle/gradle.properties`로 4GB로 덮어씁니다.
+- Jenkins 이미지에 Flutter를 굽지 않은 이유: 흔히 쓰는 `ghcr.io/cirruslabs/flutter`가
+  3.44까지만 있고, Flutter 버전을 올릴 때마다 Jenkins 이미지를 다시 빌드하고 싶지 않아서입니다.
+  Dockerfile은 공식 릴리스 tarball을 SHA-256으로 검증해 받습니다.
 
 ---
 
@@ -424,6 +448,15 @@ CI가 유일한 판정자이므로 **모든 검사는 CI에 있습니다.** 로�
 
 프론트엔드 단위 테스트는 현재 계획에 없습니다(시간 산정 미포함). 도입하려면 Vitest + Testing Library를 M4에 추가하고 시간을 재산정해야 합니다.
 
+### 6.2.1 모바일
+
+| 검사 | CI |
+|---|---|
+| `dart format` (변경 없음) | ✅ |
+| `flutter analyze` | ✅ |
+| `flutter test` | ✅ |
+| debug APK 빌드 | ✅ 통합 브랜치 push만 |
+
 ### 6.3 실패 시 대응
 
 ```
@@ -462,7 +495,9 @@ Jenkins 도입은 순증 작업이므로 전체 일정이 **약 1주 늘어납�
 Jenkinsfile                        파이프라인 정의 (루트)
 infra/jenkins/
 ├─ docker-compose.yml              Jenkins 로컬 기동
+├─ flutter/Dockerfile              Mobile 스테이지용 Flutter 이미지
 └─ README.md                       플러그인·credentials 설정
+infra/mobile/README.md             앱 서명 키·릴리스 절차
 .github/
 ├─ workflows/                      GitHub Actions (병행 유지)
 └─ pull_request_template.md        PR 템플릿 (CI 확인 체크박스)
