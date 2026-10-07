@@ -32,7 +32,7 @@ const TICK_MS = 30_000;
  * · `CLOSED`   **목록에는 남기고 열 수는 없다** ("존재는 알리되 내용은 차단").
  *              카드를 지우면 회원이 "자료가 있었는지"조차 알 수 없게 된다.
  *
- * ⚠️ 임원(`L` 이상)에게는 세 상태 모두 `[열람하기]`가 보인다 —
+ * ⚠️ 임원(`L` 이상)은 세 상태 모두 열 수 있다 — 기간 밖이면 `[임원 열람]`(갈색)으로 구분한다 —
  * SPEC_API §7.1 "`L` 이상은 `status`와 무관하게 열람 가능". 다만 이건
  * **UI 편의일 뿐**이고, 실제 판정은 페이지 이미지를 스트리밍하는 서버가
  * 매 요청마다 다시 한다 (§7.3 처리 순서 2).
@@ -117,8 +117,6 @@ export function MeetingList() {
 }
 
 function MeetingCard({ item, isLeader }: { item: MeetingSummary; isLeader: boolean }) {
-  const openable = item.status === "OPEN" || isLeader;
-
   return (
     <article className="rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-5">
       <p className="flex flex-wrap items-center gap-2 text-sm font-bold">
@@ -164,16 +162,64 @@ function MeetingCard({ item, isLeader }: { item: MeetingSummary; isLeader: boole
         </p>
       )}
 
-      {openable && (
-        <div className="mt-4">
-          <Link
-            href={`/meetings/${item.id}`}
-            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)] transition hover:brightness-95"
-          >
-            열람하기
-          </Link>
-        </div>
-      )}
+      <div className="mt-4">
+        <MeetingAction item={item} isLeader={isLeader} />
+      </div>
     </article>
+  );
+}
+
+const ACTION_BASE =
+  "inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] px-6 text-base font-bold";
+
+/** 회원에게 기간 밖 버튼에 적는 말 — 왜 못 여는지를 버튼 자체가 말한다 */
+const CLOSED_ACTION_LABEL: Record<Exclude<MeetingSummary["status"], "OPEN">, string> = {
+  SCHEDULED: "열람 전",
+  CLOSED: "열람 종료",
+};
+
+/**
+ * 카드의 버튼 — **색만 보고도 지금 열 수 있는지** 알게 한다 (PM 결정 2026-10-07).
+ *
+ * · `OPEN`             초록 `[열람하기]` — 누구나
+ * · 기간 밖 + 임원     갈색 `[임원 열람]` — 열리지만 "기간 밖을 임원 권한으로 연다"는 걸
+ *                      색으로 구분한다 (SPEC_API §7.1 "`L` 이상은 status와 무관")
+ * · 기간 밖 + 회원     회색 비활성 `[열람 전]`·`[열람 종료]` — 예전에는 버튼이 아예
+ *                      없어서, 카드마다 문구를 읽어야 열 수 있는지 알 수 있었다
+ *
+ * ⚠️ 버튼 색은 안내일 뿐이다. 실제 판정은 페이지 이미지를 스트리밍하는 서버가
+ * 매 요청마다 다시 한다 (§7.3 처리 순서 2).
+ */
+function MeetingAction({ item, isLeader }: { item: MeetingSummary; isLeader: boolean }) {
+  if (item.status === "OPEN") {
+    return (
+      <Link
+        href={`/meetings/${item.id}`}
+        className={`${ACTION_BASE} bg-[var(--color-yellow)] text-[var(--color-accent-fg)] transition hover:brightness-95`}
+      >
+        열람하기
+      </Link>
+    );
+  }
+
+  if (isLeader) {
+    return (
+      <Link
+        href={`/meetings/${item.id}`}
+        className={`${ACTION_BASE} bg-[var(--color-navy-900)] text-white transition hover:bg-[var(--color-navy-800)]`}
+      >
+        임원 열람
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled
+      className={`${ACTION_BASE} cursor-not-allowed bg-[var(--color-navy-100)] text-[var(--color-gray-400)]`}
+    >
+      {CLOSED_ACTION_LABEL[item.status]}
+    </button>
   );
 }
