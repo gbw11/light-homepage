@@ -44,28 +44,46 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # mobile/이 없는 브랜치(예: 이 워크플로만 고친 server_develop 쪽 PR)에서는
+      # 검사할 것이 없다. 실패가 아니라 건너뛰기로 끝낸다 — Jenkinsfile의
+      # fileExists('mobile/pubspec.yaml')와 같은 판단.
+      - name: mobile/ 확인
+        id: has
+        working-directory: .
+        run: |
+          if [ -f mobile/pubspec.yaml ]; then echo "mobile=true" >> "$GITHUB_OUTPUT"
+          else echo "::notice::mobile/이 없는 브랜치 — 검사를 건너뜁니다"; echo "mobile=false" >> "$GITHUB_OUTPUT"; fi
+
       - uses: subosito/flutter-action@v2
+        if: steps.has.outputs.mobile == 'true'
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
       - name: Install
+        if: steps.has.outputs.mobile == 'true'
         run: flutter pub get
 
       - name: Format
+        if: steps.has.outputs.mobile == 'true'
         run: dart format --output=none --set-exit-if-changed lib test
 
       - name: Analyze
+        if: steps.has.outputs.mobile == 'true'
         run: flutter analyze
 
       - name: Test
+        if: steps.has.outputs.mobile == 'true'
         run: flutter test
+
+    outputs:
+      mobile: ${{ steps.has.outputs.mobile }}
 
   # Gradle·AGP 설정이 깨지는 부류(analyze·test로는 안 보인다)를 잡는다.
   build-apk:
     needs: verify
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/mobile_develop' || github.ref == 'refs/heads/develop'))
+    if: needs.verify.outputs.mobile == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/mobile_develop' || github.ref == 'refs/heads/develop')))
     runs-on: ubuntu-latest
     defaults:
       run:
