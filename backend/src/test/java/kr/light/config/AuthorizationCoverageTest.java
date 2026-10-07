@@ -123,6 +123,10 @@ class AuthorizationCoverageTest {
             // 새가족 신청 목록 (NewcomerAdminApiTest)
             //   ⚠️ 이름·전화번호가 그대로 나가는 경로다 (§8.6)
             "GET /api/admin/newcomers",
+            // 게시물 — 임원 작업용 조회 (PostAdminAuthorizationTest · PostDraftApiTest)
+            //   ⚠️ 임시저장 글은 회원에게도 403 — 아직 공개되지 않은 글이다
+            "GET /api/admin/posts/drafts",
+            "GET /api/admin/posts/{id}",
 
             // 전도사·임원 알림 (NotificationAuthorizationTest)
             //   ⚠️ 알림 본문에 새가족 이름이 들어간다 — 회원에게 열면 그것이 샌다 (§12)
