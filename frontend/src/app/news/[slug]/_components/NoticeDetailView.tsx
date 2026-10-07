@@ -2,6 +2,7 @@ import { api } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import { PostBodyView } from "@/components/post/PostBodyView";
 import { EditPostLink } from "@/components/post/EditPostLink";
+import { PinToggleButton } from "@/components/post/PinToggleButton";
 import type { PostDetail } from "@/types/api";
 
 /** 임시저장(`publish: false`) 글은 `publishedAt`이 null이다 (SPEC_API §3.4) */
@@ -35,9 +36,10 @@ export function NoticeDetailView({ notice }: { notice: PostDetail }) {
         {notice.authorName} · {formatDate(notice.publishedAt)}
       </p>
 
-      {/* EditPostLink는 임원이 아니면 아무것도 그리지 않는다 */}
-      <div className="mt-4">
+      {/* EditPostLink·PinToggleButton은 임원이 아니면 아무것도 그리지 않는다 */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <EditPostLink postId={notice.id} />
+        <PinToggleButton post={notice} />
       </div>
 
       {/* 에디터(PostEditor)와 같은 노드 집합을 렌더한다 — 어느 쪽도 앞서 나가지 않는다 */}
