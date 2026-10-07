@@ -111,11 +111,17 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk "dist/light-${{ steps.ver.outputs.name }}.apk"
           cp build/app/outputs/bundle/release/app-release.aab "dist/light-${{ steps.ver.outputs.name }}.aab"
 
-      # debug 키로 서명된 채 나가는 사고를 막는다 — debug 인증서는 CN=Android Debug
+      # debug 키로 서명된 채 나가는 사고를 막는다 — debug 인증서는 CN=Android Debug.
+      # ⚠️ keytool -printcert -jarfile은 쓰지 않는다: minSdk 24+ APK는 v1(JAR) 서명이
+      #    없어 아무것도 출력하지 않고, 그러면 이 검사가 조용히 통과한다(2026-10-07 실측).
       - name: 서명 확인
         run: |
-          cert=$(keytool -printcert -jarfile "dist/light-${{ steps.ver.outputs.name }}.apk")
-          echo "$cert" | grep -E 'Owner|SHA256' | head -3
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          cert=$("$apksigner" verify --print-certs "dist/light-${{ steps.ver.outputs.name }}.apk")
+          echo "$cert" | grep -E 'Signer #1 certificate (DN|SHA-256)'
+          if ! echo "$cert" | grep -q 'Signer #1 certificate DN'; then
+            echo "::error::서명 정보를 읽지 못했습니다"; exit 1
+          fi
           if echo "$cert" | grep -q 'CN=Android Debug'; then
             echo "::error::debug 키로 서명됐습니다 — key.properties가 적용되지 않았습니다"
             exit 1
