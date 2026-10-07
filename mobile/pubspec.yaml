@@ -91,3 +91,21 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  # 라이선스 페이지에 띄우려고 번들한다 (SIL OFL 1.1 — 글꼴과 함께 배포해야 한다)
+  assets:
+    - assets/fonts/pretendard/LICENSE.txt
+
+  # Pretendard v1.3.9 (한글·영문 공통). 쓰는 굵기만 넣는다 — 하나에 약 1.5MB다.
+  # 여기 없는 굵기(w300 등)를 요청하면 가장 가까운 굵기로 그려진다.
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/pretendard/Pretendard-Regular.otf
+          weight: 400
+        - asset: assets/fonts/pretendard/Pretendard-Medium.otf
+          weight: 500
+        - asset: assets/fonts/pretendard/Pretendard-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/pretendard/Pretendard-Bold.otf
+          weight: 700
