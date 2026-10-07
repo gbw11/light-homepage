@@ -183,3 +183,28 @@ body {
     animation: none !important;
   }
 }
+
+/*
+ * 스크롤 등장 애니메이션 — `components/ui/Reveal.tsx` (PM 요청 2026-10-07).
+ * 화면에 들어오면 `data-visible="true"`가 붙고 아래에서 떠오르며 나타난다.
+ * transform·opacity만 움직여 레이아웃을 다시 계산하지 않는다(자리는 처음부터 잡혀 있다).
+ */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.7s ease-out,
+    transform 0.7s ease-out;
+}
+.reveal[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+}
+/* 위 모션 축소 원칙과 같다 — 동작 줄이기를 켠 사람에게는 처음부터 보인다 */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
