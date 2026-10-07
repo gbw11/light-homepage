@@ -339,16 +339,26 @@ export type NewcomerRecord = {
   createdAt: string;
 };
 
+/** 알림 종류 — 지금은 새가족 신청 하나 (SPEC_API §14.0). 늘어나면 여기에 추가 */
+export type AdminNotificationType = "NEWCOMER";
+
 /**
- * 헤더 알림 배지·목록 한 건 (§14 신설, BE PR `feat/be-newcomer-notification`,
- * `DECISIONS.md` 2026-09-09). 권한 `L`(임원) 이상. 본문(`message`)에 새가족
- * 이름이 그대로 들어간다.
+ * 헤더 알림 목록 한 건 — **SPEC_API §14.1 그대로** (권한 `L` 이상).
+ *
+ * ⚠️ 서버는 **완성된 문장을 주지 않는다.** "새가족 신청이 들어왔습니다" 같은 말은
+ * FE가 `type`을 보고 붙인다. 예전 타입(`id/message/read`)은 mock에만 맞고 실서버
+ * 응답과 달라서, 실서버에서 알림이 빈 줄로 나왔다 (사용자 흐름 점검 2026-10-07 🔴-3).
+ *
+ * 항목별 읽음 여부도 주지 않는다 — 목록이 최신순이므로 **앞에서부터
+ * `unreadCount`개가 안 읽음**이다.
  */
 export type AdminNotification = {
-  id: string;
-  message: string;
+  type: AdminNotificationType;
+  /** `type=NEWCOMER`면 새가족 신청 id — §8.6 목록의 항목 */
+  refId: string;
+  /** 신청자 이름 */
+  subject: string;
   createdAt: string;
-  read: boolean;
 };
 
 /**
@@ -363,8 +373,11 @@ export type AdminNotification = {
  */
 export type AdminNotificationsResponse = {
   unreadCount: number;
+  /** 20건보다 많아 잘렸는가 */
+  hasMore: boolean;
+  /** 안 읽은 것이 없으면 null */
+  readMarker: string | null;
   items: AdminNotification[];
-  readMarker: string;
 };
 
 // ── 주보 (SPEC_API §5) ─────────────────────────────────────

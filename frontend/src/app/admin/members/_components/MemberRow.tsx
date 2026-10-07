@@ -15,13 +15,13 @@ const ROLE_LABEL: Record<Role, string> = {
 };
 
 /**
- * 드롭다운에 띄우는 역할.
+ * 드롭다운에 띄우는 역할 — 세 역할 모두 (PM 결정 2026-10-07, BE도 허용).
  *
- * FR-ADM-04는 `MEMBER ↔ LEADER`를 명시하지만 `PASTOR`도 넣는다 — 없으면
- * **전도사 인수인계가 앱 안에서 불가능**해진다 (다음 전도사를 지정할 방법이
- * 없다). 마지막 전도사 강등은 서버가 `VALIDATION_ERROR`로 막으므로
- * (FR-ADM-05) 이 판단이 잠금 위험을 늘리지 않는다. UI에서 미리 막는 대신
- * 서버 규칙을 그대로 노출하고 에러를 그 자리에 보여준다 —
+ * `PASTOR`가 없으면 **전도사 인수인계가 앱 안에서 불가능**하다 (다음 전도사를
+ * 지정할 방법이 없다). 예전에는 화면만 PASTOR를 허용하고 BE는 `MEMBER ↔ LEADER`만
+ * 받아서 항상 400이 났다(점검 2026-10-07 🔴-4). 마지막 전도사 강등은 서버가
+ * `VALIDATION_ERROR`로 막으므로(FR-ADM-05) 잠금 위험이 늘지 않는다. UI에서
+ * 미리 막는 대신 서버 규칙을 그대로 노출하고 에러를 그 자리에 보여준다 —
  * "UI 편의일 뿐 인가는 서버"(RequireMember 주석) 원칙과 같다.
  */
 const ASSIGNABLE_ROLES = ["MEMBER", "LEADER", "PASTOR"] as const satisfies readonly Role[];
@@ -104,7 +104,7 @@ export function MemberRow({ member }: { member: AdminMember }) {
         (role === "LEADER"
           ? "임원은 예산안을 열람할 수 있게 됩니다."
           : role === "PASTOR"
-            ? "전도사는 회원 관리·비밀번호 초기화까지 할 수 있게 됩니다."
+            ? "전도사는 다른 회원의 역할 변경·계정 삭제·비밀번호 초기화까지 할 수 있게 됩니다.\n인수인계라면 새 전도사를 먼저 지정한 뒤 본인을 강등하세요."
             : "예산안 열람 권한이 사라집니다.") + "\n변경 이력은 기록됩니다.",
       confirmLabel: "변경",
       tone: "default",

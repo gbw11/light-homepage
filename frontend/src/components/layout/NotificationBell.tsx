@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { isLeaderOrAbove } from "@/components/auth/RequireLeader";
+import type { AdminNotification } from "@/types/api";
 
 /** BE 권장 30초~1분 사이 — §14, 서버가 밀어주지 않는 폴링이다 */
 const POLL_INTERVAL_MS = 45_000;
@@ -15,6 +16,21 @@ function formatNotificationTime(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/**
+ * 알림 한 건의 문구와 이동할 곳 — 서버는 문장을 주지 않으므로 `type`으로 만든다
+ * (SPEC_API §14.1 "FE는 이 값으로 갈라 쓰세요").
+ */
+function describe(item: AdminNotification): { text: string; href: string } {
+  switch (item.type) {
+    case "NEWCOMER":
+      return {
+        text: `새가족 ${item.subject}님이 등록했습니다.`,
+        // §14.5-2 — refId로 §8.6 목록의 그 항목으로 간다 (`NewcomerList`가 해시로 스크롤)
+        href: `/admin/newcomers#newcomer-${encodeURIComponent(item.refId)}`,
+      };
+  }
 }
 
 /**
@@ -74,7 +90,7 @@ export function NotificationBell() {
   function handleToggle() {
     const opening = !isOpen;
     setIsOpen(opening);
-    if (opening && data && data.unreadCount > 0) {
+    if (opening && data && data.unreadCount > 0 && data.readMarker) {
       api.admin.markNotificationsRead({ until: data.readMarker }).then(() => {
         queryClient.invalidateQueries({ queryKey: ["admin", "notifications"] });
       });
@@ -116,20 +132,34 @@ export function NotificationBell() {
             <p className="px-4 py-6 text-center text-sm text-white/60">알림이 없습니다.</p>
           ) : (
             <ul className="max-h-96 overflow-y-auto">
-              {data.items.map((item) => (
-                <li
-                  key={item.id}
-                  className={`border-b border-white/15 px-4 py-3 text-sm last:border-b-0 ${
-                    item.read ? "text-white/60" : "font-bold text-white"
-                  }`}
-                >
-                  <p>{item.message}</p>
-                  <p className="mt-1 text-xs text-white/50">
-                    {formatNotificationTime(item.createdAt)}
-                  </p>
-                </li>
-              ))}
+              {data.items.map((item, index) => {
+                const { text, href } = describe(item);
+                // 최신순이므로 앞에서부터 unreadCount개가 안 읽음 (§14.1은 항목별 읽음을 주지 않는다)
+                const unread = index < data.unreadCount;
+                return (
+                  <li key={`${item.type}-${item.refId}`} className="border-b border-white/15 last:border-b-0">
+                    <Link
+                      href={href}
+                      onClick={() => setIsOpen(false)}
+                      className={`block px-4 py-3 text-sm transition hover:bg-white/10 ${
+                        unread ? "font-bold text-white" : "text-white/60"
+                      }`}
+                    >
+                      <p>{text}</p>
+                      <p className="mt-1 text-xs font-normal text-white/50">
+                        {formatNotificationTime(item.createdAt)}
+                      </p>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
+          )}
+
+          {data?.hasMore && (
+            <p className="border-t border-white/15 px-4 py-2 text-xs text-white/60">
+              최근 20건만 보입니다. 나머지는 새가족 명단에서 확인하세요.
+            </p>
           )}
 
           <Link
