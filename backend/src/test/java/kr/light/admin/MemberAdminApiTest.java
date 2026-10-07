@@ -201,18 +201,18 @@ class MemberAdminApiTest {
     }
 
     @Test
-    @DisplayName("PASTOR는 API로 부여할 수 없다")
-    void 전도사_부여_불가() throws Exception {
-        Member member = save("김도연a", "doyeon01", Role.MEMBER);
+    @DisplayName("전도사를 지정할 수 있다 — 앱 안에서 인수인계 (2026-10-07)")
+    void 전도사_지정() throws Exception {
+        Member member = save("김도연a", "doyeon01", Role.LEADER);
 
         mockMvc.perform(patch("/api/admin/members/" + member.getId() + "/role")
                         .with(as(pastor))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("role", "PASTOR"))))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNoContent());
 
         assertThat(memberRepository.findById(member.getId()).orElseThrow().getRole())
-                .isEqualTo(Role.MEMBER);
+                .isEqualTo(Role.PASTOR);
     }
 
     // ── 자기잠금 방지 (§5.4 · FR-ADM-05) ──────────────────────
@@ -235,18 +235,27 @@ class MemberAdminApiTest {
     }
 
     @Test
-    @DisplayName("전도사가 둘이어도 강등은 막힌다 — PASTOR는 API로 다루지 않는다")
+    @DisplayName("전도사가 둘이면 한 명은 강등할 수 있다 — 인수인계: 새 전도사 지정 → 본인 강등")
     void 전도사가_둘일_때() throws Exception {
         Member second = save("전도사2", "pastor2", Role.PASTOR);
         assertThat(memberRepository.countByRole(Role.PASTOR)).isEqualTo(2);
 
-        // 자기잠금 검사는 통과하지만 MEMBER↔LEADER 규칙에서 막힌다.
-        // PASTOR 강등을 열려면 changeRole의 허용 범위를 먼저 넓혀야 한다.
-        mockMvc.perform(patch("/api/admin/members/" + second.getId() + "/role")
+        // 기존 전도사가 자기 자신을 강등 — 다른 전도사가 남으므로 허용
+        mockMvc.perform(patch("/api/admin/members/" + pastor.getId() + "/role")
                         .with(as(pastor))
                         .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("role", "LEADER"))))
+                .andExpect(status().isNoContent());
+
+        assertThat(memberRepository.findById(pastor.getId()).orElseThrow().getRole())
+                .isEqualTo(Role.LEADER);
+        // 이제 남은 전도사는 한 명 — 그 사람은 강등할 수 없다
+        mockMvc.perform(patch("/api/admin/members/" + second.getId() + "/role")
+                        .with(as(second))
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("role", "MEMBER"))))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.field").value("role"));
     }
 
     // ── 목록 (§8.1) ───────────────────────────────────────────
