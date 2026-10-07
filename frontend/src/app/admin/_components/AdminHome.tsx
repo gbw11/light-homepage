@@ -30,6 +30,8 @@ type AdminLink = {
  */
 const CONTENT_LINKS: AdminLink[] = [
   { label: "공지 작성", href: "/admin/posts/new" },
+  // 임시저장 글은 공개 목록에 나오지 않는다 — 여기 말고는 다시 찾을 길이 없다 (§3.6)
+  { label: "임시저장 글", href: "/admin/posts/drafts" },
   { label: "주보 업로드", href: "/admin/bulletin/upload" },
   /*
     업로드는 앨범에 매달린 화면이라(`/admin/albums/[id]/upload`) 앨범을 고르지

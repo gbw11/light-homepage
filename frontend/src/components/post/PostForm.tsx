@@ -277,15 +277,38 @@ export function PostForm({ post }: { post?: PostDetail }) {
           >
             나의 LIGHT로
           </Link>
+          {!saved.published && (
+            /*
+              임시저장한 글은 공개 목록·상세에 나오지 않는다 — 여기서 이어 쓸 길을
+              주지 않으면 이 글을 다시 찾을 방법이 임시저장 목록뿐이다 (점검 2026-10-07 🔴-2).
+              [글 보러 가기]는 공개 상세로 가서 404가 되므로 임시저장일 때는 보이지 않는다.
+            */
+            <>
+              <Link
+                href={`/admin/posts/${encodeURIComponent(saved.id)}/edit`}
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] border border-[var(--color-navy-100)] px-6 text-base font-bold transition hover:bg-[var(--color-navy-100)]"
+              >
+                이어서 쓰기
+              </Link>
+              <Link
+                href="/admin/posts/drafts"
+                className="inline-flex min-h-11 items-center justify-center px-2 text-sm font-bold hover:underline"
+              >
+                임시저장 글 목록
+              </Link>
+            </>
+          )}
           {isEdit ? (
             // 수정한 글을 바로 확인할 수 있어야 한다. 폼을 비우는 것은
             // 수정 모드에서 할 일이 아니다
-            <Link
-              href={postHref(selected.value, post.slug)}
-              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] border border-[var(--color-navy-100)] px-6 text-base font-bold transition hover:bg-[var(--color-navy-100)]"
-            >
-              글 보러 가기
-            </Link>
+            saved.published && (
+              <Link
+                href={postHref(selected.value, post.slug)}
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] border border-[var(--color-navy-100)] px-6 text-base font-bold transition hover:bg-[var(--color-navy-100)]"
+              >
+                글 보러 가기
+              </Link>
+            )
           ) : (
             <Button
               variant="secondary"

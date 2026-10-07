@@ -57,6 +57,13 @@ export type Api = {
       size?: number;
     }): Promise<Page<PostSummary>>;
     get(idOrSlug: string): Promise<PostDetail>;
+    /**
+     * SPEC_API §3.6 — 임시저장 글 목록. 권한 `L`. 분류 무관, 최근 저장이 위.
+     * 공개 목록(`list`)·상세(`get`)는 임시저장 글을 빼므로 이어 쓰려면 여기서 찾는다.
+     */
+    drafts(params?: { page?: number; size?: number }): Promise<Page<PostSummary>>;
+    /** SPEC_API §3.7 — 수정 화면용 상세. 권한 `L`. **임시저장 글도** 연다(id로만) */
+    getForEdit(id: string): Promise<PostDetail>;
     /** SPEC_API §3.4 — 권한 `L`. `publish: false`면 임시저장 */
     create(input: PostInput): Promise<{ id: string }>;
     /** SPEC_API §3.5 — 권한 `L` · 요청 형태는 §3.4와 동일 */
