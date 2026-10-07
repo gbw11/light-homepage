@@ -179,7 +179,7 @@ pipeline {
         // Gradle 빌드는 PC 자원을 많이 먹고, 머지 게이트는 어차피 Actions다).
         // Flutter를 Jenkins 이미지에 굽지 않고 별도 이미지 안에서 돌린다 (DooD).
         // 이미지는 저장소의 infra/jenkins/flutter/Dockerfile로 여기서 빌드한다 —
-        // 첫 빌드만 2분 남짓, 이후는 호스트 Docker의 레이어 캐시로 즉시 끝난다.
+        // 첫 빌드만 약 8분(Flutter SDK 다운로드·precache, 2026-10-07 실측), 이후는 호스트 Docker의 레이어 캐시로 즉시 끝난다.
         // 버전을 올릴 때 Jenkins 이미지를 다시 빌드할 필요가 없다.
         stage('Mobile') {
           when {

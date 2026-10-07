@@ -206,7 +206,7 @@ docker run -d --name light-db -p 5432:5432 \
 - 기동: `cd infra/jenkins && docker compose up -d`
 - Global Tool Configuration에 **NodeJS 22**를 `node22`라는 이름으로 등록 (§2①)
 - Flutter는 Jenkins에 설치하지 않는다. `Mobile` 스테이지가 `infra/jenkins/flutter/Dockerfile`로
-  `light-flutter:<버전>` 이미지를 만들어 그 안에서 돈다 (첫 빌드만 2분 남짓, 이후 캐시)
+  `light-flutter:<버전>` 이미지를 만들어 그 안에서 돈다 (첫 빌드만 약 8분, 이후 캐시)
 
 ### 5.3 Git
 - 2.4x 이상. **개행은 `.gitattributes`가 관리**하므로 `core.autocrlf`를 임의로 바꾸지 마세요
