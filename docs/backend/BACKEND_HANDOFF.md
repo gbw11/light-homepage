@@ -28,6 +28,28 @@
 
 형식: 최신 항목이 위에 온다.
 
+## 2026-10-07 (2) — 🔴 [CONTRACT] BE PR 리뷰 요청: 임시저장 글 API 2개 · PASTOR 역할 변경 허용
+
+사용자 흐름 점검(`docs/records/USERFLOW_AUDIT_2026-10-07.md`)에서 나온 🔴 중 BE가 필요한 2건을
+PM 결정에 따라 **PM 쪽에서 BE까지 구현해 `backend_develop` PR로 올렸습니다.** 리뷰 후 머지 부탁드립니다.
+브랜치: `feat/be-drafts-pastor-role`
+
+1. **임시저장 글 다시 열기** — `GET /api/admin/posts/drafts`, `GET /api/admin/posts/{id}` (SPEC_API §3.6·§3.7 신설)
+   - `PostAdminController`(클래스 `hasRole('LEADER')`) → `PostQueryService.drafts/getForEdit`(단일 관문 `assertVisible` 통과)
+   - 공개 `GET /api/posts/{idOrSlug}`는 **그대로** 임시저장 글 404
+   - `/api/admin` 아래에 둔 이유: `GET /api/posts/**`는 필터에서 익명에 열려 있고 `/{idOrSlug}`가 `drafts` slug와 부딪힘
+   - `AuthorizationCoverageTest` COVERED에 2행 추가, 매트릭스 §10에도 추가(M=403)
+2. **역할 변경 PASTOR 허용** — `Member.changeRole`의 `MEMBER↔LEADER` 제한 제거. 마지막 전도사 강등 400은 그대로
+   - `isAssignableRole` 삭제 (다른 사용처 없음), `RoleChangeRequest` 스키마 `allowableValues`에 PASTOR
+   - 기존 테스트 `전도사_부여_불가`·`전도사가_둘일_때`를 새 동작으로 바꿈
+
+확인: backend 전체 741 tests 통과. 수정본을 별도 DB로 띄워 실제 HTTP로 14개 시나리오 확인
+(임시저장 왕복, 회원 403·익명 401, 알림 응답 키, 전도사 지정 → 본인 강등 → 마지막 강등 400).
+
+참고 (BE 조치 없음): FE 알림 벨이 §14.1과 다른 모양(`id/message/read`)을 읽고 있던 것을 FE에서 고쳤습니다.
+09-10 기록의 "계약 그대로 구현"은 BE 기준으로는 맞았고 FE가 어긋나 있었습니다.
+
+
 ## 2026-10-07 — ℹ️ 공지 고정 해제를 `PUT /api/posts/{id}`로 합니다 — 조치 불필요, 유지만 부탁
 
 FE에 임원용 `📌 고정 해제/상단 고정` 버튼을 넣었습니다(`PinToggleButton`). 새 API 없이

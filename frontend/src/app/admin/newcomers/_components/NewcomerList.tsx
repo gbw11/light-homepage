@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
@@ -53,6 +54,28 @@ export function NewcomerList() {
     queryFn: () => api.admin.newcomers(),
   });
 
+  /*
+    헤더 알림에서 `#newcomer-{id}`로 들어온 경우 그 신청으로 내려가 잠시 강조한다
+    (SPEC_API §14.5-2 "refId로 §8.6 목록의 해당 항목으로 이동"). 목록이 클라이언트에서
+    늦게 그려지므로 브라우저 기본 해시 스크롤이 닿지 않는다 — 데이터가 온 뒤 직접 한다.
+  */
+  const [highlighted, setHighlighted] = useState<string | null>(null);
+  useEffect(() => {
+    if (!data) return;
+    const match = /^#newcomer-(.+)$/.exec(window.location.hash);
+    if (!match) return;
+    const id = decodeURIComponent(match[1]);
+    const el = document.getElementById(`newcomer-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ block: "center" });
+    const start = window.setTimeout(() => setHighlighted(id), 0);
+    const end = window.setTimeout(() => setHighlighted(null), 2500);
+    return () => {
+      window.clearTimeout(start);
+      window.clearTimeout(end);
+    };
+  }, [data]);
+
   if (isLoading) {
     return (
       <Section className="pt-8">
@@ -86,7 +109,13 @@ export function NewcomerList() {
       ) : (
         <ul className="divide-y divide-[var(--color-navy-100)] border-y border-[var(--color-navy-100)]">
           {items.map((record) => (
-            <li key={record.id} className="py-4">
+            <li
+              key={record.id}
+              id={`newcomer-${record.id}`}
+              className={`scroll-mt-24 py-4 transition-colors ${
+                highlighted === record.id ? "bg-[var(--color-navy-100)]" : ""
+              }`}
+            >
               <p className="flex flex-wrap items-baseline gap-x-3">
                 <span className="text-sm text-[var(--color-gray-400)]">
                   {formatDate(record.createdAt)}

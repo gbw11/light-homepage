@@ -23,6 +23,8 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
+const EMPTY: FormValues = { currentPassword: "", newPassword: "", newPasswordConfirm: "" };
+
 const inputClass =
   "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]";
 
@@ -35,10 +37,11 @@ export function PasswordChangeForm() {
     handleSubmit,
     reset,
     setError,
+    setFocus,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { currentPassword: "", newPassword: "", newPasswordConfirm: "" },
+    defaultValues: EMPTY,
   });
 
   const mutation = useMutation({
@@ -52,10 +55,35 @@ export function PasswordChangeForm() {
       reset();
     },
     onError: (error) => {
-      if (isApiError(error) && error.field) {
-        setError(error.field as keyof FormValues, { message: error.message });
+      /*
+        실패하면 세 칸을 **모두 비운다** (PM 요청 2026-10-07). 어느 칸이 틀렸는지
+        눈으로 확인할 수 없는 비밀번호 칸에 값이 남아 있으면, 사용자는 일부만
+        고치다 다시 틀린다. 처음부터 다시 치게 한다. `reset`이 오류도 지우므로
+        오류는 비운 **다음에** 건다.
+      */
+      reset(EMPTY);
+
+      /*
+        ⚠️ 서버는 현재 비밀번호가 틀리면 `field: "password"`로 준다
+        (`ProfileService.assertPasswordMatches`). 폼 칸 이름은 `currentPassword`라
+        그대로 `setError("password")`에 넘기면 아무 데도 그려지지 않았다 — 버튼만
+        다시 눌리고 문구가 없었다 (사용자 흐름 점검 2026-10-07 🔴-1).
+        새 비밀번호 길이(72바이트)는 폼이 먼저 막으므로 이 경로의 `password`는
+        현재 비밀번호 불일치뿐이다.
+      */
+      if (isApiError(error) && (error.field === "password" || error.field === "currentPassword")) {
+        setError("currentPassword", {
+          message: "현재 비밀번호가 올바르지 않습니다. 처음부터 다시 입력해주세요.",
+        });
+        // `reset` 직후에는 칸이 다시 그려지는 중이라 바로 포커스가 들어가지 않는다 — 한 틱 뒤에
+        window.setTimeout(() => setFocus("currentPassword"), 0);
         return;
       }
+      if (isApiError(error) && (error.field === "newPassword" || error.field === "newPasswordConfirm")) {
+        setError(error.field, { message: error.message });
+        return;
+      }
+      // 그려질 칸이 없는 field는 전부 폼 상단으로 — 조용히 사라지지 않게 한다
       setError("root", {
         message: isApiError(error) ? error.message : "비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.",
       });

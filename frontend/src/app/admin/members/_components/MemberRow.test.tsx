@@ -132,3 +132,23 @@ describe("MemberRow — 확인 모달 (LIGHT-151)", () => {
     });
   });
 });
+
+describe("MemberRow — 전도사 지정 (점검 2026-10-07 🔴-4)", () => {
+  beforeEach(() => {
+    mockChangeRole.mockReset();
+  });
+
+  it("임원을 전도사로 지정하면 인수인계 안내를 보여주고 PASTOR로 요청한다", async () => {
+    mockChangeRole.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderMemberRow({ ...member, role: "LEADER" });
+
+    await user.selectOptions(screen.getByLabelText("김도연a 역할 변경"), "PASTOR");
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog).toHaveTextContent("새 전도사를 먼저 지정한 뒤 본인을 강등");
+    await user.click(within(dialog).getByRole("button", { name: "변경" }));
+
+    expect(mockChangeRole).toHaveBeenCalledWith("member-1", { role: "PASTOR" });
+  });
+});

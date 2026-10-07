@@ -7,7 +7,7 @@ import { Section } from "@/components/ui/Section";
 import { PostForm } from "@/components/post/PostForm";
 
 /**
- * 수정할 글을 불러와 `PostForm`에 넘긴다 (SPEC_API §3.3 → §3.5).
+ * 수정할 글을 불러와 `PostForm`에 넘긴다 (SPEC_API §3.7 → §3.5).
  *
  * 서버 컴포넌트에서 가져오지 않는 이유는 `/documents/[slug]`와 같다 —
  * 회원 전용 데이터를 서버에서 prefetch하면 세션이 없어 실패하고, 성공하면
@@ -24,8 +24,10 @@ export function PostEditLoader({ id }: { id: string }) {
     isError,
     error,
   } = useQuery({
-    queryKey: ["post", id],
-    queryFn: () => api.posts.get(id),
+    queryKey: ["post", "edit", id],
+    // ⚠️ 공개 상세(`posts.get`)가 아니다 — 그건 임시저장 글을 404로 숨겨서, 임시저장한 글을
+    //    다시 열 수 없었다 (점검 2026-10-07 🔴-2). 수정용 경로는 게시 여부와 무관하게 연다
+    queryFn: () => api.posts.getForEdit(id),
     retry: false,
     staleTime: 0,
     gcTime: 0,

@@ -308,6 +308,9 @@ export const realApi: Api = {
     list: ({ category, page = 0, size = 20 }) =>
       request("/posts", { query: { category, page, size } }),
     get: (idOrSlug) => request(`/posts/${encodeURIComponent(idOrSlug)}`),
+    // 임원 작업용 조회는 /admin 아래다 — 공개 GET /posts/**와 경로·인가가 갈린다 (BE PostAdminController)
+    drafts: ({ page = 0, size = 20 } = {}) => request("/admin/posts/drafts", { query: { page, size } }),
+    getForEdit: (id) => request(`/admin/posts/${encodeURIComponent(id)}`),
     create: (input: PostInput) =>
       request("/posts", { method: "POST", body: JSON.stringify(input) }),
     update: (id, input: PostInput) =>
