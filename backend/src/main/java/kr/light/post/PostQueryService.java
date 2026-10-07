@@ -174,6 +174,42 @@ public class PostQueryService {
     }
 
     /**
+     * 임시저장 글 목록 (SPEC_API.md §3.6) — 임원 전용.
+     *
+     * <p>권한은 컨트롤러의 {@code hasRole('LEADER')}가 먼저 막지만, 단일 관문
+     * 원칙대로 글마다 {@link #assertVisible}도 통과시킨다. 임원은 네 분류를
+     * 모두 읽으므로 실제로 걸러지는 글은 없다 — 나중에 역할이 늘어도 예산안
+     * 임시저장이 엉뚱한 사람에게 새지 않게 하는 장치다.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<PostSummaryResponse> drafts(Role role, int page, int size) {
+        Page<Post> posts = postRepository.findDrafts(PageRequest.of(page, size));
+        posts.forEach(post -> assertVisible(post.getCategory(), role));
+        Map<Long, Long> counts = attachmentCounts(posts.getContent());
+
+        return PageResponse.of(posts, post ->
+                PostSummaryResponse.of(post, counts.getOrDefault(post.getId(), 0L)));
+    }
+
+    /**
+     * 수정 화면용 상세 (SPEC_API.md §3.7) — 임원 전용, <b>임시저장 글 포함</b>.
+     *
+     * <p>{@link #get}과 같은 응답 모양이다. 다른 점은 게시 여부로 거르지 않는다는
+     * 것 하나다. 공개 상세({@code GET /api/posts/{idOrSlug}})는 지금처럼
+     * 임시저장 글을 404로 숨긴다 — 쓰던 글이 공개 주소로 열리면 안 된다.
+     */
+    @Transactional(readOnly = true)
+    public PostDetailResponse getForEdit(Long id, Role role) {
+        Post post = postRepository.findForEdit(id).orElseThrow(ApiException::notFound);
+
+        assertVisible(post.getCategory(), role);
+
+        List<Attachment> attachments =
+                attachmentRepository.findByPostIdOrderBySortOrderAscIdAsc(post.getId());
+        return PostDetailResponse.of(post, parseBody(post), attachments);
+    }
+
+    /**
      * 저장된 리치텍스트를 JSON으로 되돌린다.
      *
      * <p>깨진 값이면 여기서 터뜨린다(→ 500 + 로그). 조용히 null로 흘려보내면 FE가

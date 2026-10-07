@@ -318,7 +318,7 @@ FE는 실제 수련회 사진 47장(`public/photos/retreat-2026/`)으로 검증�
 | FR-ADM-01 | 관리 홈 | L | M4 | 🟡 재작업 | **저장 용량 표시**, 기능 진입점, 역할 배지 — `/admin`. ~~승인 대기 알림~~ v1.3 폐기 |
 | FR-ADM-02 | ~~승인 대기 목록~~ → 계정 삭제+명단 재개방 | **T** | M2 | ⬜ 재작업 | 승인/거절 폐기. `DELETE /admin/members/{id}`(사유 필수) — 선점 복구 절차 지원 — `/admin/members` · `SPEC_API §8.2` |
 | FR-ADM-03 | 회원 목록·검색 | **T** | M2 | 🟡 재작업 | 이름 검색. 이름(접미사 그대로)·아이디·역할·가입일 표시. ~~마을~~ 은 명단 컬럼 확인 후 — `/admin/members` |
-| FR-ADM-04 | 역할 부여 | **T** | M2 | 🟡 | `MEMBER ↔ LEADER` 변경. 확인 모달 필수 — `/admin/members` |
+| FR-ADM-04 | 역할 부여 | **T** | M2 | 🟡 | `MEMBER · LEADER · PASTOR` 변경(2026-10-07 PASTOR 추가 — 앱 안에서 인수인계). 확인 모달 필수 — `/admin/members` |
 | FR-ADM-05 | 자기 잠금 방지 | **T** | M2 | — (BE 전용) | 마지막 `PASTOR`의 강등·탈퇴를 거부 |
 | FR-ADM-06 | 감사 로그 기록 | — | M2 | — (BE 전용) | 계정 삭제·역할 변경·리셋 코드 발급을 기록 |
 | FR-ADM-08 | 비밀번호 리셋 코드 발급 | **T** | M2 | ⬜ 신규 | 행별 발급 버튼 → 코드(`8H2K-9QX1`)·만료 시각 표시, 구두/문자 전달 — `/admin/members` · `SPEC_API §8.4` |

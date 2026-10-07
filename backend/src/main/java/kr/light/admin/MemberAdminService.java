@@ -134,12 +134,12 @@ public class MemberAdminService {
     // ── 역할 변경 ─────────────────────────────────────────────
 
     /**
-     * 역할 변경 (SPEC_API.md §8.4) — {@code MEMBER ↔ LEADER}만.
+     * 역할 변경 (SPEC_API.md §8.4) — {@code MEMBER · LEADER · PASTOR} 사이 어디로든
+     * (PM 결정 2026-10-07, 전도사 인수인계를 앱 안에서).
      *
      * <p><b>⚠️ 자기잠금 방지 (ARCHITECTURE.md §5.4 · FR-ADM-05).</b> 마지막
-     * PASTOR가 강등되면 아무도 회원을 승인할 수 없다. 지금은 API가 PASTOR를
-     * 다루지 않아 이 경로로는 일어나지 않지만, <b>검사는 남겨둔다</b> — 나중에
-     * PASTOR 부여를 열거나 탈퇴(§2.13)를 붙일 때 이 규칙이 이미 여기 있어야 한다.
+     * PASTOR가 강등되면 아무도 회원을 관리할 수 없다. 인수인계는 "새 전도사를
+     * 먼저 지정 → 그다음 본인 강등" 순서로만 된다.
      */
     @Transactional
     public void changeRole(Long memberId, Role newRole, Member actor) {
@@ -148,11 +148,7 @@ public class MemberAdminService {
 
         assertKeepsAtLeastOnePastor(member, newRole);
 
-        try {
-            member.changeRole(newRole);
-        } catch (IllegalStateException e) {
-            throw ApiException.validation("role", "MEMBER 또는 LEADER로만 변경할 수 있습니다.");
-        }
+        member.changeRole(newRole);
 
         auditLogger.log(actor, AuditAction.ROLE_CHANGE, target(member),
                 "%s → %s".formatted(previous, newRole));

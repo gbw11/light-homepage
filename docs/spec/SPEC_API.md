@@ -389,6 +389,21 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 ### 3.5 `PUT /api/posts/{id}` · `DELETE /api/posts/{id}`
 권한 `L` · 수정은 3.4와 동일 형태 · 삭제는 `204` (첨부 R2 객체까지 제거)
 
+### 3.6 `GET /api/admin/posts/drafts?page=&size=` — 임시저장 글 목록 (2026-10-07 신설)
+권한 `L` · 응답은 §3.2 목록과 같은 모양(`PostSummary`) · `publishedAt`은 항상 `null`
+
+- 분류와 무관하게 모은다 — 임원은 네 분류를 모두 쓴다
+- 최근에 저장한 글이 위 (`updatedAt` 최신순)
+- **다른 임원이 저장한 글도 보인다** — 이어 쓰는 사람이 원 작성자가 아닐 수 있다(§3.5 수정 시 작성자는 그대로)
+
+> 왜 생겼나: §3.2·§3.3은 임시저장 글을 빼서, **임시저장한 글을 다시 열 길이 없었다**
+> (수정 화면이 공개 상세를 불러 404). 사용자 흐름 점검 2026-10-07 🔴-2.
+
+### 3.7 `GET /api/admin/posts/{id}` — 수정 화면용 상세 (2026-10-07 신설)
+권한 `L` · 응답은 §3.3과 같은 모양 · **임시저장 글도 돌려준다** · id로만 찾는다(slug 아님)
+
+공개 상세(§3.3)는 지금처럼 임시저장 글을 `404`로 숨긴다 — 쓰던 글이 공개 주소로 열리면 안 된다.
+
 ---
 
 ## 4. 첨부파일 (`/api/attachments`, `/api/files`)
@@ -784,9 +799,12 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 ### 8.3 `PATCH /api/admin/members/{id}/role`
 권한 **`T`** · 요청 `{ "role": "LEADER" }` · `204`
 
+`role`은 **`MEMBER` · `LEADER` · `PASTOR`** 셋 다 됩니다 (2026-10-07 — 전도사 인수인계를 앱 안에서).
+전도사 교체는 **새 전도사 지정 → 본인 강등** 순서입니다. 모든 변경은 감사로그(`ROLE_CHANGE`)에 남습니다.
+
 | 실패 | code | 상황 |
 |---|---|---|
-| 마지막 `PASTOR` 강등 | `VALIDATION_ERROR` | 회원 관리가 불가능해지는 것을 방지 |
+| 마지막 `PASTOR` 강등 | `VALIDATION_ERROR` (field `role`) | 회원 관리가 불가능해지는 것을 방지 |
 
 ### 8.4 `POST /api/admin/members/{id}/password/reset` — 리셋 코드 발급
 권한 **`T`**
@@ -1007,6 +1025,8 @@ FE가 분기에 쓰는 값이므로 집합을 벗어나지 않습니다.
 | `GET /meetings/{id}/views` | 401 | 403 | 200 | 200 |
 | `GET /admin/storage` | 401 | 403 | 200 | 200 |
 | `GET /admin/newcomers` | 401 | 403 | 200 | 200 |
+| `GET /admin/posts/drafts` (§3.6) | 401 | **403** | 200 | 200 |
+| `GET /admin/posts/{id}` (§3.7) | 401 | **403** | 200 | 200 |
 | `GET /admin/notifications` (§14) | 401 | 403 | 200 | 200 |
 | `POST /admin/notifications/read` (§14) | 401 | 403 | 200 | 200 |
 | `GET /admin/members` | 401 | 403 | **403** | 200 |
