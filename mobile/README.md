@@ -7,8 +7,8 @@ API 계약은 웹과 동일하게 [`../docs/spec/SPEC_API.md`](../docs/spec/SPEC
 
 ```sh
 flutter pub get
-flutter run                 # 기본: 에뮬레이터에서 PC의 로컬 백엔드(http://10.0.2.2:8080/api)
-flutter run --dart-define=API_BASE_URL=https://<백엔드 주소>/api
+flutter run --dart-define-from-file=env/dev.json    # 에뮬레이터에서 PC의 로컬 백엔드(http://10.0.2.2:8080/api)
+flutter run --dart-define-from-file=env/prod.json   # 운영 백엔드
 ```
 
 ## 검증
