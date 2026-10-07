@@ -857,16 +857,20 @@ const ADMIN_NEWCOMERS: NewcomerRecord[] = [
 ];
 
 /**
- * 헤더 알림 (§14 신설, BE PR `feat/be-newcomer-notification`). 새가족이
- * 등록될 때마다 하나씩 쌓인다고 가정한 mock 데이터 — 22건을 넣어 "최근 20건
- * 초과" 상황(BE 주의 ①)을 화면에서 실제로 확인할 수 있게 한다.
+ * 헤더 알림 (§14). 실서버처럼 **새가족 신청에서 계산한다** — 알림을 따로 저장하지
+ * 않는다(§14.4). 앞 두 건은 `ADMIN_NEWCOMERS`(id 14·13)와 같은 신청이라 알림을
+ * 누르면 실제로 목록의 그 항목으로 간다. 뒤 20건은 "최근 20건 초과"(`hasMore`)를
+ * 화면에서 확인하려고 넣은 더미다.
+ *
+ * ⚠️ 응답 모양은 §14.1 그대로(`type/refId/subject`) — 예전 mock은 `id/message/read`를
+ * 만들어서 실서버에서만 알림이 빈 줄로 나오는 결함을 가렸다(점검 2026-10-07 🔴-3).
  */
-const NEWCOMER_NOTIFICATIONS: { id: string; message: string; createdAt: string }[] = [
-  { id: "n22", message: "새가족 김OO님이 등록했습니다.", createdAt: "2026-08-19T10:22:00Z" },
-  { id: "n21", message: "새가족 박OO님이 등록했습니다.", createdAt: "2026-08-12T04:10:00Z" },
+const NEWCOMER_NOTIFICATIONS: { refId: string; subject: string; createdAt: string }[] = [
+  { refId: "14", subject: "김OO", createdAt: "2026-08-19T10:22:00Z" },
+  { refId: "13", subject: "박OO", createdAt: "2026-08-12T04:10:00Z" },
   ...Array.from({ length: 20 }, (_, i) => ({
-    id: `n${20 - i}`,
-    message: `새가족 이OO님이 등록했습니다.`,
+    refId: `d${20 - i}`,
+    subject: "이OO",
     createdAt: new Date(Date.UTC(2026, 6, 20 - i, 3, 0, 0)).toISOString(),
   })),
 ];
@@ -1304,11 +1308,20 @@ export const mockApi: Api = {
         });
       }
 
-      // 빈 목록도 반드시 확인해야 하는 상태다
+      // 빈 목록도 반드시 확인해야 하는 상태다.
+      // 실서버와 같게 — 임시저장(publishedAt null) 제외, 고정 우선 → 최신순 (§3.2).
+      // 예전 mock은 둘 다 안 해서 임시저장 글이 공개 목록에 나왔고, 그 때문에
+      // "임시저장 글을 다시 열 수 없다"(점검 2026-10-07 🔴-2)가 mock에서 가려졌다
       const items =
         scenario() === "empty"
           ? []
-          : mockPostSummaries().filter((p) => p.category === category);
+          : mockPostSummaries()
+              .filter((p) => p.category === category && p.publishedAt !== null)
+              .sort((a, b) =>
+                a.pinned !== b.pinned
+                  ? Number(b.pinned) - Number(a.pinned)
+                  : (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""),
+              );
 
       return { items, page, size, hasNext: false };
     },
@@ -1325,7 +1338,8 @@ export const mockApi: Api = {
         : mockPostSummaries().find((p) => p.id === idOrSlug || p.slug === idOrSlug);
       const detail = dynamic ? dynamic.detail : summary ? NOTICE_DETAILS[summary.id] : undefined;
 
-      if (!summary || !detail || removedPostIds.has(summary.id)) {
+      // 임시저장 글은 공개 상세에서 숨긴다 (§3.3) — 수정 화면은 `getForEdit`로 연다
+      if (!summary || !detail || removedPostIds.has(summary.id) || summary.publishedAt === null) {
         throw new ApiError({
           code: "NOT_FOUND",
           message: "글을 찾을 수 없습니다.",
@@ -1369,6 +1383,47 @@ export const mockApi: Api = {
       };
     },
 
+    /** SPEC_API §3.6 — 임시저장 글 목록. 임원 이상, 분류 무관, 최근 저장이 위 */
+    async drafts({ page = 0, size = 20 } = {}): Promise<Page<PostSummary>> {
+      await delay();
+      throwIfScenario();
+      requireLeader("권한이 없습니다.");
+      // dynamicPosts는 새 글·수정한 글이 앞에 쌓이므로 그 순서가 곧 "최근 저장순"이다
+      const all = scenario() === "empty" ? [] : mockPostSummaries().filter((p) => p.publishedAt === null);
+      return {
+        items: all.slice(page * size, (page + 1) * size),
+        page,
+        size,
+        hasNext: (page + 1) * size < all.length,
+      };
+    },
+
+    /** SPEC_API §3.7 — 수정 화면용 상세. 임원 이상, **임시저장 글도** 연다. id로만 찾는다 */
+    async getForEdit(id: string): Promise<PostDetail> {
+      await delay();
+      throwIfScenario();
+      requireLeader("권한이 없습니다.");
+
+      const dynamic = dynamicPosts.find((p) => p.summary.id === id);
+      const summary = dynamic ? dynamic.summary : mockPostSummaries().find((p) => p.id === id);
+      const detail = dynamic ? dynamic.detail : summary ? NOTICE_DETAILS[summary.id] : undefined;
+      if (!summary || !detail || removedPostIds.has(summary.id)) {
+        throw new ApiError({ code: "NOT_FOUND", message: "글을 찾을 수 없습니다.", status: 404 });
+      }
+      return {
+        id: summary.id,
+        category: summary.category,
+        title: summary.title,
+        slug: summary.slug,
+        body: detail.body,
+        pinned: summary.pinned,
+        authorName: summary.authorName,
+        publishedAt: summary.publishedAt,
+        updatedAt: detail.updatedAt,
+        attachments: detail.attachments,
+      };
+    },
+
     async create(input: PostInput): Promise<{ id: string }> {
       await delay();
       throwIfScenario();
@@ -1397,8 +1452,9 @@ export const mockApi: Api = {
       next.summary.publishedAt = input.publish ? (existing.publishedAt ?? next.summary.publishedAt) : null;
 
       const at = dynamicPosts.findIndex((p) => p.summary.id === id);
-      if (at >= 0) dynamicPosts[at] = next;
-      else dynamicPosts.unshift(next);
+      // 수정한 글은 맨 앞으로 — 임시저장 목록이 "최근 저장순"이 되게 (§3.6)
+      if (at >= 0) dynamicPosts.splice(at, 1);
+      dynamicPosts.unshift(next);
     },
 
     async remove(id: string): Promise<void> {
@@ -1979,21 +2035,30 @@ export const mockApi: Api = {
         throw new ApiError({ code: "FORBIDDEN", message: "권한이 없습니다.", status: 403 });
       }
 
+      const everyone = [...Object.values(MOCK_USERS), ...Object.values(dynamicUsers)];
+      const target = everyone.find((u) => u.id === id);
+      if (!target) {
+        throw new ApiError({ code: "NOT_FOUND", message: "회원을 찾을 수 없습니다.", status: 404 });
+      }
+
       /*
        * FR-ADM-05 자기 잠금 방지 — 마지막 PASTOR를 강등하면 아무도 회원을
-       * 승인할 수 없게 된다. 서버가 막는 규칙이지만 mock에도 넣어야 화면이
-       * 이 에러를 처리하는지 확인할 수 있다.
+       * 관리할 수 없게 된다. 문구는 BE(`MemberAdminService`) 그대로.
+       *
+       * 2026-10-07부터 BE도 세 역할을 모두 오가게 허용한다(인수인계: 새 전도사
+       * 지정 → 본인 강등). 예전 mock은 PASTOR 지정을 성공으로 처리하면서 실서버는
+       * 400이었고, 성공해도 **역할을 실제로 바꾸지 않았다**(no-op) — 둘 다 고쳤다.
        */
-      const pastors = Object.values(MOCK_USERS).filter((u) => u.role === "PASTOR");
-      const target = Object.values(MOCK_USERS).find((u) => u.id === id);
-      if (target?.role === "PASTOR" && input.role !== "PASTOR" && pastors.length <= 1) {
+      const pastors = everyone.filter((u) => u.role === "PASTOR");
+      if (target.role === "PASTOR" && input.role !== "PASTOR" && pastors.length <= 1) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
-          message: "마지막 관리자의 권한은 변경할 수 없습니다. 다른 관리자를 먼저 지정해주세요.",
+          message: "마지막 전도사는 강등할 수 없습니다. 다른 전도사를 먼저 지정해주세요.",
           status: 400,
           field: "role",
         });
       }
+      target.role = input.role;
     },
 
     /** SPEC_API §8.4 — 리셋 코드 발급 (1회용·30분). 코드는 화면에 표시해 구두/문자 전달 */
@@ -2081,13 +2146,15 @@ export const mockApi: Api = {
         b.createdAt.localeCompare(a.createdAt),
       );
       const isRead = (createdAt: string) => readUntil !== null && createdAt <= readUntil;
+      const unreadCount = sorted.filter((n) => !isRead(n.createdAt)).length;
 
       return {
-        unreadCount: sorted.filter((n) => !isRead(n.createdAt)).length,
-        // 최근 20건만 — 21건째부터는 unreadCount로만 알 수 있다 (BE 주의 ①)
-        items: sorted.slice(0, 20).map((n) => ({ ...n, read: isRead(n.createdAt) })),
-        // 클라이언트 시계가 아니라 이 응답 시점의 최신 알림 시각을 커서로 준다
-        readMarker: sorted[0]?.createdAt ?? new Date(0).toISOString(),
+        unreadCount,
+        // 최근 20건만 — 21건째부터는 unreadCount로만 알 수 있다 (§14.1)
+        hasMore: sorted.length > 20,
+        // 안 읽은 것이 없으면 null (§14.1). 있으면 가장 최근 알림 시각
+        readMarker: unreadCount > 0 ? sorted[0].createdAt : null,
+        items: sorted.slice(0, 20).map((n) => ({ type: "NEWCOMER" as const, ...n })),
       };
     },
 
@@ -2611,12 +2678,14 @@ export const mockApi: Api = {
       await delay();
       throwIfScenario();
       const current = requireSession();
+      // 실서버와 같은 모양 — `field: "password"`, 문구도 BE 그대로 (ProfileService.assertPasswordMatches).
+      // 예전 mock은 `currentPassword`를 줘서 FE가 실서버에서만 문구를 못 그리는 결함을 가렸다
       if (!current.loginId || input.currentPassword !== passwordOf(current.loginId)) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
-          message: "현재 비밀번호가 일치하지 않습니다.",
+          message: "비밀번호가 올바르지 않습니다.",
           status: 400,
-          field: "currentPassword",
+          field: "password",
         });
       }
       passwords.set(current.loginId, input.newPassword);
