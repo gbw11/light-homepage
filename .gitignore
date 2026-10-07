@@ -64,3 +64,10 @@ light-[0-9]*.sql
 # 절대 커밋하지 않는다. 필요 없어지면 그냥 지우면 된다.
 scratch_*.txt
 pm_chunks.json
+
+# ─────────── 로컬 전용 자료 ───────────
+# 실인물 행사 사진 원본(수 GB) — 코드가 참조하는 route-to-dreamcenter만 추적
+frontend/mock-assets/_selected/*
+!frontend/mock-assets/_selected/route-to-dreamcenter/
+# 개인 로컬 실행 스크립트
+backend/run-local.ps1
