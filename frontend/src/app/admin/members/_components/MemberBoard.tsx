@@ -5,14 +5,9 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
+import { useAuth } from "@/components/providers/AuthProvider";
 import type { AdminMember } from "@/types/api";
 import { MemberRow } from "./MemberRow";
-
-/** "8/19 가입" (WIREFRAME.md §19) — 연도는 목록에서 노이즈라 뺀다 */
-export function formatApplyDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
-}
 
 /**
  * 목록 위 인원 표시. **전체 수는 끝까지 불러왔을 때만 말한다.**
@@ -39,6 +34,7 @@ export function MemberBoard() {
   // 입력 중인 값과 실제 조회에 쓰는 값을 분리한다 (제출 시점에만 조회)
   const [input, setInput] = useState("");
   const [q, setQ] = useState("");
+  const { user } = useAuth();
   // 21번째 회원부터는 "더 보기" (점검 🟠-5). 역할 변경·삭제 후 `["admin", "members"]`
   // 무효화는 불러온 페이지를 전부 다시 받는다
   const { data, isLoading, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
@@ -94,7 +90,7 @@ export function MemberBoard() {
           <ul className="divide-y divide-[var(--color-navy-100)] border-y border-[var(--color-navy-100)]">
             {items.map((member) => (
               <li key={member.id}>
-                <MemberRow member={member} />
+                <MemberRow member={member} isSelf={member.id === user?.id} />
               </li>
             ))}
           </ul>

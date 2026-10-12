@@ -26,6 +26,18 @@ const ROLE_LABEL: Record<Role, string> = {
  */
 const ASSIGNABLE_ROLES = ["MEMBER", "LEADER", "PASTOR"] as const satisfies readonly Role[];
 
+/**
+ * "8/19 가입" (FR-ADM-03 표시 항목: 이름·아이디·역할·**가입일**) — 연도는 목록에서
+ * 노이즈라 뺀다. 예전에는 MemberBoard에 정의만 있고 쓰는 곳이 없었다(점검 🟠-6).
+ */
+export function formatJoinDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}/${d.getDate()} 가입`;
+}
+
+/** 삭제 사유 최대 길이 — 실서버 `DeleteMemberRequest` `@Size(max = 500)` (점검 🔵-15) */
+const DELETE_REASON_MAX = 500;
+
 /** 만료 시각을 "12:30까지"로 — 코드 전달 대화에서 그대로 읽어주는 용도 */
 function formatExpiry(iso: string): string {
   const d = new Date(iso);
@@ -33,10 +45,17 @@ function formatExpiry(iso: string): string {
 }
 
 /**
- * WIREFRAME.md §19 한 행 — 이름(접미사 그대로)·아이디·역할 + 역할 변경 /
+ * WIREFRAME.md §19 한 행 — 이름(접미사 그대로)·아이디·역할·가입일 + 역할 변경 /
  * 비밀번호 리셋 코드 발급(FR-ADM-08) / 계정 삭제+명단 재개방(FR-ADM-02).
  */
-export function MemberRow({ member }: { member: AdminMember }) {
+export function MemberRow({
+  member,
+  isSelf = false,
+}: {
+  member: AdminMember;
+  /** 로그인한 본인의 행 — [삭제]를 그리지 않는다(서버도 400으로 거부한다, 🔵-13) */
+  isSelf?: boolean;
+}) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [resetCode, setResetCode] = useState<PasswordResetCode | null>(null);
@@ -154,6 +173,9 @@ export function MemberRow({ member }: { member: AdminMember }) {
           {member.loginId ?? "(카카오)"}
         </span>
         <span className="text-sm font-bold">{ROLE_LABEL[member.role]}</span>
+        <time dateTime={member.createdAt} className="text-sm text-[var(--color-gray-400)]">
+          {formatJoinDate(member.createdAt)}
+        </time>
 
         <span className="ml-auto flex items-center gap-2">
           {member.loginId !== null && (
@@ -166,16 +188,19 @@ export function MemberRow({ member }: { member: AdminMember }) {
               {resetCodeMutation.isPending ? "발급 중..." : "비번 초기화"}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => {
-              setDeleting((v) => !v);
-              setError(null);
-            }}
-            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] border border-[var(--color-red-500)] px-3 text-sm font-bold text-[var(--color-red-500)] transition hover:bg-[var(--color-red-500)] hover:text-white"
-          >
-            삭제
-          </button>
+          {/* 자기 계정 삭제는 서버가 막는다(마지막 전도사 자기잠금 방지) — 누르면 실패할 버튼은 두지 않는다 */}
+          {!isSelf && (
+            <button
+              type="button"
+              onClick={() => {
+                setDeleting((v) => !v);
+                setError(null);
+              }}
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] border border-[var(--color-red-500)] px-3 text-sm font-bold text-[var(--color-red-500)] transition hover:bg-[var(--color-red-500)] hover:text-white"
+            >
+              삭제
+            </button>
+          )}
           {canChangeRole && (
             <>
               <label htmlFor={`role-${member.id}`} className="sr-only">
@@ -233,9 +258,18 @@ export function MemberRow({ member }: { member: AdminMember }) {
             type="text"
             value={deleteReason}
             onChange={(e) => setDeleteReason(e.target.value)}
+            maxLength={DELETE_REASON_MAX}
+            aria-describedby={`delete-reason-count-${member.id}`}
             placeholder="예: 본인 확인 — 선점 계정 삭제"
             className="min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]"
           />
+          {/* 넘기면 서버가 "사유가 너무 깁니다"로 거부한다 — 한도를 미리 보여주고 입력도 막는다 */}
+          <p
+            id={`delete-reason-count-${member.id}`}
+            className="mt-1 text-right text-xs text-[var(--color-gray-400)]"
+          >
+            {deleteReason.length} / {DELETE_REASON_MAX}자
+          </p>
           <div className="mt-3 flex justify-end gap-2">
             <button
               type="button"

@@ -1034,6 +1034,29 @@ for (let i = 1; i <= 22; i++) {
   };
 }
 
+/**
+ * 회원 관리 목록의 가입일(§8.1 `createdAt`). 실제로는 회원 행에 있는 값이라
+ * `AuthUser`에 없다 — 목록에서 날짜가 제각각이어야 가입일 열(🟠-6)이 확인되므로
+ * 시드는 고정값, 가상 회원(`member01~22`)은 8/1부터 하루씩, 이번 세션 가입자는 첫 조회 시각.
+ */
+const SEED_JOINED_AT: Record<string, string> = {
+  "1": "2026-03-02T01:00:00Z",
+  "7": "2026-05-10T01:00:00Z",
+  "42": "2026-08-19T09:00:00Z",
+};
+const sessionJoinedAt = new Map<string, string>();
+function joinedAt(id: string): string {
+  const seeded = SEED_JOINED_AT[id];
+  if (seeded) return seeded;
+  const n = Number(id);
+  if (n > 100 && n <= 122) return new Date(Date.UTC(2026, 7, n - 100, 3, 0, 0)).toISOString();
+  const known = sessionJoinedAt.get(id);
+  if (known) return known;
+  const now = new Date().toISOString();
+  sessionJoinedAt.set(id, now);
+  return now;
+}
+
 /** 이번 세션 중 가입한 계정 — 새로고침하면 사라진다 (실제 DB 아님) */
 const dynamicUsers: Record<string, AuthUser> = {};
 
@@ -2093,7 +2116,7 @@ export const mockApi: Api = {
           loginId: u.loginId,
           phone: u.phone,
           role: u.role,
-          createdAt: "2026-08-19T09:00:00Z",
+          createdAt: joinedAt(u.id),
         }),
       );
 
@@ -2124,17 +2147,39 @@ export const mockApi: Api = {
           field: "reason",
         });
       }
-      const target = [...Object.values(MOCK_USERS), ...Object.values(dynamicUsers)].find(
-        (u) => u.id === id,
+      // 실서버 `DeleteMemberRequest` — `@Size(max = 500)`
+      if (input.reason.length > 500) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "사유가 너무 깁니다.",
+          status: 400,
+          field: "reason",
+        });
+      }
+      // 실서버와 같게 자기 계정은 지울 수 없다(`MemberAdminService.delete`) — 마지막
+      // 전도사가 자신을 지우면 아무도 회원을 관리할 수 없다. 예전 mock은 허용했다
+      // (점검 2026-10-07 §5 mock 불일치표)
+      if (id === user.id) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "자기 계정은 삭제할 수 없습니다.",
+          status: 400,
+          field: "id",
+        });
+      }
+      // 키(loginId)가 아니라 id로 찾아 지운다 — 예전에는 `loginId`가 없는 카카오 계정이면
+      // 아무것도 안 지우고 성공했다. 시드 계정(MOCK_USERS)도 지운다: dynamicUsers만 지우면
+      // `doyeon01` 같은 시드가 "삭제 성공" 뒤에도 목록에 남고, 명단만 열려 상태가 어긋난다.
+      const store = [MOCK_USERS, dynamicUsers].find((users) =>
+        Object.values(users).some((u) => u.id === id),
       );
-      if (!target) {
+      const key = store && Object.keys(store).find((k) => store[k].id === id);
+      if (!store || key === undefined) {
         throw new ApiError({ code: "NOT_FOUND", message: "회원을 찾을 수 없습니다.", status: 404 });
       }
+      const target = store[key];
+      delete store[key];
       if (target.loginId) {
-        // 시드 계정(MOCK_USERS)도 지운다. dynamicUsers만 지우면 `doyeon01` 같은
-        // 시드가 "삭제 성공" 뒤에도 목록에 남고, 명단만 열려 상태가 어긋난다.
-        delete dynamicUsers[target.loginId];
-        delete MOCK_USERS[target.loginId];
         passwords.delete(target.loginId);
         const rosterEntry = MOCK_ROSTER.find((r) => r.claimedBy === target.loginId);
         if (rosterEntry) rosterEntry.claimedBy = null;
