@@ -2093,17 +2093,39 @@ export const mockApi: Api = {
           field: "reason",
         });
       }
-      const target = [...Object.values(MOCK_USERS), ...Object.values(dynamicUsers)].find(
-        (u) => u.id === id,
+      // 실서버 `DeleteMemberRequest` — `@Size(max = 500)`
+      if (input.reason.length > 500) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "사유가 너무 깁니다.",
+          status: 400,
+          field: "reason",
+        });
+      }
+      // 실서버와 같게 자기 계정은 지울 수 없다(`MemberAdminService.delete`) — 마지막
+      // 전도사가 자신을 지우면 아무도 회원을 관리할 수 없다. 예전 mock은 허용했다
+      // (점검 2026-10-07 §5 mock 불일치표)
+      if (id === user.id) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "자기 계정은 삭제할 수 없습니다.",
+          status: 400,
+          field: "id",
+        });
+      }
+      // 키(loginId)가 아니라 id로 찾아 지운다 — 예전에는 `loginId`가 없는 카카오 계정이면
+      // 아무것도 안 지우고 성공했다. 시드 계정(MOCK_USERS)도 지운다: dynamicUsers만 지우면
+      // `doyeon01` 같은 시드가 "삭제 성공" 뒤에도 목록에 남고, 명단만 열려 상태가 어긋난다.
+      const store = [MOCK_USERS, dynamicUsers].find((users) =>
+        Object.values(users).some((u) => u.id === id),
       );
-      if (!target) {
+      const key = store && Object.keys(store).find((k) => store[k].id === id);
+      if (!store || key === undefined) {
         throw new ApiError({ code: "NOT_FOUND", message: "회원을 찾을 수 없습니다.", status: 404 });
       }
+      const target = store[key];
+      delete store[key];
       if (target.loginId) {
-        // 시드 계정(MOCK_USERS)도 지운다. dynamicUsers만 지우면 `doyeon01` 같은
-        // 시드가 "삭제 성공" 뒤에도 목록에 남고, 명단만 열려 상태가 어긋난다.
-        delete dynamicUsers[target.loginId];
-        delete MOCK_USERS[target.loginId];
         passwords.delete(target.loginId);
         const rosterEntry = MOCK_ROSTER.find((r) => r.claimedBy === target.loginId);
         if (rosterEntry) rosterEntry.claimedBy = null;
