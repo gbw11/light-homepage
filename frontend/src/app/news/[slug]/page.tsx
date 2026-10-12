@@ -23,6 +23,11 @@ type NoticeLookup =
  * ⚠️ 서버의 fetch는 익명이다 — 회원 공지(`NOTICE_MEMBER`, SPEC_API §3.1 v1.3)는
  * 401이 정상 경로다. **회원 전용 본문을 정적 HTML에 굽지 않기 위한 설계**이므로
  * 에러로 다루지 않고 클라이언트 분기(`MemberNoticeDetail`)로 넘긴다.
+ *
+ * 서버에 닿지 못한 경우(`ServerUnavailableError` — 백엔드가 꺼진 새벽의 502 등)는
+ * 여기서 잡지 않고 그대로 던진다 → `app/error.tsx`가 "잠시 후 다시"를 안내한다.
+ * 결과로 바꿔 돌려주면 그 화면이 ISR 캐시에 구워져 서버가 돌아와도 5분간 남는다.
+ * 던지면 Next는 직전에 만든 정상 페이지를 계속 내준다 (점검 🟠-15).
  */
 const getNotice = cache(async (slug: string): Promise<NoticeLookup> => {
   try {
