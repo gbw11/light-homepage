@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
-import { Button } from "@/components/ui/Button";
+import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import type { PostCategory, PostSummary } from "@/types/api";
 
 /** PostForm의 분류 라벨과 같은 말을 쓴다 — 작성 화면에서 고른 이름 그대로 보이게 */
@@ -85,13 +85,11 @@ export function DraftList() {
         ))}
       </ul>
 
-      {hasNextPage && (
-        <div className="mt-6 flex justify-center">
-          <Button variant="secondary" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-            {isFetchingNextPage ? "불러오는 중..." : "더 보기"}
-          </Button>
-        </div>
-      )}
+      <LoadMoreButton
+        hasNextPage={hasNextPage}
+        isFetching={isFetchingNextPage}
+        onClick={() => fetchNextPage()}
+      />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
-import { Button } from "@/components/ui/Button";
+import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import type { BulletinSummary } from "@/types/api";
 
 /** SPEC_API §5.2 기본 페이지 크기 */
@@ -67,17 +67,11 @@ export function PastBulletinList({ selectedId, onSelect }: PastBulletinListProps
         </ul>
       )}
 
-      {hasNextPage && (
-        <div className="mt-6 flex justify-center">
-          <Button
-            variant="secondary"
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-          >
-            {isFetchingNextPage ? "불러오는 중..." : "더 보기"}
-          </Button>
-        </div>
-      )}
+      <LoadMoreButton
+        hasNextPage={hasNextPage}
+        isFetching={isFetchingNextPage}
+        onClick={() => fetchNextPage()}
+      />
     </section>
   );
 }
