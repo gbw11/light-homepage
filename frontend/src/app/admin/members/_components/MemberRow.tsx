@@ -35,6 +35,9 @@ export function formatJoinDate(iso: string): string {
   return `${d.getMonth() + 1}/${d.getDate()} 가입`;
 }
 
+/** 삭제 사유 최대 길이 — 실서버 `DeleteMemberRequest` `@Size(max = 500)` (점검 🔵-15) */
+const DELETE_REASON_MAX = 500;
+
 /** 만료 시각을 "12:30까지"로 — 코드 전달 대화에서 그대로 읽어주는 용도 */
 function formatExpiry(iso: string): string {
   const d = new Date(iso);
@@ -255,9 +258,18 @@ export function MemberRow({
             type="text"
             value={deleteReason}
             onChange={(e) => setDeleteReason(e.target.value)}
+            maxLength={DELETE_REASON_MAX}
+            aria-describedby={`delete-reason-count-${member.id}`}
             placeholder="예: 본인 확인 — 선점 계정 삭제"
             className="min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]"
           />
+          {/* 넘기면 서버가 "사유가 너무 깁니다"로 거부한다 — 한도를 미리 보여주고 입력도 막는다 */}
+          <p
+            id={`delete-reason-count-${member.id}`}
+            className="mt-1 text-right text-xs text-[var(--color-gray-400)]"
+          >
+            {deleteReason.length} / {DELETE_REASON_MAX}자
+          </p>
           <div className="mt-3 flex justify-end gap-2">
             <button
               type="button"
