@@ -74,11 +74,7 @@ class MoreScreen extends StatelessWidget {
               onLogout: () => _confirmLogout(context, auth),
             )
           else
-            _GuestCard(
-              restoring: auth.restoring,
-              onLogin: onLogin,
-              openExternal: openExternal,
-            ),
+            _GuestCard(onLogin: onLogin, openExternal: openExternal),
           const _GroupLabel('교회'),
           _Group(
             children: [
@@ -195,13 +191,8 @@ class _AccountCard extends StatelessWidget {
 }
 
 class _GuestCard extends StatelessWidget {
-  const _GuestCard({
-    required this.restoring,
-    required this.onLogin,
-    required this.openExternal,
-  });
+  const _GuestCard({required this.onLogin, required this.openExternal});
 
-  final bool restoring;
   final VoidCallback onLogin;
   final void Function(String url) openExternal;
 
@@ -221,11 +212,9 @@ class _GuestCard extends StatelessWidget {
                 style: theme.textTheme.bodyLarge,
               ),
               const SizedBox(height: 16),
-              FilledButton(
-                // 지난 로그인을 확인하는 중에는 잠깐 막는다 — 곧 로그인 상태로 바뀔 수 있다
-                onPressed: restoring ? null : onLogin,
-                child: Text(restoring ? '확인 중...' : '로그인'),
-              ),
+              // 지난 로그인을 확인하는 중에도 막지 않는다 — 서버가 잠들어 있으면
+              // 1분 가까이 걸린다. 그 사이 로그인해도 늦게 끝난 확인이 덮어쓰지 않는다
+              FilledButton(onPressed: onLogin, child: const Text('로그인')),
               const SizedBox(height: 8),
               if (signupUrl != null)
                 TextButton(
