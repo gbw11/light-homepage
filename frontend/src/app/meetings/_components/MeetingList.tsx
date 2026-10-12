@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
-import { Button } from "@/components/ui/Button";
+import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import { useAuth } from "@/components/providers/AuthProvider";
 import type { MeetingSummary } from "@/types/api";
 import {
@@ -92,17 +92,11 @@ export function MeetingList() {
         ))}
       </ul>
 
-      {hasNextPage && (
-        <div className="mt-6 flex justify-center">
-          <Button
-            variant="secondary"
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-          >
-            {isFetchingNextPage ? "불러오는 중..." : "더 보기"}
-          </Button>
-        </div>
-      )}
+      <LoadMoreButton
+        hasNextPage={hasNextPage}
+        isFetching={isFetchingNextPage}
+        onClick={() => fetchNextPage()}
+      />
 
       {/*
         ARCHITECTURE.md §7.7 "정직하게 알려야 할 것" — 목록에서도 한 번 밝힌다.
