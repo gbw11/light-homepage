@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { realApi } from "./real";
+import { isApiError, ServerUnavailableError } from "./error";
 
 /**
  * LIGHT-52: 401 → refresh → 재시도.
@@ -107,5 +108,47 @@ describe("real.ts — 401 → refresh → 재시도", () => {
     );
     expect(refreshCalls).toHaveLength(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("real.ts — 백엔드가 꺼졌을 때 (점검 🟠-15 · FR-PUB-10)", () => {
+  it("프록시의 502 HTML은 NOT_FOUND가 아니라 서버 연결 불가다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("<html><body>502 Bad Gateway</body></html>", { status: 502 })),
+    );
+
+    const err = await realApi.posts.get("1").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ServerUnavailableError);
+    expect(isApiError(err)).toBe(false);
+    expect(err).toMatchObject({ status: 502 });
+  });
+
+  it("본문이 빈 5xx를 성공(undefined)으로 넘기지 않는다", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 503 })));
+
+    await expect(realApi.posts.get("1")).rejects.toBeInstanceOf(ServerUnavailableError);
+  });
+
+  it("연결 거부(fetch TypeError)도 서버 연결 불가다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+
+    await expect(realApi.posts.get("1")).rejects.toBeInstanceOf(ServerUnavailableError);
+  });
+
+  it("규약 봉투로 온 진짜 404는 그대로 NOT_FOUND다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse(404, { error: { code: "NOT_FOUND", message: "없음", field: null } }),
+      ),
+    );
+
+    await expect(realApi.posts.get("1")).rejects.toMatchObject({ code: "NOT_FOUND", status: 404 });
   });
 });
