@@ -24,10 +24,16 @@ const inputClass =
 const schema = z
   .object({
     loginId: z.string().trim().min(1, "아이디를 입력해주세요."),
+    /*
+     * 하이픈·대소문자·공백은 강제하지 않는다 (USERFLOW_AUDIT 🔵-14). 코드는
+     * 전도사가 말로 불러주는 값이라 표기가 흔들리는 게 정상이고, 서버도 일부러
+     * 흡수한다 (ResetCodes.normalize: 대문자로 바꾸고 영숫자만 남김).
+     * 여기서는 영숫자가 8자인지만 본다 — 자리를 빠뜨린 경우만 미리 알려준다.
+     */
     resetCode: z
       .string()
       .trim()
-      .regex(/^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/, "코드를 XXXX-XXXX 형식으로 입력해주세요."),
+      .refine((v) => normalizeResetCode(v).length === 8, "재설정 코드 8자리를 입력해주세요."),
     password: passwordField(),
     passwordConfirm: z.string().min(1, "비밀번호를 한 번 더 입력해주세요."),
   })
@@ -37,6 +43,11 @@ const schema = z
   });
 
 type FormValues = z.infer<typeof schema>;
+
+/** 서버 `ResetCodes.normalize`와 같은 규칙 — 대문자로, 영숫자만 */
+function normalizeResetCode(raw: string): string {
+  return raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
 
 export function ResetWithCodeForm() {
   const [done, setDone] = useState(false);
@@ -120,9 +131,11 @@ export function ResetWithCodeForm() {
             type="text"
             placeholder="XXXX-XXXX"
             autoComplete="one-time-code"
+            autoCapitalize="characters"
             className={inputClass}
             {...register("resetCode")}
           />
+          <p className="mt-1 text-xs text-[var(--color-gray-400)]">하이픈·대소문자는 상관없습니다</p>
           {errors.resetCode && (
             <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.resetCode.message}</p>
           )}
