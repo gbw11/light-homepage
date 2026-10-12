@@ -215,9 +215,10 @@ export function BulletinViewer({ bulletin }: { bulletin: Bulletin }) {
         전체 묶음(ZIP)을 만드는 쪽은 와이어프레임에 없고, FR-BUL-04이 요구하는
         "장별 개별 다운로드"도 장을 넘겨 각각 받는 것으로 충족된다.
 
-        ⚠️ `api.bulletins.downloadUrl`은 **[CONTRACT] 미합의 엔드포인트**다
-        (`lib/api/types.ts` 주석 · SPEC_API §5에 다운로드 경로가 없다).
-        `pages[].url`은 열람용이라 `Content-Disposition`이 없어 브라우저가
+        `api.bulletins.downloadUrl`은 SPEC_API §5.6
+        `GET /api/bulletins/{id}/pages/{pageNo}/download`(권한 `M` · 302 →
+        presigned)다. FE가 제안한 경로를 백엔드가 그대로 채택해 구현했다
+        (2026-09-04). `pages[].url`은 열람용이라 `Content-Disposition`이 없어 브라우저가
         탭에서 열어버리므로 그걸 대신 쓰지 않는다.
 
         라이트박스(`/photos/[id]/_components/Lightbox.tsx`)와 같은 두 가지
