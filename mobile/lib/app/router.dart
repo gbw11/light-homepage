@@ -19,6 +19,10 @@ import '../features/home/home_screen.dart';
 import '../features/meetings/meetings_api.dart';
 import '../features/newcomers/newcomer_form_screen.dart';
 import '../features/newcomers/newcomers_api.dart';
+import '../features/photos/album.dart';
+import '../features/photos/album_screen.dart';
+import '../features/photos/albums_screen.dart';
+import '../features/photos/photos_api.dart';
 import '../features/posts/news_screen.dart';
 import '../features/posts/notice_detail_screen.dart';
 import '../features/posts/post_summary.dart';
@@ -47,6 +51,7 @@ GoRouter buildRouter({
   final newcomers = NewcomersApi(api);
   final bulletins = BulletinsApi(api);
   final meetings = MeetingsApi(api);
+  final photos = PhotosApi(api);
 
   /// 공지 상세. 홈과 소식 두 탭에서 열린다 — 화면은 하나, 주소만 탭마다 다르다.
   /// 목록이 slug 대신 id로 연다: slug에는 한글이 올 수 있어 주소 인코딩을
@@ -154,9 +159,33 @@ GoRouter buildRouter({
                       onLogin: () => context.push(AppPaths.login),
                     ),
                   ),
-                  // 사진첩은 M7, 월례회 · 회의록 · 예산안은 묶음 D(#236)
+                  GoRoute(
+                    path: _resourcePaths[Resource.photos]!,
+                    builder: (context, state) => AlbumsScreen(
+                      photos: photos,
+                      // 앨범 하나를 주는 API가 없어 제목을 목록에서 넘겨준다
+                      onOpen: (album) => context.push(
+                        '${AppPaths.resources}/${_resourcePaths[Resource.photos]}/${album.id}',
+                        extra: album,
+                      ),
+                      onLogin: () => context.push(AppPaths.login),
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: ':id',
+                        builder: (context, state) => AlbumScreen(
+                          photos: photos,
+                          albumId: state.pathParameters['id']!,
+                          album: state.extra is Album
+                              ? state.extra! as Album
+                              : null,
+                          onLogin: () => context.push(AppPaths.login),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // 월례회 · 회의록 · 예산안은 묶음 D(#236)
                   for (final r in [
-                    Resource.photos,
                     Resource.meetings,
                     Resource.minutes,
                     Resource.budget,

@@ -32,22 +32,28 @@ class SignedImage extends StatelessWidget {
     if (url == null) {
       return Semantics(label: semanticLabel, child: placeholder);
     }
-    return Image.network(
-      url,
-      fit: fit,
-      semanticLabel: semanticLabel,
-      // 받는 동안 빈 칸이 배경과 같은 색이면 칸이 없는 것처럼 보인다
-      loadingBuilder: (context, child, progress) =>
-          progress == null ? child : placeholder,
-      errorBuilder: (context, _, _) => Material(
-        color: scheme.outlineVariant,
-        child: InkWell(
-          onTap: onExpired,
-          child: Center(
-            child: Icon(
-              onExpired == null ? Icons.broken_image_outlined : Icons.refresh,
-              color: scheme.onSurfaceVariant,
-              semanticLabel: onExpired == null ? '이미지를 열 수 없음' : '다시 불러오기',
+    // 이름은 이미지 바깥에 단다 — 받기에 실패해도(만료) 스크린리더가 무슨
+    // 사진인지 읽을 수 있게
+    return Semantics(
+      label: semanticLabel,
+      image: true,
+      child: Image.network(
+        url,
+        fit: fit,
+        excludeFromSemantics: true,
+        // 받는 동안 빈 칸이 배경과 같은 색이면 칸이 없는 것처럼 보인다
+        loadingBuilder: (context, child, progress) =>
+            progress == null ? child : placeholder,
+        errorBuilder: (context, _, _) => Material(
+          color: scheme.outlineVariant,
+          child: InkWell(
+            onTap: onExpired,
+            child: Center(
+              child: Icon(
+                onExpired == null ? Icons.broken_image_outlined : Icons.refresh,
+                color: scheme.onSurfaceVariant,
+                semanticLabel: onExpired == null ? '이미지를 열 수 없음' : '다시 불러오기',
+              ),
             ),
           ),
         ),
