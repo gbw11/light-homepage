@@ -1,0 +1,46 @@
+import '../api/api_client.dart';
+import 'auth_user.dart';
+
+/// 인증 API (SPEC_API §2). 앱 1차는 아이디·비밀번호 로그인만 쓴다 —
+/// 가입 · 비밀번호 찾기 · 탈퇴는 웹으로 보낸다 (기획안 결정 D2), 카카오는 보류
+class AuthApi {
+  const AuthApi(this._client);
+
+  final ApiClient _client;
+
+  /// 실패와 잠금(5회 실패 → 15분)은 똑같이 `UNAUTHORIZED`다 (§2.3)
+  Future<AuthUser> login({required String loginId, required String password}) =>
+      _client.post(
+        '/auth/login',
+        body: {'loginId': loginId, 'password': password},
+        // 로그인 응답에는 loginId가 없다 — 방금 넣은 값이 곧 그 값이다
+        decode: (data) => AuthUser.fromJson({
+          ...data as Map<String, dynamic>,
+          'loginId': loginId,
+        }),
+      );
+
+  Future<AuthUser> me() => _client.get(
+    '/auth/me',
+    decode: (data) => AuthUser.fromJson(data as Map<String, dynamic>),
+  );
+
+  Future<void> logout() => _client.postNoContent('/auth/logout');
+
+  /// 바뀐 내 정보를 돌려준다 (§2.10)
+  Future<AuthUser> updatePhone(String phone) => _client.patch(
+    '/auth/me',
+    body: {'phone': phone},
+    decode: (data) => AuthUser.fromJson(data as Map<String, dynamic>),
+  );
+
+  /// 현재 비밀번호가 틀리면 401이 아니라 **400 `VALIDATION_ERROR`, field `password`**다.
+  /// 성공하면 다른 기기는 모두 로그아웃되고, 이 기기는 서버가 새 쿠키를 준다
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) => _client.postNoContent(
+    '/auth/password/change',
+    body: {'currentPassword': currentPassword, 'newPassword': newPassword},
+  );
+}
