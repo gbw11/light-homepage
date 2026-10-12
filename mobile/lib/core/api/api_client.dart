@@ -212,28 +212,47 @@ class ApiClient {
     bool bytes = false,
     required Decoder<T> decode,
   }) async {
-    final res = await _dio.request<Object>(
-      path,
-      data: body,
-      queryParameters: {
-        for (final MapEntry(:key, :value) in (query ?? {}).entries) key: ?value,
-      },
-      options: Options(
-        method: method,
-        followRedirects: followRedirects,
-        responseType: bytes ? ResponseType.bytes : ResponseType.plain,
-      ),
-    );
-    final status = res.statusCode ?? 0;
-    if (bytes && status >= 200 && status < 300) return decode(res.data);
-    final text = switch (res.data) {
-      final String text => text,
-      final List<int> data => utf8.decode(data, allowMalformed: true),
-      _ => '',
+    final queryParameters = {
+      for (final MapEntry(:key, :value) in (query ?? {}).entries) key: ?value,
     };
+    final options = Options(
+      method: method,
+      followRedirects: followRedirects,
+      responseType: bytes ? ResponseType.bytes : ResponseType.plain,
+    );
+
+    // ⚠️ 받는 타입을 String · List<int>로 못박는다. Object로 받으면 dio가
+    //    application/json 응답을 **자기가 먼저 Map으로 풀어 버려서** 아래의 봉투
+    //    해석이 빈 문자열을 보게 된다 (에뮬레이터에서 실제로 홈 공지가 전부 실패했다)
+    final int status;
+    final String text;
+    final Headers headers;
+    if (bytes) {
+      final res = await _dio.request<List<int>>(
+        path,
+        data: body,
+        queryParameters: queryParameters,
+        options: options,
+      );
+      status = res.statusCode ?? 0;
+      final data = res.data ?? const <int>[];
+      if (status >= 200 && status < 300) return decode(data);
+      text = utf8.decode(data, allowMalformed: true);
+      headers = res.headers;
+    } else {
+      final res = await _dio.request<String>(
+        path,
+        data: body,
+        queryParameters: queryParameters,
+        options: options,
+      );
+      status = res.statusCode ?? 0;
+      text = res.data ?? '';
+      headers = res.headers;
+    }
 
     if (!followRedirects && status >= 300 && status < 400) {
-      return decode(res.headers.value('location'));
+      return decode(headers.value('location'));
     }
 
     // 204는 본문이 없다 (logout 등, SPEC_API §2)
