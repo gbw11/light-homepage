@@ -10,7 +10,7 @@ import type {
   PostInput,
   UploadIssueInput,
 } from "@/types/api";
-import { ApiError } from "./error";
+import { ApiError, ServerUnavailableError } from "./error";
 import { notifySessionExpired } from "./session";
 import type { Api } from "./types";
 
@@ -166,19 +166,40 @@ async function rawRequest<T>(path: string, init?: RequestOptions): Promise<T> {
     onUploadProgress && typeof window !== "undefined"
       ? await sendWithProgress(url, rest, form, onUploadProgress)
       : await (async () => {
-          const r = await fetch(url, {
-            ...rest,
-            ...(form ? { body: form() } : null),
-            // multipart일 때는 헤더를 비워 브라우저가 boundary까지 채운 값을 넣게 한다
-            headers: form
-              ? { ...rest.headers }
-              : { "Content-Type": "application/json", ...rest.headers },
-          });
+          let r: Response;
+          try {
+            r = await fetch(url, {
+              ...rest,
+              ...(form ? { body: form() } : null),
+              // multipart일 때는 헤더를 비워 브라우저가 boundary까지 채운 값을 넣게 한다
+              headers: form
+                ? { ...rest.headers }
+                : { "Content-Type": "application/json", ...rest.headers },
+            });
+          } catch (e) {
+            /*
+              연결 거부·DNS 실패 같은 네트워크 실패는 fetch가 TypeError로 던진다
+              (백엔드가 꺼진 새벽 SSR이 이 경로다). 취소(AbortError)는 건드리지
+              않는다 — TanStack Query가 쿼리를 취소할 때 쓰는 신호다.
+
+              서버에서 `API_ORIGIN` 없이 상대 URL로 부른 경우(`buildUrl` 주석의
+              `Failed to parse URL`)도 TypeError지만, 그건 서버 장애가 아니라
+              설정 누락이다 — 덮지 않고 그대로 던진다.
+            */
+            const isConfigError = typeof window === "undefined" && url.startsWith("/");
+            if (e instanceof TypeError && !isConfigError) throw new ServerUnavailableError();
+            throw e;
+          }
           return { status: r.status, text: await r.text() };
         })();
 
   // 204는 본문이 없다 (logout·reset-request 등, SPEC_API §2) — 파싱을 시도하지 않는다
-  if (res.status === 204 || res.text === "") {
+  if (res.status === 204) {
+    return undefined as T;
+  }
+  if (res.text === "") {
+    // 빈 5xx는 성공이 아니다 — 예전에는 `undefined`가 데이터인 척 흘러갔다
+    if (res.status >= 500) throw new ServerUnavailableError(res.status);
     return undefined as T;
   }
 
@@ -186,12 +207,12 @@ async function rawRequest<T>(path: string, init?: RequestOptions): Promise<T> {
   try {
     body = JSON.parse(res.text) as ApiEnvelope<T>;
   } catch {
-    // 규약을 벗어난 응답 (프록시 실패·502 HTML 등)
-    throw new ApiError({
-      code: "NOT_FOUND",
-      message: `서버 응답을 해석할 수 없습니다 (${res.status})`,
-      status: res.status,
-    });
+    /*
+      규약을 벗어난 응답 (프록시가 대신 돌려준 502 HTML 등). 백엔드가 아니라
+      그 앞단이 답한 것이므로 "없다"가 아니라 "못 가져왔다"다 — 전에는
+      `NOT_FOUND`로 바꿔서 있는 공지가 "찾을 수 없는 글"로 나왔다 (점검 🟠-15).
+    */
+    throw new ServerUnavailableError(res.status);
   }
 
   if ("error" in body) {
