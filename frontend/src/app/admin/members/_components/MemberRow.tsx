@@ -45,7 +45,14 @@ function formatExpiry(iso: string): string {
  * WIREFRAME.md §19 한 행 — 이름(접미사 그대로)·아이디·역할·가입일 + 역할 변경 /
  * 비밀번호 리셋 코드 발급(FR-ADM-08) / 계정 삭제+명단 재개방(FR-ADM-02).
  */
-export function MemberRow({ member }: { member: AdminMember }) {
+export function MemberRow({
+  member,
+  isSelf = false,
+}: {
+  member: AdminMember;
+  /** 로그인한 본인의 행 — [삭제]를 그리지 않는다(서버도 400으로 거부한다, 🔵-13) */
+  isSelf?: boolean;
+}) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [resetCode, setResetCode] = useState<PasswordResetCode | null>(null);
@@ -178,16 +185,19 @@ export function MemberRow({ member }: { member: AdminMember }) {
               {resetCodeMutation.isPending ? "발급 중..." : "비번 초기화"}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => {
-              setDeleting((v) => !v);
-              setError(null);
-            }}
-            className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] border border-[var(--color-red-500)] px-3 text-sm font-bold text-[var(--color-red-500)] transition hover:bg-[var(--color-red-500)] hover:text-white"
-          >
-            삭제
-          </button>
+          {/* 자기 계정 삭제는 서버가 막는다(마지막 전도사 자기잠금 방지) — 누르면 실패할 버튼은 두지 않는다 */}
+          {!isSelf && (
+            <button
+              type="button"
+              onClick={() => {
+                setDeleting((v) => !v);
+                setError(null);
+              }}
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-button)] border border-[var(--color-red-500)] px-3 text-sm font-bold text-[var(--color-red-500)] transition hover:bg-[var(--color-red-500)] hover:text-white"
+            >
+              삭제
+            </button>
+          )}
           {canChangeRole && (
             <>
               <label htmlFor={`role-${member.id}`} className="sr-only">

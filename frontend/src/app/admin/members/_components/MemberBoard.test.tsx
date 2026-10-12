@@ -10,6 +10,10 @@ vi.mock("@/lib/api", () => ({
   api: { admin: { members: vi.fn() } },
   isApiError: () => false,
 }));
+// 로그인한 전도사 = 목록의 id "1"(강가온)
+vi.mock("@/components/providers/AuthProvider", () => ({
+  useAuth: () => ({ user: { id: "1", role: "PASTOR" } }),
+}));
 
 const mockMembers = vi.mocked(api.admin.members);
 
@@ -64,5 +68,12 @@ describe("MemberBoard — 페이지 넘김 (점검 🟠-5)", () => {
     expect(await screen.findByText("박라온")).toBeInTheDocument();
     expect(screen.getByText("전체 3명")).toBeInTheDocument();
     expect(mockMembers).toHaveBeenLastCalledWith({ q: undefined, page: 1 });
+  });
+
+  it("로그인한 본인 행에만 [삭제]가 없다 (🔵-13)", async () => {
+    renderBoard();
+    expect(await screen.findByText("김다온")).toBeInTheDocument();
+    // 강가온(본인) · 김다온 두 행 중 삭제 버튼은 하나
+    expect(screen.getAllByRole("button", { name: "삭제" })).toHaveLength(1);
   });
 });
