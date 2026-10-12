@@ -104,4 +104,29 @@ describe("MeetingList — 열람 버튼 색·상태", () => {
       expect(card(title).querySelector("button")).toBeNull();
     }
   });
+
+  it.each<Role>(["LEADER", "PASTOR"])("%s: 모든 카드에 [관리] 링크가 있다 (점검 🟠-8)", async (role) => {
+    asUser(role);
+    renderList();
+    await screen.findByText("10월 월례회");
+
+    for (const [title, id] of [
+      ["10월 월례회", "3"],
+      ["11월 월례회", "4"],
+      ["9월 월례회", "2"],
+    ] as const) {
+      expect(screen.getByRole("link", { name: `${title} 관리` })).toHaveAttribute(
+        "href",
+        `/admin/meetings/${id}`,
+      );
+    }
+  });
+
+  it("회원에게는 [관리] 링크가 없다", async () => {
+    asUser("MEMBER");
+    renderList();
+    await screen.findByText("10월 월례회");
+
+    expect(screen.queryByRole("link", { name: /관리$/ })).not.toBeInTheDocument();
+  });
 });
