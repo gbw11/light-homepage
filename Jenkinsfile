@@ -1,7 +1,7 @@
 // Jenkins Multibranch Pipeline — LIGHT 홈페이지
 //
 // 모든 브랜치(main · develop · *_develop · feat/*)를 자동 감지해 실행한다.
-// 변경된 영역(frontend/ backend/)만 빌드하므로 불필요한 실행이 없다.
+// 변경된 영역(frontend/ backend/ mobile/)만 빌드하므로 불필요한 실행이 없다.
 //
 // 설정: docs/ops/CICD.md §3
 // ⚠️ CI는 push를 막지 못한다. 통제 지점은 "머지"다 — CI가 ❌면 머지하지 않는다 (§1·§4)
@@ -17,6 +17,9 @@ pipeline {
   }
 
   environment {
+    // ⚠️ 태그는 infra/jenkins/flutter/Dockerfile의 FLUTTER_VERSION ·
+    //    mobile-ci.yml의 FLUTTER_VERSION · docs/ops/TOOLCHAIN.md와 같아야 한다
+    FLUTTER_IMAGE = 'light-flutter:3.47.6'
     // 테스트용 Postgres
     DB_NAME     = 'light_test'
     DB_USERNAME = 'postgres'
@@ -39,22 +42,24 @@ pipeline {
             changed = sh(returnStdout: true, script: "git diff --name-only ${base} HEAD || true").trim()
           } else {
             echo '이전 성공 빌드 없음 → 전체 검증'
-            changed = 'frontend/ backend/'
+            changed = 'frontend/ backend/ mobile/'
           }
 
           env.FE_CHANGED = changed.contains('frontend/') ? 'true' : 'false'
           env.BE_CHANGED = changed.contains('backend/')  ? 'true' : 'false'
+          env.MO_CHANGED = changed.contains('mobile/')   ? 'true' : 'false'
 
           // 파이프라인·CI 설정이 바뀌면 양쪽 모두 검증
           if (changed.contains('Jenkinsfile') || changed.contains('.github/')) {
             env.FE_CHANGED = 'true'
             env.BE_CHANGED = 'true'
+            env.MO_CHANGED = 'true'
           }
 
           echo "브랜치: ${env.BRANCH_NAME}"
-          echo "프론트엔드 변경: ${env.FE_CHANGED} / 백엔드 변경: ${env.BE_CHANGED}"
+          echo "프론트엔드 변경: ${env.FE_CHANGED} / 백엔드 변경: ${env.BE_CHANGED} / 모바일 변경: ${env.MO_CHANGED}"
 
-          currentBuild.description = "FE:${env.FE_CHANGED} BE:${env.BE_CHANGED}"
+          currentBuild.description = "FE:${env.FE_CHANGED} BE:${env.BE_CHANGED} MO:${env.MO_CHANGED}"
         }
       }
     }
@@ -168,6 +173,37 @@ pipeline {
             }
           }
         }
+
+        // ─── 모바일 (Flutter) ───
+        // GitHub Actions mobile-ci.yml의 verify 잡과 같은 검사 (APK 빌드는 Actions만 한다 —
+        // Gradle 빌드는 PC 자원을 많이 먹고, 머지 게이트는 어차피 Actions다).
+        // Flutter를 Jenkins 이미지에 굽지 않고 별도 이미지 안에서 돌린다 (DooD).
+        // 이미지는 저장소의 infra/jenkins/flutter/Dockerfile로 여기서 빌드한다 —
+        // 첫 빌드만 약 8분(Flutter SDK 다운로드·precache, 2026-10-07 실측), 이후는 호스트 Docker의 레이어 캐시로 즉시 끝난다.
+        // 버전을 올릴 때 Jenkins 이미지를 다시 빌드할 필요가 없다.
+        stage('Mobile') {
+          when {
+            allOf {
+              environment name: 'MO_CHANGED', value: 'true'
+              expression { fileExists('mobile/pubspec.yaml') }
+            }
+          }
+          steps {
+            script {
+              def flutter = docker.build(env.FLUTTER_IMAGE, 'infra/jenkins/flutter')
+              // HOME을 쓰기 가능한 곳으로 — flutter가 설정 파일을 HOME에 쓴다
+              flutter.inside('-e HOME=/tmp/flutter-home') {
+                dir('mobile') {
+                  sh 'flutter --version'
+                  sh 'flutter pub get'
+                  sh 'dart format --output=none --set-exit-if-changed lib test'
+                  sh 'flutter analyze'
+                  sh 'flutter test'
+                }
+              }
+            }
+          }
+        }
       }
     }
 
@@ -208,7 +244,7 @@ pipeline {
       echo "✗ ${env.BRANCH_NAME} #${env.BUILD_NUMBER} 실패"
       script {
         // 통합 브랜치 이상에서 깨지면 상대 작업까지 막힌다 → 즉시 알림
-        def critical = ['main', 'develop', 'frontend_develop', 'backend_develop', 'server_develop']
+        def critical = ['main', 'develop', 'frontend_develop', 'backend_develop', 'server_develop', 'mobile_develop']
         if (critical.contains(env.BRANCH_NAME)) {
           echo "⚠️ 통합 브랜치 실패 — 상대에게 즉시 공유하고 우선 수정하세요"
         }

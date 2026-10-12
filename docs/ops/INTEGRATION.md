@@ -317,9 +317,8 @@ feat/infra-* ─PR──▶  server_develop    ──PR──▶  develop  ─�
 feat/mobile-* ─PR─▶  mobile_develop    ──PR──▶  develop  ──PR──▶  main
 ```
 
-> ⚠️ **`feat/mobile-*`은 아직 `branch-policy.yml`이 검사하지 않습니다** (2026-10-06).
-> 규칙이 없는 브랜치로 취급돼 통과합니다 — PR base를 직접 `mobile_develop`으로 맞추세요.
-> 검사 추가는 `.github/**` 변경이라 인프라 담당 영역입니다 (§6.3).
+> ✅ **`feat/mobile-*` · `fix/mobile-*`도 `branch-policy.yml`이 검사합니다** (2026-10-07 추가).
+> 모바일 CI는 `.github/workflows/mobile-ci.yml`과 Jenkins `Mobile` 스테이지입니다 (`CICD.md §3.8`).
 
 > 🤖 **이 표는 `branch-policy.yml`이 검사합니다** (2026-09-01 추가, `CICD.md §4.3`).
 > base가 어긋난 PR에는 ❌와 고치는 법이 뜹니다. 머지를 막지는 못합니다 —
@@ -424,6 +423,7 @@ docs: API 계약 에러코드 STORAGE_LIMIT 추가
 ## 확인한 것
 <!-- FE: 모바일/데스크톱, 로딩·빈·에러 상태 -->
 <!-- BE: 권한별 접근 테스트(허용/거부), 마이그레이션 재현 -->
+<!-- MOBILE: flutter analyze·test, 에뮬레이터에서 실제 화면 확인 -->
 ```
 
 ### 6.10 머지 방식 요약

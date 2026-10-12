@@ -23,7 +23,8 @@ class ApiClient {
     required String baseUrl,
     required CookieJar cookieJar,
     HttpClientAdapter? adapter,
-  }) : _dio = Dio(
+  }) : _cookieJar = cookieJar,
+       _dio = Dio(
          BaseOptions(
            baseUrl: baseUrl,
            // 상태 코드와 상관없이 봉투({data}/{error})를 직접 해석한다
@@ -48,6 +49,14 @@ class ApiClient {
   }
 
   final Dio _dio;
+  final CookieJar _cookieJar;
+
+  /// 보관한 쿠키(로그인 토큰)를 모두 버린다.
+  ///
+  /// 로그아웃은 서버가 쿠키를 지우라고 응답하는 것으로 끝나지만, 그 응답을 못
+  /// 받으면(오프라인 등) 토큰이 기기에 남아 **다음에 앱을 켤 때 다시 로그인된다.**
+  /// 그래서 서버 응답과 상관없이 기기 쪽도 비운다.
+  Future<void> clearCookies() => _cookieJar.deleteAll();
 
   /// 401을 만나도 리프레시를 시도하면 **안 되는** 경로 (SPEC_API §12.2).
   ///
@@ -83,9 +92,33 @@ class ApiClient {
   Future<T> post<T>(String path, {Object? body, required Decoder<T> decode}) =>
       _request('POST', path, body: body, decode: decode);
 
+  Future<T> patch<T>(String path, {Object? body, required Decoder<T> decode}) =>
+      _request('PATCH', path, body: body, decode: decode);
+
   /// 본문 없는 응답(204)을 기대하는 POST — logout 등
   Future<void> postNoContent(String path, {Object? body}) =>
       _request('POST', path, body: body, decode: (_) {});
+
+  /// 302가 넘겨주는 주소를 따라가지 않고 **그 주소만** 받는다 — 첨부 다운로드
+  /// (SPEC_API §4.2: 302 → 서명 URL, 10분).
+  ///
+  /// 권한 확인은 이 요청에서 끝난다. 그래서 회원 글의 첨부도 쿠키가 실린 이
+  /// 요청으로 주소를 받은 뒤, 쿠키가 없는 바깥 브라우저에 넘겨 열 수 있다.
+  /// 401이면 다른 요청처럼 리프레시 후 한 번 더 시도한다.
+  Future<Uri> redirectLocation(String path) => _request(
+    'GET',
+    path,
+    followRedirects: false,
+    decode: (location) => switch (location) {
+      final String location => Uri.parse(
+        _dio.options.baseUrl,
+      ).resolve(location),
+      _ => throw const ApiError(
+        code: ErrorCode.internalError,
+        message: '서버가 이동할 주소를 주지 않았습니다',
+      ),
+    },
+  );
 
   /// 401 처리 흐름 (SPEC_API §12.2):
   ///
@@ -97,6 +130,7 @@ class ApiClient {
     String path, {
     Map<String, Object?>? query,
     Object? body,
+    bool followRedirects = true,
     required Decoder<T> decode,
   }) async {
     try {
@@ -105,6 +139,7 @@ class ApiClient {
         path,
         query: query,
         body: body,
+        followRedirects: followRedirects,
         decode: decode,
       );
     } on ApiError catch (error, stack) {
@@ -126,6 +161,7 @@ class ApiClient {
         path,
         query: query,
         body: body,
+        followRedirects: followRedirects,
         decode: decode,
       );
     }
@@ -138,12 +174,16 @@ class ApiClient {
     // 성공이든 실패든 비워야 다음 만료 때 다시 시도할 수 있다
   ).whenComplete(() => _refreshInFlight = null);
 
-  /// 리프레시 재시도가 없는 순수 요청 1회
+  /// 리프레시 재시도가 없는 순수 요청 1회.
+  ///
+  /// [followRedirects]가 false면 3xx의 `Location`을 [decode]에 넘긴다
+  /// ([redirectLocation] 전용). 에러 봉투는 똑같이 해석한다.
   Future<T> _rawRequest<T>(
     String method,
     String path, {
     Map<String, Object?>? query,
     Object? body,
+    bool followRedirects = true,
     required Decoder<T> decode,
   }) async {
     final res = await _dio.request<String>(
@@ -152,10 +192,14 @@ class ApiClient {
       queryParameters: {
         for (final MapEntry(:key, :value) in (query ?? {}).entries) key: ?value,
       },
-      options: Options(method: method),
+      options: Options(method: method, followRedirects: followRedirects),
     );
     final status = res.statusCode ?? 0;
     final text = res.data ?? '';
+
+    if (!followRedirects && status >= 300 && status < 400) {
+      return decode(res.headers.value('location'));
+    }
 
     // 204는 본문이 없다 (logout 등, SPEC_API §2)
     if (status == 204 || text.isEmpty) return decode(null);

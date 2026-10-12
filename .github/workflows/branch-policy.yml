@@ -7,6 +7,7 @@ name: Branch Policy
 #      feat/fe-*  · fix/fe-*     ──▶  frontend_develop
 #      feat/be-*  · fix/be-*     ──▶  backend_develop
 #      feat/infra-* · fix/infra-* ─▶  server_develop
+#      feat/mobile-* · fix/mobile-* ─▶ mobile_develop   (2026-10-07 추가)
 #
 #  ⚠️ 왜 사람이 아니라 기계가 보는가 (PM 결정 2026-09-01)
 #     9/1에 FE PR 6건(#128 #129 #130 #131 #132 #134)이 frontend_develop을
@@ -61,6 +62,7 @@ jobs:
             feat/fe-*|fix/fe-*)       expected=frontend_develop ;;
             feat/be-*|fix/be-*)       expected=backend_develop ;;
             feat/infra-*|fix/infra-*) expected=server_develop ;;
+            feat/mobile-*|fix/mobile-*) expected=mobile_develop ;;
             *)
               # docs/** · 통합 브랜치 → develop · develop → main 등은 검사 대상이
               # 아니다. 규칙이 없는 조합까지 막으면 정상 흐름이 멈춘다.
