@@ -13,6 +13,7 @@ abstract final class AppPaths {
 
   // 자료 — 하단 탭을 덮는 전체 화면 뷰어
   static const bulletin = '/bulletin';
+  static const meeting = '/meeting';
 
   // 계정 — 하단 탭을 덮고 열린다
   static const login = '/login';

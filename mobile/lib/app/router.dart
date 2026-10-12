@@ -16,7 +16,9 @@ import '../features/church/location_screen.dart';
 import '../features/church/welcome_screen.dart';
 import '../features/church/worship_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/meetings/meeting_viewer_screen.dart';
 import '../features/meetings/meetings_api.dart';
+import '../features/meetings/meetings_screen.dart';
 import '../features/newcomers/newcomer_form_screen.dart';
 import '../features/newcomers/newcomers_api.dart';
 import '../features/photos/album.dart';
@@ -27,6 +29,7 @@ import '../features/posts/news_screen.dart';
 import '../features/posts/notice_detail_screen.dart';
 import '../features/posts/post_summary.dart';
 import '../features/posts/posts_api.dart';
+import '../features/posts/posts_list_screen.dart';
 import '../features/resources/resources_screen.dart';
 import '../features/sermons/sermons_api.dart';
 import '../features/sermons/sermons_screen.dart';
@@ -59,7 +62,9 @@ GoRouter buildRouter({
   ///
   /// 로그인한 사람이 바뀌면 화면을 새로 만들어 다시 받는다. 로그인 안내를 보고
   /// 로그인하고 돌아오면 그 자리에서 회원 공지가 열린다 (기획안 §2-5 "원래 화면 복귀")
-  GoRoute noticeDetail(String path) => GoRoute(
+  ///
+  /// 회의록 · 예산안 상세도 같은 화면이다 — [title]만 다르다 (기획안 M9)
+  GoRoute noticeDetail(String path, {String title = '공지'}) => GoRoute(
     path: path,
     builder: (context, state) => ListenableBuilder(
       listenable: auth,
@@ -69,9 +74,29 @@ GoRouter buildRouter({
         idOrSlug: state.pathParameters['id']!,
         openExternal: openExternal,
         onLogin: () => context.push(AppPaths.login),
+        title: title,
       ),
     ),
   );
+
+  /// 회의록 · 예산안 목록 + 상세 (`/resources/<분류>` · `/resources/<분류>/:id`)
+  GoRoute postsOf(Resource resource, PostCategory category, String empty) {
+    final path = _resourcePaths[resource]!;
+    final title = _resourceTitles[resource]!;
+    return GoRoute(
+      path: path,
+      builder: (context, state) => PostsListScreen(
+        posts: posts,
+        category: category,
+        title: title,
+        emptyMessage: empty,
+        onOpen: (post) =>
+            context.push('${AppPaths.resources}/$path/${post.id}'),
+        onLogin: () => context.push(AppPaths.login),
+      ),
+      routes: [noticeDetail(':id', title: title)],
+    );
+  }
 
   return GoRouter(
     initialLocation: AppPaths.home,
@@ -184,17 +209,26 @@ GoRouter buildRouter({
                       ),
                     ],
                   ),
-                  // 월례회 · 회의록 · 예산안은 묶음 D(#236)
-                  for (final r in [
-                    Resource.meetings,
-                    Resource.minutes,
-                    Resource.budget,
-                  ])
-                    GoRoute(
-                      path: _resourcePaths[r]!,
-                      builder: (context, state) =>
-                          ComingSoonScreen(title: _resourceTitles[r]!),
+                  GoRoute(
+                    path: _resourcePaths[Resource.meetings]!,
+                    builder: (context, state) => MeetingsScreen(
+                      meetings: meetings,
+                      onOpen: (m) =>
+                          context.push('${AppPaths.meeting}/${m.id}'),
+                      onLogin: () => context.push(AppPaths.login),
                     ),
+                  ),
+                  postsOf(
+                    Resource.minutes,
+                    PostCategory.minutes,
+                    '아직 올라온 회의록이 없어요.',
+                  ),
+                  // 예산안은 임원 이상 — 자료 탭이 회원에게는 카드를 보이지 않는다
+                  postsOf(
+                    Resource.budget,
+                    PostCategory.budget,
+                    '아직 올라온 예산안이 없어요.',
+                  ),
                 ],
               ),
             ],
@@ -239,6 +273,15 @@ GoRouter buildRouter({
         path: '${AppPaths.bulletin}/:id',
         builder: (context, state) => BulletinViewerScreen(
           bulletins: bulletins,
+          id: state.pathParameters['id']!,
+          onLogin: () => context.push(AppPaths.login),
+        ),
+      ),
+
+      GoRoute(
+        path: '${AppPaths.meeting}/:id',
+        builder: (context, state) => MeetingViewerScreen(
+          meetings: meetings,
           id: state.pathParameters['id']!,
           onLogin: () => context.push(AppPaths.login),
         ),
