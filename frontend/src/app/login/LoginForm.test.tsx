@@ -22,7 +22,7 @@ vi.mock("@/lib/api", async () => {
 });
 
 vi.mock("@/components/providers/AuthProvider", () => ({
-  useAuth: () => ({ refetch: mockRefetch, user: null, isLoading: false, logout: vi.fn() }),
+  useAuth: () => ({ refetch: mockRefetch, user: null, isLoading: false, logout: vi.fn(), clearSession: vi.fn() }),
 }));
 
 vi.mock("next/navigation", () => ({
