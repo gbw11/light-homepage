@@ -8,12 +8,6 @@ import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import type { AdminMember } from "@/types/api";
 import { MemberRow } from "./MemberRow";
 
-/** "8/19 가입" (WIREFRAME.md §19) — 연도는 목록에서 노이즈라 뺀다 */
-export function formatApplyDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
-}
-
 /**
  * 목록 위 인원 표시. **전체 수는 끝까지 불러왔을 때만 말한다.**
  *

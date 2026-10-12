@@ -26,6 +26,15 @@ const ROLE_LABEL: Record<Role, string> = {
  */
 const ASSIGNABLE_ROLES = ["MEMBER", "LEADER", "PASTOR"] as const satisfies readonly Role[];
 
+/**
+ * "8/19 가입" (FR-ADM-03 표시 항목: 이름·아이디·역할·**가입일**) — 연도는 목록에서
+ * 노이즈라 뺀다. 예전에는 MemberBoard에 정의만 있고 쓰는 곳이 없었다(점검 🟠-6).
+ */
+export function formatJoinDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}/${d.getDate()} 가입`;
+}
+
 /** 만료 시각을 "12:30까지"로 — 코드 전달 대화에서 그대로 읽어주는 용도 */
 function formatExpiry(iso: string): string {
   const d = new Date(iso);
@@ -33,7 +42,7 @@ function formatExpiry(iso: string): string {
 }
 
 /**
- * WIREFRAME.md §19 한 행 — 이름(접미사 그대로)·아이디·역할 + 역할 변경 /
+ * WIREFRAME.md §19 한 행 — 이름(접미사 그대로)·아이디·역할·가입일 + 역할 변경 /
  * 비밀번호 리셋 코드 발급(FR-ADM-08) / 계정 삭제+명단 재개방(FR-ADM-02).
  */
 export function MemberRow({ member }: { member: AdminMember }) {
@@ -154,6 +163,9 @@ export function MemberRow({ member }: { member: AdminMember }) {
           {member.loginId ?? "(카카오)"}
         </span>
         <span className="text-sm font-bold">{ROLE_LABEL[member.role]}</span>
+        <time dateTime={member.createdAt} className="text-sm text-[var(--color-gray-400)]">
+          {formatJoinDate(member.createdAt)}
+        </time>
 
         <span className="ml-auto flex items-center gap-2">
           {member.loginId !== null && (
