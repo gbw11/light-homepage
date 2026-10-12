@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { api, isApiError } from "@/lib/api";
+import { api, isApiError, isServerUnavailable } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { MemberGate } from "@/components/auth/MemberGate";
 import { NoticeDetailView } from "./NoticeDetailView";
@@ -24,7 +25,7 @@ export function MemberNoticeDetail({ slug }: { slug: string }) {
 }
 
 function MemberNoticeContent({ slug }: { slug: string }) {
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["posts", "detail", slug],
     queryFn: () => api.posts.get(slug),
     retry: false,
@@ -34,6 +35,23 @@ function MemberNoticeContent({ slug }: { slug: string }) {
     return (
       <Section>
         <p className="text-[var(--color-gray-400)]">불러오는 중...</p>
+      </Section>
+    );
+  }
+
+  /*
+    서버가 꺼져 있으면(06~24시 운영) "찾을 수 없는 글"이 아니라 "잠시 후 다시"다 —
+    있는 글을 없다고 말하지 않는다 (점검 🟠-15 · FR-PUB-10).
+  */
+  if (isServerUnavailable(error)) {
+    return (
+      <Section>
+        <p role="alert" className="text-[var(--color-red-500)]">
+          {error.message}
+        </p>
+        <Button className="mt-4" onClick={() => void refetch()} disabled={isFetching}>
+          {isFetching ? "다시 불러오는 중..." : "다시 시도"}
+        </Button>
       </Section>
     );
   }
