@@ -12,11 +12,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/welcome",
     "/welcome/register",
     "/about",
+    "/about/organization",
     "/worship",
     "/sermons",
+    "/sermons/all",
     "/news",
     "/location",
     "/contact",
+    "/privacy",
   ];
 
   return routes.map((route) => ({
