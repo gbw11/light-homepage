@@ -20,7 +20,7 @@
  *   1. 빌드 정적 자산 `/_next/static/**` (해시 파일명, 불변)
  *   2. PWA 아이콘·매니페스트·파비콘
  *   3. 공개 라우트의 HTML 셸 (PUBLIC_ROUTE_PREFIXES)
- *   4. 오프라인 폴백 페이지 `/offline`
+ *   4. 오프라인 폴백 페이지 `/offline`과 문의 `/contact` (설치 시 미리 받음)
  *
  * 캐싱하지 않는 것:
  *   · `/my/**` `/admin/**` 과 자료 화면 전체(`/photos` `/bulletin` `/meetings`
@@ -65,6 +65,14 @@ const SENSITIVE_PREFIXES = [
   "/api",
 ];
 
+/**
+ * 설치 시 미리 받아두는 페이지 — 한 번도 열어본 적 없어도 오프라인에서 나온다.
+ * 문의(`/contact`)는 전화번호가 있어 연결이 끊겼을 때 가장 필요한 화면이다
+ * (점검 🔵-4). 둘 다 회원 데이터가 없는 완전 정적 페이지다 — 회원 화면은
+ * 절대 넣지 않는다.
+ */
+const PRECACHE_PAGES = [OFFLINE_URL, "/contact"];
+
 /** HTML 셸을 캐싱해도 되는 공개 라우트 (app/sitemap.ts + 인증 진입 화면) */
 const PUBLIC_ROUTE_PREFIXES = [
   "/",
@@ -73,6 +81,9 @@ const PUBLIC_ROUTE_PREFIXES = [
   "/sermons",
   "/news",
   "/location",
+  // 문의(전화번호)는 오프라인일 때 가장 필요한 화면이다 (점검 🔵-4)
+  "/contact",
+  "/privacy",
   "/welcome",
   "/home",
   "/login",
@@ -117,7 +128,7 @@ function isCacheableNavigation(pathname) {
 }
 
 /**
- * 설치: 오프라인 폴백과 아이콘만 미리 받는다.
+ * 설치: 오프라인 폴백·문의 페이지와 아이콘만 미리 받는다.
  * 개별 실패가 설치 전체를 막지 않게 한다 — 하나 못 받았다고 워커가 아예
  * 활성화되지 않으면 오프라인 지원이 통째로 사라진다.
  */
@@ -125,7 +136,11 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const shell = await caches.open(SHELL_CACHE);
-      await shell.add(new Request(OFFLINE_URL, { cache: "reload" })).catch(() => {});
+      await Promise.all(
+        PRECACHE_PAGES.map((url) =>
+          shell.add(new Request(url, { cache: "reload" })).catch(() => {}),
+        ),
+      );
 
       const staticCache = await caches.open(STATIC_CACHE);
       await Promise.all(

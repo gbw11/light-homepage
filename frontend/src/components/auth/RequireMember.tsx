@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { loginHref } from "@/lib/auth/nextPath";
 
 /**
  * `M` 이상 권한이 필요한 화면을 감싼다 (SPEC_API §1.5).
@@ -23,7 +24,8 @@ export function RequireMember({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
-      router.replace("/login");
+      // 로그인 후 이 화면으로 돌아오도록 지금 주소를 next로 싣는다 (🔵-1)
+      router.replace(loginHref(window.location.pathname + window.location.search));
     }
   }, [user, isLoading, router]);
 

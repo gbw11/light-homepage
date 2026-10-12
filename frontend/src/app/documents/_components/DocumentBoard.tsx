@@ -25,7 +25,15 @@ const TABS = [
   leaderOnly: boolean;
 }[];
 
-type DocumentCategory = (typeof TABS)[number]["category"];
+export type DocumentCategory = (typeof TABS)[number]["category"];
+
+/**
+ * `/documents?tab=budget` → 예산안 탭으로 연다 (관리 홈 "예산안" 링크).
+ * 알 수 없는 값·없음은 기본 탭(회의록)이다.
+ */
+export function parseDocumentTab(tab: string | string[] | undefined): DocumentCategory {
+  return tab === "budget" ? "BUDGET" : "MINUTES";
+}
 
 /** 임시저장(`publish: false`) 글은 `publishedAt`이 null이다 (SPEC_API §3.4) */
 function formatDate(iso: string | null): string {
@@ -41,14 +49,22 @@ function formatDate(iso: string | null): string {
  *
  * 탭 전환은 URL을 바꾸지 않는다 — 문서 목록은 공유·북마크할 대상이 아니고
  * (권한 있는 사람만 열람), 링크로 오갈 필요가 있는 건 개별 문서 상세다.
+ * 다만 **처음 열 탭**은 `initialCategory`로 받는다 — 관리 홈의 "예산안"
+ * 링크가 회의록 탭으로 열리던 문제(USERFLOW_AUDIT 🔵-11) 때문이다.
  */
-export function DocumentBoard() {
-  const [category, setCategory] = useState<DocumentCategory>("MINUTES");
+export function DocumentBoard({
+  initialCategory = "MINUTES",
+}: {
+  initialCategory?: DocumentCategory;
+}) {
+  const [selected, setCategory] = useState<DocumentCategory>(initialCategory);
   const { user } = useAuth();
   const isLeader = !!user && isLeaderOrAbove(user.role);
   // 권한이 없으면 예산안 탭 자체를 렌더하지 않는다 — 눌러봤자 403이고,
   // 잠긴 탭을 보여주는 건 "여기 뭔가 있다"는 정보만 준다.
   const tabs = TABS.filter((tab) => !tab.leaderOnly || isLeader);
+  // `?tab=budget`으로 들어온 일반 회원은 보이는 탭(회의록)으로 되돌린다
+  const category = tabs.some((tab) => tab.category === selected) ? selected : "MINUTES";
 
   return (
     <>
