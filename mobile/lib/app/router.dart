@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../core/api/api_client.dart';
 import '../features/home/home_screen.dart';
 import '../features/posts/news_screen.dart';
+import '../features/posts/notice_detail_screen.dart';
 import '../features/posts/post_summary.dart';
 import '../features/posts/posts_api.dart';
 import '../features/sermons/sermons_api.dart';
@@ -29,6 +30,18 @@ GoRouter buildRouter({
   final posts = PostsApi(api);
   final sermons = SermonsApi(api);
 
+  /// 공지 상세. 홈과 소식 두 탭에서 열린다 — 화면은 하나, 주소만 탭마다 다르다.
+  /// 목록이 slug 대신 id로 연다: slug에는 한글이 올 수 있어 주소 인코딩을
+  /// 신경 써야 하고, 서버는 둘 다 받는다 (SPEC_API §3.3)
+  GoRoute noticeDetail(String path) => GoRoute(
+    path: path,
+    builder: (context, state) => NoticeDetailScreen(
+      posts: posts,
+      idOrSlug: state.pathParameters['id']!,
+      openExternal: openExternal,
+    ),
+  );
+
   return GoRouter(
     initialLocation: AppPaths.home,
     routes: [
@@ -47,12 +60,15 @@ GoRouter buildRouter({
                     onSeeAllNotices: () => context.go(AppPaths.news),
                     onSeeAllSermons: () => context.go(AppPaths.sermons),
                     onOpenSermon: (sermon) => openExternal(sermon.youtubeUrl),
-                    // 공지 상세 · 처음 오시는 분 · 오시는 길은 아직 없다
-                    onOpenNotice: (_) => notReady(),
+                    // 홈 탭 안에서 연다 — 뒤로가기가 홈으로 돌아온다
+                    onOpenNotice: (notice) =>
+                        context.push('${AppPaths.home}/news/${notice.id}'),
+                    // 처음 오시는 분 · 오시는 길은 아직 없다
                     onFirstVisit: notReady,
                     onDirections: notReady,
                   ),
                 ),
+                routes: [noticeDetail('news/:id')],
               ),
             ],
           ),
@@ -73,9 +89,10 @@ GoRouter buildRouter({
                   posts: posts,
                   // 로그인(묶음 A)이 생기면 로그인했을 때 회원 공지를 더한다
                   categories: const [PostCategory.noticePublic],
-                  // 공지 상세는 아직 없다
-                  onOpen: (_) => notReady(),
+                  onOpen: (notice) =>
+                      context.push('${AppPaths.news}/${notice.id}'),
                 ),
+                routes: [noticeDetail(':id')],
               ),
             ],
           ),

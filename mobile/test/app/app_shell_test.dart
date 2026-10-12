@@ -95,6 +95,60 @@ void main() {
     expect(selectedTab(tester), 2);
   });
 
+  testWidgets('홈에서 공지를 누르면 홈 탭 안에서 상세가 열리고, 뒤로가기로 돌아온다', (tester) async {
+    tester.view.physicalSize = const Size(411, 914) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final server = FakeServer(
+      (o) async => switch (o.path) {
+        '/posts' => respond(200, {
+          'data': {
+            'items': [
+              {
+                'id': '18',
+                'category': 'NOTICE_PUBLIC',
+                'title': '수련회 안내',
+                'slug': null,
+                'pinned': false,
+                'authorName': null,
+                'publishedAt': '2026-10-05T03:00:00Z',
+                'attachmentCount': 0,
+              },
+            ],
+            'page': 0,
+            'size': 3,
+            'hasNext': false,
+          },
+        }),
+        '/posts/18' => respond(200, {
+          'data': {
+            'id': '18',
+            'category': 'NOTICE_PUBLIC',
+            'title': '수련회 안내',
+            'body': {'type': 'doc', 'content': []},
+            'pinned': false,
+            'authorName': '김도연a',
+            'publishedAt': '2026-10-05T03:00:00Z',
+            'attachments': [],
+          },
+        }),
+        _ => respond(200, {'data': null}),
+      },
+    );
+    await tester.pumpWidget(LightApp(api: clientFor(server)));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('수련회 안내'));
+    await tester.pumpAndSettle();
+
+    expect(selectedTab(tester), 0);
+    expect(find.text('김도연a · 2026.10.05'), findsOneWidget);
+
+    await pressSystemBack(tester);
+
+    expect(find.text('주일 14:00 · 청년예배'), findsOneWidget);
+  });
+
   testWidgets('아직 없는 화면을 누르면 준비 중이라고 알린다', (tester) async {
     await pumpApp(tester);
 
