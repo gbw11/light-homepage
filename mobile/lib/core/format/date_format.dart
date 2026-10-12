@@ -14,3 +14,15 @@ String formatDotDate(DateTime at) {
   final dd = local.day.toString().padLeft(2, '0');
   return '${local.year}.$mm.$dd';
 }
+
+/// `2026-08-24` → `2026.08.24`. 주보 날짜처럼 시각 없이 날짜만 오는 값
+/// (SPEC_API §1.3 — 시간대를 바꾸지 않는다. 바꾸면 하루가 밀린다)
+String formatYmd(String ymd) => ymd.replaceAll('-', '.');
+
+/// `10/9 23:59` — 월례회 열람 마감처럼 날짜와 시각을 짧게
+String formatMonthDayTime(DateTime at) {
+  final local = at.toLocal();
+  final hh = local.hour.toString().padLeft(2, '0');
+  final mm = local.minute.toString().padLeft(2, '0');
+  return '${local.month}/${local.day} $hh:$mm';
+}

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../core/format/date_format.dart';
+import '../../core/ui/menu_button.dart';
 import '../posts/post_summary.dart';
 import '../posts/posts_api.dart';
 import '../sermons/sermon.dart';
 import '../sermons/sermons_api.dart';
+import '../sermons/video_thumbnail.dart';
 
 /// 홈에서 다른 곳으로 가는 길. 화면 이동은 홈이 정하지 않고 바깥(탭 틀)이 정한다
 class HomeActions {
@@ -85,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final actions = widget.actions;
     return Scaffold(
       appBar: AppBar(
+        leading: const MenuButton(),
         title: Text(
           'LIGHT',
           style: TextStyle(
@@ -338,15 +341,9 @@ class _LatestSermon extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: Image.network(
-                          sermon.thumbnailUrl,
-                          fit: BoxFit.cover,
-                          semanticLabel: '${sermon.title} 영상',
-                          // 영상이 비공개로 바뀌면 썸네일이 404다 (SPEC_API §9.2)
-                          errorBuilder: (_, _, _) => const _ThumbnailFallback(),
-                        ),
+                      VideoThumbnail(
+                        url: sermon.thumbnailUrl,
+                        semanticLabel: '${sermon.title} 영상',
                       ),
                       Padding(
                         padding: const EdgeInsets.all(16),
@@ -378,21 +375,6 @@ class _LatestSermon extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-class _ThumbnailFallback extends StatelessWidget {
-  const _ThumbnailFallback();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return ColoredBox(
-      color: scheme.outlineVariant,
-      child: Center(
-        child: Text('▶ 영상 보기', style: TextStyle(color: scheme.onSurface)),
-      ),
     );
   }
 }
