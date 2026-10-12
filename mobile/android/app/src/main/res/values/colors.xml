@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 앱 배경과 같은 웜 크림 (lib/core/theme/app_colors.dart surface #FEF9F0).
+         스플래시가 끝나고 Flutter 첫 화면으로 넘어갈 때 색이 튀지 않게 맞춘다 -->
+    <color name="splash_background">#FEF9F0</color>
+</resources>
