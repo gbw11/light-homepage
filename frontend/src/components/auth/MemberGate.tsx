@@ -2,8 +2,10 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Section } from "@/components/ui/Section";
+import { loginHref } from "@/lib/auth/nextPath";
 
 /**
  * 회원 전용 **열람** 화면의 게이트 (SPEC_API §3.1·§10 v1.3 — 내부공지·회의록·
@@ -28,6 +30,7 @@ export function MemberGate({
   description?: string;
 }) {
   const { user, isLoading } = useAuth();
+  const pathname = usePathname();
 
   // 세션 확인 중 — 로그인 유도 화면이 잠깐 떴다 사라지는 깜빡임을 막는다
   if (isLoading) return null;
@@ -40,7 +43,8 @@ export function MemberGate({
           <h2 className="mt-4 text-xl font-bold">로그인이 필요합니다</h2>
           <p className="mt-2 leading-relaxed text-[var(--color-gray-400)]">{description}</p>
           <Link
-            href="/login"
+            // 로그인 후 이 화면으로 돌아오게 한다 (🔵-1)
+            href={loginHref(pathname)}
             className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-button)] bg-[var(--color-yellow)] px-6 text-base font-bold text-[var(--color-accent-fg)]"
           >
             로그인
