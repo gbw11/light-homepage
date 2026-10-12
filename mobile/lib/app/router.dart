@@ -1,6 +1,12 @@
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/api/api_client.dart';
+import '../core/auth/auth_state.dart';
+import '../features/account/login_screen.dart';
+import '../features/account/more_screen.dart';
+import '../features/account/password_change_screen.dart';
+import '../features/account/profile_screen.dart';
 import '../features/church/about_screen.dart';
 import '../features/church/contact_screen.dart';
 import '../features/church/location_screen.dart';
@@ -22,9 +28,13 @@ import 'paths.dart';
 export 'paths.dart';
 
 /// 앱 라우터. [openExternal]은 바깥 주소(YouTube · 지도 등)를 열 때 쓴다 —
-/// 화면 밖의 일이라 앱(`app.dart`)이 넘겨준다
+/// 화면 밖의 일이라 앱(`app.dart`)이 넘겨준다.
+///
+/// 로그인 상태([auth])에 따라 내용이 달라지는 화면은 [ListenableBuilder]로
+/// 감싼다 — 로그인·로그아웃하면 그 화면이 새 상태로 다시 만들어진다.
 GoRouter buildRouter({
   required ApiClient api,
+  required AuthState auth,
   required Future<void> Function(String url) openExternal,
 }) {
   final posts = PostsApi(api);
@@ -34,12 +44,20 @@ GoRouter buildRouter({
   /// 공지 상세. 홈과 소식 두 탭에서 열린다 — 화면은 하나, 주소만 탭마다 다르다.
   /// 목록이 slug 대신 id로 연다: slug에는 한글이 올 수 있어 주소 인코딩을
   /// 신경 써야 하고, 서버는 둘 다 받는다 (SPEC_API §3.3)
+  ///
+  /// 로그인한 사람이 바뀌면 화면을 새로 만들어 다시 받는다. 로그인 안내를 보고
+  /// 로그인하고 돌아오면 그 자리에서 회원 공지가 열린다 (기획안 §2-5 "원래 화면 복귀")
   GoRoute noticeDetail(String path) => GoRoute(
     path: path,
-    builder: (context, state) => NoticeDetailScreen(
-      posts: posts,
-      idOrSlug: state.pathParameters['id']!,
-      openExternal: openExternal,
+    builder: (context, state) => ListenableBuilder(
+      listenable: auth,
+      builder: (context, _) => NoticeDetailScreen(
+        key: ValueKey(auth.user?.id),
+        posts: posts,
+        idOrSlug: state.pathParameters['id']!,
+        openExternal: openExternal,
+        onLogin: () => context.push(AppPaths.login),
+      ),
     ),
   );
 
@@ -47,8 +65,11 @@ GoRouter buildRouter({
     initialLocation: AppPaths.home,
     routes: [
       StatefulShellRoute.indexedStack(
-        builder: (context, state, shell) =>
-            AppShell(shell: shell, openExternal: openExternal),
+        builder: (context, state, shell) => AppShell(
+          shell: shell,
+          openExternal: openExternal,
+          onLogin: () => context.push(AppPaths.login),
+        ),
         // 순서가 하단 탭 순서다 (`appTabs`)
         branches: [
           StatefulShellBranch(
@@ -86,12 +107,19 @@ GoRouter buildRouter({
             routes: [
               GoRoute(
                 path: AppPaths.news,
-                builder: (context, state) => NewsScreen(
-                  posts: posts,
-                  // 로그인(묶음 A)이 생기면 로그인했을 때 회원 공지를 더한다
-                  categories: const [PostCategory.noticePublic],
-                  onOpen: (notice) =>
-                      context.push('${AppPaths.news}/${notice.id}'),
+                builder: (context, state) => ListenableBuilder(
+                  listenable: auth,
+                  builder: (context, _) => NewsScreen(
+                    posts: posts,
+                    // 회원 공지는 로그인했을 때만 부른다 — 비로그인이면 401이다
+                    categories: [
+                      PostCategory.noticePublic,
+                      if (auth.isLoggedIn) PostCategory.noticeMember,
+                    ],
+                    onOpen: (notice) =>
+                        context.push('${AppPaths.news}/${notice.id}'),
+                    onLogin: () => context.push(AppPaths.login),
+                  ),
                 ),
                 routes: [noticeDetail(':id')],
               ),
@@ -102,8 +130,52 @@ GoRouter buildRouter({
             '자료',
             description: '주보 · 사진첩 · 월례회 자료 · 회의록은\n로그인한 회원만 볼 수 있어요.',
           ),
-          _comingSoonTab(AppPaths.more, '더보기'),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppPaths.more,
+                builder: (context, state) => MoreScreen(
+                  onLogin: () => context.push(AppPaths.login),
+                  onProfile: () => context.push('${AppPaths.more}/profile'),
+                  onPasswordChange: () =>
+                      context.push('${AppPaths.more}/password'),
+                  onContact: () => context.push(AppPaths.contact),
+                  openExternal: openExternal,
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'profile',
+                    builder: (context, state) => ProfileScreen(
+                      auth: auth,
+                      onLogin: () => context.push(AppPaths.login),
+                      openExternal: openExternal,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'password',
+                    builder: (context, state) => PasswordChangeScreen(
+                      auth: auth,
+                      onDone: () => context.pop(),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ],
+      ),
+
+      // ── 계정 ──
+      GoRoute(
+        path: AppPaths.login,
+        builder: (context, state) => LoginScreen(
+          auth: auth,
+          // 연 화면으로 돌아간다. 그 화면은 로그인 상태로 다시 그려진다
+          onDone: () =>
+              context.canPop() ? context.pop() : context.go(AppPaths.home),
+          onFirstVisit: () => context.push(AppPaths.welcome),
+          openExternal: openExternal,
+        ),
       ),
 
       // ── 사이드바(☰)의 교회 안내 — 하단 탭을 덮고 뒤로가기로 닫힌다 ──

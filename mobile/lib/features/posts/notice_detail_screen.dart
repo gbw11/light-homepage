@@ -4,6 +4,7 @@ import '../../core/api/api_error.dart';
 import '../../core/format/date_format.dart';
 import '../../core/format/file_size.dart';
 import '../../core/ui/status_views.dart';
+import '../account/login_gate.dart';
 import 'post_body_view.dart';
 import 'post_detail.dart';
 import 'posts_api.dart';
@@ -17,6 +18,7 @@ class NoticeDetailScreen extends StatefulWidget {
     required this.posts,
     required this.idOrSlug,
     required this.openExternal,
+    this.onLogin,
     this.title = '공지',
   });
 
@@ -25,6 +27,9 @@ class NoticeDetailScreen extends StatefulWidget {
 
   /// 본문 링크와 첨부파일을 바깥 앱(브라우저 등)으로 연다
   final Future<void> Function(String url) openExternal;
+
+  /// 회원 글을 비로그인으로 열었을 때 [로그인]. 없으면 안내 문구만 둔다
+  final VoidCallback? onLogin;
 
   /// 화면 위 제목 — 글 제목이 아니라 글의 종류
   final String title;
@@ -94,12 +99,19 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
                 icon: Icons.search_off,
                 message: '찾을 수 없는 글입니다.\n지워졌거나 주소가 바뀌었을 수 있어요.',
               ),
-              // 로그인 화면(묶음 A)이 생기면 여기에 [로그인]을 단다
-              ApiError(code: ErrorCode.unauthorized || ErrorCode.forbidden) =>
-                const MessageView(
-                  icon: Icons.lock_outline,
-                  message: '로그인하면 볼 수 있어요.',
-                ),
+              ApiError(code: ErrorCode.unauthorized) =>
+                switch (widget.onLogin) {
+                  final onLogin? => LoginGate(onLogin: onLogin),
+                  null => const MessageView(
+                    icon: Icons.lock_outline,
+                    message: '로그인하면 볼 수 있어요.',
+                  ),
+                },
+              // 로그인했지만 권한이 모자라다 — 로그인을 권하면 같은 곳을 맴돈다
+              ApiError(code: ErrorCode.forbidden) => const MessageView(
+                icon: Icons.block,
+                message: '이 글을 볼 권한이 없어요.',
+              ),
               _ => ErrorView(error: error, onRetry: _retry),
             };
           }

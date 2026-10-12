@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../content/links.dart';
+import '../core/auth/auth_state.dart';
 import 'paths.dart';
 
 /// 사이드바 — 교회 안내 + 전체 메뉴 (기획안 §3, 결정 D1).
@@ -10,12 +11,14 @@ import 'paths.dart';
 /// 하단 탭 바로가기만은 예외로 둔다 — "전체 메뉴"를 연 사람이 탭을 못 찾고
 /// 헤매지 않게.
 ///
-/// 로그인 상태(이름 · 역할 또는 [로그인])는 로그인(묶음 A)이 생기면 머리에 붙인다.
+/// 머리에는 로그인 상태를 둔다 — 이름 · 역할, 또는 [로그인].
 class AppDrawer extends StatelessWidget {
   const AppDrawer({
     super.key,
     required this.onOpen,
     required this.onTab,
+    required this.onLogin,
+    required this.onAccount,
     required this.openExternal,
   });
 
@@ -24,6 +27,10 @@ class AppDrawer extends StatelessWidget {
 
   /// 하단 탭으로 옮긴다 (탭 순서 번호)
   final void Function(int tab) onTab;
+  final VoidCallback onLogin;
+
+  /// 이름을 누르면 — 계정은 더보기 탭이 맡는다 (결정 D1)
+  final VoidCallback onAccount;
   final void Function(String url) openExternal;
 
   @override
@@ -56,7 +63,10 @@ class AppDrawer extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
-            const _Header(),
+            _Header(
+              onLogin: () => then(onLogin),
+              onAccount: () => then(onAccount),
+            ),
             const Divider(),
             // 처음 온 사람이 가장 먼저 찾는 화면 (WIREFRAME §2 "최우선")
             item(
@@ -121,7 +131,10 @@ class AppDrawer extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({required this.onLogin, required this.onAccount});
+
+  final VoidCallback onLogin;
+  final VoidCallback onAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -145,6 +158,38 @@ class _Header extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
+          const SizedBox(height: 16),
+          switch (AuthScope.maybeOf(context)?.user) {
+            final user? => InkWell(
+              onTap: onAccount,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.account_circle_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${user.name}님 · ${user.role.label}',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
+              ),
+            ),
+            null => OutlinedButton(
+              onPressed: onLogin,
+              child: const Text('로그인'),
+            ),
+          },
         ],
       ),
     );

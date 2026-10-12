@@ -23,7 +23,8 @@ class ApiClient {
     required String baseUrl,
     required CookieJar cookieJar,
     HttpClientAdapter? adapter,
-  }) : _dio = Dio(
+  }) : _cookieJar = cookieJar,
+       _dio = Dio(
          BaseOptions(
            baseUrl: baseUrl,
            // 상태 코드와 상관없이 봉투({data}/{error})를 직접 해석한다
@@ -48,6 +49,14 @@ class ApiClient {
   }
 
   final Dio _dio;
+  final CookieJar _cookieJar;
+
+  /// 보관한 쿠키(로그인 토큰)를 모두 버린다.
+  ///
+  /// 로그아웃은 서버가 쿠키를 지우라고 응답하는 것으로 끝나지만, 그 응답을 못
+  /// 받으면(오프라인 등) 토큰이 기기에 남아 **다음에 앱을 켤 때 다시 로그인된다.**
+  /// 그래서 서버 응답과 상관없이 기기 쪽도 비운다.
+  Future<void> clearCookies() => _cookieJar.deleteAll();
 
   /// 401을 만나도 리프레시를 시도하면 **안 되는** 경로 (SPEC_API §12.2).
   ///
@@ -82,6 +91,9 @@ class ApiClient {
 
   Future<T> post<T>(String path, {Object? body, required Decoder<T> decode}) =>
       _request('POST', path, body: body, decode: decode);
+
+  Future<T> patch<T>(String path, {Object? body, required Decoder<T> decode}) =>
+      _request('PATCH', path, body: body, decode: decode);
 
   /// 본문 없는 응답(204)을 기대하는 POST — logout 등
   Future<void> postNoContent(String path, {Object? body}) =>
