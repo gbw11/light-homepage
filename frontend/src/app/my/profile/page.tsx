@@ -31,7 +31,17 @@ function ProfileContent() {
 
           <hr className="border-[var(--color-navy-100)]" />
 
-          <PasswordChangeForm />
+          {/*
+            카카오 가입자는 비밀번호가 없다 (SPEC_API §2.6 — loginId가 null).
+            폼을 보여주면 제출해도 서버가 거부할 뿐이다 (USERFLOW_AUDIT 🔵-8).
+          */}
+          {user.loginId != null ? (
+            <PasswordChangeForm />
+          ) : (
+            <p className="text-sm leading-relaxed text-[var(--color-gray-400)]">
+              ⓘ 카카오로 가입한 계정은 비밀번호가 없습니다. 카카오 로그인을 이용해주세요.
+            </p>
+          )}
 
           <hr className="border-[var(--color-navy-100)]" />
 
