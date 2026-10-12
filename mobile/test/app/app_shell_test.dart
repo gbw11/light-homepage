@@ -149,13 +149,60 @@ void main() {
     expect(find.text('주일 14:00 · 청년예배'), findsOneWidget);
   });
 
-  testWidgets('아직 없는 화면을 누르면 준비 중이라고 알린다', (tester) async {
+  testWidgets('홈의 「오시는 길」은 탭을 덮고 열리고, 뒤로가기로 닫힌다', (tester) async {
     await pumpApp(tester);
 
     await tester.tap(find.text('오시는 길'));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('준비 중인 화면이에요.'), findsOneWidget);
+    expect(find.text('카카오맵'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+
+    await pressSystemBack(tester);
+
+    expect(find.text('주일 14:00 · 청년예배'), findsOneWidget);
+  });
+
+  testWidgets('☰를 누르면 사이드바가 열리고, 메뉴를 누르면 그 화면을 연다', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.byTooltip('전체 메뉴'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Drawer), findsOneWidget);
+
+    await tester.tap(find.text('예배와 모임'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('마을모임'), findsWidgets);
+    await pressSystemBack(tester);
+    // 돌아왔을 때 사이드바는 닫혀 있다
+    expect(find.byType(Drawer), findsNothing);
+    expect(selectedTab(tester), 0);
+  });
+
+  testWidgets('사이드바 바로가기는 하단 탭을 옮긴다', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.byTooltip('전체 메뉴'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('소식')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(selectedTab(tester), 2);
+    expect(find.byType(Drawer), findsNothing);
+  });
+
+  testWidgets('다른 탭에서도 ☰로 같은 사이드바를 연다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(tab('더보기'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('전체 메뉴'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('처음 오시는 분'), findsOneWidget);
   });
 
   testWidgets('홈이 아닌 탭에서 뒤로가기를 누르면 앱이 닫히지 않고 홈으로 온다', (tester) async {

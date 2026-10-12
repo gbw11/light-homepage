@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/format/date_format.dart';
 import '../../core/paging/paged_list.dart';
+import '../../core/ui/menu_button.dart';
 import '../../core/ui/paged_list_view.dart';
 import 'notice_feed.dart';
 import 'post_summary.dart';
@@ -64,6 +65,7 @@ class _NewsScreenState extends State<NewsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const MenuButton(),
         title: const Text('소식', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: PagedListView<PostSummary>(

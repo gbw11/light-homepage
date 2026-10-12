@@ -1,17 +1,28 @@
 import 'package:flutter/material.dart';
 
+import '../core/ui/menu_button.dart';
+
 /// 아직 만들지 않은 탭의 자리. 탭 틀을 먼저 세우고 화면을 하나씩 채운다
 class ComingSoonScreen extends StatelessWidget {
-  const ComingSoonScreen({super.key, required this.title, this.description});
+  const ComingSoonScreen({
+    super.key,
+    required this.title,
+    this.description,
+    this.tab = false,
+  });
 
   final String title;
   final String? description;
+
+  /// 하단 탭의 첫 화면이면 ☰, 아니면 뒤로가기
+  final bool tab;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
+        leading: tab ? const MenuButton() : null,
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: Center(

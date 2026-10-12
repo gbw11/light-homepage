@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/format/date_format.dart';
+import '../../core/ui/menu_button.dart';
 import '../posts/post_summary.dart';
 import '../posts/posts_api.dart';
 import '../sermons/sermon.dart';
@@ -86,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final actions = widget.actions;
     return Scaffold(
       appBar: AppBar(
+        leading: const MenuButton(),
         title: Text(
           'LIGHT',
           style: TextStyle(

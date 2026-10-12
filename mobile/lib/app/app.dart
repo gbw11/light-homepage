@@ -21,7 +21,6 @@ class _LightAppState extends State<LightApp> {
   // 라우터는 한 번만 만든다 — build에서 만들면 다시 그릴 때마다 탭 상태가 날아간다
   late final GoRouter _router = buildRouter(
     api: widget.api,
-    notReady: () => _toast('준비 중인 화면이에요.'),
     openExternal: _openExternal,
   );
 
