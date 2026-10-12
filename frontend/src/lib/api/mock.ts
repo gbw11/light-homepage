@@ -90,6 +90,21 @@ function throwIfScenario() {
   }
 }
 
+/**
+ * 전체 목록을 실서버(`PageResponse`)처럼 자른다 — `hasNext`는 **뒤에 더 있는지**다.
+ *
+ * ⚠️ 예전 mock은 목록마다 `hasNext: false`를 박아 넣어서, 화면이 첫 20건만 그리고
+ * 끝나도 mock에서는 드러나지 않았다(점검 2026-10-07 🟠-5).
+ */
+export function pageOf<T>(all: T[], page: number, size: number): Page<T> {
+  return {
+    items: all.slice(page * size, (page + 1) * size),
+    page,
+    size,
+    hasNext: (page + 1) * size < all.length,
+  };
+}
+
 const NOTICES: PostSummary[] = [
   {
     id: "18",
@@ -202,7 +217,34 @@ const NOTICES: PostSummary[] = [
     publishedAt: "2026-07-10T01:00:00Z",
     attachmentCount: 0,
   },
+  ...archivePosts("NOTICE_PUBLIC", "지난 공지", "archive-notice", 22),
+  ...archivePosts("MINUTES", "임원회의록", "archive-minutes", 22),
 ];
+
+/**
+ * 페이지 넘김(기본 20건)을 확인하려고 넣은 지난 글 — 위의 실제 같은 글보다
+ * 전부 오래됐다(2026-06-30부터 하루씩 거꾸로). 상세도 `NOTICE_DETAILS`에 같이 만든다.
+ */
+function archivePosts(
+  category: PostSummary["category"],
+  label: string,
+  slugPrefix: string,
+  count: number,
+): PostSummary[] {
+  return Array.from({ length: count }, (_, i) => {
+    const n = String(count - i).padStart(2, "0");
+    return {
+      id: `${slugPrefix}-${n}`,
+      category,
+      title: `${label} ${n}`,
+      slug: `${slugPrefix}-${n}`,
+      pinned: false,
+      authorName: "김OO",
+      publishedAt: new Date(Date.UTC(2026, 5, 30 - i, 1, 0, 0)).toISOString(),
+      attachmentCount: 0,
+    };
+  });
+}
 
 /** `PostSummary`에 상세 조회용 `body`/`attachments`만 덧붙인 것 — 목록과 동일 소스를 공유한다 */
 const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "attachments">> = {
@@ -523,6 +565,24 @@ const NOTICE_DETAILS: Record<string, Pick<PostDetail, "body" | "updatedAt" | "at
     attachments: [],
   },
 };
+
+for (const post of NOTICES) {
+  if (post.id.startsWith("archive-") && !NOTICE_DETAILS[post.id]) {
+    NOTICE_DETAILS[post.id] = {
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: `${post.title} 본문입니다 (페이지 넘김 확인용 mock).` }],
+          },
+        ],
+      },
+      updatedAt: post.publishedAt ?? "2026-06-01T00:00:00Z",
+      attachments: [],
+    };
+  }
+}
 
 // ── 사진첩 mock (SPEC_API §6) ──────────────────────────────
 /**
@@ -854,26 +914,30 @@ const ADMIN_NEWCOMERS: NewcomerRecord[] = [
     message: null,
     createdAt: "2026-08-12T04:10:00Z",
   },
+  // 지난 신청 20건 — 목록이 기본 20건을 넘어 페이지 넘김이 보이게 한다(🟠-5).
+  // 알림 더미(`NEWCOMER_NOTIFICATIONS`)와 같은 신청이라 알림을 누르면 이 항목으로 간다
+  ...Array.from({ length: 20 }, (_, i): NewcomerRecord => ({
+    id: `d${20 - i}`,
+    name: "이OO",
+    phone: `010-2000-${String(20 - i).padStart(4, "0")}`,
+    gender: null,
+    ageGroup: null,
+    referrer: null,
+    message: null,
+    createdAt: new Date(Date.UTC(2026, 6, 20 - i, 3, 0, 0)).toISOString(),
+  })),
 ];
 
 /**
  * 헤더 알림 (§14). 실서버처럼 **새가족 신청에서 계산한다** — 알림을 따로 저장하지
- * 않는다(§14.4). 앞 두 건은 `ADMIN_NEWCOMERS`(id 14·13)와 같은 신청이라 알림을
- * 누르면 실제로 목록의 그 항목으로 간다. 뒤 20건은 "최근 20건 초과"(`hasMore`)를
- * 화면에서 확인하려고 넣은 더미다.
+ * 않는다(§14.4). `ADMIN_NEWCOMERS` 22건에서 그대로 만든다 — 알림을 누르면 실제로
+ * 목록의 그 항목으로 가고, 20건을 넘으니 "최근 20건 초과"(`hasMore`)도 확인된다.
  *
  * ⚠️ 응답 모양은 §14.1 그대로(`type/refId/subject`) — 예전 mock은 `id/message/read`를
  * 만들어서 실서버에서만 알림이 빈 줄로 나오는 결함을 가렸다(점검 2026-10-07 🔴-3).
  */
-const NEWCOMER_NOTIFICATIONS: { refId: string; subject: string; createdAt: string }[] = [
-  { refId: "14", subject: "김OO", createdAt: "2026-08-19T10:22:00Z" },
-  { refId: "13", subject: "박OO", createdAt: "2026-08-12T04:10:00Z" },
-  ...Array.from({ length: 20 }, (_, i) => ({
-    refId: `d${20 - i}`,
-    subject: "이OO",
-    createdAt: new Date(Date.UTC(2026, 6, 20 - i, 3, 0, 0)).toISOString(),
-  })),
-];
+const NEWCOMER_NOTIFICATIONS: { refId: string; subject: string; createdAt: string }[] =
+  ADMIN_NEWCOMERS.map((n) => ({ refId: n.id, subject: n.name, createdAt: n.createdAt }));
 
 /**
  * 계정별 마지막으로 읽음 처리한 시각 (실제로는 서버 DB 컬럼).
@@ -950,6 +1014,25 @@ const MOCK_USERS: Record<string, AuthUser> = {
     role: "PASTOR",
   },
 };
+
+/**
+ * 회원 관리 목록이 기본 20건을 넘도록 채우는 가입 회원 22명(전원 가상 인물).
+ * 로그인도 된다(`member01`~`member22`, 비밀번호 동일) — 따로 막을 이유가 없다.
+ * ⚠️ 이게 없으면 3명뿐이라 페이지 넘김(🟠-5)이 mock에서 절대 보이지 않는다.
+ */
+const FILLER_SURNAMES = ["강", "김", "박", "이", "정", "최", "한", "윤", "서", "임", "오"];
+const FILLER_GIVEN = ["가온", "다온", "라온", "시온"];
+for (let i = 1; i <= 22; i++) {
+  const n = String(i).padStart(2, "0");
+  const loginId = `member${n}`;
+  MOCK_USERS[loginId] = {
+    id: `${100 + i}`,
+    name: `${FILLER_SURNAMES[i % FILLER_SURNAMES.length]}${FILLER_GIVEN[i % FILLER_GIVEN.length]}`,
+    loginId,
+    phone: `010-3000-00${n}`,
+    role: "MEMBER",
+  };
+}
 
 /** 이번 세션 중 가입한 계정 — 새로고침하면 사라진다 (실제 DB 아님) */
 const dynamicUsers: Record<string, AuthUser> = {};
@@ -1323,7 +1406,7 @@ export const mockApi: Api = {
                   : (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""),
               );
 
-      return { items, page, size, hasNext: false };
+      return pageOf(items, page, size);
     },
 
     async get(idOrSlug: string): Promise<PostDetail> {
@@ -1987,7 +2070,7 @@ export const mockApi: Api = {
       if (q?.trim()) items = items.filter((m) => m.name.includes(q.trim()));
       if (scenario() === "empty") items = [];
 
-      return { items: items.slice(page * size, (page + 1) * size), page, size, hasNext: false };
+      return pageOf(items, page, size);
     },
 
     /**
@@ -2130,7 +2213,7 @@ export const mockApi: Api = {
       }
 
       const all = scenario() === "empty" ? [] : ADMIN_NEWCOMERS;
-      return { items: all.slice(page * size, (page + 1) * size), page, size, hasNext: false };
+      return pageOf(all, page, size);
     },
 
     async notifications(): Promise<AdminNotificationsResponse> {
