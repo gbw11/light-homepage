@@ -130,7 +130,7 @@ class _Content extends StatelessWidget {
   }
 }
 
-/// 이름표 | 값. 글자를 키우면 값이 아래 줄로 내려간다
+/// 이름표 | 값 — 이름표는 왼쪽, 값은 오른쪽 끝에 붙인다
 class _Row extends StatelessWidget {
   const _Row(this.label, this.value);
 
@@ -142,11 +142,7 @@ class _Row extends StatelessWidget {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 16,
-        runSpacing: 4,
+      child: Row(
         children: [
           Text(
             label,
@@ -155,9 +151,17 @@ class _Row extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          DefaultTextStyle.merge(
-            style: theme.textTheme.bodyLarge,
-            child: value,
+          const SizedBox(width: 16),
+          // 값이 길거나 글자를 키우면 이름표를 밀지 않고 값 쪽에서 줄을 바꾼다
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: DefaultTextStyle.merge(
+                style: theme.textTheme.bodyLarge,
+                textAlign: TextAlign.end,
+                child: value,
+              ),
+            ),
           ),
         ],
       ),
@@ -232,7 +236,7 @@ class _PhoneRowState extends State<_PhoneRow> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(widget.phone),
+            Flexible(child: Text(widget.phone)),
             TextButton(
               onPressed: () => setState(() => _editing = true),
               child: const Text('수정'),
