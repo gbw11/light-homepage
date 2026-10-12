@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
+import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import type { AdminMember } from "@/types/api";
 import { MemberRow } from "./MemberRow";
 
@@ -11,6 +12,17 @@ import { MemberRow } from "./MemberRow";
 export function formatApplyDate(iso: string): string {
   const d = new Date(iso);
   return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+/**
+ * 목록 위 인원 표시. **전체 수는 끝까지 불러왔을 때만 말한다.**
+ *
+ * §8.1 응답에는 전체 건수가 없다(`items/page/size/hasNext`뿐). 그런데 예전에는
+ * 첫 페이지 수를 "전체 N명"이라고 적어서, 회원이 40명이어도 "전체 20명"으로
+ * 보였다(점검 2026-10-07 🟠-5). 뒤에 더 있으면 지금 보이는 수와 "더 있음"만 적는다.
+ */
+export function memberCountLabel(loaded: number, hasMore: boolean): string {
+  return hasMore ? `${loaded}명 표시 중 · 더 있음` : `전체 ${loaded}명`;
 }
 
 /**
@@ -27,12 +39,17 @@ export function MemberBoard() {
   // 입력 중인 값과 실제 조회에 쓰는 값을 분리한다 (제출 시점에만 조회)
   const [input, setInput] = useState("");
   const [q, setQ] = useState("");
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["admin", "members", q],
-    queryFn: () => api.admin.members({ q: q || undefined }),
-  });
+  // 21번째 회원부터는 "더 보기" (점검 🟠-5). 역할 변경·삭제 후 `["admin", "members"]`
+  // 무효화는 불러온 페이지를 전부 다시 받는다
+  const { data, isLoading, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: ["admin", "members", q],
+      queryFn: ({ pageParam }) => api.admin.members({ q: q || undefined, page: pageParam }),
+      initialPageParam: 0,
+      getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
+    });
 
-  const items: AdminMember[] = data?.items ?? [];
+  const items: AdminMember[] = data?.pages.flatMap((p) => p.items) ?? [];
 
   return (
     <Section className="pt-8">
@@ -72,7 +89,7 @@ export function MemberBoard() {
       ) : (
         <>
           <p className="mb-2 text-sm font-bold text-[var(--color-gray-400)]">
-            전체 {items.length}명
+            {memberCountLabel(items.length, hasNextPage)}
           </p>
           <ul className="divide-y divide-[var(--color-navy-100)] border-y border-[var(--color-navy-100)]">
             {items.map((member) => (
@@ -81,6 +98,11 @@ export function MemberBoard() {
               </li>
             ))}
           </ul>
+          <LoadMoreButton
+            hasNextPage={hasNextPage}
+            isFetching={isFetchingNextPage}
+            onClick={() => fetchNextPage()}
+          />
         </>
       )}
 

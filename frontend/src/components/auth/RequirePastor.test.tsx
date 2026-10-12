@@ -16,7 +16,7 @@ const mockUseAuth = vi.mocked(useAuth);
 
 function renderAs(role: Role) {
   const user: AuthUser = { id: "u1", name: "홍길동", loginId: "hong", phone: "010-0000-0000", role };
-  mockUseAuth.mockReturnValue({ user, isLoading: false, refetch: vi.fn(), logout: vi.fn() });
+  mockUseAuth.mockReturnValue({ user, isLoading: false, refetch: vi.fn(), logout: vi.fn(), clearSession: vi.fn() });
   return render(
     <RequirePastor>
       <p>회원 목록</p>
