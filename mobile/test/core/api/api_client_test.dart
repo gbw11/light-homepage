@@ -255,4 +255,59 @@ void main() {
       expect(server.paths, ['GET /admin/members']);
     });
   });
+
+  group('이동 주소만 받기 — 첨부 다운로드 (SPEC_API §4.2)', () {
+    test('302를 따라가지 않고 Location을 돌려준다', () async {
+      final server = FakeServer(
+        (_) async => respond(302, null, {
+          'location': ['https://r2.example.com/a.pdf?sig=1'],
+        }),
+      );
+
+      final url = await clientFor(server).redirectLocation('/files/7');
+
+      expect(url, Uri.parse('https://r2.example.com/a.pdf?sig=1'));
+      expect(server.requests.single.followRedirects, isFalse);
+    });
+
+    test('권한이 없으면 다른 요청처럼 ApiError를 던진다', () async {
+      final client = clientFor(
+        FakeServer(
+          (_) async => respond(404, {
+            'error': {'code': 'NOT_FOUND', 'message': '없음', 'field': null},
+          }),
+        ),
+      );
+
+      await expectLater(
+        client.redirectLocation('/files/7'),
+        throwsA(
+          isA<ApiError>().having((e) => e.code, 'code', ErrorCode.notFound),
+        ),
+      );
+    });
+
+    test('401이면 리프레시하고 한 번 더 묻는다', () async {
+      var first = true;
+      final server = FakeServer((o) async {
+        if (o.path == '/auth/refresh') return respond(204);
+        if (first) {
+          first = false;
+          return unauthorized();
+        }
+        return respond(302, null, {
+          'location': ['https://r2.example.com/a.pdf'],
+        });
+      });
+
+      final url = await clientFor(server).redirectLocation('/files/7');
+
+      expect(url.host, 'r2.example.com');
+      expect(server.paths, [
+        'GET /files/7',
+        'POST /auth/refresh',
+        'GET /files/7',
+      ]);
+    });
+  });
 }
