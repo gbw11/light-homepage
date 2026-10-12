@@ -86,6 +86,8 @@ describe("/my 권한별 메뉴 렌더", () => {
     expect(screen.getByRole("link", { name: /주보/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /사진첩/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /월례회 자료/ })).toBeInTheDocument();
+    // WIREFRAME §11 공지사항 타일 (점검 🔵-6)
+    expect(screen.getByRole("link", { name: /공지사항/ })).toHaveAttribute("href", "/news");
 
     expect(screen.queryByRole("link", { name: /콘텐츠 작성/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /^문서/ })).not.toBeInTheDocument();
