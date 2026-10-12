@@ -28,6 +28,11 @@ Future<FakeServer> pumpApp(
   return server;
 }
 
+/// 홈이 공지를 부른 횟수. 소식 탭도 /posts를 부르므로 홈의 요청(size=3)만 센다
+int homeNoticeCalls(FakeServer server) => server.requests
+    .where((r) => r.path == '/posts' && r.queryParameters['size'] == 3)
+    .length;
+
 int selectedTab(WidgetTester tester) =>
     tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex;
 
@@ -70,7 +75,7 @@ void main() {
 
   testWidgets('다른 탭에 다녀와도 홈을 다시 불러오지 않는다 (탭 상태 유지)', (tester) async {
     final server = await pumpApp(tester);
-    expect(server.paths.where((p) => p == 'GET /posts'), hasLength(1));
+    expect(homeNoticeCalls(server), 1);
 
     await tester.tap(tab('소식'));
     await tester.pumpAndSettle();
@@ -78,7 +83,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selectedTab(tester), 0);
-    expect(server.paths.where((p) => p == 'GET /posts'), hasLength(1));
+    expect(homeNoticeCalls(server), 1);
   });
 
   testWidgets('홈의 「공지 전체보기」는 소식 탭으로 간다', (tester) async {

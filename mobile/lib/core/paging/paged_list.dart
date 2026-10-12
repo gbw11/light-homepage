@@ -106,6 +106,21 @@ class PagedList<T> extends ChangeNotifier {
     }
   }
 
+  /// 지금 목록을 **바로 비우고** 처음부터 받는다.
+  ///
+  /// [refresh]와 달리 받는 동안 옛 목록을 보여주지 않는다. 볼 수 있는 범위가
+  /// 바뀌었을 때(로그아웃 등) 쓴다 — 웹은 로그아웃 뒤에도 회원 공지 제목이
+  /// 남아 있었다(점검 🟠-4).
+  void reset() {
+    _generation++;
+    _source = _newSource();
+    _items = const [];
+    _hasMore = true;
+    _loading = false;
+    _error = null;
+    loadMore();
+  }
+
   void _notify() {
     if (!_disposed) notifyListeners();
   }

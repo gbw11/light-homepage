@@ -129,6 +129,26 @@ void main() {
 
     expect(list.items, [99]);
   });
+
+  test('reset은 지금 목록을 바로 비우고 처음부터 받는다', () async {
+    var made = 0;
+    final list = PagedList(() {
+      made++;
+      return FakeSource([
+        [made],
+      ]);
+    });
+    await list.loadMore();
+    expect(list.items, [1]);
+
+    list.reset();
+    // 받는 동안에도 옛 목록이 보이면 안 된다 (로그아웃 뒤 회원 공지)
+    expect(list.items, isEmpty);
+    expect(list.isLoading, isTrue);
+
+    await pumpEventQueue();
+    expect(list.items, [2]);
+  });
 }
 
 class _Manual implements PageSource<int> {

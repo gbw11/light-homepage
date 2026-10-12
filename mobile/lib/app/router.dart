@@ -2,6 +2,8 @@ import 'package:go_router/go_router.dart';
 
 import '../core/api/api_client.dart';
 import '../features/home/home_screen.dart';
+import '../features/posts/news_screen.dart';
+import '../features/posts/post_summary.dart';
 import '../features/posts/posts_api.dart';
 import '../features/sermons/sermons_api.dart';
 import '../features/sermons/sermons_screen.dart';
@@ -63,7 +65,20 @@ GoRouter buildRouter({
               ),
             ],
           ),
-          _comingSoon(AppPaths.news, '소식'),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppPaths.news,
+                builder: (context, state) => NewsScreen(
+                  posts: posts,
+                  // 로그인(묶음 A)이 생기면 로그인했을 때 회원 공지를 더한다
+                  categories: const [PostCategory.noticePublic],
+                  // 공지 상세는 아직 없다
+                  onOpen: (_) => notReady(),
+                ),
+              ),
+            ],
+          ),
           _comingSoon(
             AppPaths.resources,
             '자료',
