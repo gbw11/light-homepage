@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import '../api/api_client.dart';
+import '../api/api_error.dart';
 import 'auth_api.dart';
 import 'auth_user.dart';
 
@@ -38,21 +39,46 @@ class AuthState extends ChangeNotifier {
   Stream<void> get sessionEnded => _sessionEnded.stream;
   final _sessionEnded = StreamController<void>.broadcast();
 
+  /// 확인에 실패했을 때 다시 묻는 간격. 오프라인 · 서버가 깨어나는 중일 수 있다
+  static const restoreRetryDelays = [
+    Duration(seconds: 5),
+    Duration(seconds: 20),
+    Duration(seconds: 60),
+  ];
+  Timer? _restoreRetry;
+  var _restoreAttempts = 0;
+
   /// 앱을 켤 때 한 번 — 쿠키가 살아 있으면 그대로 로그인 상태가 된다.
   ///
-  /// 실패하면(로그인한 적 없음 · 만료 · 오프라인) 로그인 안 한 상태로 둔다.
   /// **앱 시작을 막지 않는다** — Render 서버가 잠들어 있으면 1분 가까이 걸린다.
+  ///
+  /// 로그인 안 한 상태로 **확정하는 것은 401뿐이다**(로그인한 적 없음 · 만료).
+  /// 오프라인 · 서버 오류로 실패하면 쿠키는 살아 있을 수 있으니 잠시 뒤 다시
+  /// 묻는다 — 그러지 않으면 켜는 순간 네트워크가 잠깐 끊겼다는 이유로 로그인이
+  /// 풀린 것처럼 보이고, 앱을 다시 켤 때까지 그대로다.
   Future<void> restore() async {
+    _restoreRetry?.cancel();
     final version = _version;
     AuthUser? me;
+    var retry = false;
     try {
       me = await _api.me();
+    } on ApiError catch (error) {
+      retry = error.code != ErrorCode.unauthorized;
     } catch (_) {
-      me = null;
+      retry = true;
     }
-    if (version == _version) _user = me;
     _restoring = false;
+    // 그 사이 로그인 · 로그아웃했다 — 그쪽이 맞다. 이 결과는 버린다
+    if (version != _version) {
+      notifyListeners();
+      return;
+    }
+    _user = me;
     notifyListeners();
+    if (retry && _restoreAttempts < restoreRetryDelays.length) {
+      _restoreRetry = Timer(restoreRetryDelays[_restoreAttempts++], restore);
+    }
   }
 
   /// 실패하면 [ApiError]를 그대로 던진다 — 문구는 로그인 화면이 정한다
@@ -61,6 +87,7 @@ class AuthState extends ChangeNotifier {
     required String password,
   }) async {
     _user = await _api.login(loginId: loginId, password: password);
+    _restoreRetry?.cancel();
     _version++;
     notifyListeners();
   }
@@ -112,6 +139,7 @@ class AuthState extends ChangeNotifier {
 
   @override
   void dispose() {
+    _restoreRetry?.cancel();
     _expiry.cancel();
     _sessionEnded.close();
     super.dispose();

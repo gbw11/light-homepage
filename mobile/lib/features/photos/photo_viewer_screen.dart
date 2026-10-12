@@ -98,7 +98,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
             itemBuilder: (context, i) => ZoomableImage(
               // 새로고침으로 주소가 바뀌면 이미지를 새로 받게 한다
               key: ValueKey(items[i].viewUrl),
-              url: items[i].viewUrl,
+              image: NetworkImage(items[i].viewUrl),
               semanticLabel: '사진 ${i + 1}',
               active: i == _index,
               onZoomChanged: (z) => setState(() => _zoomed = z),
