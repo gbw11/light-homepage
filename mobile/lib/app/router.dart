@@ -4,6 +4,7 @@ import '../core/api/api_client.dart';
 import '../features/home/home_screen.dart';
 import '../features/posts/posts_api.dart';
 import '../features/sermons/sermons_api.dart';
+import '../features/sermons/sermons_screen.dart';
 import 'app_shell.dart';
 import 'coming_soon_screen.dart';
 
@@ -53,7 +54,15 @@ GoRouter buildRouter({
               ),
             ],
           ),
-          _comingSoon(AppPaths.sermons, '말씀'),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppPaths.sermons,
+                builder: (context, state) =>
+                    SermonsScreen(sermons: sermons, openExternal: openExternal),
+              ),
+            ],
+          ),
           _comingSoon(AppPaths.news, '소식'),
           _comingSoon(
             AppPaths.resources,

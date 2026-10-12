@@ -35,14 +35,14 @@ class _LightAppState extends State<LightApp> {
     ?..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(message)));
 
-  /// YouTube 같은 바깥 주소는 앱 안이 아니라 설치된 앱(없으면 브라우저)으로 연다
+  /// YouTube·지도 같은 바깥 주소는 앱 안이 아니라 설치된 앱(없으면 브라우저)으로 연다
   Future<void> _openExternal(String url) async {
     // 열 앱이 없으면 false를 주기도, 예외를 던지기도 한다 (플랫폼마다 다르다)
     final opened = await launchUrl(
       Uri.parse(url),
       mode: LaunchMode.externalApplication,
     ).catchError((_) => false);
-    if (!opened) _toast('영상을 열 수 없어요.');
+    if (!opened) _toast('열 수 없어요. 잠시 후 다시 시도해 주세요.');
   }
 
   @override
