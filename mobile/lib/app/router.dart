@@ -7,18 +7,23 @@ import '../features/account/login_screen.dart';
 import '../features/account/more_screen.dart';
 import '../features/account/password_change_screen.dart';
 import '../features/account/profile_screen.dart';
+import '../features/bulletins/bulletin_viewer_screen.dart';
+import '../features/bulletins/bulletins_api.dart';
+import '../features/bulletins/bulletins_screen.dart';
 import '../features/church/about_screen.dart';
 import '../features/church/contact_screen.dart';
 import '../features/church/location_screen.dart';
 import '../features/church/welcome_screen.dart';
 import '../features/church/worship_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/meetings/meetings_api.dart';
 import '../features/newcomers/newcomer_form_screen.dart';
 import '../features/newcomers/newcomers_api.dart';
 import '../features/posts/news_screen.dart';
 import '../features/posts/notice_detail_screen.dart';
 import '../features/posts/post_summary.dart';
 import '../features/posts/posts_api.dart';
+import '../features/resources/resources_screen.dart';
 import '../features/sermons/sermons_api.dart';
 import '../features/sermons/sermons_screen.dart';
 import 'app_shell.dart';
@@ -40,6 +45,8 @@ GoRouter buildRouter({
   final posts = PostsApi(api);
   final sermons = SermonsApi(api);
   final newcomers = NewcomersApi(api);
+  final bulletins = BulletinsApi(api);
+  final meetings = MeetingsApi(api);
 
   /// 공지 상세. 홈과 소식 두 탭에서 열린다 — 화면은 하나, 주소만 탭마다 다르다.
   /// 목록이 slug 대신 id로 연다: slug에는 한글이 올 수 있어 주소 인코딩을
@@ -125,10 +132,43 @@ GoRouter buildRouter({
               ),
             ],
           ),
-          _comingSoonTab(
-            AppPaths.resources,
-            '자료',
-            description: '주보 · 사진첩 · 월례회 자료 · 회의록은\n로그인한 회원만 볼 수 있어요.',
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppPaths.resources,
+                builder: (context, state) => ResourcesScreen(
+                  meetings: meetings,
+                  onLogin: () => context.push(AppPaths.login),
+                  onOpen: (resource) => context.push(
+                    '${AppPaths.resources}/${_resourcePaths[resource]}',
+                  ),
+                  openExternal: openExternal,
+                ),
+                routes: [
+                  GoRoute(
+                    path: _resourcePaths[Resource.bulletins]!,
+                    builder: (context, state) => BulletinsScreen(
+                      bulletins: bulletins,
+                      onOpen: (b) =>
+                          context.push('${AppPaths.bulletin}/${b.id}'),
+                      onLogin: () => context.push(AppPaths.login),
+                    ),
+                  ),
+                  // 사진첩은 M7, 월례회 · 회의록 · 예산안은 묶음 D(#236)
+                  for (final r in [
+                    Resource.photos,
+                    Resource.meetings,
+                    Resource.minutes,
+                    Resource.budget,
+                  ])
+                    GoRoute(
+                      path: _resourcePaths[r]!,
+                      builder: (context, state) =>
+                          ComingSoonScreen(title: _resourceTitles[r]!),
+                    ),
+                ],
+              ),
+            ],
           ),
           StatefulShellBranch(
             routes: [
@@ -163,6 +203,16 @@ GoRouter buildRouter({
             ],
           ),
         ],
+      ),
+
+      // ── 자료 뷰어 — 하단 탭을 덮는다 ──
+      GoRoute(
+        path: '${AppPaths.bulletin}/:id',
+        builder: (context, state) => BulletinViewerScreen(
+          bulletins: bulletins,
+          id: state.pathParameters['id']!,
+          onLogin: () => context.push(AppPaths.login),
+        ),
       ),
 
       // ── 계정 ──
@@ -231,23 +281,26 @@ GoRouter buildRouter({
   );
 }
 
-StatefulShellBranch _comingSoonTab(
-  String path,
-  String title, {
-  String? description,
-}) => StatefulShellBranch(
-  routes: [
-    GoRoute(
-      path: path,
-      builder: (context, state) =>
-          ComingSoonScreen(title: title, description: description, tab: true),
-    ),
-  ],
-);
-
 GoRoute _comingSoon(String path, String title, {String? description}) =>
     GoRoute(
       path: path,
       builder: (context, state) =>
           ComingSoonScreen(title: title, description: description),
     );
+
+/// 자료 탭 아래 주소 (`/resources/<이것>`)
+const _resourcePaths = {
+  Resource.bulletins: 'bulletins',
+  Resource.photos: 'photos',
+  Resource.meetings: 'meetings',
+  Resource.minutes: 'minutes',
+  Resource.budget: 'budget',
+};
+
+const _resourceTitles = {
+  Resource.bulletins: '주보',
+  Resource.photos: '사진첩',
+  Resource.meetings: '월례회 자료',
+  Resource.minutes: '회의록',
+  Resource.budget: '예산안',
+};

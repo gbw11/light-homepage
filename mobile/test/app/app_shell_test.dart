@@ -69,8 +69,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selectedTab(tester), 3);
-    expect(find.text('준비 중인 화면이에요'), findsOneWidget);
-    expect(find.textContaining('로그인한 회원만'), findsOneWidget);
+    // 비로그인 — 회원 전용이라는 안내와 [로그인]
+    expect(find.textContaining('회원 전용 자료예요'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '로그인'), findsOneWidget);
   });
 
   testWidgets('다른 탭에 다녀와도 홈을 다시 불러오지 않는다 (탭 상태 유지)', (tester) async {

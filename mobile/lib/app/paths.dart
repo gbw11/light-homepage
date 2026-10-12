@@ -11,6 +11,9 @@ abstract final class AppPaths {
   static const resources = '/resources';
   static const more = '/more';
 
+  // 자료 — 하단 탭을 덮는 전체 화면 뷰어
+  static const bulletin = '/bulletin';
+
   // 계정 — 하단 탭을 덮고 열린다
   static const login = '/login';
 
