@@ -41,3 +41,19 @@ describe("mock verifyRoster — 형식 검증 (🟡-5)", () => {
     expect(result.name).toBe("김도연b");
   });
 });
+
+describe("mock 리셋 코드 — 실서버 ResetCodes와 같게 (🔵-14)", () => {
+  it("헷갈리는 글자(0·O·1·I·L) 없이 XXXX-XXXX로 발급하고, 소문자·하이픈 없이 쳐도 받는다", async () => {
+    await mockApi.auth.login({ loginId: "pastor1", password: "password12!" });
+    const { resetCode } = await mockApi.admin.issuePasswordResetCode("42");
+    expect(resetCode).toMatch(/^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/);
+    await mockApi.auth.logout();
+
+    const typed = resetCode.replace("-", "").toLowerCase();
+    await mockApi.auth.resetPasswordWithCode({ loginId: "doyeon01", resetCode: typed, password: "newpass1234!" });
+
+    const result = await mockApi.auth.login({ loginId: "doyeon01", password: "newpass1234!" });
+    expect(result.name).toBe("김도연a");
+    await mockApi.auth.logout();
+  });
+});
