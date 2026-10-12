@@ -32,3 +32,15 @@ void checkApiBaseUrl(String url, {required bool release}) {
 
 /// 앱 시작 시 한 번 부른다.
 void checkConfig() => checkApiBaseUrl(apiBaseUrl, release: kReleaseMode);
+
+/// 웹 홈페이지 주소 (`https://…`, 끝 `/` 없이). 비어 있으면 아직 정해지지 않은 것이다.
+///
+/// 앱은 1차에 가입 · 비밀번호 찾기 · 탈퇴 · 관리 화면을 만들지 않고 웹으로
+/// 보낸다 (기획안 결정 D2). 그런데 2026-10 현재 웹 배포는 Vercel 보호(로그인한
+/// 사람만)에 mock 모드라 **보낼 주소가 없다** (handover 2026-08-27 §4.2).
+/// 그래서 값을 환경 파일로 받고, 없으면 링크를 그리지 않고 안내 문구만 둔다 —
+/// 열리지 않는 링크를 두면 누른 사람이 빈손으로 돌아온다.
+const webBaseUrl = String.fromEnvironment('WEB_BASE_URL');
+
+/// 웹의 [path] 화면 주소. [webBaseUrl]이 없으면 null
+String? webUrl(String path) => webBaseUrl.isEmpty ? null : '$webBaseUrl$path';

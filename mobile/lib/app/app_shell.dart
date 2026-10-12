@@ -30,10 +30,16 @@ const appTabs = <AppTab>[
 /// 사이드바는 이 틀의 [Scaffold]에 단다. 탭 화면이 아니라 여기에 두어야 어느
 /// 탭에서 열어도 같은 사이드바이고, 탭 화면들은 ☰ 버튼만 둔다 (`MenuButton`).
 class AppShell extends StatelessWidget {
-  const AppShell({super.key, required this.shell, required this.openExternal});
+  const AppShell({
+    super.key,
+    required this.shell,
+    required this.openExternal,
+    required this.onLogin,
+  });
 
   final StatefulNavigationShell shell;
   final void Function(String url) openExternal;
+  final VoidCallback onLogin;
 
   void _select(int index) {
     // 지금 탭을 한 번 더 누르면 그 탭의 첫 화면으로 돌아간다 (흔한 앱 관례)
@@ -54,6 +60,8 @@ class AppShell extends StatelessWidget {
         drawer: AppDrawer(
           onOpen: (path) => context.push(path),
           onTab: _select,
+          onLogin: onLogin,
+          onAccount: () => _select(appTabs.length - 1),
           openExternal: openExternal,
         ),
         body: shell,

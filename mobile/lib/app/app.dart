@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api/api_client.dart';
+import '../core/auth/auth_state.dart';
 import '../core/theme/app_theme.dart';
 import 'router.dart';
 
@@ -18,15 +21,32 @@ class LightApp extends StatefulWidget {
 class _LightAppState extends State<LightApp> {
   final _messenger = GlobalKey<ScaffoldMessengerState>();
 
+  /// 앱 전체의 로그인 상태. 켜자마자 지난 로그인을 확인하되 기다리지 않는다
+  late final AuthState _auth = AuthState(widget.api)..restore();
+  late final StreamSubscription<void> _sessionEnded;
+
   // 라우터는 한 번만 만든다 — build에서 만들면 다시 그릴 때마다 탭 상태가 날아간다
   late final GoRouter _router = buildRouter(
     api: widget.api,
+    auth: _auth,
     openExternal: _openExternal,
   );
 
   @override
+  void initState() {
+    super.initState();
+    // 보던 화면은 그대로 두고 알리기만 한다 — 회원 화면은 로그인 상태가 바뀌면
+    // 스스로 로그인 안내로 바뀐다
+    _sessionEnded = _auth.sessionEnded.listen(
+      (_) => _toast('로그인이 만료됐어요. 다시 로그인해 주세요.'),
+    );
+  }
+
+  @override
   void dispose() {
+    _sessionEnded.cancel();
     _router.dispose();
+    _auth.dispose();
     super.dispose();
   }
 
@@ -46,11 +66,14 @@ class _LightAppState extends State<LightApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'LIGHT',
-      theme: buildAppTheme(),
-      scaffoldMessengerKey: _messenger,
-      routerConfig: _router,
+    return AuthScope(
+      auth: _auth,
+      child: MaterialApp.router(
+        title: 'LIGHT',
+        theme: buildAppTheme(),
+        scaffoldMessengerKey: _messenger,
+        routerConfig: _router,
+      ),
     );
   }
 }

@@ -19,6 +19,7 @@ class NewsScreen extends StatefulWidget {
     required this.posts,
     required this.categories,
     required this.onOpen,
+    this.onLogin,
   });
 
   final PostsApi posts;
@@ -28,6 +29,9 @@ class NewsScreen extends StatefulWidget {
   /// 만들 이유가 없으니 처음부터 부르지 않는다
   final List<PostCategory> categories;
   final void Function(PostSummary notice) onOpen;
+
+  /// 비로그인 안내 줄을 누르면
+  final VoidCallback? onLogin;
 
   @override
   State<NewsScreen> createState() => _NewsScreenState();
@@ -74,7 +78,7 @@ class _NewsScreenState extends State<NewsScreen> {
         emptyMessage: '등록된 공지가 없어요.',
         itemBuilder: (context, notice) =>
             NoticeTile(notice, onTap: () => widget.onOpen(notice)),
-        end: _seesMemberNotices ? null : const _MemberHint(),
+        end: _seesMemberNotices ? null : _MemberHint(onLogin: widget.onLogin),
       ),
     );
   }
@@ -155,14 +159,16 @@ class NoticeTile extends StatelessWidget {
 
 /// 비로그인일 때 목록 끝 — 회원 공지가 따로 있다는 것만 알린다
 class _MemberHint extends StatelessWidget {
-  const _MemberHint();
+  const _MemberHint({required this.onLogin});
+
+  final VoidCallback? onLogin;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = theme.colorScheme.onSurfaceVariant;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+    final row = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -174,8 +180,17 @@ class _MemberHint extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(color: color),
             ),
           ),
+          if (onLogin != null)
+            Icon(Icons.chevron_right, size: 20, color: color),
         ],
       ),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: switch (onLogin) {
+        final onLogin? => InkWell(onTap: onLogin, child: row),
+        null => row,
+      },
     );
   }
 }
