@@ -1015,6 +1015,21 @@ const issuedResetCodes = new Map<string, { resetCode: string; expiresAt: number 
 
 const digitsOnly = (v: string) => v.replace(/\D/g, "");
 
+/** 실서버 `LocalDate.parse`처럼 YYYY-MM-DD이면서 달력에 있는 날짜인가 */
+function isValidIsoDate(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}
+
+/** 실서버 `PhoneNumbers.normalize`와 같은 규칙. 자릿수가 말이 안 되면 null */
+function normalizeMockPhone(raw: string): string | null {
+  let digits = digitsOnly(raw);
+  if (digits.startsWith("82") && digits.length > 3) digits = `0${digits.slice(2)}`;
+  if (digits.length < 9 || digits.length > 15) return null;
+  return digits;
+}
+
 function toLoginResult(user: AuthUser): LoginResult {
   return {
     id: user.id,
@@ -2504,20 +2519,44 @@ export const mockApi: Api = {
       await delay();
       throwIfScenario();
 
+      /*
+       * 형식 검증 — 실서버와 같은 순서·같은 field (RosterRegistrationService
+       * parseBirthDate/normalizePhone). 형식 오류는 명단 내용을 흘리지 않으므로
+       * 서버도 field를 붙여 알려준다 (USERFLOW_AUDIT 🟡-5).
+       */
+      if (!isValidIsoDate(input.birthDate.trim())) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "생년월일을 확인해주세요.",
+          status: 400,
+          field: "birthDate",
+        });
+      }
+      const phoneDigits = normalizeMockPhone(input.phone);
+      if (!phoneDigits) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "전화번호를 확인해주세요.",
+          status: 400,
+          field: "phone",
+        });
+      }
+
       const name = input.name.trim();
       const matches = MOCK_ROSTER.filter(
         (r) =>
           r.name === name &&
-          r.birthDate === input.birthDate &&
-          digitsOnly(r.phone) === digitsOnly(input.phone),
+          r.birthDate === input.birthDate.trim() &&
+          digitsOnly(r.phone) === phoneDigits,
       );
 
       if (matches.length >= 2) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
-          message: "동명이인 확인이 필요합니다. 임원에게 문의해 주세요.",
+          // 실서버는 동명이인을 field "name"으로 준다 (RosterRegistrationService)
+          message: "동명이인이 확인되었습니다. 임원에게 문의해 주세요.",
           status: 400,
-          field: null,
+          field: "name",
         });
       }
 
