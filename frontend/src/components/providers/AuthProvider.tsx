@@ -11,8 +11,12 @@ type AuthContextValue = {
   /** 로그인 안 됨 = null. 로딩 중에는 isLoading을 함께 본다 */
   user: AuthUser | null;
   isLoading: boolean;
-  /** 로그인 성공 직후처럼 세션이 바뀐 걸 알 때 호출 */
-  refetch: () => void;
+  /**
+   * 로그인 성공 직후처럼 세션이 바뀐 걸 알 때 호출. 새 세션을 받아올 때까지
+   * 기다릴 수 있다 — 기다리지 않고 이동하면 이동한 화면이 옛 값(null)으로
+   * 한 번 그려진다 (USERFLOW_AUDIT 🔵-7).
+   */
+  refetch: () => Promise<void>;
   logout: () => Promise<void>;
   /**
    * 세션이 끝났을 때(로그아웃·탈퇴) 회원 데이터를 캐시에서 전부 지운다.
@@ -78,9 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {
       user: data ?? null,
       isLoading,
-      refetch: () => {
-        void queryClient.invalidateQueries({ queryKey: AUTH_ME_QUERY_KEY });
-      },
+      refetch: () => queryClient.invalidateQueries({ queryKey: AUTH_ME_QUERY_KEY }),
       logout: async () => {
         await api.auth.logout();
         clearSession();
