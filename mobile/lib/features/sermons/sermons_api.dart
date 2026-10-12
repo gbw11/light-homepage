@@ -1,5 +1,6 @@
 import '../../core/api/api_client.dart';
 import '../../core/api/page.dart';
+import 'live_stream.dart';
 import 'sermon.dart';
 
 /// 설교 영상 API (SPEC_API §9.2)
@@ -13,5 +14,15 @@ class SermonsApi {
     '/sermons',
     query: {'page': page, 'size': size},
     decode: (data) => PageResult.fromJson(data, Sermon.fromJson),
+  );
+
+  /// 지금 라이브 중인 방송. 아니면 `null` — 404가 아니라 정상 응답이다.
+  /// 서버 캐시가 60초라 그보다 자주 물어도 같은 답이 온다
+  Future<LiveStream?> live() => _client.get(
+    '/sermons/live',
+    decode: (data) => switch (data) {
+      final Map<String, dynamic> json => LiveStream.fromJson(json),
+      _ => null,
+    },
   );
 }
