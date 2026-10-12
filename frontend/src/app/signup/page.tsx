@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Section } from "@/components/ui/Section";
 import { SignupFlow } from "./SignupFlow";
+import { KakaoErrorBanner } from "./KakaoErrorBanner";
 
 export const metadata: Metadata = {
   title: "회원가입",
@@ -14,6 +16,9 @@ export default function SignupPage() {
     <main id="main" tabIndex={-1}>
       <Section>
         <h1 className="mb-8 text-center text-2xl font-bold md:text-3xl">회원가입</h1>
+        <Suspense fallback={null}>
+          <KakaoErrorBanner />
+        </Suspense>
         <SignupFlow />
       </Section>
     </main>

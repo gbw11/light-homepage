@@ -47,12 +47,13 @@ function makeUser(role: Role): AuthUser {
   };
 }
 
-function renderPage(user: AuthUser | null) {
+function renderPage(user: AuthUser | null, isLoading = false) {
   mockUseAuth.mockReturnValue({
     user,
-    isLoading: false,
+    isLoading,
     refetch: vi.fn(),
     logout: vi.fn(),
+    clearSession: vi.fn(),
   });
 
   const queryClient = new QueryClient({
@@ -77,6 +78,13 @@ describe("/my 권한별 메뉴 렌더", () => {
     expect(screen.getByRole("link", { name: "로그인" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /내 정보/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /관리 홈/ })).not.toBeInTheDocument();
+  });
+
+  it("세션 확인 중에는 로그인 안내를 그리지 않는다 (🔵-7 깜빡임)", () => {
+    renderPage(null, true);
+
+    expect(screen.getByText("불러오는 중...")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "로그인" })).not.toBeInTheDocument();
   });
 
   it("MEMBER에게는 일반 타일만 보이고 관리 타일은 숨는다", () => {
