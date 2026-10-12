@@ -162,8 +162,24 @@ function MeetingCard({ item, isLeader }: { item: MeetingSummary; isLeader: boole
         </p>
       )}
 
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <MeetingAction item={item} isLeader={isLeader} />
+        {/*
+          기간 변경·삭제·열람 기록(`/admin/meetings/[id]`, FR-MTG-08/09)으로 가는 길.
+          예전에는 업로드 성공 화면에만 링크가 있어서, 그 화면을 떠나면 URL을
+          직접 쳐야 했다 (USERFLOW_AUDIT 🟠-8). 열람 버튼과 헷갈리지 않게
+          테두리만 있는 보조 버튼으로 둔다. 회원에게는 렌더하지 않는다 —
+          눌러도 관리 화면이 거부한다.
+        */}
+        {isLeader && (
+          <Link
+            href={`/admin/meetings/${item.id}`}
+            aria-label={`${item.title} 관리`}
+            className={`${ACTION_BASE} border border-[var(--color-navy-100)] transition hover:bg-[var(--color-navy-100)]`}
+          >
+            관리
+          </Link>
+        )}
       </div>
     </article>
   );

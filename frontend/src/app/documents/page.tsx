@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { MemberGate } from "@/components/auth/MemberGate";
-import { DocumentBoard } from "./_components/DocumentBoard";
+import { DocumentBoard, parseDocumentTab } from "./_components/DocumentBoard";
 
 export const metadata: Metadata = {
   title: "문서",
@@ -23,8 +23,12 @@ export const metadata: Metadata = {
  * 회의록·예산안은 그 위험이 더 크다: 임원 전용 문서가 초기 HTML에 실려
  * 권한 없는 사용자의 브라우저까지 내려가는 일이 없어야 한다. 목록과 상세
  * 모두 **로그인한 브라우저에서만** 조회한다.
+ *
+ * `?tab=budget`이면 예산안 탭으로 연다 (관리 홈 "예산안" 링크). 쿼리는
+ * 처음 열 탭만 정하고, 실제 노출 여부는 여전히 `DocumentBoard`가 역할로 거른다.
  */
-export default function MyDocumentsPage() {
+export default async function MyDocumentsPage({ searchParams }: PageProps<"/documents">) {
+  const { tab } = await searchParams;
   return (
     <main id="main" tabIndex={-1}>
       <section className="mx-auto w-full max-w-[var(--container-max)] px-5 pt-16 md:px-10 md:pt-24">
@@ -35,7 +39,7 @@ export default function MyDocumentsPage() {
       </section>
 
       <MemberGate description="회의록·문서는 회원만 볼 수 있습니다.">
-        <DocumentBoard />
+        <DocumentBoard initialCategory={parseDocumentTab(tab)} />
       </MemberGate>
     </main>
   );
