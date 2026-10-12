@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:light_mobile/content/contact.dart';
 import 'package:light_mobile/content/location.dart';
 import 'package:light_mobile/content/parking.dart';
 import 'package:light_mobile/content/welcome.dart';
 import 'package:light_mobile/core/theme/app_theme.dart';
+import 'package:light_mobile/features/church/about_screen.dart';
+import 'package:light_mobile/features/church/contact_screen.dart';
 import 'package:light_mobile/features/church/location_screen.dart';
 import 'package:light_mobile/features/church/welcome_screen.dart';
 import 'package:light_mobile/features/church/worship_screen.dart';
@@ -217,6 +220,69 @@ void main() {
       await tester.tap(find.text('처음 오시는 분'));
 
       expect(r.calls, ['directions', 'welcome']);
+    });
+
+    testWidgets('작은 폰(360dp)에서 글자를 2배로 키워도 넘치지 않는다', (tester) async {
+      await pumpScreen(
+        tester,
+        screen(Recorder()),
+        textScale: 2,
+        size: const Size(360, 740),
+      );
+      await expectNoOverflowToEnd(tester);
+    });
+  });
+
+  group('청년교회 소개', () {
+    testWidgets('LIGHT의 뜻과 두 축을 보여준다', (tester) async {
+      await pumpScreen(tester, const AboutScreen());
+
+      expect(find.text('Live In God, Help The other'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Live In God, Help The other'),
+        findsWidgets,
+      );
+      await tester.scrollUntilVisible(find.text('Help The other'), 300);
+      expect(find.textContaining('❓'), findsNothing);
+    });
+
+    testWidgets('작은 폰(360dp)에서 글자를 2배로 키워도 넘치지 않는다', (tester) async {
+      await pumpScreen(
+        tester,
+        const AboutScreen(),
+        textScale: 2,
+        size: const Size(360, 740),
+      );
+      await expectNoOverflowToEnd(tester);
+    });
+  });
+
+  group('문의하기', () {
+    Widget screen(Recorder r) => ContactScreen(
+      openExternal: r.open,
+      onFirstVisit: r.call('welcome'),
+      onDirections: r.call('directions'),
+    );
+
+    testWidgets('번호를 글자로 보이고, 누르면 전화를 건다', (tester) async {
+      final r = Recorder();
+      await pumpScreen(tester, screen(r));
+
+      await tester.tap(find.text(churchPhone));
+
+      expect(r.calls, ['open:tel:0553336321']);
+      // 교회 사무실로 연결된다는 안내를 빠뜨리지 않는다
+      expect(find.textContaining('김해교회 사무실로 연결됩니다'), findsOneWidget);
+    });
+
+    testWidgets('처음 오시는 분 · 오시는 길로 간다', (tester) async {
+      final r = Recorder();
+      await pumpScreen(tester, screen(r));
+
+      await tester.tap(find.text('처음 오시는 분'));
+      await tester.tap(find.text('오시는 길'));
+
+      expect(r.calls, ['welcome', 'directions']);
     });
 
     testWidgets('작은 폰(360dp)에서 글자를 2배로 키워도 넘치지 않는다', (tester) async {

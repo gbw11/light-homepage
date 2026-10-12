@@ -1,6 +1,8 @@
 import 'package:go_router/go_router.dart';
 
 import '../core/api/api_client.dart';
+import '../features/church/about_screen.dart';
+import '../features/church/contact_screen.dart';
 import '../features/church/location_screen.dart';
 import '../features/church/welcome_screen.dart';
 import '../features/church/worship_screen.dart';
@@ -124,10 +126,25 @@ GoRouter buildRouter({
           onFirstVisit: () => context.push(AppPaths.welcome),
         ),
       ),
-      _comingSoon(AppPaths.about, '청년교회 소개'),
-      _comingSoon(AppPaths.organization, '조직도'),
+      GoRoute(
+        path: AppPaths.about,
+        builder: (context, state) => const AboutScreen(),
+      ),
+      // 웹도 섬기는 사람들 정보가 모두 ❓(확인 필요)다. 정해지면 채운다
+      _comingSoon(
+        AppPaths.organization,
+        '조직도',
+        description: '섬기는 사람들을 정리하고 있어요.',
+      ),
       _comingSoon(AppPaths.newcomer, '새가족 등록'),
-      _comingSoon(AppPaths.contact, '문의하기'),
+      GoRoute(
+        path: AppPaths.contact,
+        builder: (context, state) => ContactScreen(
+          openExternal: openExternal,
+          onFirstVisit: () => context.push(AppPaths.welcome),
+          onDirections: () => context.push(AppPaths.location),
+        ),
+      ),
     ],
   );
 }
@@ -146,7 +163,9 @@ StatefulShellBranch _comingSoonTab(
   ],
 );
 
-GoRoute _comingSoon(String path, String title) => GoRoute(
-  path: path,
-  builder: (context, state) => ComingSoonScreen(title: title),
-);
+GoRoute _comingSoon(String path, String title, {String? description}) =>
+    GoRoute(
+      path: path,
+      builder: (context, state) =>
+          ComingSoonScreen(title: title, description: description),
+    );
