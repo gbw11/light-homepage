@@ -1,8 +1,8 @@
 import { cache } from "react";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { api, isApiError } from "@/lib/api";
 import { decodeRouteParam } from "@/lib/routeParams";
-import { Section } from "@/components/ui/Section";
 import type { PostDetail } from "@/types/api";
 import { MemberNoticeDetail } from "./_components/MemberNoticeDetail";
 import { NoticeDetailView } from "./_components/NoticeDetailView";
@@ -67,15 +67,11 @@ export default async function NoticeDetailPage({
   const slug = decodeRouteParam(rawSlug);
   const result = await getNotice(slug);
 
-  if (result.kind === "not-found") {
-    return (
-      <main id="main" tabIndex={-1}>
-        <Section>
-          <p className="text-[var(--color-red-500)]">찾을 수 없는 글입니다.</p>
-        </Section>
-      </main>
-    );
-  }
+  /*
+    없는 공지는 `app/not-found.tsx`로 보낸다 — 전에는 이 자리에서 문구만 그려
+    HTTP 200이 나갔다 (점검 🔵-2). 검색엔진이 없는 주소를 정상 페이지로 색인한다.
+  */
+  if (result.kind === "not-found") notFound();
 
   if (result.kind === "member-only") {
     return (
