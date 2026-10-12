@@ -160,3 +160,23 @@ describe("MemberRow — 가입일 (점검 2026-10-07 🟠-6, FR-ADM-03)", () => 
     expect(screen.getByText("8/19 가입")).toHaveAttribute("datetime", "2026-08-19T03:00:00Z");
   });
 });
+
+describe("MemberRow — 본인 행 (점검 2026-10-07 🔵-13)", () => {
+  it("본인 행에는 [삭제]가 없다 — 서버가 자기 삭제를 400으로 거부한다", () => {
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemberRow member={member} isSelf />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
+    // 비밀번호 초기화·역할 변경은 그대로 (인수인계 때 본인 강등이 필요하다)
+    expect(screen.getByRole("button", { name: "비번 초기화" })).toBeInTheDocument();
+    expect(screen.getByLabelText("김도연a 역할 변경")).toBeInTheDocument();
+  });
+
+  it("다른 회원 행에는 [삭제]가 있다", () => {
+    renderMemberRow();
+    expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
+  });
+});
