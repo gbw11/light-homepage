@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../core/api/api_client.dart';
 import '../core/auth/auth_state.dart';
 import '../features/account/login_screen.dart';
+import '../features/account/more_screen.dart';
+import '../features/account/password_change_screen.dart';
+import '../features/account/profile_screen.dart';
 import '../features/church/about_screen.dart';
 import '../features/church/contact_screen.dart';
 import '../features/church/location_screen.dart';
@@ -127,7 +130,38 @@ GoRouter buildRouter({
             '자료',
             description: '주보 · 사진첩 · 월례회 자료 · 회의록은\n로그인한 회원만 볼 수 있어요.',
           ),
-          _comingSoonTab(AppPaths.more, '더보기'),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppPaths.more,
+                builder: (context, state) => MoreScreen(
+                  onLogin: () => context.push(AppPaths.login),
+                  onProfile: () => context.push('${AppPaths.more}/profile'),
+                  onPasswordChange: () =>
+                      context.push('${AppPaths.more}/password'),
+                  onContact: () => context.push(AppPaths.contact),
+                  openExternal: openExternal,
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'profile',
+                    builder: (context, state) => ProfileScreen(
+                      auth: auth,
+                      onLogin: () => context.push(AppPaths.login),
+                      openExternal: openExternal,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'password',
+                    builder: (context, state) => PasswordChangeScreen(
+                      auth: auth,
+                      onDone: () => context.pop(),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
 
