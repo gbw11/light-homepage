@@ -99,11 +99,17 @@ function MyHomeContent() {
           <MyPreviews />
         </div>
 
+        {/*
+          WIREFRAME §11의 타일 구성·순서를 그대로 따른다: 주보·사진첩 /
+          공지사항·내 정보 / 월례회 자료(한 줄 전체). 공지사항 타일은 빠져 있었다
+          (USERFLOW_AUDIT 🔵-6) — 공지는 공개·내부 모두 `/news` 한 목록이다.
+        */}
         <div className="mt-8 grid grid-cols-2 gap-4">
-          <HomeTile icon="⚙️" label="내 정보" href="/my/profile" />
           <HomeTile icon="📄" label="주보" href="/bulletin" />
           <HomeTile icon="📷" label="사진첩" href="/photos" />
-          <HomeTile icon="🗂" label="월례회 자료" href="/meetings" />
+          <HomeTile icon="📢" label="공지사항" href="/news" />
+          <HomeTile icon="⚙️" label="내 정보" href="/my/profile" />
+          <HomeTile icon="🗂" label="월례회 자료" href="/meetings" className="col-span-2" />
         </div>
 
         {isAdmin && (
