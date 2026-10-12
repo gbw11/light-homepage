@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { MembersOnlyLink } from "@/components/auth/MembersOnlyLink";
 import { NoticeList } from "./_components/NoticeList";
 
 export const metadata: Metadata = {
@@ -9,8 +9,7 @@ export const metadata: Metadata = {
 
 /**
  * WIREFRAME.md §7 — 소식 `/news`.
- * 이번 단위는 공지 탭만 구현한다. 갤러리 탭은 사진첩(앨범) 기능이 필요한
- * M3 범위라 이번 단위에서는 생략한다.
+ * 공지 탭 + 갤러리(사진첩 `/photos`로 가는 링크, 로그인 시에만).
  *
  * ⚠️ **서버에서 prefetch하지 않는다.** 예전에는 `posts.list`를 서버에서 미리
  * 채워 초기 HTML에 목록을 실었는데, **백엔드가 없는 환경에서 빌드가 멈춘다.**
@@ -41,18 +40,18 @@ export default function NewsPage() {
             공지
           </button>
           {/*
-            갤러리는 별도 탭을 만들지 않고 사진첩(`/photos`)으로 보낸다.
-            예전에는 사진첩이 회원 전용이라 비활성 탭으로 두고 "M3에서
-            추가됩니다"를 띄웠는데, 공개 열람 전환(PM 결정 2026-08-25)으로
-            `/photos`가 누구에게나 열렸다. 같은 사진을 두 곳에서 관리할 이유가
-            없으므로 탭 자리를 링크로 쓴다.
+            갤러리는 별도 탭을 만들지 않고 사진첩(`/photos`)으로 보낸다 — 같은
+            사진을 두 곳에서 관리할 이유가 없다. 사진첩은 회원 전용이므로
+            (2026-08-31 「열람 M 복귀」) **로그인한 사람에게만** 탭을 그린다.
+            비로그인 방문자에게는 공지 탭만 보인다 (PM 결정 2026-09-04 주보와
+            같은 원칙 · 점검 🟠-1).
           */}
-          <Link
+          <MembersOnlyLink
             href="/photos"
             className="inline-flex min-h-11 items-center px-4 py-3 text-sm font-bold text-[var(--color-gray-400)] hover:text-[var(--color-ink)]"
           >
             갤러리
-          </Link>
+          </MembersOnlyLink>
         </div>
       </section>
 

@@ -221,6 +221,8 @@ export function Header() {
                   type="button"
                   aria-expanded={isResourceOpen}
                   aria-controls={RESOURCE_MENU_ID}
+                  // 아래 "회원 전용" 표시는 aria-hidden이라, 읽어주는 이름에 함께 싣는다
+                  aria-label="자료 · 회원 전용"
                   onClick={() => setIsResourceOpen((open) => !open)}
                   className="inline-flex min-h-11 items-center whitespace-nowrap px-3 text-sm font-bold text-white/80 transition hover:text-white"
                 >
@@ -232,6 +234,17 @@ export function Header() {
                     isResourceOpen ? "visible opacity-100" : "invisible opacity-0"
                   }`}
                 >
+                  {/*
+                    모바일 전체 메뉴의 "자료 · 회원 전용" 제목과 같은 표시
+                    (점검 🔵-3). 전에는 데스크톱 드롭다운에만 이 표시가 없어서
+                    눌러봐야 회원 전용인 것을 알았다. 링크가 아니라 글자다.
+                  */}
+                  <li
+                    aria-hidden="true"
+                    className="px-4 pb-1 pt-1 text-xs font-bold text-white/60"
+                  >
+                    회원 전용
+                  </li>
                   {RESOURCE_LINKS.map((link) => (
                     <li key={link.href}>
                       <Link
