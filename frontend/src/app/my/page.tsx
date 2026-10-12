@@ -49,7 +49,7 @@ export default function MyHomePage() {
  */
 function MyHomeContent() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const member = user;
   const isAdmin = member?.role === "LEADER" || member?.role === "PASTOR";
 
@@ -57,6 +57,23 @@ function MyHomeContent() {
     mutationFn: logout,
     onSuccess: () => router.push("/"),
   });
+
+  /*
+   * 세션 확인이 끝나기 전에는 로그인 안내를 그리지 않는다 (USERFLOW_AUDIT
+   * 2026-10-07 🔵-7). 카카오 로그인 직후처럼 페이지가 새로 열리면 `auth/me`
+   * 응답 전까지 user가 null이라, 로그인한 사람에게 "로그인" 버튼이 잠깐
+   * 깜빡였다.
+   */
+  if (isLoading) {
+    return (
+      <main id="main" tabIndex={-1} aria-busy="true">
+        <Section>
+          <h1 className="text-2xl font-bold md:text-3xl">나의 LIGHT</h1>
+          <p className="mt-2 text-[var(--color-gray-400)]">불러오는 중...</p>
+        </Section>
+      </main>
+    );
+  }
 
   if (!member) {
     return (

@@ -37,9 +37,10 @@ export function LoginForm() {
 
   const mutation = useMutation({
     mutationFn: (input: LoginInput) => api.auth.login(input),
-    onSuccess: () => {
-      // 세션이 생겼으니 전역 로그인 상태를 갱신하고 회원 홈으로
-      refetch();
+    onSuccess: async () => {
+      // 세션이 생겼으니 전역 로그인 상태를 갱신하고 회원 홈으로. 갱신을
+      // 기다린 뒤 이동해야 /my가 옛 값(비로그인)으로 깜빡이지 않는다 (🔵-7)
+      await refetch();
       router.push("/my");
     },
     onError: (error) => {
