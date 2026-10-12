@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
+import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import { isLeaderOrAbove } from "@/components/auth/RequireLeader";
 import { useAuth } from "@/components/providers/AuthProvider";
 import type { PostCategory, PostSummary } from "@/types/api";
@@ -35,7 +36,7 @@ function formatDate(iso: string | null): string {
 
 /**
  * 회의록·예산안 목록 — 분류 탭으로 전환한다 (FR-DOC-03/04).
- * 쿼리 키는 `/news`와 같은 `["posts", category]` 규칙을
+ * 쿼리 키는 `/news`와 같은 `["posts", category, "pages"]` 규칙을
  * 그대로 쓴다 (TanStack Query 캐시 공유).
  *
  * 탭 전환은 URL을 바꾸지 않는다 — 문서 목록은 공유·북마크할 대상이 아니고
@@ -85,10 +86,16 @@ export function DocumentBoard() {
 }
 
 function DocumentList({ category }: { category: DocumentCategory }) {
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["posts", category],
-    queryFn: () => api.posts.list({ category }),
-  });
+  // 키 끝의 "pages" — 같은 분류를 `useQuery`로 읽는 화면과 캐시 모양(`pages[]`)이
+  // 달라서 키를 나눈다. 글 작성·수정 후의 `["posts"]` 무효화는 그대로 닿는다.
+  const { data, isLoading, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: ["posts", category, "pages"],
+      queryFn: ({ pageParam }) => api.posts.list({ category, page: pageParam }),
+      initialPageParam: 0,
+      // 21번째 글부터는 "더 보기"로 이어 붙인다 (점검 2026-10-07 🟠-5, SPEC_API §1.6)
+      getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
+    });
 
   if (isLoading) {
     return (
@@ -115,7 +122,7 @@ function DocumentList({ category }: { category: DocumentCategory }) {
     );
   }
 
-  const items: PostSummary[] = data?.items ?? [];
+  const items: PostSummary[] = data?.pages.flatMap((p) => p.items) ?? [];
 
   if (items.length === 0) {
     return (
@@ -153,6 +160,11 @@ function DocumentList({ category }: { category: DocumentCategory }) {
           </li>
         ))}
       </ul>
+      <LoadMoreButton
+        hasNextPage={hasNextPage}
+        isFetching={isFetchingNextPage}
+        onClick={() => fetchNextPage()}
+      />
     </Section>
   );
 }
