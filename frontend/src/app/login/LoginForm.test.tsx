@@ -113,4 +113,22 @@ describe("LoginForm", () => {
     await waitFor(() => expect(mockRefetch).toHaveBeenCalled());
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/my"));
   });
+
+  it.each([
+    ["/login?next=%2Fnews%2Fabc", "/news/abc"],
+    ["/login?next=%2F%2Fevil.com", "/my"],
+    ["/login?next=https%3A%2F%2Fevil.com", "/my"],
+  ])("로그인 성공 시 %s → %s 로 이동한다 (🔵-1 내부 경로만)", async (url, expected) => {
+    window.history.pushState({}, "", url);
+    const user = userEvent.setup();
+    mockLogin.mockResolvedValueOnce({ id: "1", name: "홍길동", role: "MEMBER" });
+    renderLoginForm();
+
+    await user.type(screen.getByLabelText("아이디"), "testuser");
+    await user.type(screen.getByLabelText("비밀번호"), "password1");
+    await user.click(screen.getByRole("button", { name: "로그인" }));
+
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith(expected));
+    window.history.pushState({}, "", "/");
+  });
 });
