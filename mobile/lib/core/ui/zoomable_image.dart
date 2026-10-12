@@ -8,14 +8,15 @@ import 'package:flutter/material.dart';
 class ZoomableImage extends StatefulWidget {
   const ZoomableImage({
     super.key,
-    required this.url,
+    required this.image,
     required this.semanticLabel,
     required this.active,
     required this.onZoomChanged,
     required this.onReload,
   });
 
-  final String url;
+  /// 주보 · 사진은 서명된 주소([NetworkImage]), 월례회는 앱이 받아 둔 바이트([MemoryImage])
+  final ImageProvider image;
   final String semanticLabel;
   final bool active;
   final ValueChanged<bool> onZoomChanged;
@@ -88,8 +89,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
         onInteractionEnd: (_) =>
             _setZoomed(_transform.value.getMaxScaleOnAxis() > 1.01),
         child: Center(
-          child: Image.network(
-            widget.url,
+          child: Image(
+            image: widget.image,
             fit: BoxFit.contain,
             semanticLabel: widget.semanticLabel,
             loadingBuilder: (context, child, progress) {

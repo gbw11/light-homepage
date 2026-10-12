@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:light_mobile/core/api/api_client.dart';
 import 'package:light_mobile/core/api/api_error.dart';
@@ -77,6 +78,48 @@ void main() {
     await restoring;
 
     expect(t.auth.user?.name, '새로그인');
+  });
+
+  test('켤 때 네트워크가 끊겨 있으면 잠시 뒤 다시 묻는다 — 로그인이 풀린 채로 두지 않는다', () {
+    fakeAsync((async) {
+      var online = false;
+      final t = setUp(
+        (o) async => online
+            ? respond(200, {'data': me})
+            : throw DioException.connectionError(
+                requestOptions: o,
+                reason: 'offline',
+              ),
+      );
+
+      t.auth.restore();
+      // 요청이 끝날 만큼만 흘린다 (dio 안에도 타이머가 있다)
+      async.elapse(const Duration(seconds: 1));
+      expect(t.auth.user, isNull);
+      expect(t.auth.restoring, isFalse);
+
+      online = true;
+      async.elapse(AuthState.restoreRetryDelays.first);
+      async.elapse(const Duration(seconds: 1));
+
+      expect(t.auth.user?.name, '김도연a');
+      t.auth.dispose();
+    });
+  });
+
+  test('401이면 다시 묻지 않는다 — 로그인 안 한 것이 확실하다', () {
+    fakeAsync((async) {
+      final t = setUp((_) async => unauthorized());
+
+      t.auth.restore();
+      // 요청이 끝날 만큼만 흘린다 (dio 안에도 타이머가 있다)
+      async.elapse(const Duration(seconds: 1));
+      final asked = t.server.paths.length;
+      async.elapse(const Duration(minutes: 5));
+
+      expect(t.server.paths, hasLength(asked));
+      t.auth.dispose();
+    });
   });
 
   test('로그인하면 응답에 없는 아이디를 넣은 값으로 채운다', () async {

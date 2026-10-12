@@ -13,6 +13,9 @@ typedef FakeResponse = ({
   Map<String, List<String>> headers,
 });
 
+/// JSON 본문에는 실제 서버처럼 `Content-Type: application/json`을 붙인다 —
+/// 붙이지 않으면 dio가 JSON을 다르게 다루는 경로(자동 해석)를 테스트가 놓친다.
+/// 실제로 놓쳐서 에뮬레이터에서야 드러난 적이 있다 (M8 바이트 받기)
 FakeResponse respond(
   int status, [
   Object? json,
@@ -20,7 +23,13 @@ FakeResponse respond(
 ]) => (
   status: status,
   body: json == null ? '' : (json is String ? json : jsonEncode(json)),
-  headers: headers ?? const {},
+  headers:
+      headers ??
+      (json == null || json is String
+          ? const {}
+          : const {
+              'content-type': ['application/json'],
+            }),
 );
 
 FakeResponse unauthorized() => respond(401, {

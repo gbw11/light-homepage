@@ -136,7 +136,7 @@ class _Pages extends StatelessWidget {
           itemCount: pages.length,
           onPageChanged: onPageChanged,
           itemBuilder: (context, i) => ZoomableImage(
-            url: pages[i].url,
+            image: NetworkImage(pages[i].url),
             semanticLabel: '주보 ${pages[i].pageNo}쪽',
             active: i == index,
             onZoomChanged: onZoomChanged,

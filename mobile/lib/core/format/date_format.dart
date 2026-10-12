@@ -26,3 +26,15 @@ String formatMonthDayTime(DateTime at) {
   final mm = local.minute.toString().padLeft(2, '0');
   return '${local.month}/${local.day} $hh:$mm';
 }
+
+/// 남은 시간 — `1일 3시간 남음` · `2시간 5분 남음` · `4분 30초 남음`
+String formatRemaining(int seconds) {
+  if (seconds <= 0) return '마감';
+  final d = seconds ~/ 86400;
+  final h = seconds % 86400 ~/ 3600;
+  final m = seconds % 3600 ~/ 60;
+  final s = seconds % 60;
+  if (d > 0) return '$d일 $h시간 남음';
+  if (h > 0) return '$h시간 $m분 남음';
+  return '$m분 $s초 남음';
+}

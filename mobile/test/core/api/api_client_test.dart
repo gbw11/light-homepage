@@ -310,4 +310,52 @@ void main() {
       ]);
     });
   });
+
+  group('바이트 받기 — 월례회 페이지 (SPEC_API §7.3)', () {
+    test('성공하면 본문 바이트를 그대로 준다', () async {
+      final server = FakeServer((_) async => respond(200, 'JPEGDATA'));
+
+      final bytes = await clientFor(server).getBytes('/meetings/3/pages/1');
+
+      expect(String.fromCharCodes(bytes), 'JPEGDATA');
+    });
+
+    test('실패는 JSON 봉투로 와도 ApiError로 바꾼다', () async {
+      final client = clientFor(
+        FakeServer(
+          (_) async => respond(403, {
+            'error': {'code': 'FORBIDDEN', 'message': '기간 밖', 'field': null},
+          }),
+        ),
+      );
+
+      await expectLater(
+        client.getBytes('/meetings/3/pages/1'),
+        throwsA(
+          isA<ApiError>().having((e) => e.code, 'code', ErrorCode.forbidden),
+        ),
+      );
+    });
+
+    test('30분이 지나 401이면 리프레시하고 한 번 더 받는다', () async {
+      var first = true;
+      final server = FakeServer((o) async {
+        if (o.path == '/auth/refresh') return respond(204);
+        if (first) {
+          first = false;
+          return unauthorized();
+        }
+        return respond(200, 'JPEG');
+      });
+
+      final bytes = await clientFor(server).getBytes('/meetings/3/pages/2');
+
+      expect(String.fromCharCodes(bytes), 'JPEG');
+      expect(server.paths, [
+        'GET /meetings/3/pages/2',
+        'POST /auth/refresh',
+        'GET /meetings/3/pages/2',
+      ]);
+    });
+  });
 }
