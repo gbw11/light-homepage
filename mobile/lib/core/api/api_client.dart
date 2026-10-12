@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
@@ -120,6 +121,26 @@ class ApiClient {
     },
   );
 
+  /// 이미지 같은 바이너리를 받는다 — 월례회 페이지 (SPEC_API §7.3).
+  ///
+  /// 월례회 페이지는 서버가 워터마크를 합성해 **로그인 쿠키가 있어야** 주는
+  /// 이미지다. `Image.network`는 쿠키를 싣지 않아 401이 되므로 이 클라이언트로
+  /// 받는다(기획안 §2-3 ④ ⚠️). 30분이 지나 토큰이 만료돼도 다른 요청처럼
+  /// 리프레시 후 한 번 더 시도한다(웹 점검 🟡-2). 실패는 JSON 봉투로 온다.
+  Future<Uint8List> getBytes(String path) => _request(
+    'GET',
+    path,
+    bytes: true,
+    decode: (data) => switch (data) {
+      final Uint8List bytes => bytes,
+      final List<int> list => Uint8List.fromList(list),
+      _ => throw const ApiError(
+        code: ErrorCode.internalError,
+        message: '서버가 이미지를 주지 않았습니다',
+      ),
+    },
+  );
+
   /// 401 처리 흐름 (SPEC_API §12.2):
   ///
   ///   401 → POST /auth/refresh **1회** 시도
@@ -131,6 +152,7 @@ class ApiClient {
     Map<String, Object?>? query,
     Object? body,
     bool followRedirects = true,
+    bool bytes = false,
     required Decoder<T> decode,
   }) async {
     try {
@@ -140,6 +162,7 @@ class ApiClient {
         query: query,
         body: body,
         followRedirects: followRedirects,
+        bytes: bytes,
         decode: decode,
       );
     } on ApiError catch (error, stack) {
@@ -162,6 +185,7 @@ class ApiClient {
         query: query,
         body: body,
         followRedirects: followRedirects,
+        bytes: bytes,
         decode: decode,
       );
     }
@@ -177,25 +201,36 @@ class ApiClient {
   /// 리프레시 재시도가 없는 순수 요청 1회.
   ///
   /// [followRedirects]가 false면 3xx의 `Location`을 [decode]에 넘긴다
-  /// ([redirectLocation] 전용). 에러 봉투는 똑같이 해석한다.
+  /// ([redirectLocation] 전용). [bytes]면 성공 응답의 바이트를 그대로 넘긴다
+  /// ([getBytes] 전용). 에러 봉투는 어느 쪽이든 똑같이 해석한다.
   Future<T> _rawRequest<T>(
     String method,
     String path, {
     Map<String, Object?>? query,
     Object? body,
     bool followRedirects = true,
+    bool bytes = false,
     required Decoder<T> decode,
   }) async {
-    final res = await _dio.request<String>(
+    final res = await _dio.request<Object>(
       path,
       data: body,
       queryParameters: {
         for (final MapEntry(:key, :value) in (query ?? {}).entries) key: ?value,
       },
-      options: Options(method: method, followRedirects: followRedirects),
+      options: Options(
+        method: method,
+        followRedirects: followRedirects,
+        responseType: bytes ? ResponseType.bytes : ResponseType.plain,
+      ),
     );
     final status = res.statusCode ?? 0;
-    final text = res.data ?? '';
+    if (bytes && status >= 200 && status < 300) return decode(res.data);
+    final text = switch (res.data) {
+      final String text => text,
+      final List<int> data => utf8.decode(data, allowMalformed: true),
+      _ => '',
+    };
 
     if (!followRedirects && status >= 300 && status < 400) {
       return decode(res.headers.value('location'));
