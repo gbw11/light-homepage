@@ -180,6 +180,35 @@ void main() {
     expect(selectedTab(tester), 0);
   });
 
+  testWidgets('사이드바를 연 채 뒤로가기를 누르면 사이드바만 닫힌다 — 탭은 그대로다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(tab('더보기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('전체 메뉴'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Drawer), findsOneWidget);
+
+    await pressSystemBack(tester);
+
+    expect(find.byType(Drawer), findsNothing);
+    expect(selectedTab(tester), 4);
+
+    // 사이드바가 닫힌 뒤의 뒤로가기는 원래대로 홈으로 간다
+    await pressSystemBack(tester);
+    expect(selectedTab(tester), 0);
+  });
+
+  testWidgets('홈에서도 사이드바를 연 채 뒤로가기를 누르면 앱이 아니라 사이드바가 닫힌다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.byTooltip('전체 메뉴'));
+    await tester.pumpAndSettle();
+
+    await pressSystemBack(tester);
+
+    expect(find.byType(Drawer), findsNothing);
+    expect(find.text('주일 14:00 · 청년예배'), findsOneWidget);
+  });
+
   testWidgets('사이드바 바로가기는 하단 탭을 옮긴다', (tester) async {
     await pumpApp(tester);
 
