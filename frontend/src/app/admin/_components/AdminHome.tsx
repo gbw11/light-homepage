@@ -45,11 +45,11 @@ const CONTENT_LINKS: AdminLink[] = [
 /**
  * 회의록·예산안은 권한이 동일해(SPEC_FUNCTIONAL §7.1) 한 라우트의 탭 두
  * 개로 구현돼 있다 (`/documents` 주석 참고). 와이어프레임의 두 항목이
- * 같은 화면을 가리킨다.
+ * 같은 화면을 가리키되, 예산안은 `?tab=budget`으로 예산안 탭을 바로 연다.
  */
 const DOCUMENT_LINKS: AdminLink[] = [
   { label: "회의록", href: "/documents" },
-  { label: "예산안", href: "/documents" },
+  { label: "예산안", href: "/documents?tab=budget" },
 ];
 
 /**

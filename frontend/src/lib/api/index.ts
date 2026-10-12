@@ -14,6 +14,6 @@ import type { Api } from "./types";
 export const api: Api =
   process.env.NEXT_PUBLIC_USE_MOCK === "1" ? mockApi : realApi;
 
-export { ApiError, isApiError } from "./error";
+export { ApiError, isApiError, ServerUnavailableError, isServerUnavailable } from "./error";
 export { onSessionExpired } from "./session";
 export type { Api } from "./types";

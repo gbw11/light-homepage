@@ -1121,6 +1121,37 @@ const issuedResetCodes = new Map<string, { resetCode: string; expiresAt: number 
 
 const digitsOnly = (v: string) => v.replace(/\D/g, "");
 
+/** 실서버 `LocalDate.parse`처럼 YYYY-MM-DD이면서 달력에 있는 날짜인가 */
+function isValidIsoDate(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}
+
+/**
+ * 실서버 `ResetCodes`와 같은 모양의 리셋 코드 — `XXXX-XXXX`, 헷갈리는 글자
+ * (0·O·1·I·L)를 뺀 31글자 (USERFLOW_AUDIT 🔵-14).
+ */
+const RESET_CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+function generateMockResetCode(): string {
+  const pick = () => RESET_CODE_ALPHABET[Math.floor(Math.random() * RESET_CODE_ALPHABET.length)];
+  const group = () => Array.from({ length: 4 }, pick).join("");
+  return `${group()}-${group()}`;
+}
+
+/** 실서버 `ResetCodes.normalize` — 대문자로 바꾸고 영숫자만 남긴다 */
+function normalizeResetCode(raw: string): string {
+  return raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+/** 실서버 `PhoneNumbers.normalize`와 같은 규칙. 자릿수가 말이 안 되면 null */
+function normalizeMockPhone(raw: string): string | null {
+  let digits = digitsOnly(raw);
+  if (digits.startsWith("82") && digits.length > 3) digits = `0${digits.slice(2)}`;
+  if (digits.length < 9 || digits.length > 15) return null;
+  return digits;
+}
+
 function toLoginResult(user: AuthUser): LoginResult {
   return {
     id: user.id,
@@ -2212,10 +2243,7 @@ export const mockApi: Api = {
           field: null,
         });
       }
-      const resetCode = `${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random()
-        .toString(36)
-        .slice(2, 6)
-        .toUpperCase()}`;
+      const resetCode = generateMockResetCode();
       const expiresAt = Date.now() + 30 * 60 * 1000;
       issuedResetCodes.set(target.loginId, { resetCode, expiresAt });
       return { resetCode, expiresAt: new Date(expiresAt).toISOString() };
@@ -2632,20 +2660,44 @@ export const mockApi: Api = {
       await delay();
       throwIfScenario();
 
+      /*
+       * 형식 검증 — 실서버와 같은 순서·같은 field (RosterRegistrationService
+       * parseBirthDate/normalizePhone). 형식 오류는 명단 내용을 흘리지 않으므로
+       * 서버도 field를 붙여 알려준다 (USERFLOW_AUDIT 🟡-5).
+       */
+      if (!isValidIsoDate(input.birthDate.trim())) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "생년월일을 확인해주세요.",
+          status: 400,
+          field: "birthDate",
+        });
+      }
+      const phoneDigits = normalizeMockPhone(input.phone);
+      if (!phoneDigits) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: "전화번호를 확인해주세요.",
+          status: 400,
+          field: "phone",
+        });
+      }
+
       const name = input.name.trim();
       const matches = MOCK_ROSTER.filter(
         (r) =>
           r.name === name &&
-          r.birthDate === input.birthDate &&
-          digitsOnly(r.phone) === digitsOnly(input.phone),
+          r.birthDate === input.birthDate.trim() &&
+          digitsOnly(r.phone) === phoneDigits,
       );
 
       if (matches.length >= 2) {
         throw new ApiError({
           code: "VALIDATION_ERROR",
-          message: "동명이인 확인이 필요합니다. 임원에게 문의해 주세요.",
+          // 실서버는 동명이인을 field "name"으로 준다 (RosterRegistrationService)
+          message: "동명이인이 확인되었습니다. 임원에게 문의해 주세요.",
           status: 400,
-          field: null,
+          field: "name",
         });
       }
 
@@ -2782,7 +2834,8 @@ export const mockApi: Api = {
 
       const issued = issuedResetCodes.get(input.loginId);
       const expired = !issued || issued.expiresAt < Date.now();
-      if (expired || issued.resetCode !== input.resetCode.trim().toUpperCase()) {
+      // 실서버처럼 소문자·하이픈 없음·공백을 맞게 친 것으로 본다 (ResetCodes.normalize)
+      if (expired || normalizeResetCode(issued.resetCode) !== normalizeResetCode(input.resetCode)) {
         throw new ApiError({
           code: "UNAUTHORIZED",
           message: "코드가 올바르지 않거나 만료되었습니다.",

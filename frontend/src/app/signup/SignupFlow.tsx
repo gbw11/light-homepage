@@ -15,8 +15,11 @@ import { Button } from "@/components/ui/Button";
  * WIREFRAME.md §10-2 — 명단 확인 2단계 가입 (SPEC_API §2.1~2.2 v1.3).
  *
  * 1단계: 이름(동명이인 접미사 포함)+생년월일+전화번호를 명단과 대조
- *   ⚠️ 실패는 폼 전체 단일 문구다 — 어느 필드가 틀렸는지 표시하지 않는다
- *     (명단 정보 탐색 방지). 동명이인 2건 이상(VALIDATION_ERROR)만 별도 안내.
+ *   ⚠️ 명단 대조 실패는 폼 전체 단일 문구다 — 어느 필드가 틀렸는지 표시하지
+ *     않는다 (명단 정보 탐색 방지). 동명이인 2건 이상만 "임원 문의"로 별도 안내.
+ *   형식 오류(날짜가 아닌 생년월일·자릿수가 안 맞는 전화번호)는 명단을 보지
+ *   않고도 아는 사실이라 서버가 field를 붙여 알려준다 → 그 칸에 표시한다
+ *   (USERFLOW_AUDIT 🟡-5).
  * 2단계: registrationToken(5분·1회용)으로 아이디+비밀번호 또는 카카오
  *   → 생성 즉시 MEMBER (승인 없음).
  */
@@ -25,11 +28,14 @@ const inputClass =
   "min-h-11 w-full rounded-[var(--radius-card)] border border-[var(--color-navy-100)] bg-transparent px-4 text-base focus:border-[var(--color-yellow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-yellow)]";
 
 const verifySchema = z.object({
-  name: z.string().trim().min(2, "이름을 입력해주세요."),
+  // 서버 형식 검증(@NotBlank·@Size(max=50))도 field "name"으로 오는데, 그건
+  // 동명이인 응답과 field가 같다 — 그래서 FE가 여기서 먼저 걸러 둘이 섞이지 않게 한다
+  name: z.string().trim().min(2, "이름을 입력해주세요.").max(50, "이름이 너무 깁니다."),
   birthDate: z
     .string()
     .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "생년월일을 YYYY-MM-DD 형식으로 입력해주세요."),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "생년월일을 YYYY-MM-DD 형식으로 입력해주세요.")
+    .refine(isCalendarDate, "생년월일을 확인해주세요."),
   phone: z
     .string()
     .trim()
@@ -37,6 +43,12 @@ const verifySchema = z.object({
 });
 
 type VerifyValues = z.infer<typeof verifySchema>;
+
+/** 2001-13-45처럼 형식만 맞고 달력에 없는 날짜를 거른다 (서버 `LocalDate.parse`와 같은 판단) */
+function isCalendarDate(v: string): boolean {
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}
 
 /**
  * loginId 형식은 계약에 미확정이라 FE가 보수적으로 잡았다
@@ -136,12 +148,21 @@ function VerifyStep({
     onSuccess: (verified, input) => onVerified(verified, input),
     onError: (error) => {
       if (isApiError(error) && error.code === "VALIDATION_ERROR") {
-        // 동명이인 2건 이상 — 사용자가 입력으로 풀 수 없는 상태다 (SPEC_API §2.1)
-        setError("root", {
-          type: "duplicate-name",
-          message: "동명이인 확인이 필요합니다. 임원에게 문의해 주세요.",
-        });
-        return;
+        // 형식 오류 — 사용자가 고칠 수 있다. 그 칸에 서버 문구를 붙인다 (🟡-5)
+        if (error.field === "birthDate" || error.field === "phone") {
+          setError(error.field, { message: error.message });
+          return;
+        }
+        // 동명이인 2건 이상 — 실서버는 field "name"으로 준다. 이름 형식 오류도
+        // field가 같지만 위 zod 스키마가 먼저 막는다. 사용자가 입력으로 풀 수
+        // 없는 상태다 (SPEC_API §2.1)
+        if (error.field === "name") {
+          setError("root", {
+            type: "duplicate-name",
+            message: "동명이인 확인이 필요합니다. 임원에게 문의해 주세요.",
+          });
+          return;
+        }
       }
       /*
        * 불일치·명단 없음·이미 계정·rate limit — 전부 같은 단일 문구.

@@ -14,7 +14,10 @@ import type { PostDetail } from "@/types/api";
  * 않고 여기서 한 번에 내린다.
  *
  * 별도 API 없이 **`PUT /api/posts/{id}`(§3.5)에 지금 내용을 그대로 싣고
- * `pinned`만 바꿔 보낸다.** 서버는 이미 게시된 글을 다시 저장해도 게시일을
+ * `pinned`만 바꿔 보낸다.** 이때 실을 내용은 화면의 `post`가 아니라 **누르는 순간
+ * `GET /api/admin/posts/{id}`로 새로 받은 글**이다 — 공개 공지 상세는 5분 캐시(ISR)라
+ * 화면의 `post`가 수정 전 내용일 수 있고, 그걸 그대로 보내면 방금 고친 제목·본문·첨부를
+ * 옛 내용으로 덮어쓴다(사용자 흐름 점검 🟠-11). 서버는 이미 게시된 글을 다시 저장해도 게시일을
  * 바꾸지 않으므로(`PostCommandService.resolvePublishedAt`) 고정을 풀어도
  * 원래 날짜 자리로 돌아간다 — 맨 위로 튀어 오르지 않는다.
  *
@@ -28,15 +31,17 @@ export function PinToggleButton({ post }: { post: PostDetail }) {
   const [message, setMessage] = useState<string | null>(null);
 
   const toggle = useMutation({
-    mutationFn: (next: boolean) =>
-      api.posts.update(post.id, {
-        category: post.category,
-        title: post.title,
-        body: post.body,
+    mutationFn: async (next: boolean) => {
+      const latest = await api.posts.getForEdit(post.id);
+      return api.posts.update(post.id, {
+        category: latest.category,
+        title: latest.title,
+        body: latest.body,
         pinned: next,
-        attachmentIds: post.attachments.map((a) => a.id),
-        publish: post.publishedAt !== null,
-      }),
+        attachmentIds: latest.attachments.map((a) => a.id),
+        publish: latest.publishedAt !== null,
+      });
+    },
     onSuccess: async (_, next) => {
       setPinned(next);
       setMessage(next ? "목록 상단에 고정했습니다." : "고정을 해제했습니다. 이제 날짜순으로 보입니다.");
