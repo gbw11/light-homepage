@@ -180,3 +180,18 @@ describe("MemberRow — 본인 행 (점검 2026-10-07 🔵-13)", () => {
     expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
   });
 });
+
+describe("MemberRow — 삭제 사유 500자 한도 (점검 2026-10-07 🔵-15)", () => {
+  it("입력 한도를 걸고 글자 수를 보여준다", async () => {
+    const user = userEvent.setup();
+    renderMemberRow();
+    await user.click(screen.getByRole("button", { name: "삭제" }));
+
+    const input = screen.getByLabelText("삭제 사유 (필수 — 기록에 남습니다)");
+    expect(input).toHaveAttribute("maxLength", "500");
+    expect(input).toHaveAccessibleDescription("0 / 500자");
+
+    await user.type(input, "본인 확인");
+    expect(screen.getByText("5 / 500자")).toBeInTheDocument();
+  });
+});
