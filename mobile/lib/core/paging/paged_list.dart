@@ -31,6 +31,22 @@ class NumberedPageSource<T> implements PageSource<T> {
   }
 }
 
+/// 커서로 넘기는 목록 — 사진 (SPEC_API §6.4)
+class CursorPageSource<T> implements PageSource<T> {
+  CursorPageSource(this._fetch);
+
+  final Future<CursorPage<T>> Function(String? cursor) _fetch;
+  String? _cursor;
+
+  @override
+  Future<PageChunk<T>> next() async {
+    final result = await _fetch(_cursor);
+    _cursor = result.nextCursor;
+    // 커서 없이 hasNext만 true면 같은 쪽을 또 받게 된다 — 끝으로 본다
+    return (items: result.items, hasMore: result.hasNext && _cursor != null);
+  }
+}
+
 /// 끝까지 내리면 더 받는 목록의 상태.
 ///
 /// 웹 `/news`·`/documents`는 첫 20건만 받고 멈추는 결함이 있었다(점검 🟠-5).
