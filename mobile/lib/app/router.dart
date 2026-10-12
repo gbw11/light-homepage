@@ -7,6 +7,8 @@ import '../features/church/location_screen.dart';
 import '../features/church/welcome_screen.dart';
 import '../features/church/worship_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/newcomers/newcomer_form_screen.dart';
+import '../features/newcomers/newcomers_api.dart';
 import '../features/posts/news_screen.dart';
 import '../features/posts/notice_detail_screen.dart';
 import '../features/posts/post_summary.dart';
@@ -27,6 +29,7 @@ GoRouter buildRouter({
 }) {
   final posts = PostsApi(api);
   final sermons = SermonsApi(api);
+  final newcomers = NewcomersApi(api);
 
   /// 공지 상세. 홈과 소식 두 탭에서 열린다 — 화면은 하나, 주소만 탭마다 다르다.
   /// 목록이 slug 대신 id로 연다: slug에는 한글이 올 수 있어 주소 인코딩을
@@ -136,7 +139,14 @@ GoRouter buildRouter({
         '조직도',
         description: '섬기는 사람들을 정리하고 있어요.',
       ),
-      _comingSoon(AppPaths.newcomer, '새가족 등록'),
+      GoRoute(
+        path: AppPaths.newcomer,
+        builder: (context, state) => NewcomerFormScreen(
+          api: newcomers,
+          // 등록을 마친 화면은 바꿔 끼운다 — 뒤로가기로 빈 완료 화면에 돌아오지 않게
+          onDirections: () => context.pushReplacement(AppPaths.location),
+        ),
+      ),
       GoRoute(
         path: AppPaths.contact,
         builder: (context, state) => ContactScreen(
