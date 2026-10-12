@@ -20,7 +20,7 @@ const inputClass =
  */
 export function AccountActions() {
   const router = useRouter();
-  const { user, refetch } = useAuth();
+  const { user, clearSession } = useAuth();
 
   // 카카오 가입자는 비밀번호가 없다 (SPEC_API §2.6 — loginId가 null).
   // 비밀번호를 요구하면 이 사람들은 탈퇴할 수단이 아예 없어진다. BE도 같은
@@ -35,7 +35,8 @@ export function AccountActions() {
   const deleteMutation = useMutation({
     mutationFn: (pw: string | undefined) => api.auth.deleteAccount(pw ? { password: pw } : {}),
     onSuccess: () => {
-      refetch();
+      // 탈퇴로 세션이 끝났다 — 회원 데이터 캐시까지 비운다 (USERFLOW_AUDIT 🟠-4)
+      clearSession();
       router.push("/");
     },
     onError: (err) => {

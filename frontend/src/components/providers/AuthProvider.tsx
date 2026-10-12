@@ -14,6 +14,11 @@ type AuthContextValue = {
   /** 로그인 성공 직후처럼 세션이 바뀐 걸 알 때 호출 */
   refetch: () => void;
   logout: () => Promise<void>;
+  /**
+   * 세션이 끝났을 때(로그아웃·탈퇴) 회원 데이터를 캐시에서 전부 지운다.
+   * 서버 호출은 하지 않는다 — 탈퇴처럼 서버 쪽 처리가 이미 끝난 뒤에 부른다.
+   */
+  clearSession: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -51,8 +56,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.setQueryData(AUTH_ME_QUERY_KEY, null);
   }), [queryClient]);
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
+  const value = useMemo<AuthContextValue>(() => {
+    /**
+     * 🟠-4 (USERFLOW_AUDIT 2026-10-07) — 로그아웃·탈퇴 뒤에 회원 공지 제목 같은
+     * 회원 데이터가 캐시에 남아 같은 탭에서 그대로 보이면 안 된다 (FR-MEM-02/03).
+     *
+     * `queryClient.clear()`를 그대로 쓰지 않는 이유: 이 Provider가 구독 중인
+     * `auth/me` 쿼리까지 지워지면, 뒤이어 `setQueryData`로 만든 새 쿼리를
+     * 기존 옵저버가 구독하지 않아 헤더·게이트가 "로그인됨"으로 남을 수 있다.
+     * 그래서 `auth/me`만 남기고 나머지 쿼리를 전부 지운 뒤
+     * `auth/me`를 null로 바꾼다 — 효과는 clear()와 같다.
+     */
+    const clearSession = () => {
+      queryClient.removeQueries({
+        predicate: (query) =>
+          query.queryKey[0] !== AUTH_ME_QUERY_KEY[0] || query.queryKey[1] !== AUTH_ME_QUERY_KEY[1],
+      });
+      queryClient.setQueryData(AUTH_ME_QUERY_KEY, null);
+    };
+
+    return {
       user: data ?? null,
       isLoading,
       refetch: () => {
@@ -60,11 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       logout: async () => {
         await api.auth.logout();
-        queryClient.setQueryData(AUTH_ME_QUERY_KEY, null);
+        clearSession();
       },
-    }),
-    [data, isLoading, queryClient],
-  );
+      clearSession,
+    };
+  }, [data, isLoading, queryClient]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

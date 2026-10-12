@@ -53,6 +53,7 @@ function renderPage(user: AuthUser | null) {
     isLoading: false,
     refetch: vi.fn(),
     logout: vi.fn(),
+    clearSession: vi.fn(),
   });
 
   const queryClient = new QueryClient({
