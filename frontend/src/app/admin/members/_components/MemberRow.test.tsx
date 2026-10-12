@@ -152,3 +152,11 @@ describe("MemberRow — 전도사 지정 (점검 2026-10-07 🔴-4)", () => {
     expect(mockChangeRole).toHaveBeenCalledWith("member-1", { role: "PASTOR" });
   });
 });
+
+describe("MemberRow — 가입일 (점검 2026-10-07 🟠-6, FR-ADM-03)", () => {
+  it("이름·아이디·역할과 함께 가입일을 보여준다", () => {
+    // 한낮(UTC 03시)으로 잡아 실행 환경 시간대와 상관없이 같은 날짜가 나오게
+    renderMemberRow({ ...member, createdAt: "2026-08-19T03:00:00Z" });
+    expect(screen.getByText("8/19 가입")).toHaveAttribute("datetime", "2026-08-19T03:00:00Z");
+  });
+});

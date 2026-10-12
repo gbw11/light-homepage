@@ -1034,6 +1034,29 @@ for (let i = 1; i <= 22; i++) {
   };
 }
 
+/**
+ * 회원 관리 목록의 가입일(§8.1 `createdAt`). 실제로는 회원 행에 있는 값이라
+ * `AuthUser`에 없다 — 목록에서 날짜가 제각각이어야 가입일 열(🟠-6)이 확인되므로
+ * 시드는 고정값, 가상 회원(`member01~22`)은 8/1부터 하루씩, 이번 세션 가입자는 첫 조회 시각.
+ */
+const SEED_JOINED_AT: Record<string, string> = {
+  "1": "2026-03-02T01:00:00Z",
+  "7": "2026-05-10T01:00:00Z",
+  "42": "2026-08-19T09:00:00Z",
+};
+const sessionJoinedAt = new Map<string, string>();
+function joinedAt(id: string): string {
+  const seeded = SEED_JOINED_AT[id];
+  if (seeded) return seeded;
+  const n = Number(id);
+  if (n > 100 && n <= 122) return new Date(Date.UTC(2026, 7, n - 100, 3, 0, 0)).toISOString();
+  const known = sessionJoinedAt.get(id);
+  if (known) return known;
+  const now = new Date().toISOString();
+  sessionJoinedAt.set(id, now);
+  return now;
+}
+
 /** 이번 세션 중 가입한 계정 — 새로고침하면 사라진다 (실제 DB 아님) */
 const dynamicUsers: Record<string, AuthUser> = {};
 
@@ -2062,7 +2085,7 @@ export const mockApi: Api = {
           loginId: u.loginId,
           phone: u.phone,
           role: u.role,
-          createdAt: "2026-08-19T09:00:00Z",
+          createdAt: joinedAt(u.id),
         }),
       );
 
