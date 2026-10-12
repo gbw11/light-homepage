@@ -152,3 +152,46 @@ describe("MemberRow — 전도사 지정 (점검 2026-10-07 🔴-4)", () => {
     expect(mockChangeRole).toHaveBeenCalledWith("member-1", { role: "PASTOR" });
   });
 });
+
+describe("MemberRow — 가입일 (점검 2026-10-07 🟠-6, FR-ADM-03)", () => {
+  it("이름·아이디·역할과 함께 가입일을 보여준다", () => {
+    // 한낮(UTC 03시)으로 잡아 실행 환경 시간대와 상관없이 같은 날짜가 나오게
+    renderMemberRow({ ...member, createdAt: "2026-08-19T03:00:00Z" });
+    expect(screen.getByText("8/19 가입")).toHaveAttribute("datetime", "2026-08-19T03:00:00Z");
+  });
+});
+
+describe("MemberRow — 본인 행 (점검 2026-10-07 🔵-13)", () => {
+  it("본인 행에는 [삭제]가 없다 — 서버가 자기 삭제를 400으로 거부한다", () => {
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemberRow member={member} isSelf />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
+    // 비밀번호 초기화·역할 변경은 그대로 (인수인계 때 본인 강등이 필요하다)
+    expect(screen.getByRole("button", { name: "비번 초기화" })).toBeInTheDocument();
+    expect(screen.getByLabelText("김도연a 역할 변경")).toBeInTheDocument();
+  });
+
+  it("다른 회원 행에는 [삭제]가 있다", () => {
+    renderMemberRow();
+    expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
+  });
+});
+
+describe("MemberRow — 삭제 사유 500자 한도 (점검 2026-10-07 🔵-15)", () => {
+  it("입력 한도를 걸고 글자 수를 보여준다", async () => {
+    const user = userEvent.setup();
+    renderMemberRow();
+    await user.click(screen.getByRole("button", { name: "삭제" }));
+
+    const input = screen.getByLabelText("삭제 사유 (필수 — 기록에 남습니다)");
+    expect(input).toHaveAttribute("maxLength", "500");
+    expect(input).toHaveAccessibleDescription("0 / 500자");
+
+    await user.type(input, "본인 확인");
+    expect(screen.getByText("5 / 500자")).toBeInTheDocument();
+  });
+});
