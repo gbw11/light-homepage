@@ -10,6 +10,7 @@ import { api, isApiError } from "@/lib/api";
 import type { LoginInput } from "@/types/api";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
+import { safeNextPath } from "@/lib/auth/nextPath";
 
 /** WIREFRAME.md §10-1, SPEC_API.md §2.3 — loginId 기반 (v1.3) */
 const schema = z.object({
@@ -37,10 +38,16 @@ export function LoginForm() {
 
   const mutation = useMutation({
     mutationFn: (input: LoginInput) => api.auth.login(input),
-    onSuccess: () => {
-      // 세션이 생겼으니 전역 로그인 상태를 갱신하고 회원 홈으로
-      refetch();
-      router.push("/my");
+    onSuccess: async () => {
+      // 세션이 생겼으니 전역 로그인 상태를 갱신하고 이동한다. 갱신을
+      // 기다린 뒤 이동해야 목적지가 옛 값(비로그인)으로 깜빡이지 않는다 (🔵-7)
+      await refetch();
+      // 게이트가 실어 보낸 원래 화면으로 돌아간다 (🔵-1). 내부 경로가 아니면
+      // 무시하고 회원 홈으로 — 오픈 리다이렉트 방지(`safeNextPath`).
+      // useSearchParams 대신 제출 시점에 읽는다: 정적 페이지에 Suspense 경계를
+      // 새로 만들 필요가 없다.
+      const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
+      router.push(next ?? "/my");
     },
     onError: (error) => {
       if (isApiError(error) && error.code === "UNAUTHORIZED") {

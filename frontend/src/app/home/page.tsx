@@ -11,7 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { Reveal, RevealNoScript } from "@/components/ui/Reveal";
-import { BulletinLink } from "./_components/BulletinLink";
+import { MembersOnlyLink } from "@/components/auth/MembersOnlyLink";
 import { RecentSermon } from "./_components/RecentSermon";
 import { WeeklyNotices } from "./_components/WeeklyNotices";
 import { LIGHT_WORDMARK } from "@/lib/viewTransition";
@@ -142,8 +142,10 @@ export default function Home() {
           <Link href="/news" className="inline-flex min-h-11 items-center">
             ▸ 공지 전체보기
           </Link>
-          {/* 주보는 회원 전용이 됐다 — 로그인한 사람에게만 그린다 (그 조각 주석) */}
-          <BulletinLink />
+          {/* 주보는 회원 전용이 됐다 — 로그인한 사람에게만 그린다 (PM 결정 2026-09-04) */}
+          <MembersOnlyLink href="/bulletin" className="inline-flex min-h-11 items-center">
+            ▸ 주보 보기
+          </MembersOnlyLink>
         </Reveal>
       </Section>
 
@@ -239,15 +241,16 @@ export default function Home() {
         </div>
 
         {/*
-          사진첩으로 보낸다. 예전에는 사진첩이 회원 전용이라 소식 페이지로
-          우회했지만, 공개 열람 전환(PM 결정 2026-08-25)으로 `/photos`가
-          누구에게나 열렸다. 위 3장은 공개용 실사진이고, 눌러서 들어가는 앨범
-          쪽은 얼굴이 식별되는 사진이 있어 색인은 계속 막혀 있다(robots.ts).
+          사진첩 진입점은 **로그인한 사람에게만** 그린다. 사진첩은 2026-08-25에
+          잠시 공개로 열렸다가 2026-08-31 「열람 M 복귀」로 다시 회원 전용이
+          됐다 — 비로그인 방문자에게 링크를 보이면 눌러야 닫힌 문을 만난다
+          (주보와 같은 원칙, PM 결정 2026-09-04 · 점검 🟠-1). 위 3장은 공개용
+          실사진이라 누구에게나 보인다.
         */}
         <Reveal>
-          <Link href="/photos" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
+          <MembersOnlyLink href="/photos" className="mt-6 inline-flex min-h-11 items-center text-sm font-bold">
             ▸ 사진첩
-          </Link>
+          </MembersOnlyLink>
         </Reveal>
       </Section>
 

@@ -72,6 +72,7 @@ function renderScreen(detail: MeetingDetail) {
     isLoading: false,
     refetch: vi.fn(),
     logout: vi.fn(),
+    clearSession: vi.fn(),
   });
   mockGet.mockResolvedValue(detail);
 

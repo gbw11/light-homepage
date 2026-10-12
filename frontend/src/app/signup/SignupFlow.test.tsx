@@ -77,13 +77,14 @@ describe("SignupFlow — VerifyStep", () => {
     ).toBeInTheDocument();
   });
 
-  it("동명이인(VALIDATION_ERROR)이면 전용 안내 문구를 보여준다", async () => {
+  it("동명이인(VALIDATION_ERROR, field name — 실서버 계약)이면 전용 안내 문구를 보여준다", async () => {
     const user = userEvent.setup();
     mockVerifyRoster.mockRejectedValueOnce(
       new ApiError({
         code: "VALIDATION_ERROR",
-        message: "명단에 동명이인이 있습니다.",
+        message: "동명이인이 확인되었습니다. 임원에게 문의해 주세요.",
         status: 400,
+        field: "name",
       }),
     );
     renderSignupFlow();
@@ -93,6 +94,45 @@ describe("SignupFlow — VerifyStep", () => {
     expect(
       await screen.findByText(/동명이인 확인이 필요합니다. 임원에게 문의해 주세요\./),
     ).toBeInTheDocument();
+  });
+
+  it.each([
+    ["birthDate", "생년월일을 확인해주세요."],
+    ["phone", "전화번호를 확인해주세요."],
+  ])("서버 형식 오류(field %s)는 그 칸에 표시하고 임원 문의로 안내하지 않는다 (🟡-5)", async (field, message) => {
+    const user = userEvent.setup();
+    mockVerifyRoster.mockRejectedValueOnce(
+      new ApiError({ code: "VALIDATION_ERROR", message, status: 400, field }),
+    );
+    renderSignupFlow();
+
+    await fillVerifyStep(user);
+
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(screen.queryByText(/임원에게 문의/)).not.toBeInTheDocument();
+  });
+
+  it("field 없는 VALIDATION_ERROR는 서버 문구를 그대로 보여준다 — 동명이인으로 단정하지 않는다", async () => {
+    const user = userEvent.setup();
+    mockVerifyRoster.mockRejectedValueOnce(
+      new ApiError({ code: "VALIDATION_ERROR", message: "요청 형식이 올바르지 않습니다.", status: 400, field: null }),
+    );
+    renderSignupFlow();
+
+    await fillVerifyStep(user);
+
+    expect(await screen.findByText(/요청 형식이 올바르지 않습니다\./)).toBeInTheDocument();
+    expect(screen.queryByText(/임원에게 문의/)).not.toBeInTheDocument();
+  });
+
+  it("달력에 없는 생년월일은 서버에 보내기 전에 막는다", async () => {
+    const user = userEvent.setup();
+    renderSignupFlow();
+
+    await fillVerifyStep(user, { birthDate: "2001-13-45" });
+
+    expect(await screen.findByText("생년월일을 확인해주세요.")).toBeInTheDocument();
+    expect(mockVerifyRoster).not.toHaveBeenCalled();
   });
 
   it("동명이인이 아닌 실패는 서버가 준 단일 문구를 그대로 보여준다", async () => {
