@@ -109,7 +109,7 @@ void main() {
       final calls = await pump(tester, auth, more);
 
       await tester.tap(find.widgetWithText(FilledButton, '로그인'));
-      await tester.tap(find.text('처음이신가요? 회원가입'));
+      await tester.tap(find.text('회원가입'));
       expect(calls, ['login', 'signup']);
       expect(find.text('로그아웃'), findsNothing);
     });

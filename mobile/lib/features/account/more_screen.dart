@@ -217,10 +217,7 @@ class _GuestCard extends StatelessWidget {
               // 1분 가까이 걸린다. 그 사이 로그인해도 늦게 끝난 확인이 덮어쓰지 않는다
               FilledButton(onPressed: onLogin, child: const Text('로그인')),
               const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: onSignup,
-                child: const Text('처음이신가요? 회원가입'),
-              ),
+              OutlinedButton(onPressed: onSignup, child: const Text('회원가입')),
             ],
           ),
         ),

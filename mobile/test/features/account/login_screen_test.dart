@@ -115,7 +115,7 @@ void main() {
     // 테스트는 WEB_BASE_URL 없이 돈다 (config.dart)
     final (_, calls) = await pumpLogin(tester, serverWith(ok));
 
-    await tester.tap(find.text('▸ 처음이신가요? 회원가입'));
+    await tester.tap(find.text('▸ 회원가입'));
     await tester.tap(find.text('▸ 처음 오시는 분이신가요?'));
     expect(calls, ['signup', 'welcome']);
     // 비밀번호 찾기만 웹이다 — 주소가 없으면 말로 알린다
@@ -125,7 +125,7 @@ void main() {
   testWidgets('가입을 마치고 돌아오면 아이디를 채우고 비밀번호를 써 보게 한다', (tester) async {
     await pumpLogin(tester, serverWith(ok), signupReturns: 'newbie01');
 
-    await tester.tap(find.text('▸ 처음이신가요? 회원가입'));
+    await tester.tap(find.text('▸ 회원가입'));
     await tester.pumpAndSettle();
 
     expect(find.text('newbie01'), findsOneWidget);
@@ -146,7 +146,7 @@ void main() {
   testWidgets('가입을 그냥 닫고 오면 아무것도 바꾸지 않는다', (tester) async {
     await pumpLogin(tester, serverWith(ok));
 
-    await tester.tap(find.text('▸ 처음이신가요? 회원가입'));
+    await tester.tap(find.text('▸ 회원가입'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('가입이 완료되었어요'), findsNothing);

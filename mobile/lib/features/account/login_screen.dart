@@ -214,7 +214,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   '비밀번호를 잊으셨나요?',
                   onPressed: () => widget.openExternal(resetUrl),
                 ),
-              _Link('처음이신가요? 회원가입', onPressed: _openSignup),
+              _Link('회원가입', onPressed: _openSignup),
               // 웹 주소가 아직 없다 (config.dart `webBaseUrl` 주석) — 길만 말로 알린다
               if (resetUrl == null)
                 Padding(
@@ -249,6 +249,9 @@ class _Link extends StatelessWidget {
         onPressed: onPressed,
         style: TextButton.styleFrom(
           padding: EdgeInsets.zero,
+          // 글이 짧으면(「▸ 회원가입」) 버튼 최소 폭 안에서 가운데로 가 다른 줄과 어긋난다
+          minimumSize: const Size(0, 48),
+          alignment: Alignment.centerLeft,
           foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
         child: Text('▸ $label'),
