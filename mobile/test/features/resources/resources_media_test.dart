@@ -293,35 +293,72 @@ void main() {
       onLogin: () {},
     );
 
-    testWidgets('몇 장 중 몇 번째인지 보이고, 넘기면 바뀐다', (tester) async {
-      final server = FakeServer(
-        (RequestOptions o) async => respond(200, {'data': detail('9', 3)}),
-      );
+    /// 상세는 주보마다, 목록(날짜 칩)은 최근 세 부
+    FakeServer serverWith({int pages = 3}) => FakeServer(
+      (RequestOptions o) async => switch (o.path) {
+        '/bulletins' => page([
+          summary('9', '2026-10-11'),
+          summary('8', '2026-10-04'),
+          summary('7', '2026-09-27'),
+        ]),
+        '/bulletins/8' => respond(200, {
+          'data': {...detail('8', 1), 'serviceDate': '2026-10-04'},
+        }),
+        _ => respond(200, {'data': detail('9', pages)}),
+      },
+    );
+
+    testWidgets('날짜 제목 · 몇 면 중 몇 번째인지 보이고, 넘기면 바뀐다', (tester) async {
+      final server = serverWith();
       await pump(tester, screen(server));
 
-      expect(server.paths, ['GET /bulletins/9']);
-      expect(find.text('2026.10.11 주보'), findsOneWidget);
-      expect(find.text('1 / 3'), findsOneWidget);
+      expect(server.paths, containsAll(['GET /bulletins/9', 'GET /bulletins']));
+      expect(find.text('2026년 10월 11일'), findsOneWidget);
+      expect(find.text('1 / 3 면'), findsOneWidget);
 
-      await tester.fling(find.byType(PageView), const Offset(-400, 0), 1000);
+      await tester.fling(find.byType(PageView), const Offset(-300, 0), 1000);
       await tester.pumpAndSettle();
 
-      expect(find.text('2 / 3'), findsOneWidget);
+      expect(find.text('2 / 3 면'), findsOneWidget);
+    });
+
+    testWidgets('날짜 칩 — 맨 앞은 이번 주, 누르면 그 주보로 바뀐다', (tester) async {
+      final server = serverWith();
+      await pump(tester, screen(server));
+
+      expect(find.text('10월 11일 (이번 주)'), findsOneWidget);
+      await tester.tap(find.text('10월 4일'));
+      await tester.pumpAndSettle();
+
+      expect(server.paths, contains('GET /bulletins/8'));
+      expect(find.text('2026년 10월 4일'), findsOneWidget);
+      expect(find.text('1 / 1 면'), findsOneWidget);
+    });
+
+    testWidgets('[지난 주보]로 목록에서 고른다', (tester) async {
+      final server = serverWith();
+      await pump(tester, screen(server));
+
+      await tester.tap(find.text('지난 주보'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('2026년 10월 4일').last);
+      await tester.pumpAndSettle();
+
+      expect(server.paths, contains('GET /bulletins/8'));
     });
 
     testWidgets('이미지를 못 받으면(주소 만료 등) 새 주소를 받아 온다', (tester) async {
-      final server = FakeServer(
-        (_) async => respond(200, {'data': detail('9', 2)}),
-      );
+      final server = serverWith(pages: 2);
       await pump(tester, screen(server));
 
       // 테스트 환경에서는 네트워크 이미지를 못 받는다 — 실패 화면이 곧 만료 상황이다
+      await tester.ensureVisible(find.text('다시 불러오기').first);
       await tester.tap(find.text('다시 불러오기').first);
       // 확대용 두 번 누르기 판정이 끝나야 한 번 누르기가 확정된다
       await tester.pump(kDoubleTapTimeout);
       await tester.pumpAndSettle();
 
-      expect(server.paths, ['GET /bulletins/9', 'GET /bulletins/9']);
+      expect(server.paths.where((p) => p == 'GET /bulletins/9'), hasLength(2));
     });
 
     testWidgets('없는 주보는 찾을 수 없다고 말한다', (tester) async {
@@ -337,6 +374,17 @@ void main() {
       );
 
       expect(find.text('찾을 수 없는 주보예요.'), findsOneWidget);
+    });
+
+    testWidgets('작은 폰(360dp)에서 글자를 2배로 키워도 넘치지 않는다', (tester) async {
+      await pump(
+        tester,
+        screen(serverWith()),
+        textScale: 2,
+        size: const Size(360, 740),
+      );
+
+      expect(tester.takeException(), isNull);
     });
   });
 }
