@@ -11,8 +11,19 @@ const _acrostic = <(String, String)>[
 
 const _logoAsset = 'assets/images/logo.png';
 
-/// 인트로 전체 길이. 엠블럼 → 글귀가 한 줄씩 → 잠깐 머문 뒤 사라진다
+/// 인트로 전체 길이. 엠블럼 → 글귀가 한 글자씩 써진다 → 잠깐 머문 뒤 사라진다
 const introDuration = Duration(milliseconds: 2600);
+
+/// 글귀를 쓰는 구간 (전체 길이에 대한 비율). 엠블럼이 다 뜨기 전에 바로 쓰기 시작한다
+/// (PM 요청 2026-10-13 — 엠블럼과 글귀 사이 공백이 길게 느껴짐)
+const _typingStart = 0.1;
+const _typingEnd = 0.66;
+
+/// 줄을 바꿀 때 몇 글자만큼 쉬는지 — 손으로 쓰듯 줄 사이에 잠깐 멈춘다
+const _lineBreakPause = 2;
+
+/// 다 쓴 뒤 커서가 깜빡이는 간격
+const _caretBlink = Duration(milliseconds: 400);
 
 /// 동작 줄이기를 켠 사람에게는 움직임 없이 짧게만 보여준다
 const introReducedDuration = Duration(milliseconds: 900);
@@ -100,6 +111,15 @@ class _AppIntroState extends State<AppIntro>
           curve: Interval(begin, end, curve: Curves.easeOutCubic),
         );
 
+  /// 쓰는 동안은 계속 보이고, 다 쓴 뒤에는 깜빡인다. 쓰기 전에는 숨긴다
+  bool _caretVisible(double typing) {
+    if (typing <= 0) return false;
+    if (typing < 1) return true;
+    final sinceDone =
+        (_controller.value - _typingEnd) * introDuration.inMilliseconds;
+    return (sinceDone / _caretBlink.inMilliseconds).floor().isEven;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_done) return widget.child;
@@ -111,7 +131,14 @@ class _AppIntroState extends State<AppIntro>
       parent: _controller,
       curve: Interval(_reduced ? 0.6 : 0.82, 1, curve: Curves.easeIn),
     );
-    final logo = _phase(0, 0.2);
+    final logo = _phase(0, 0.12);
+    // 쓴 글자 수 (줄바꿈 쉼 포함, 소수점 = 지금 쓰는 글자가 나타난 정도)
+    final typing = _reduced
+        ? const AlwaysStoppedAnimation<double>(1)
+        : CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(_typingStart, _typingEnd),
+          );
     final lineStyle = (textTheme.headlineSmall ?? const TextStyle()).copyWith(
       fontWeight: FontWeight.w700,
       height: 1.25,
@@ -153,20 +180,14 @@ class _AppIntroState extends State<AppIntro>
                         ),
                       ),
                       const SizedBox(height: 32),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (var i = 0; i < _acrostic.length; i++)
-                            _AcrosticLine(
-                              letter: _acrostic[i].$1,
-                              rest: _acrostic[i].$2,
-                              style: lineStyle,
-                              letterColor: scheme.primary,
-                              // 한 줄씩 차례로 — 0.20에서 시작해 0.07 간격
-                              progress: _phase(0.2 + i * 0.07, 0.35 + i * 0.07),
-                            ),
-                        ],
+                      AnimatedBuilder(
+                        animation: typing,
+                        builder: (context, _) => _TypedAcrostic(
+                          typed: typing.value * _typingUnits,
+                          showCaret: !_reduced && _caretVisible(typing.value),
+                          style: lineStyle,
+                          letterColor: scheme.primary,
+                        ),
                       ),
                     ],
                   ),
@@ -180,44 +201,120 @@ class _AppIntroState extends State<AppIntro>
   }
 }
 
-/// 글귀 한 줄 — 첫 글자는 강조색, 나머지는 본문색. 왼쪽에서 살짝 밀려 들어온다
-class _AcrosticLine extends StatelessWidget {
-  const _AcrosticLine({
-    required this.letter,
-    required this.rest,
+/// 글귀 전체를 쓰는 데 드는 단위 (글자 수 + 줄바꿈 쉼)
+final int _typingUnits =
+    _acrostic.fold<int>(
+      0,
+      (sum, line) => sum + line.$1.length + line.$2.length,
+    ) +
+    (_acrostic.length - 1) * _lineBreakPause;
+
+/// LIGHT 글귀를 [typed] 단위만큼 써 둔 모습.
+///
+/// 아직 안 쓴 글자도 **투명하게 자리를 차지**한다 — 글자가 늘 때마다 줄 폭이 바뀌면
+/// 가운데 정렬된 글귀 묶음이 좌우로 흔들리기 때문이다. 지금 쓰는 글자는 [typed]의
+/// 소수 부분만큼 흐릿하게 나타나서, 펜으로 쓰는 것처럼 부드럽게 이어진다.
+class _TypedAcrostic extends StatelessWidget {
+  const _TypedAcrostic({
+    required this.typed,
+    required this.showCaret,
     required this.style,
     required this.letterColor,
-    required this.progress,
+  });
+
+  final double typed;
+  final bool showCaret;
+  final TextStyle style;
+  final Color letterColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final lines = <Widget>[];
+    var start = 0;
+    for (var i = 0; i < _acrostic.length; i++) {
+      final (letter, rest) = _acrostic[i];
+      final length = letter.length + rest.length;
+      final local = (typed - start).clamp(0.0, length.toDouble());
+      final isLast = i == _acrostic.length - 1;
+      // 커서는 지금 쓰고 있는 줄에 — 다 쓰면 마지막 줄 끝에 남는다
+      final writingHere =
+          typed >= start &&
+          (typed < start + length + (isLast ? 1 : _lineBreakPause) || isLast);
+      lines.add(
+        _TypedLine(
+          letter: letter,
+          rest: rest,
+          typed: local,
+          caret: showCaret && writingHere,
+          style: style,
+          letterColor: letterColor,
+        ),
+      );
+      start += length + _lineBreakPause;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: lines,
+    );
+  }
+}
+
+/// 글귀 한 줄 — 첫 글자는 강조색, 나머지는 본문색
+class _TypedLine extends StatelessWidget {
+  const _TypedLine({
+    required this.letter,
+    required this.rest,
+    required this.typed,
+    required this.caret,
+    required this.style,
+    required this.letterColor,
   });
 
   final String letter;
   final String rest;
+  final double typed;
+  final bool caret;
   final TextStyle style;
   final Color letterColor;
-  final Animation<double> progress;
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: progress,
-      child: SlideTransition(
-        position: Tween(
-          begin: const Offset(-0.08, 0),
-          end: Offset.zero,
-        ).animate(progress),
-        child: Text.rich(
-          TextSpan(
-            style: style,
-            children: [
-              TextSpan(
-                text: letter,
-                style: TextStyle(color: letterColor),
-              ),
-              TextSpan(text: rest),
-            ],
-          ),
+    final text = letter + rest;
+    final whole = typed.floor();
+    final caretAt = typed.ceil();
+    final spans = <InlineSpan>[];
+    for (var i = 0; i < text.length; i++) {
+      if (caret && i == caretAt) spans.add(_caret());
+      final shown = i < whole ? 1.0 : (i == whole ? typed - whole : 0.0);
+      final base = i < letter.length
+          ? letterColor
+          : (style.color ?? Colors.black);
+      spans.add(
+        TextSpan(
+          text: text[i],
+          style: TextStyle(color: base.withValues(alpha: base.a * shown)),
+        ),
+      );
+    }
+    if (caret && caretAt >= text.length) spans.add(_caret());
+    return Text.rich(TextSpan(style: style, children: spans));
+  }
+
+  /// 폭이 0인 커서 — 자리를 차지하지 않아 글자 위치가 흔들리지 않는다
+  WidgetSpan _caret() => WidgetSpan(
+    alignment: PlaceholderAlignment.middle,
+    child: SizedBox(
+      width: 0,
+      height: (style.fontSize ?? 24) * 1.1,
+      child: OverflowBox(
+        maxWidth: 3,
+        alignment: Alignment.centerLeft,
+        child: ColoredBox(
+          color: letterColor,
+          child: const SizedBox(width: 2.5, height: double.infinity),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
