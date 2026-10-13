@@ -144,8 +144,8 @@ void main() {
   testWidgets('맨 위에 예배 시간·장소·버튼 2개가 있다 (WIREFRAME §1)', (tester) async {
     await pumpHome(tester, serverWith());
 
-    expect(find.text('주일 14:00 · 청년예배'), findsOneWidget);
-    expect(find.text('드림센터 4층'), findsOneWidget);
+    expect(find.text('빛으로 함께 걷는\n청년공동체 LIGHT'), findsOneWidget);
+    expect(find.text('주일 14:00 · 드림센터 4층'), findsOneWidget);
     expect(find.text('처음 오시는 분'), findsOneWidget);
     expect(find.text('오시는 길'), findsOneWidget);
   });
@@ -263,13 +263,11 @@ void main() {
   });
 
   group('맨 위 그림', () {
-    const photo = '어두운 예배 공간에서 손을 들어 찬양하는 청년들의 실루엣';
-
-    testWidgets('비로그인은 예배 사진 — 회원 전용 주보를 부르지 않는다', (tester) async {
+    testWidgets('비로그인은 소개 카드만 — 회원 전용 주보를 부르지 않는다', (tester) async {
       final server = serverWith();
       await pumpHome(tester, server);
 
-      expect(find.bySemanticsLabel(photo), findsOneWidget);
+      expect(find.byType(BulletinCarousel), findsNothing);
       expect(server.paths.where((p) => p.contains('/bulletins')), isEmpty);
     });
 
@@ -282,7 +280,6 @@ void main() {
       );
 
       expect(server.paths, contains('GET /bulletins/latest'));
-      expect(find.bySemanticsLabel(photo), findsNothing);
       expect(find.text('2026.10.11 주보 · 1/2'), findsOneWidget);
 
       await tester.tap(find.text('2026.10.11 주보 · 1/2'));
@@ -352,16 +349,17 @@ void main() {
         }),
       ),
     ]) {
-      testWidgets('$name 예배 사진을 그대로 둔다', (tester) async {
+      testWidgets('$name 주보 칸 없이 소개 카드만 둔다', (tester) async {
         final server = serverWith(latestBulletin: response);
         await pumpHome(tester, server, auth: await memberOf(tester, server));
 
-        expect(find.bySemanticsLabel(photo), findsOneWidget);
+        expect(find.byType(BulletinCarousel), findsNothing);
+        expect(find.text('주일 14:00 · 드림센터 4층'), findsOneWidget);
         expect(find.textContaining('불러오지 못했어요'), findsNothing);
       });
     }
 
-    testWidgets('로그아웃하면 예배 사진으로 돌아간다', (tester) async {
+    testWidgets('로그아웃하면 주보 칸이 사라진다', (tester) async {
       final server = serverWith();
       final auth = await memberOf(tester, server);
       await pumpHome(tester, server, auth: auth);
@@ -371,7 +369,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(BulletinCarousel), findsNothing);
-      expect(find.bySemanticsLabel(photo), findsOneWidget);
     });
 
     testWidgets('당기면 주보도 다시 받는다 — 그새 올라온 주보로 바뀐다', (tester) async {

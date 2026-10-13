@@ -45,9 +45,10 @@ class HomeActions {
 /// 맨 위는 웹과 같은 원칙을 지킨다 — **스크롤 없이 예배 시간 + 장소 + 다음 행동이
 /// 모두 보인다** (WIREFRAME §1).
 ///
-/// 맨 위 그림은 로그인한 회원에게 **최신 주보**다 — 임원이 매주 올리면 따라 바뀌고,
-/// 장을 2초마다 넘긴다 ([BulletinCarousel]). 주보는 회원 전용이라(SPEC_API §5,
-/// 비로그인 401) 비로그인 · 주보 없음 · 실패에는 예배 사진을 둔다.
+/// 그 아래가 예배 사진을 깐 소개 카드다 — 한 줄 소개 · 예배 시간 · 장소 · 버튼 2개.
+/// 로그인한 회원에게는 그 위에 **최신 주보**가 더 있다 — 임원이 매주 올리면 따라
+/// 바뀌고, 장을 2초마다 넘긴다 ([BulletinCarousel]). 주보는 회원 전용이라
+/// (SPEC_API §5, 비로그인 401) 비로그인 · 주보 없음 · 실패에는 카드만 있다.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
@@ -203,75 +204,162 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
     final bulletin = this.bulletin;
+    final hasBulletin = bulletin != null && bulletin.pages.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 사진은 원본이 16:9라 그대로 둔다 — 크롭하면 특정 인물이 확대될 수 있다
-        // (웹 홈 주석). 주보는 장 비율을 따른다 (bulletinAspectRatio)
+        // 주보는 장 비율을 따른다 (bulletinAspectRatio). 없으면 칸 자체가 없다 —
+        // 예배 사진은 아래 카드 배경이라 위에 또 두면 같은 사진이 두 번 보인다
         AnimatedSize(
           duration: const Duration(milliseconds: 300),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: bulletin == null || bulletin.pages.isEmpty
-                ? AspectRatio(
-                    key: const ValueKey('photo'),
-                    aspectRatio: 16 / 9,
-                    child: Image.asset(
-                      'assets/images/worship-hero.webp',
-                      fit: BoxFit.cover,
-                      semanticLabel: '어두운 예배 공간에서 손을 들어 찬양하는 청년들의 실루엣',
-                    ),
-                  )
-                : AspectRatio(
-                    key: ValueKey(bulletin.id),
-                    aspectRatio: bulletinAspectRatio(bulletin),
-                    child: BulletinCarousel(
-                      bulletin: bulletin,
-                      onOpen: () => onOpenBulletin(bulletin.id),
-                    ),
+          alignment: Alignment.topCenter,
+          child: hasBulletin
+              ? AspectRatio(
+                  key: ValueKey(bulletin.id),
+                  aspectRatio: bulletinAspectRatio(bulletin),
+                  child: BulletinCarousel(
+                    bulletin: bulletin,
+                    onOpen: () => onOpenBulletin(bulletin.id),
                   ),
-          ),
+                )
+              : const SizedBox(width: double.infinity),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '주일 14:00 · 청년예배',
-                style: text.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '드림센터 4층',
-                style: text.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: onFirstVisit,
-                      child: const Text('처음 오시는 분'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: onDirections,
-                      child: const Text('오시는 길'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          padding: EdgeInsets.fromLTRB(16, hasBulletin ? 16 : 8, 16, 0),
+          child: _WelcomeCard(
+            onFirstVisit: onFirstVisit,
+            onDirections: onDirections,
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 예배 사진 위에 한 줄 소개 · 예배 시간 · 장소 · 버튼 2개.
+///
+/// 사진은 꾸밈이라 스크린리더가 건너뛴다 — 무엇이 있는지는 글자가 다 말한다.
+/// 높이는 글자에 맞춰 늘어난다 (사진은 뒤에 깔릴 뿐) — 큰 글씨에서도 잘리지 않는다
+class _WelcomeCard extends StatelessWidget {
+  const _WelcomeCard({required this.onFirstVisit, required this.onDirections});
+
+  final VoidCallback onFirstVisit;
+  final VoidCallback onDirections;
+
+  /// 사진 위 어두운 막 — 앱 올리브그린을 어둡게 한 색. 흰 글자가 사진의 밝은
+  /// 곳(조명 · 화면)에 걸려도 읽히게 아래로 갈수록 짙다
+  static const _scrimTop = Color(0x8C232B1E);
+  static const _scrimBottom = Color(0xE6232B1E);
+
+  /// 시계 아이콘 — 막 위에서 보이는 연한 초록
+  static const _accent = Color(0xFFC9DDB8);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    const buttonShape = StadiumBorder();
+    final buttonText = theme.textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w700,
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/worship-hero.webp',
+              fit: BoxFit.cover,
+              excludeFromSemantics: true,
+            ),
+          ),
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [_scrimTop, _scrimBottom],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Semantics(
+                  header: true,
+                  child: Text(
+                    '빛으로 함께 걷는\n청년공동체 LIGHT',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(Icons.schedule, color: _accent, size: 22),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '주일 14:00 · 드림센터 4층',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: onFirstVisit,
+                        icon: const Icon(Icons.favorite),
+                        label: const Text('처음 오시는 분'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: scheme.surface,
+                          foregroundColor: scheme.onSurface,
+                          minimumSize: const Size(0, 52),
+                          shape: buttonShape,
+                          textStyle: buttonText,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: onDirections,
+                        icon: const Icon(Icons.near_me_outlined),
+                        label: const Text('오시는 길'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(0, 52),
+                          shape: buttonShape,
+                          textStyle: buttonText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
