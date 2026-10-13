@@ -268,6 +268,7 @@ void main() {
       await pumpHome(tester, server);
 
       expect(find.byType(BulletinCarousel), findsNothing);
+      expect(find.text('이번 주 주보'), findsNothing);
       expect(server.paths.where((p) => p.contains('/bulletins')), isEmpty);
     });
 
@@ -280,6 +281,7 @@ void main() {
       );
 
       expect(server.paths, contains('GET /bulletins/latest'));
+      expect(find.text('이번 주 주보'), findsOneWidget);
       expect(find.text('2026.10.11 주보 · 1/2'), findsOneWidget);
 
       await tester.tap(find.text('2026.10.11 주보 · 1/2'));

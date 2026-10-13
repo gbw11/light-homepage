@@ -221,13 +221,20 @@ class _Hero extends StatelessWidget {
       duration: const Duration(milliseconds: 300),
       alignment: Alignment.topCenter,
       child: hasBulletin
-          ? AspectRatio(
+          ? Column(
               key: ValueKey(bulletin.id),
-              aspectRatio: bulletinAspectRatio(bulletin),
-              child: BulletinCarousel(
-                bulletin: bulletin,
-                onOpen: () => onOpenBulletin(bulletin.id),
-              ),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 무엇인지 한눈에 — 사진처럼 보여 주보인 줄 모른다 (사용자 결정 2026-10-13)
+                const _SectionHeader('이번 주 주보'),
+                AspectRatio(
+                  aspectRatio: bulletinAspectRatio(bulletin),
+                  child: BulletinCarousel(
+                    bulletin: bulletin,
+                    onOpen: () => onOpenBulletin(bulletin.id),
+                  ),
+                ),
+              ],
             )
           : const SizedBox(width: double.infinity),
     );
@@ -388,11 +395,13 @@ class _WelcomeCard extends StatelessWidget {
 ///
 /// 큰 글씨에서 한 줄에 다 못 들어가면 링크가 다음 줄로 내려간다 (Wrap)
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title, {required this.link, required this.onLink});
+  const _SectionHeader(this.title, {this.link, this.onLink});
 
   final String title;
-  final String link;
-  final VoidCallback onLink;
+
+  /// 오른쪽 「… ›」 링크 — 없으면 제목만
+  final String? link;
+  final VoidCallback? onLink;
 
   @override
   Widget build(BuildContext context) {
@@ -429,7 +438,8 @@ class _SectionHeader extends StatelessWidget {
               ],
             ),
           ),
-          TextButton(onPressed: onLink, child: Text('$link ›')),
+          if (link case final link?)
+            TextButton(onPressed: onLink, child: Text('$link ›')),
         ],
       ),
     );
