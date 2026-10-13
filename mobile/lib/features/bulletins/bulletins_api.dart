@@ -16,6 +16,15 @@ class BulletinsApi {
         decode: (data) => PageResult.fromJson(data, BulletinSummary.fromJson),
       );
 
+  /// 가장 최근 주보 — 모든 장의 큰 이미지까지 온다. 없으면 null (SPEC_API §5.1)
+  Future<Bulletin?> latest() => _client.get(
+    '/bulletins/latest',
+    decode: (data) => switch (data) {
+      final Map<String, dynamic> json => Bulletin.fromJson(json),
+      _ => null,
+    },
+  );
+
   Future<Bulletin> get(String id) => _client.get(
     '/bulletins/$id',
     decode: (data) => Bulletin.fromJson(data as Map<String, dynamic>),

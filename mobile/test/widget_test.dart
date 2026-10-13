@@ -15,6 +15,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('LIGHT'), findsOneWidget);
-    expect(find.text('주일 14:00 · 청년예배'), findsOneWidget);
+    expect(find.text('주일 14:00 · 드림센터 4층'), findsOneWidget);
   });
 }

@@ -11,6 +11,7 @@ class SignedImage extends StatelessWidget {
     super.key,
     required this.url,
     this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
     this.semanticLabel,
     this.onExpired,
   });
@@ -18,6 +19,9 @@ class SignedImage extends StatelessWidget {
   /// 없으면(대표 사진 없는 앨범 등) 빈 자리표시자
   final String? url;
   final BoxFit fit;
+
+  /// [fit]으로 잘릴 때 남길 쪽 — 세로로 긴 주보 표지는 위를 남긴다
+  final Alignment alignment;
   final String? semanticLabel;
   final VoidCallback? onExpired;
 
@@ -40,6 +44,7 @@ class SignedImage extends StatelessWidget {
       child: Image.network(
         url,
         fit: fit,
+        alignment: alignment,
         excludeFromSemantics: true,
         // 받는 동안 빈 칸이 배경과 같은 색이면 칸이 없는 것처럼 보인다
         loadingBuilder: (context, child, progress) =>
