@@ -16,9 +16,6 @@ enum AuthMode { login, signup }
 ///
 /// ```
 ///        (엠블럼)
-///   [🛡 교적 기반 안심 로그인]
-///      LIGHT 청년교회
-///   빛으로 함께 걷는 … 환영합니다
 /// ( [🔒 로그인] [👤+ 회원가입] )
 /// ┌ 흰 카드 ───────────────┐
 /// │ 아이디 *  [🪪 ……… ]     │
@@ -258,69 +255,19 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-/// 엠블럼 · 「교적 기반 안심 로그인」 · 제목 · 환영 문구
+/// 엠블럼만 — 글은 두지 않는다 (사용자 결정 2026-10-13)
 class _Header extends StatelessWidget {
   const _Header();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Column(
-      children: [
-        Image.asset(
-          'assets/images/logo.png',
-          height: 96,
-          excludeFromSemantics: true,
-        ),
-        const SizedBox(height: 16),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            // 시드에서 만든 primaryContainer는 형광빛이라 버튼색을 옅게 깐다
-            color: scheme.primary.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.verified_user, size: 16, color: scheme.primary),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    '교적 기반 안심 로그인',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Semantics(
-          header: true,
-          child: Text(
-            'LIGHT 청년교회',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '빛으로 함께 걷는 믿음의 청년 공동체에\n오신 것을 환영합니다',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: scheme.onSurfaceVariant,
-            height: 1.5,
-          ),
-        ),
-      ],
+    return Center(
+      child: Image.asset(
+        'assets/images/logo.png',
+        height: 120,
+        // 이름은 위쪽 칸(로그인 · 회원가입)과 카드가 말한다 — 그림은 꾸밈이다
+        excludeFromSemantics: true,
+      ),
     );
   }
 }
