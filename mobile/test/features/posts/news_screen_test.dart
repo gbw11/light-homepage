@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:light_mobile/core/format/date_format.dart';
 import 'package:light_mobile/core/theme/app_theme.dart';
 import 'package:light_mobile/features/posts/news_screen.dart';
 import 'package:light_mobile/features/posts/post_summary.dart';
@@ -95,7 +96,7 @@ void main() {
     });
   });
 
-  testWidgets('고정 글에는 📌, 첨부가 있으면 첨부 수를 단다', (tester) async {
+  testWidgets('카드로 — 고정 글에는 딱지, 첨부가 있으면 첨부 수를 단다', (tester) async {
     await pumpNews(
       tester,
       serverWith(
@@ -106,9 +107,13 @@ void main() {
       ),
     );
 
-    expect(find.byIcon(Icons.push_pin), findsOneWidget);
-    expect(find.text('첨부 2'), findsOneWidget);
-    expect(find.text('2026.10.05'), findsNWidgets(2));
+    expect(find.text('고정'), findsOneWidget);
+    expect(find.byIcon(Icons.attach_file), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(
+      find.text(formatShortDate(DateTime.utc(2026, 10, 5, 3))),
+      findsNWidgets(2),
+    );
   });
 
   testWidgets('로그인하면 회원 공지까지 합쳐 고정 먼저 보여준다', (tester) async {
