@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:light_mobile/core/auth/auth_state.dart';
 import 'package:light_mobile/core/theme/app_theme.dart';
+import 'package:light_mobile/features/bulletins/bulletins_api.dart';
 import 'package:light_mobile/features/home/home_screen.dart';
 import 'package:light_mobile/features/posts/posts_api.dart';
 import 'package:light_mobile/features/sermons/sermons_api.dart';
@@ -31,15 +33,44 @@ FakeResponse page(List<Object> items) => respond(200, {
   'data': {'items': items, 'page': 0, 'size': items.length, 'hasNext': false},
 });
 
+const bulletin = {
+  'id': '9',
+  'serviceDate': '2026-10-11',
+  'pageCount': 4,
+  'thumbUrl': 'https://r2.example.com/b/9/1.webp?sig=x',
+};
+
+const member = {
+  'id': '42',
+  'name': '김도연a',
+  'loginId': 'doyeon01',
+  'phone': '010-1234-5678',
+  'role': 'MEMBER',
+};
+
 /// 경로별 응답을 정하는 가짜 서버
-FakeServer serverWith({FakeResponse? notices, FakeResponse? sermons}) =>
-    FakeServer(
-      (RequestOptions o) async => switch (o.path) {
-        '/posts' => notices ?? page([notice('1', '첫 공지')]),
-        '/sermons' => sermons ?? page([sermon]),
-        _ => respond(404),
-      },
-    );
+FakeServer serverWith({
+  FakeResponse? notices,
+  FakeResponse? sermons,
+  FakeResponse? bulletins,
+}) => FakeServer(
+  (RequestOptions o) async => switch (o.path) {
+    '/posts' => notices ?? page([notice('1', '첫 공지')]),
+    '/sermons' => sermons ?? page([sermon]),
+    '/bulletins' => bulletins ?? page([bulletin]),
+    '/auth/me' => respond(200, {'data': member}),
+    '/auth/logout' => respond(204),
+    _ => respond(404),
+  },
+);
+
+/// [server]로 로그인을 확인한 회원. 확인은 진짜 시계에서 기다려야 끝난다
+Future<AuthState> memberOf(WidgetTester tester, FakeServer server) async {
+  final auth = AuthState(clientFor(server));
+  await tester.runAsync(auth.restore);
+  addTearDown(auth.dispose);
+  return auth;
+}
 
 /// 홈이 부른 바깥 동작을 기록한다
 class Recorder {
@@ -52,12 +83,14 @@ class Recorder {
     onSeeAllNotices: () => calls.add('allNotices'),
     onOpenSermon: (s) => calls.add('sermon:${s.id}'),
     onSeeAllSermons: () => calls.add('allSermons'),
+    onOpenBulletin: (b) => calls.add('bulletin:${b.id}'),
   );
 }
 
 Future<Recorder> pumpHome(
   WidgetTester tester,
   FakeServer server, {
+  AuthState? auth,
   double textScale = 1,
   // 기본 테스트 화면(800×600 가로)은 폰과 달라서 16:9 사진이 공지를 화면 밖으로 민다.
   // 에뮬레이터 Medium Phone과 같은 세로 화면에서 본다
@@ -69,20 +102,22 @@ Future<Recorder> pumpHome(
 
   final recorder = Recorder();
   final api = clientFor(server);
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: buildAppTheme(),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(textScaler: TextScaler.linear(textScale)),
-        child: child!,
-      ),
-      home: HomeScreen(
-        posts: PostsApi(api),
-        sermons: SermonsApi(api),
-        actions: recorder.actions,
-      ),
+  final app = MaterialApp(
+    theme: buildAppTheme(),
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context)
+          .copyWith(textScaler: TextScaler.linear(textScale)),
+      child: child!,
     ),
+    home: HomeScreen(
+      posts: PostsApi(api),
+      sermons: SermonsApi(api),
+      bulletins: BulletinsApi(api),
+      actions: recorder.actions,
+    ),
+  );
+  await tester.pumpWidget(
+    auth == null ? app : AuthScope(auth: auth, child: app),
   );
   await tester.pumpAndSettle();
   return recorder;
@@ -202,6 +237,84 @@ void main() {
       'sermon:dQw4w9WgXcQ',
       'allSermons',
     ]);
+  });
+
+  group('맨 위 그림', () {
+    const photo = '어두운 예배 공간에서 손을 들어 찬양하는 청년들의 실루엣';
+
+    testWidgets('비로그인은 예배 사진 — 회원 전용 주보를 부르지 않는다', (tester) async {
+      final server = serverWith();
+      await pumpHome(tester, server);
+
+      expect(find.bySemanticsLabel(photo), findsOneWidget);
+      expect(server.paths, isNot(contains('GET /bulletins')));
+    });
+
+    testWidgets('회원은 최신 주보 표지, 누르면 그 주보를 연다', (tester) async {
+      // 스크린리더가 읽는 버튼 이름까지 본다
+      final semantics = tester.ensureSemantics();
+      final server = serverWith();
+      final recorder = await pumpHome(
+        tester,
+        server,
+        auth: await memberOf(tester, server),
+      );
+
+      final req = server.requests.firstWhere((r) => r.path == '/bulletins');
+      expect(req.queryParameters, {'size': 1});
+      expect(find.bySemanticsLabel(photo), findsNothing);
+      expect(find.text('주보 · 2026.10.11'), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('2026.10.11 주보 보기'));
+      expect(recorder.calls, ['bulletin:9']);
+      semantics.dispose();
+    });
+
+    for (final (name, response) in [
+      ('주보가 아직 없으면', page([])),
+      (
+        '주보를 못 받으면',
+        respond(500, {
+          'error': {'code': 'INTERNAL_ERROR', 'message': 'x', 'field': null},
+        }),
+      ),
+    ]) {
+      testWidgets('$name 예배 사진을 그대로 둔다', (tester) async {
+        final server = serverWith(bulletins: response);
+        await pumpHome(tester, server, auth: await memberOf(tester, server));
+
+        expect(find.bySemanticsLabel(photo), findsOneWidget);
+        expect(find.textContaining('불러오지 못했어요'), findsNothing);
+      });
+    }
+
+    testWidgets('로그아웃하면 예배 사진으로 돌아간다', (tester) async {
+      final server = serverWith();
+      final auth = await memberOf(tester, server);
+      await pumpHome(tester, server, auth: auth);
+      expect(find.text('주보 · 2026.10.11'), findsOneWidget);
+
+      await tester.runAsync(auth.logout);
+      await tester.pumpAndSettle();
+
+      expect(find.text('주보 · 2026.10.11'), findsNothing);
+      expect(find.bySemanticsLabel(photo), findsOneWidget);
+    });
+
+    testWidgets('당기면 주보도 다시 받는다 — 그새 올라온 주보로 바뀐다', (tester) async {
+      var latest = bulletin;
+      final server = FakeServer(
+        (o) async =>
+            o.path == '/bulletins' ? page([latest]) : serverWith().handler(o),
+      );
+      await pumpHome(tester, server, auth: await memberOf(tester, server));
+
+      latest = {...bulletin, 'id': '10', 'serviceDate': '2026-10-18'};
+      await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
+      await tester.pumpAndSettle();
+
+      expect(find.text('주보 · 2026.10.18'), findsOneWidget);
+    });
   });
 
   testWidgets('아래로 당기면 다시 불러온다', (tester) async {
