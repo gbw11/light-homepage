@@ -195,6 +195,10 @@ void main() {
           bulletins: BulletinsApi(clientFor(server)),
           onOpen: (b) => calls.add(b.id),
           onLogin: () => calls.add('login'),
+          onUpload: () async {
+            calls.add('upload');
+            return false;
+          },
         );
 
     testWidgets('이번 주 주보를 크게, 지난 주보를 그 아래에', (tester) async {
@@ -220,6 +224,31 @@ void main() {
       await tester.tap(find.text('주보 보기'));
       await tester.tap(find.text('2026.10.04'));
       expect(calls, ['9', '8']);
+    });
+
+    testWidgets('일반 회원에게는 [주보 올리기]가 없다', (tester) async {
+      final auth = await authAs(tester, me('MEMBER'));
+      await pump(
+        tester,
+        screen(FakeServer((_) async => page([])), []),
+        auth: auth,
+      );
+
+      expect(find.text('주보 올리기'), findsNothing);
+    });
+
+    testWidgets('임원 이상은 [주보 올리기]로 올리는 화면을 연다', (tester) async {
+      final auth = await authAs(tester, me('LEADER'));
+      final calls = <String>[];
+      await pump(
+        tester,
+        screen(FakeServer((_) async => page([])), calls),
+        auth: auth,
+      );
+
+      await tester.tap(find.text('주보 올리기'));
+      await tester.pumpAndSettle();
+      expect(calls, ['upload']);
     });
 
     testWidgets('주보가 없으면 없다고 말한다', (tester) async {

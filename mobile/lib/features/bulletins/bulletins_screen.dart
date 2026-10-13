@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/api_error.dart';
+import '../../core/auth/auth_state.dart';
 import '../../core/format/date_format.dart';
 import '../../core/paging/paged_list.dart';
 import '../../core/ui/paged_list_view.dart';
@@ -18,15 +19,22 @@ const bulletinAspectRatio = 1448 / 2048;
 /// 맨 위는 **이번 주 주보**를 크게, 그 아래로 지난 주보를 날짜순으로 둔다.
 /// 누르면 장 단위로 넘겨 보는 뷰어가 열린다. 장별 내려받기는 1차에 넣지 않는다
 /// (결정 D5).
+///
+/// 임원 이상에게는 오른쪽 아래에 [주보 올리기]가 있다. 다 올리고 돌아오면 목록을
+/// 새로 받는다.
 class BulletinsScreen extends StatefulWidget {
   const BulletinsScreen({
     super.key,
     required this.bulletins,
     required this.onOpen,
     required this.onLogin,
+    required this.onUpload,
   });
 
   final BulletinsApi bulletins;
+
+  /// 주보 올리기 화면을 연다 — 다 올렸으면 true로 끝난다. 임원 이상에게만 보인다
+  final Future<bool?> Function() onUpload;
   final void Function(BulletinSummary bulletin) onOpen;
   final VoidCallback onLogin;
 
@@ -47,12 +55,33 @@ class _BulletinsScreenState extends State<BulletinsScreen> {
     super.dispose();
   }
 
+  Future<void> _upload() async {
+    final uploaded = await widget.onUpload();
+    if (uploaded != true || !mounted) return;
+    await _list.refresh();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('주보를 올렸어요.')));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isLeader = AuthScope.maybeOf(context)?.user?.role.isLeader ?? false;
     return Scaffold(
       appBar: AppBar(
         title: const Text('주보', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
+      floatingActionButton: isLeader
+          ? FloatingActionButton.extended(
+              onPressed: _upload,
+              // 테마가 만든 기본색(primaryContainer)은 형광빛이라 앱 초록으로
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              icon: const Icon(Icons.upload_outlined),
+              label: const Text('주보 올리기'),
+            )
+          : null,
       body: ListenableBuilder(
         listenable: _list,
         builder: (context, _) {
