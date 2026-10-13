@@ -54,3 +54,25 @@ class AuthUser {
     phone: phone ?? this.phone,
   );
 }
+
+/// 가입 1단계(명단 확인)를 통과한 결과 (SPEC_API §2.1)
+class VerifiedRoster {
+  const VerifiedRoster({
+    required this.registrationToken,
+    required this.name,
+    required this.expiresIn,
+  });
+
+  factory VerifiedRoster.fromJson(Map<String, dynamic> json) => VerifiedRoster(
+    registrationToken: json['registrationToken'] as String,
+    name: json['name'] as String,
+    expiresIn: json['expiresIn'] as int,
+  );
+
+  /// 1회용 · [expiresIn]초 뒤 만료 — 2단계(계정 만들기)에만 쓴다
+  final String registrationToken;
+
+  /// 명단의 이름 (동명이인 접미사 포함, 예: `김도연a`)
+  final String name;
+  final int expiresIn;
+}

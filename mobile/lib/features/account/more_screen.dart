@@ -9,11 +9,12 @@ import '../../core/ui/menu_button.dart';
 /// 더보기 탭 — 나와 앱 (기획안 §2-4 M10, 결정 D1).
 ///
 /// 교회 안내는 사이드바가 맡고, 여기는 **계정 · 설정 · 앱 정보**만 둔다.
-/// 가입 · 탈퇴 · 관리는 앱에 만들지 않고 웹으로 보낸다 (결정 D2).
+/// 가입은 앱 안에서 한다. 탈퇴 · 관리는 앱에 만들지 않고 웹으로 보낸다.
 class MoreScreen extends StatelessWidget {
   const MoreScreen({
     super.key,
     required this.onLogin,
+    required this.onSignup,
     required this.onProfile,
     required this.onPasswordChange,
     required this.onContact,
@@ -21,6 +22,7 @@ class MoreScreen extends StatelessWidget {
   });
 
   final VoidCallback onLogin;
+  final VoidCallback onSignup;
   final VoidCallback onProfile;
   final VoidCallback onPasswordChange;
   final VoidCallback onContact;
@@ -74,7 +76,7 @@ class MoreScreen extends StatelessWidget {
               onLogout: () => _confirmLogout(context, auth),
             )
           else
-            _GuestCard(onLogin: onLogin, openExternal: openExternal),
+            _GuestCard(onLogin: onLogin, onSignup: onSignup),
           const _GroupLabel('교회'),
           _Group(
             children: [
@@ -191,15 +193,14 @@ class _AccountCard extends StatelessWidget {
 }
 
 class _GuestCard extends StatelessWidget {
-  const _GuestCard({required this.onLogin, required this.openExternal});
+  const _GuestCard({required this.onLogin, required this.onSignup});
 
   final VoidCallback onLogin;
-  final void Function(String url) openExternal;
+  final VoidCallback onSignup;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final signupUrl = webUrl('/signup');
     return _Group(
       children: [
         Padding(
@@ -216,19 +217,10 @@ class _GuestCard extends StatelessWidget {
               // 1분 가까이 걸린다. 그 사이 로그인해도 늦게 끝난 확인이 덮어쓰지 않는다
               FilledButton(onPressed: onLogin, child: const Text('로그인')),
               const SizedBox(height: 8),
-              if (signupUrl != null)
-                TextButton(
-                  onPressed: () => openExternal(signupUrl),
-                  child: const Text('가입은 웹에서 →'),
-                )
-              else
-                Text(
-                  '회원가입은 LIGHT 웹 홈페이지에서 할 수 있어요.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
+              OutlinedButton(
+                onPressed: onSignup,
+                child: const Text('처음이신가요? 회원가입'),
+              ),
             ],
           ),
         ),

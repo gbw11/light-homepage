@@ -2,11 +2,13 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/api/api_client.dart';
+import '../core/auth/auth_api.dart';
 import '../core/auth/auth_state.dart';
 import '../features/account/login_screen.dart';
 import '../features/account/more_screen.dart';
 import '../features/account/password_change_screen.dart';
 import '../features/account/profile_screen.dart';
+import '../features/account/signup_screen.dart';
 import '../features/bulletins/bulletin_viewer_screen.dart';
 import '../features/bulletins/bulletins_api.dart';
 import '../features/bulletins/bulletins_screen.dart';
@@ -55,6 +57,7 @@ GoRouter buildRouter({
   final bulletins = BulletinsApi(api);
   final meetings = MeetingsApi(api);
   final photos = PhotosApi(api);
+  final authApi = AuthApi(api);
 
   /// 공지 상세. 홈과 소식 두 탭에서 열린다 — 화면은 하나, 주소만 탭마다 다르다.
   /// 목록이 slug 대신 id로 연다: slug에는 한글이 올 수 있어 주소 인코딩을
@@ -239,6 +242,7 @@ GoRouter buildRouter({
                 path: AppPaths.more,
                 builder: (context, state) => MoreScreen(
                   onLogin: () => context.push(AppPaths.login),
+                  onSignup: () => context.push(AppPaths.signup),
                   onProfile: () => context.push('${AppPaths.more}/profile'),
                   onPasswordChange: () =>
                       context.push('${AppPaths.more}/password'),
@@ -296,7 +300,25 @@ GoRouter buildRouter({
           onDone: () =>
               context.canPop() ? context.pop() : context.go(AppPaths.home),
           onFirstVisit: () => context.push(AppPaths.welcome),
+          // 로그인에서 연 가입은 끝나면 이 로그인 화면으로 돌아온다 (아이디를 들고)
+          onSignup: () => context.push<String>('${AppPaths.signup}?from=login'),
           openExternal: openExternal,
+          signedUpLoginId: state.extra as String?,
+        ),
+      ),
+      GoRoute(
+        path: AppPaths.signup,
+        builder: (context, state) => SignupScreen(
+          auth: authApi,
+          onLogin: (loginId) {
+            // 로그인 화면에서 왔으면 그 화면으로 돌아간다 — 로그인 화면이 두 겹 쌓이지 않게.
+            // 더보기에서 왔으면 이 자리를 로그인 화면으로 바꾼다
+            if (state.uri.queryParameters['from'] == 'login') {
+              context.pop(loginId);
+            } else {
+              context.pushReplacement(AppPaths.login, extra: loginId);
+            }
+          },
         ),
       ),
 

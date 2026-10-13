@@ -17,6 +17,8 @@ Future<(AuthState, List<String>)> pumpLogin(
   FakeServer server, {
   double textScale = 1,
   Size screen = const Size(411, 914),
+  String? signedUpLoginId,
+  String? signupReturns,
 }) async {
   tester.view.physicalSize = screen * 3;
   tester.view.devicePixelRatio = 3;
@@ -37,7 +39,12 @@ Future<(AuthState, List<String>)> pumpLogin(
         auth: auth,
         onDone: () => calls.add('done'),
         onFirstVisit: () => calls.add('welcome'),
+        onSignup: () async {
+          calls.add('signup');
+          return signupReturns;
+        },
         openExternal: (url) => calls.add('open:$url'),
+        signedUpLoginId: signedUpLoginId,
       ),
     ),
   );
@@ -104,14 +111,45 @@ void main() {
     expect(password().obscureText, isFalse);
   });
 
-  testWidgets('웹 주소가 정해지지 않았으면 가입 링크 대신 안내 문구를 둔다', (tester) async {
+  testWidgets('가입은 앱 안에서 연다 — 웹 주소가 없어도 링크가 있다', (tester) async {
     // 테스트는 WEB_BASE_URL 없이 돈다 (config.dart)
     final (_, calls) = await pumpLogin(tester, serverWith(ok));
 
-    expect(find.textContaining('회원가입'), findsOneWidget);
-    expect(find.text('▸ 처음이신가요? 회원가입'), findsNothing);
+    await tester.tap(find.text('▸ 처음이신가요? 회원가입'));
     await tester.tap(find.text('▸ 처음 오시는 분이신가요?'));
-    expect(calls, ['welcome']);
+    expect(calls, ['signup', 'welcome']);
+    // 비밀번호 찾기만 웹이다 — 주소가 없으면 말로 알린다
+    expect(find.text('비밀번호 찾기는 LIGHT 웹 홈페이지에서 할 수 있어요.'), findsOneWidget);
+  });
+
+  testWidgets('가입을 마치고 돌아오면 아이디를 채우고 비밀번호를 써 보게 한다', (tester) async {
+    await pumpLogin(tester, serverWith(ok), signupReturns: 'newbie01');
+
+    await tester.tap(find.text('▸ 처음이신가요? 회원가입'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('newbie01'), findsOneWidget);
+    expect(find.textContaining('가입이 완료되었어요'), findsOneWidget);
+    final password = tester.widget<EditableText>(
+      find.byType(EditableText).at(1),
+    );
+    expect(password.focusNode.hasFocus, isTrue);
+  });
+
+  testWidgets('가입 화면에서 곧장 와도 아이디가 채워져 있다', (tester) async {
+    await pumpLogin(tester, serverWith(ok), signedUpLoginId: 'newbie01');
+
+    expect(find.text('newbie01'), findsOneWidget);
+    expect(find.textContaining('가입이 완료되었어요'), findsOneWidget);
+  });
+
+  testWidgets('가입을 그냥 닫고 오면 아무것도 바꾸지 않는다', (tester) async {
+    await pumpLogin(tester, serverWith(ok));
+
+    await tester.tap(find.text('▸ 처음이신가요? 회원가입'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('가입이 완료되었어요'), findsNothing);
   });
 
   testWidgets('작은 폰(360dp)에서 글자를 2배로 키워도 넘치지 않는다', (tester) async {

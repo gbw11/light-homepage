@@ -9,14 +9,19 @@ import '../../core/ui/status_views.dart';
 /// 로그인 (웹 `/login`, WIREFRAME §10-1, 기획안 §2-5 M1).
 ///
 /// 아이디 · 비밀번호만 있다. 카카오 로그인은 보류(백엔드 콜백이 웹으로만
-/// 돌아간다), 가입 · 비밀번호 찾기는 웹으로 보낸다 (기획안 결정 D2).
+/// 돌아간다). 가입은 앱 안에서 하고(SignupScreen), 비밀번호 찾기는 웹으로 보낸다.
+///
+/// 가입을 마치고 오면 방금 만든 아이디를 채워 두고 비밀번호 칸으로 보낸다 —
+/// 방금 정한 비밀번호를 바로 한 번 써 보게 한다 (SPEC_API §2.2).
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
     required this.auth,
     required this.onDone,
     required this.onFirstVisit,
+    required this.onSignup,
     required this.openExternal,
+    this.signedUpLoginId,
   });
 
   final AuthState auth;
@@ -24,7 +29,13 @@ class LoginScreen extends StatefulWidget {
   /// 로그인을 마쳤을 때 — 연 화면으로 돌아간다
   final VoidCallback onDone;
   final VoidCallback onFirstVisit;
+
+  /// 가입 화면을 연다. 가입을 마치고 로그인하러 오면 만든 아이디가 돌아온다
+  final Future<String?> Function() onSignup;
   final void Function(String url) openExternal;
+
+  /// 가입 화면에서 곧장 왔을 때 — 방금 만든 아이디
+  final String? signedUpLoginId;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -34,14 +45,40 @@ class _LoginScreenState extends State<LoginScreen> {
   final _form = GlobalKey<FormState>();
   final _loginId = TextEditingController();
   final _password = TextEditingController();
+  final _passwordFocus = FocusNode();
   var _hidePassword = true;
   var _submitting = false;
   String? _error;
+
+  /// 가입을 마치고 왔을 때의 안내
+  String? _notice;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.signedUpLoginId case final loginId?) _fillSignedUp(loginId);
+  }
+
+  void _fillSignedUp(String loginId) {
+    _loginId.text = loginId;
+    _password.clear();
+    _error = null;
+    _notice = '가입이 완료되었어요. 방금 정한 비밀번호로 로그인해 보세요.';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _passwordFocus.requestFocus();
+    });
+  }
+
+  Future<void> _openSignup() async {
+    final loginId = await widget.onSignup();
+    if (loginId != null && mounted) setState(() => _fillSignedUp(loginId));
+  }
 
   @override
   void dispose() {
     _loginId.dispose();
     _password.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -76,7 +113,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final signupUrl = webUrl('/signup');
     final resetUrl = webUrl('/password/reset');
 
     return Scaffold(
@@ -108,6 +144,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
+              if (_notice case final notice?) ...[
+                const SizedBox(height: 16),
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    notice,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 32),
               TextFormField(
                 controller: _loginId,
@@ -122,6 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _password,
+                focusNode: _passwordFocus,
                 obscureText: _hidePassword,
                 decoration: InputDecoration(
                   labelText: '비밀번호',
@@ -164,17 +214,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   '비밀번호를 잊으셨나요?',
                   onPressed: () => widget.openExternal(resetUrl),
                 ),
-              if (signupUrl != null)
-                _Link(
-                  '처음이신가요? 회원가입',
-                  onPressed: () => widget.openExternal(signupUrl),
-                ),
+              _Link('처음이신가요? 회원가입', onPressed: _openSignup),
               // 웹 주소가 아직 없다 (config.dart `webBaseUrl` 주석) — 길만 말로 알린다
-              if (signupUrl == null)
+              if (resetUrl == null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
-                    '회원가입과 비밀번호 찾기는 LIGHT 웹 홈페이지에서 할 수 있어요.',
+                    '비밀번호 찾기는 LIGHT 웹 홈페이지에서 할 수 있어요.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

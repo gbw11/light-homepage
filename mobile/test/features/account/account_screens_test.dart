@@ -85,6 +85,7 @@ Future<List<String>> pump(
 
 MoreScreen more(List<String> calls) => MoreScreen(
   onLogin: () => calls.add('login'),
+  onSignup: () => calls.add('signup'),
   onProfile: () => calls.add('profile'),
   onPasswordChange: () => calls.add('password'),
   onContact: () => calls.add('contact'),
@@ -103,13 +104,13 @@ void main() {
   );
 
   group('더보기', () {
-    testWidgets('비로그인이면 [로그인]과 가입 안내를 둔다', (tester) async {
+    testWidgets('비로그인이면 [로그인]과 [회원가입]을 둔다 — 가입은 앱 안에서', (tester) async {
       final (auth, _) = await start(tester, null);
       final calls = await pump(tester, auth, more);
 
-      expect(find.textContaining('회원가입은'), findsOneWidget);
       await tester.tap(find.widgetWithText(FilledButton, '로그인'));
-      expect(calls, ['login']);
+      await tester.tap(find.text('처음이신가요? 회원가입'));
+      expect(calls, ['login', 'signup']);
       expect(find.text('로그아웃'), findsNothing);
     });
 

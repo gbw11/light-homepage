@@ -17,6 +17,7 @@ abstract final class AppPaths {
 
   // 계정 — 하단 탭을 덮고 열린다
   static const login = '/login';
+  static const signup = '/signup';
 
   // 사이드바 — 교회 안내
   static const welcome = '/welcome';
