@@ -8,7 +8,6 @@ import '../features/account/login_screen.dart';
 import '../features/account/my_page_screen.dart';
 import '../features/account/password_change_screen.dart';
 import '../features/account/profile_screen.dart';
-import '../features/account/signup_screen.dart';
 import '../features/bulletins/bulletin_viewer_screen.dart';
 import '../features/bulletins/bulletins_api.dart';
 import '../features/bulletins/bulletins_screen.dart';
@@ -100,6 +99,17 @@ GoRouter buildRouter({
       routes: [noticeDetail(':id', title: title)],
     );
   }
+
+  /// 로그인 · 회원가입 — 한 화면이고 처음 보여줄 칸만 다르다
+  LoginScreen loginScreen(BuildContext context, AuthMode mode) => LoginScreen(
+    auth: auth,
+    signupApi: authApi,
+    initialMode: mode,
+    // 연 화면으로 돌아간다. 그 화면은 로그인 상태로 다시 그려진다
+    onDone: () => context.canPop() ? context.pop() : context.go(AppPaths.home),
+    onFirstVisit: () => context.push(AppPaths.welcome),
+    openExternal: openExternal,
+  );
 
   return GoRouter(
     initialLocation: AppPaths.home,
@@ -292,32 +302,12 @@ GoRouter buildRouter({
       // ── 계정 ──
       GoRoute(
         path: AppPaths.login,
-        builder: (context, state) => LoginScreen(
-          auth: auth,
-          // 연 화면으로 돌아간다. 그 화면은 로그인 상태로 다시 그려진다
-          onDone: () =>
-              context.canPop() ? context.pop() : context.go(AppPaths.home),
-          onFirstVisit: () => context.push(AppPaths.welcome),
-          // 로그인에서 연 가입은 끝나면 이 로그인 화면으로 돌아온다 (아이디를 들고)
-          onSignup: () => context.push<String>('${AppPaths.signup}?from=login'),
-          openExternal: openExternal,
-          signedUpLoginId: state.extra as String?,
-        ),
+        builder: (context, state) => loginScreen(context, AuthMode.login),
       ),
+      // 마이페이지의 [회원가입] — 같은 화면을 회원가입 칸으로 연다
       GoRoute(
         path: AppPaths.signup,
-        builder: (context, state) => SignupScreen(
-          auth: authApi,
-          onLogin: (loginId) {
-            // 로그인 화면에서 왔으면 그 화면으로 돌아간다 — 로그인 화면이 두 겹 쌓이지 않게.
-            // 더보기에서 왔으면 이 자리를 로그인 화면으로 바꾼다
-            if (state.uri.queryParameters['from'] == 'login') {
-              context.pop(loginId);
-            } else {
-              context.pushReplacement(AppPaths.login, extra: loginId);
-            }
-          },
-        ),
+        builder: (context, state) => loginScreen(context, AuthMode.signup),
       ),
 
       // ── 사이드바(☰)의 교회 안내 — 하단 탭을 덮고 뒤로가기로 닫힌다 ──

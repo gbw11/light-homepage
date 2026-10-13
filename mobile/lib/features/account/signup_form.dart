@@ -9,6 +9,7 @@ import '../../core/auth/auth_api.dart';
 import '../../core/auth/auth_user.dart';
 import '../../core/format/dashed_digits_formatter.dart';
 import '../../core/ui/status_views.dart';
+import 'auth_form.dart';
 
 /// BCrypt가 받는 비밀번호 상한 — 글자 수가 아니라 **바이트**다. 한글은 한 글자가
 /// 3바이트라 24자면 이미 넘는다 (웹 `lib/password.ts`와 같은 규칙)
@@ -20,6 +21,7 @@ final _loginIdPattern = RegExp(r'^[a-z0-9_]{4,30}$');
 final _phonePattern = RegExp(r'^010-\d{4}-\d{4}$');
 
 /// 회원가입 (웹 `/signup`, WIREFRAME §10-2, SPEC_API §2.1~2.2).
+/// 로그인 화면의 「회원가입」 칸 안에 들어간다 (`LoginScreen`).
 ///
 /// 1. **본인 확인** — 이름(동명이인 접미사 포함) · 생년월일 · 전화번호를 교회 명단과
 ///    대조한다. 실패는 칸마다 짚지 않고 **문구 하나**다 — 어느 칸이 틀렸는지 알려주면
@@ -31,16 +33,16 @@ final _phonePattern = RegExp(r'^010-\d{4}-\d{4}$');
 ///
 /// 카카오로 계속하기(웹 2단계의 다른 수단)는 앱에서 보류다 — 백엔드 콜백이 웹으로만
 /// 돌아간다.
-class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key, required this.auth, required this.onLogin});
+class SignupForm extends StatefulWidget {
+  const SignupForm({super.key, required this.auth, required this.onLogin});
 
   final AuthApi auth;
 
-  /// 로그인으로 간다 — 가입을 마쳤으면 방금 만든 아이디, 아니면 null
-  final void Function(String? loginId) onLogin;
+  /// 로그인으로 간다 — 가입을 마쳤으면 방금 만든 아이디
+  final void Function(String loginId) onLogin;
 
   @override
-  State<SignupScreen> createState() => _SignupScreenState();
+  State<SignupForm> createState() => _SignupFormState();
 }
 
 sealed class _Step {
@@ -68,10 +70,10 @@ class _Done extends _Step {
   final String loginId;
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _SignupFormState extends State<SignupForm> {
   _Step _step = const _Verify();
 
-  // 1단계 입력은 화면 전체가 들고 있는다 — 2단계에서 뒤로 오거나 시간이 지나
+  // 1단계 입력은 가입 전체가 들고 있는다 — 2단계에서 뒤로 오거나 시간이 지나
   // 다시 확인할 때 처음부터 다시 쓰지 않게
   final _name = TextEditingController();
   final _birthDate = TextEditingController();
@@ -91,52 +93,43 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     final step = _step;
     return PopScope(
-      // 2단계 · 만료에서 뒤로가기는 1단계로 — 가입 화면을 통째로 닫지 않는다
+      // 2단계 · 만료에서 뒤로가기는 1단계로 — 화면을 통째로 닫지 않는다
       canPop: step is _Verify || step is _Done,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _go(const _Verify());
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            '회원가입',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
+      child: switch (step) {
+        _Verify() => _VerifyStep(
+          auth: widget.auth,
+          name: _name,
+          birthDate: _birthDate,
+          phone: _phone,
+          onVerified: (verified) => _go(_Register(verified)),
         ),
-        body: switch (step) {
-          _Verify() => _VerifyStep(
-            auth: widget.auth,
-            name: _name,
-            birthDate: _birthDate,
-            phone: _phone,
-            onVerified: (verified) => _go(_Register(verified)),
-            onLogin: () => widget.onLogin(null),
-          ),
-          _Register(:final verified) => _RegisterStep(
-            key: ValueKey(verified.registrationToken),
-            auth: widget.auth,
-            verified: verified,
-            birthDate: _birthDate.text,
-            phone: _phone.text,
-            onExpired: () => _go(const _Expired()),
-            onDone: (name, loginId) => _go(_Done(name: name, loginId: loginId)),
-          ),
-          _Expired() => _Result(
-            emoji: '⌛',
-            title: '시간이 지났습니다',
-            message: '본인 확인은 5분 안에 마쳐야 해요. 다시 확인해 주세요.',
-            action: '다시 확인하기',
-            onAction: () => _go(const _Verify()),
-          ),
-          _Done(:final name, :final loginId) => _Result(
-            emoji: '🎉',
-            title: '가입이 완료되었습니다',
-            message: '$name님, 방금 정한 비밀번호로 로그인해 보세요.',
-            action: '로그인하기',
-            onAction: () => widget.onLogin(loginId),
-          ),
-        },
-      ),
+        _Register(:final verified) => _RegisterStep(
+          key: ValueKey(verified.registrationToken),
+          auth: widget.auth,
+          verified: verified,
+          birthDate: _birthDate.text,
+          phone: _phone.text,
+          onExpired: () => _go(const _Expired()),
+          onDone: (name, loginId) => _go(_Done(name: name, loginId: loginId)),
+        ),
+        _Expired() => _Result(
+          emoji: '⌛',
+          title: '시간이 지났습니다',
+          message: '본인 확인은 5분 안에 마쳐야 해요. 다시 확인해 주세요.',
+          action: '다시 확인하기',
+          onAction: () => _go(const _Verify()),
+        ),
+        _Done(:final name, :final loginId) => _Result(
+          emoji: '🎉',
+          title: '가입이 완료되었습니다',
+          message: '$name님, 방금 정한 비밀번호로 로그인해 보세요.',
+          action: '로그인하기',
+          onAction: () => widget.onLogin(loginId),
+        ),
+      },
     );
   }
 }
@@ -148,7 +141,6 @@ class _VerifyStep extends StatefulWidget {
     required this.birthDate,
     required this.phone,
     required this.onVerified,
-    required this.onLogin,
   });
 
   final AuthApi auth;
@@ -156,7 +148,6 @@ class _VerifyStep extends StatefulWidget {
   final TextEditingController birthDate;
   final TextEditingController phone;
   final void Function(VerifiedRoster verified) onVerified;
-  final VoidCallback onLogin;
 
   @override
   State<_VerifyStep> createState() => _VerifyStepState();
@@ -202,41 +193,35 @@ class _VerifyStepState extends State<_VerifyStep> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Form(
       key: _form,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _StepLabel(step: 1, title: '본인 확인'),
-          const SizedBox(height: 8),
-          Text(
-            '청년교회 명단과 대조해 본인을 확인합니다.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          const _StepLabel(
+            step: 1,
+            title: '본인 확인',
+            description: '청년교회 명단과 대조해 본인을 확인합니다.',
           ),
-          const SizedBox(height: 24),
-          TextFormField(
+          const SizedBox(height: 20),
+          AuthField(
+            label: '이름',
+            icon: Icons.person_outline,
             controller: widget.name,
-            decoration: const InputDecoration(
-              labelText: '이름',
-              helperText: '동명이인은 명단의 알파벳까지 입력해 주세요 (예: 김도연a)',
-              helperMaxLines: 2,
-            ),
+            hint: '이름을 입력해 주세요',
+            helper: '동명이인은 명단의 알파벳까지 입력해 주세요 (예: 김도연a)',
             textInputAction: TextInputAction.next,
             autofillHints: const [AutofillHints.name],
             validator: (v) =>
                 (v ?? '').trim().length < 2 ? '이름을 입력해 주세요.' : null,
           ),
           const SizedBox(height: 16),
-          TextFormField(
+          AuthField(
+            label: '생년월일',
+            icon: Icons.cake_outlined,
             controller: widget.birthDate,
-            decoration: const InputDecoration(
-              labelText: '생년월일',
-              hintText: '2001-03-14',
-              helperText: '숫자만 누르면 돼요',
-            ),
+            hint: '2001-03-14',
+            helper: '숫자만 누르면 돼요',
             keyboardType: TextInputType.number,
             inputFormatters: const [DashedDigitsFormatter.birthDate()],
             textInputAction: TextInputAction.next,
@@ -246,41 +231,30 @@ class _VerifyStepState extends State<_VerifyStep> {
                 : '생년월일을 2001-03-14처럼 입력해 주세요.',
           ),
           const SizedBox(height: 16),
-          TextFormField(
+          AuthField(
+            label: '전화번호',
+            icon: Icons.phone_outlined,
             controller: widget.phone,
-            decoration: const InputDecoration(
-              labelText: '전화번호',
-              hintText: '010-1234-5678',
-            ),
+            hint: '010-1234-5678',
             keyboardType: TextInputType.phone,
             inputFormatters: const [DashedDigitsFormatter.phone()],
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.telephoneNumber],
-            onFieldSubmitted: (_) => _submit(),
+            onSubmitted: (_) => _submit(),
             validator: (v) => _phonePattern.hasMatch(v ?? '')
                 ? null
                 : '전화번호를 010-1234-5678처럼 입력해 주세요.',
           ),
           if (_error case final error?) ...[
             const SizedBox(height: 16),
-            _ErrorText(error),
+            AuthErrorText(error),
           ],
           const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _submitting ? null : _submit,
-            child: Text(_submitting ? '확인 중...' : '확인하기'),
-          ),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: widget.onLogin,
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                foregroundColor: theme.colorScheme.onSurfaceVariant,
-              ),
-              child: const Text('▸ 이미 계정이 있으신가요? 로그인'),
-            ),
+          AuthSubmitButton(
+            label: '확인하기',
+            busyLabel: '확인 중...',
+            busy: _submitting,
+            onPressed: _submit,
           ),
         ],
       ),
@@ -402,74 +376,65 @@ class _RegisterStepState extends State<_RegisterStep> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final eye = PasswordVisibilityButton(
+      hidden: _hidePassword,
+      onToggle: () => setState(() => _hidePassword = !_hidePassword),
+    );
     return AutofillGroup(
       child: Form(
         key: _form,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _StepLabel(step: 2, title: '계정 만들기'),
-            const SizedBox(height: 8),
-            Text(
-              '${widget.verified.name}님, 확인되었습니다',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+            _StepLabel(
+              step: 2,
+              title: '계정 만들기',
+              description: '${widget.verified.name}님, 확인되었습니다.',
             ),
             const SizedBox(height: 4),
             _Countdown(
               seconds: widget.verified.expiresIn,
               onExpired: widget.onExpired,
             ),
-            const SizedBox(height: 24),
-            TextFormField(
+            const SizedBox(height: 20),
+            AuthField(
+              label: '아이디',
+              icon: Icons.badge_outlined,
               controller: _loginId,
-              forceErrorText: _loginIdError,
-              decoration: InputDecoration(
-                labelText: '아이디',
-                helperText: '영문 소문자 · 숫자 · 밑줄(_) 4~30자',
-              ),
+              hint: '아이디를 정해 주세요',
+              helper: '영문 소문자 · 숫자 · 밑줄(_) 4~30자',
+              errorText: _loginIdError,
               textInputAction: TextInputAction.next,
               autocorrect: false,
-              enableSuggestions: false,
               autofillHints: const [AutofillHints.newUsername],
               validator: (v) => _loginIdPattern.hasMatch((v ?? '').trim())
                   ? null
                   : '아이디는 영문 소문자 · 숫자 · 밑줄(_) 4~30자입니다.',
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            AuthField(
+              label: '비밀번호',
+              icon: Icons.lock_outline,
               controller: _password,
-              forceErrorText: _passwordError,
+              hint: '비밀번호를 정해 주세요',
+              helper: '8자 이상 · 생년월일 · 전화번호와 같으면 쓸 수 없어요',
+              errorText: _passwordError,
               obscureText: _hidePassword,
-              decoration: InputDecoration(
-                labelText: '비밀번호',
-                helperText: '8자 이상 · 생년월일 · 전화번호와 같으면 쓸 수 없어요',
-                helperMaxLines: 2,
-                suffixIcon: IconButton(
-                  onPressed: () =>
-                      setState(() => _hidePassword = !_hidePassword),
-                  tooltip: _hidePassword ? '비밀번호 보기' : '비밀번호 숨기기',
-                  icon: Icon(
-                    _hidePassword
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                  ),
-                ),
-              ),
+              suffix: eye,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.newPassword],
               validator: _validatePassword,
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            AuthField(
+              label: '비밀번호 확인',
+              icon: Icons.lock_outline,
               controller: _confirm,
+              hint: '비밀번호를 한 번 더 입력해 주세요',
               obscureText: _hidePassword,
-              decoration: const InputDecoration(labelText: '비밀번호 확인'),
               textInputAction: TextInputAction.done,
               autofillHints: const [AutofillHints.newPassword],
-              onFieldSubmitted: (_) => _submit(),
+              onSubmitted: (_) => _submit(),
               validator: (v) {
                 if ((v ?? '').isEmpty) return '비밀번호를 한 번 더 입력해 주세요.';
                 if (v != _password.text) return '비밀번호가 일치하지 않습니다.';
@@ -478,12 +443,14 @@ class _RegisterStepState extends State<_RegisterStep> {
             ),
             if (_error case final error?) ...[
               const SizedBox(height: 16),
-              _ErrorText(error),
+              AuthErrorText(error),
             ],
             const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _submitting ? null : _submit,
-              child: Text(_submitting ? '가입 중...' : '가입하기'),
+            AuthSubmitButton(
+              label: '가입하기',
+              busyLabel: '가입 중...',
+              busy: _submitting,
+              onPressed: _submit,
             ),
           ],
         ),
@@ -492,27 +459,44 @@ class _RegisterStepState extends State<_RegisterStep> {
   }
 }
 
-/// 「1/2 본인 확인」
+/// 「1/2 본인 확인」 + 한 줄 설명
 class _StepLabel extends StatelessWidget {
-  const _StepLabel({required this.step, required this.title});
+  const _StepLabel({
+    required this.step,
+    required this.title,
+    required this.description,
+  });
 
   final int step;
   final String title;
+  final String description;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Semantics(
-      header: true,
-      label: '2단계 중 $step단계, $title',
-      excludeSemantics: true,
-      child: Text(
-        '$step/2  $title',
-        style: theme.textTheme.titleMedium?.copyWith(
-          color: theme.colorScheme.primary,
-          fontWeight: FontWeight.w700,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          header: true,
+          label: '2단계 중 $step단계, $title',
+          excludeSemantics: true,
+          child: Text(
+            '$step/2  $title',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          description,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -568,29 +552,9 @@ class _CountdownState extends State<_Countdown> {
     final ss = (left % 60).toString().padLeft(2, '0');
     return Text(
       '아이디와 비밀번호를 정해 주세요. $mm:$ss 안에 마쳐 주세요.',
-      style: theme.textTheme.bodyLarge?.copyWith(
+      style: theme.textTheme.bodyMedium?.copyWith(
         color: theme.colorScheme.onSurfaceVariant,
-      ),
-    );
-  }
-}
-
-class _ErrorText extends StatelessWidget {
-  const _ErrorText(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Semantics(
-      liveRegion: true,
-      child: Text(
-        '⚠ $text',
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.error,
-          fontWeight: FontWeight.w600,
-        ),
+        fontWeight: FontWeight.w600,
       ),
     );
   }
@@ -615,9 +579,10 @@ class _Result extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 48, 24, 40),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const SizedBox(height: 8),
         ExcludeSemantics(
           child: Text(
             emoji,
@@ -644,8 +609,8 @@ class _Result extends StatelessWidget {
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 32),
-        FilledButton(onPressed: onAction, child: Text(action)),
+        const SizedBox(height: 24),
+        AuthSubmitButton(label: action, onPressed: onAction),
       ],
     );
   }

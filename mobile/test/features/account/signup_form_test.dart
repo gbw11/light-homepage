@@ -5,7 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:light_mobile/core/auth/auth_api.dart';
 import 'package:light_mobile/core/format/dashed_digits_formatter.dart';
 import 'package:light_mobile/core/theme/app_theme.dart';
-import 'package:light_mobile/features/account/signup_screen.dart';
+import 'package:light_mobile/features/account/auth_form.dart';
+import 'package:light_mobile/features/account/signup_form.dart';
 
 import '../../support/fake_server.dart';
 
@@ -31,8 +32,9 @@ FakeServer serverWith({FakeResponse? verify, FakeResponse? register}) =>
       },
     );
 
-/// 가입 화면을 띄우고, 화면이 로그인으로 보낸 아이디를 모은다
-Future<List<String?>> pumpSignup(
+/// 가입을 띄우고, 가입이 로그인으로 보낸 아이디를 모은다.
+/// 로그인 화면처럼 스크롤 목록 안에 둔다
+Future<List<String>> pumpSignup(
   WidgetTester tester,
   FakeServer server, {
   double textScale = 1,
@@ -42,7 +44,7 @@ Future<List<String?>> pumpSignup(
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
 
-  final logins = <String?>[];
+  final logins = <String>[];
   await tester.pumpWidget(
     MaterialApp(
       theme: buildAppTheme(),
@@ -51,14 +53,25 @@ Future<List<String?>> pumpSignup(
             .copyWith(textScaler: TextScaler.linear(textScale)),
         child: child!,
       ),
-      home: SignupScreen(auth: AuthApi(clientFor(server)), onLogin: logins.add),
+      home: Scaffold(
+        body: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            SignupForm(auth: AuthApi(clientFor(server)), onLogin: logins.add),
+          ],
+        ),
+      ),
     ),
   );
   await tester.pumpAndSettle();
   return logins;
 }
 
-Finder field(String label) => find.widgetWithText(TextFormField, label);
+/// 이름표가 [label]인 입력칸
+Finder field(String label) => find.descendant(
+  of: find.widgetWithText(AuthField, label),
+  matching: find.byType(TextFormField),
+);
 
 /// 칸에 들어 있는 값 — 칸의 hint(예: 2001-03-14)와 헷갈리지 않게 입력값만 본다
 String valueOf(WidgetTester tester, String label) => tester
@@ -123,7 +136,7 @@ void main() {
         'birthDate': '2001-03-14',
         'phone': '010-1234-5678',
       });
-      expect(find.text('김도연a님, 확인되었습니다'), findsOneWidget);
+      expect(find.text('김도연a님, 확인되었습니다.'), findsOneWidget);
       expect(find.textContaining('5:00 안에'), findsOneWidget);
     });
 
@@ -169,14 +182,6 @@ void main() {
       await verify(tester);
 
       expect(find.textContaining('임원에게 문의해 주세요.'), findsOneWidget);
-    });
-
-    testWidgets('「이미 계정이 있으신가요?」는 아이디 없이 로그인으로 보낸다', (tester) async {
-      final logins = await pumpSignup(tester, serverWith());
-
-      await tester.tap(find.text('▸ 이미 계정이 있으신가요? 로그인'));
-
-      expect(logins, [null]);
     });
   });
 
@@ -242,7 +247,7 @@ void main() {
       await register(tester);
 
       expect(find.text('이미 사용 중인 아이디입니다.'), findsOneWidget);
-      expect(find.text('김도연a님, 확인되었습니다'), findsOneWidget);
+      expect(find.text('김도연a님, 확인되었습니다.'), findsOneWidget);
     });
 
     testWidgets('토큰이 만료(401)되면 만료 화면 — 다시 확인하면 입력이 남아 있다', (tester) async {

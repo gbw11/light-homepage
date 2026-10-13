@@ -92,7 +92,7 @@ Finder tab(String label) =>
 Future<void> login(WidgetTester tester) async {
   await tester.enterText(find.byType(TextFormField).at(0), 'doyeon01');
   await tester.enterText(find.byType(TextFormField).at(1), '비밀번호12!');
-  await tester.tap(find.widgetWithText(FilledButton, '로그인'));
+  await tester.tap(find.widgetWithText(FilledButton, '로그인하기'));
   await tester.pumpAndSettle();
 }
 
