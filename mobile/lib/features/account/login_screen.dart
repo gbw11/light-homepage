@@ -6,7 +6,7 @@ import '../../core/auth/auth_api.dart';
 import '../../core/auth/auth_state.dart';
 import '../../core/config.dart';
 import '../../core/ui/status_views.dart';
-import 'auth_form.dart';
+import '../../core/ui/form_card.dart';
 import 'signup_form.dart';
 
 /// 로그인 화면 위쪽 칸 — 로그인 · 회원가입
@@ -139,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
             onChanged: (mode) => setState(() => _mode = mode),
           ),
           const SizedBox(height: 20),
-          AuthCard(
+          FormCard(
             child: switch (_mode) {
               AuthMode.login => _loginForm(theme, resetUrl),
               AuthMode.signup => SignupForm(
@@ -195,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
             ],
-            AuthField(
+            CardField(
               label: '아이디',
               icon: Icons.badge_outlined,
               controller: _loginId,
@@ -207,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   (v ?? '').trim().isEmpty ? '아이디를 입력해주세요.' : null,
             ),
             const SizedBox(height: 16),
-            AuthField(
+            CardField(
               label: '비밀번호',
               icon: Icons.lock_outline,
               controller: _password,
@@ -239,10 +239,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             if (_error case final error?) ...[
               const SizedBox(height: 8),
-              AuthErrorText(error),
+              FormErrorText(error),
             ],
             const SizedBox(height: 20),
-            AuthSubmitButton(
+            PillSubmitButton(
               label: '로그인하기',
               busyLabel: '로그인 중...',
               busy: _submitting,

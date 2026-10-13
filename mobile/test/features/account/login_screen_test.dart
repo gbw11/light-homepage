@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:light_mobile/core/auth/auth_api.dart';
 import 'package:light_mobile/core/auth/auth_state.dart';
 import 'package:light_mobile/core/theme/app_theme.dart';
-import 'package:light_mobile/features/account/auth_form.dart';
+import 'package:light_mobile/core/ui/form_card.dart';
 import 'package:light_mobile/features/account/login_screen.dart';
 
 import '../../support/fake_server.dart';
@@ -66,7 +66,7 @@ final page = find.byType(Scrollable).first;
 
 /// 이름표가 [label]인 입력칸
 Finder field(String label) => find.descendant(
-  of: find.widgetWithText(AuthField, label),
+  of: find.widgetWithText(CardField, label),
   matching: find.byType(TextFormField),
 );
 

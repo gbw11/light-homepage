@@ -9,7 +9,7 @@ import '../../core/auth/auth_api.dart';
 import '../../core/auth/auth_user.dart';
 import '../../core/format/dashed_digits_formatter.dart';
 import '../../core/ui/status_views.dart';
-import 'auth_form.dart';
+import '../../core/ui/form_card.dart';
 
 /// BCrypt가 받는 비밀번호 상한 — 글자 수가 아니라 **바이트**다. 한글은 한 글자가
 /// 3바이트라 24자면 이미 넘는다 (웹 `lib/password.ts`와 같은 규칙)
@@ -204,7 +204,7 @@ class _VerifyStepState extends State<_VerifyStep> {
             description: '청년교회 명단과 대조해 본인을 확인합니다.',
           ),
           const SizedBox(height: 20),
-          AuthField(
+          CardField(
             label: '이름',
             icon: Icons.person_outline,
             controller: widget.name,
@@ -216,7 +216,7 @@ class _VerifyStepState extends State<_VerifyStep> {
                 (v ?? '').trim().length < 2 ? '이름을 입력해 주세요.' : null,
           ),
           const SizedBox(height: 16),
-          AuthField(
+          CardField(
             label: '생년월일',
             icon: Icons.cake_outlined,
             controller: widget.birthDate,
@@ -231,7 +231,7 @@ class _VerifyStepState extends State<_VerifyStep> {
                 : '생년월일을 2001-03-14처럼 입력해 주세요.',
           ),
           const SizedBox(height: 16),
-          AuthField(
+          CardField(
             label: '전화번호',
             icon: Icons.phone_outlined,
             controller: widget.phone,
@@ -247,10 +247,10 @@ class _VerifyStepState extends State<_VerifyStep> {
           ),
           if (_error case final error?) ...[
             const SizedBox(height: 16),
-            AuthErrorText(error),
+            FormErrorText(error),
           ],
           const SizedBox(height: 24),
-          AuthSubmitButton(
+          PillSubmitButton(
             label: '확인하기',
             busyLabel: '확인 중...',
             busy: _submitting,
@@ -397,7 +397,7 @@ class _RegisterStepState extends State<_RegisterStep> {
               onExpired: widget.onExpired,
             ),
             const SizedBox(height: 20),
-            AuthField(
+            CardField(
               label: '아이디',
               icon: Icons.badge_outlined,
               controller: _loginId,
@@ -412,7 +412,7 @@ class _RegisterStepState extends State<_RegisterStep> {
                   : '아이디는 영문 소문자 · 숫자 · 밑줄(_) 4~30자입니다.',
             ),
             const SizedBox(height: 16),
-            AuthField(
+            CardField(
               label: '비밀번호',
               icon: Icons.lock_outline,
               controller: _password,
@@ -426,7 +426,7 @@ class _RegisterStepState extends State<_RegisterStep> {
               validator: _validatePassword,
             ),
             const SizedBox(height: 16),
-            AuthField(
+            CardField(
               label: '비밀번호 확인',
               icon: Icons.lock_outline,
               controller: _confirm,
@@ -443,10 +443,10 @@ class _RegisterStepState extends State<_RegisterStep> {
             ),
             if (_error case final error?) ...[
               const SizedBox(height: 16),
-              AuthErrorText(error),
+              FormErrorText(error),
             ],
             const SizedBox(height: 24),
-            AuthSubmitButton(
+            PillSubmitButton(
               label: '가입하기',
               busyLabel: '가입 중...',
               busy: _submitting,
@@ -610,7 +610,7 @@ class _Result extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
-        AuthSubmitButton(label: action, onPressed: onAction),
+        PillSubmitButton(label: action, onPressed: onAction),
       ],
     );
   }
