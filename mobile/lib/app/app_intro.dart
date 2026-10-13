@@ -11,8 +11,21 @@ const _acrostic = <(String, String)>[
 
 const _logoAsset = 'assets/images/logo.png';
 
-/// 인트로 전체 길이. 엠블럼 → 글귀가 한 줄씩 → 잠깐 머문 뒤 사라진다
-const introDuration = Duration(milliseconds: 2600);
+/// 인트로 전체 길이. 엠블럼 → 글귀가 한 줄씩 떠오른다 → 잠깐 머문 뒤 사라진다
+const introDuration = Duration(milliseconds: 3000);
+
+/// 글귀가 떠오르는 구간 (전체 길이에 대한 비율). 엠블럼이 다 뜨기 전에 바로 시작한다
+/// (PM 요청 2026-10-13 — 엠블럼과 글귀 사이 공백이 길게 느껴짐)
+const _linesStart = 0.08;
+const _linesEnd = 0.66;
+
+/// 줄마다 떠오르기 시작하는 간격과 한 줄이 떠오르는 데 걸리는 길이
+/// ([_linesStart]~[_linesEnd] 구간에 대한 비율). 앞줄이 다 뜨기 전에 다음 줄이 따라온다
+const _lineStagger = 0.15;
+const _lineRise = 0.4;
+
+/// 떠오르기 전 줄이 놓이는 아래쪽 거리 (줄 높이에 대한 비율)
+const _riseFrom = 0.6;
 
 /// 동작 줄이기를 켠 사람에게는 움직임 없이 짧게만 보여준다
 const introReducedDuration = Duration(milliseconds: 900);
@@ -111,7 +124,14 @@ class _AppIntroState extends State<AppIntro>
       parent: _controller,
       curve: Interval(_reduced ? 0.6 : 0.82, 1, curve: Curves.easeIn),
     );
-    final logo = _phase(0, 0.2);
+    final logo = _phase(0, 0.12);
+    // 글귀 전체가 떠오른 정도 0→1. 줄마다 나눠 쓴다
+    final lines = _reduced
+        ? const AlwaysStoppedAnimation<double>(1)
+        : CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(_linesStart, _linesEnd),
+          );
     final lineStyle = (textTheme.headlineSmall ?? const TextStyle()).copyWith(
       fontWeight: FontWeight.w700,
       height: 1.25,
@@ -153,20 +173,25 @@ class _AppIntroState extends State<AppIntro>
                         ),
                       ),
                       const SizedBox(height: 32),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (var i = 0; i < _acrostic.length; i++)
-                            _AcrosticLine(
-                              letter: _acrostic[i].$1,
-                              rest: _acrostic[i].$2,
-                              style: lineStyle,
-                              letterColor: scheme.primary,
-                              // 한 줄씩 차례로 — 0.20에서 시작해 0.07 간격
-                              progress: _phase(0.2 + i * 0.07, 0.35 + i * 0.07),
-                            ),
-                        ],
+                      AnimatedBuilder(
+                        animation: lines,
+                        builder: (context, _) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (var i = 0; i < _acrostic.length; i++)
+                              IntroLine(
+                                letter: _acrostic[i].$1,
+                                rest: _acrostic[i].$2,
+                                progress:
+                                    ((lines.value - i * _lineStagger) /
+                                            _lineRise)
+                                        .clamp(0.0, 1.0),
+                                style: lineStyle,
+                                letterColor: scheme.primary,
+                              ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -180,31 +205,37 @@ class _AppIntroState extends State<AppIntro>
   }
 }
 
-/// 글귀 한 줄 — 첫 글자는 강조색, 나머지는 본문색. 왼쪽에서 살짝 밀려 들어온다
-class _AcrosticLine extends StatelessWidget {
-  const _AcrosticLine({
+/// 글귀 한 줄 — 아래에서 살며시 떠오르며 나타난다 (PM 요청 2026-10-13 —
+/// 글자를 쓰는 느낌 말고 한 줄씩 떠오르는 느낌).
+///
+/// 줄은 처음부터 자리를 차지하고 그림만 움직이므로 글귀 묶음이 흔들리지 않는다.
+/// 첫 글자는 강조색, 나머지는 본문색.
+@visibleForTesting
+class IntroLine extends StatelessWidget {
+  const IntroLine({
+    super.key,
     required this.letter,
     required this.rest,
+    required this.progress,
     required this.style,
     required this.letterColor,
-    required this.progress,
   });
 
   final String letter;
   final String rest;
+
+  /// 이 줄이 떠오른 정도 0(아직)→1(제자리)
+  final double progress;
   final TextStyle style;
   final Color letterColor;
-  final Animation<double> progress;
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: progress,
-      child: SlideTransition(
-        position: Tween(
-          begin: const Offset(-0.08, 0),
-          end: Offset.zero,
-        ).animate(progress),
+    final eased = Curves.easeOutCubic.transform(progress);
+    return Opacity(
+      opacity: eased,
+      child: FractionalTranslation(
+        translation: Offset(0, (1 - eased) * _riseFrom),
         child: Text.rich(
           TextSpan(
             style: style,
