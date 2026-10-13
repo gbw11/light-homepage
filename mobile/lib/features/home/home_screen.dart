@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/auth/auth_state.dart';
 import '../../core/format/date_format.dart';
 import '../../core/ui/menu_button.dart';
+import '../../core/ui/profile_button.dart';
 import '../bulletins/bulletin.dart';
 import '../bulletins/bulletins_api.dart';
 import '../posts/post_card.dart';
@@ -137,6 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: const MenuButton(),
+        actions: const [ProfileButton()],
         titleSpacing: 0,
         title: Row(
           mainAxisSize: MainAxisSize.min,

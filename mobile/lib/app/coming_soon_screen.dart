@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/ui/menu_button.dart';
+import '../core/ui/profile_button.dart';
 
 /// 아직 만들지 않은 탭의 자리. 탭 틀을 먼저 세우고 화면을 하나씩 채운다
 class ComingSoonScreen extends StatelessWidget {
@@ -23,6 +24,7 @@ class ComingSoonScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: tab ? const MenuButton() : null,
+        actions: tab ? const [ProfileButton()] : null,
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: Center(

@@ -4,6 +4,7 @@ import '../../core/auth/auth_state.dart';
 import '../../core/config.dart';
 import '../../core/format/date_format.dart';
 import '../../core/ui/menu_button.dart';
+import '../../core/ui/profile_button.dart';
 import '../account/login_gate.dart';
 import '../meetings/meeting.dart';
 import '../meetings/meetings_api.dart';
@@ -71,6 +72,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: const MenuButton(),
+        actions: const [ProfileButton()],
         title: const Text('자료', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: user == null

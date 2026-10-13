@@ -52,12 +52,13 @@ Finder tab(String label) =>
     find.descendant(of: find.byType(NavigationBar), matching: find.text(label));
 
 void main() {
-  testWidgets('하단 탭 5개가 있고 홈에서 시작한다', (tester) async {
+  testWidgets('하단 탭 4개가 있고 홈에서 시작한다 — 더보기 탭은 없다', (tester) async {
     await pumpApp(tester);
 
-    for (final label in ['홈', '말씀', '소식', '자료', '더보기']) {
+    for (final label in ['홈', '말씀', '소식', '자료']) {
       expect(tab(label), findsOneWidget);
     }
+    expect(tab('더보기'), findsNothing);
     expect(selectedTab(tester), 0);
     expect(find.text('주일 14:00 · 드림센터 4층'), findsOneWidget);
   });
@@ -183,7 +184,7 @@ void main() {
 
   testWidgets('사이드바를 연 채 뒤로가기를 누르면 사이드바만 닫힌다 — 탭은 그대로다', (tester) async {
     await pumpApp(tester);
-    await tester.tap(tab('더보기'));
+    await tester.tap(tab('소식'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('전체 메뉴'));
     await tester.pumpAndSettle();
@@ -192,7 +193,7 @@ void main() {
     await pressSystemBack(tester);
 
     expect(find.byType(Drawer), findsNothing);
-    expect(selectedTab(tester), 4);
+    expect(selectedTab(tester), 2);
 
     // 사이드바가 닫힌 뒤의 뒤로가기는 원래대로 홈으로 간다
     await pressSystemBack(tester);
@@ -226,7 +227,7 @@ void main() {
 
   testWidgets('다른 탭에서도 ☰로 같은 사이드바를 연다', (tester) async {
     await pumpApp(tester);
-    await tester.tap(tab('더보기'));
+    await tester.tap(tab('소식'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('전체 메뉴'));
@@ -237,9 +238,9 @@ void main() {
 
   testWidgets('홈이 아닌 탭에서 뒤로가기를 누르면 앱이 닫히지 않고 홈으로 온다', (tester) async {
     await pumpApp(tester);
-    await tester.tap(tab('더보기'));
+    await tester.tap(tab('소식'));
     await tester.pumpAndSettle();
-    expect(selectedTab(tester), 4);
+    expect(selectedTab(tester), 2);
 
     await pressSystemBack(tester);
 
@@ -247,11 +248,29 @@ void main() {
     expect(find.text('주일 14:00 · 드림센터 4층'), findsOneWidget);
   });
 
+  testWidgets('어느 탭에서든 오른쪽 위 사람 버튼은 마이페이지를 연다 — 뒤로가기로 그 탭에 돌아온다', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await tester.tap(tab('소식'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('마이페이지'));
+    await tester.pumpAndSettle();
+    expect(find.text('마이페이지'), findsOneWidget);
+    // 비로그인 — 로그인 · 회원가입
+    expect(find.widgetWithText(FilledButton, '로그인'), findsOneWidget);
+
+    await pressSystemBack(tester);
+    expect(find.text('마이페이지'), findsNothing);
+    expect(selectedTab(tester), 2);
+  });
+
   testWidgets('작은 폰(360dp)에서 글자를 2배로 키워도 탭 바가 넘치지 않는다', (tester) async {
     await pumpApp(tester, screen: const Size(360, 740), textScale: 2);
 
     expect(tester.takeException(), isNull);
-    for (final label in ['홈', '말씀', '소식', '자료', '더보기']) {
+    for (final label in ['홈', '말씀', '소식', '자료']) {
       expect(tab(label), findsOneWidget);
     }
   });

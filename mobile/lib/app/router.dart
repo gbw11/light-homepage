@@ -5,7 +5,7 @@ import '../core/api/api_client.dart';
 import '../core/auth/auth_api.dart';
 import '../core/auth/auth_state.dart';
 import '../features/account/login_screen.dart';
-import '../features/account/more_screen.dart';
+import '../features/account/my_page_screen.dart';
 import '../features/account/password_change_screen.dart';
 import '../features/account/profile_screen.dart';
 import '../features/account/signup_screen.dart';
@@ -239,38 +239,33 @@ GoRouter buildRouter({
               ),
             ],
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: AppPaths.more,
-                builder: (context, state) => MoreScreen(
-                  onLogin: () => context.push(AppPaths.login),
-                  onSignup: () => context.push(AppPaths.signup),
-                  onProfile: () => context.push('${AppPaths.more}/profile'),
-                  onPasswordChange: () =>
-                      context.push('${AppPaths.more}/password'),
-                  onContact: () => context.push(AppPaths.contact),
-                  openExternal: openExternal,
-                ),
-                routes: [
-                  GoRoute(
-                    path: 'profile',
-                    builder: (context, state) => ProfileScreen(
-                      auth: auth,
-                      onLogin: () => context.push(AppPaths.login),
-                      openExternal: openExternal,
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'password',
-                    builder: (context, state) => PasswordChangeScreen(
-                      auth: auth,
-                      onDone: () => context.pop(),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+        ],
+      ),
+
+      // ── 마이페이지 — 탭 화면 상단 오른쪽 사람 버튼으로 연다. 하단 탭을 덮는다 ──
+      GoRoute(
+        path: AppPaths.my,
+        builder: (context, state) => MyPageScreen(
+          onLogin: () => context.push(AppPaths.login),
+          onSignup: () => context.push(AppPaths.signup),
+          onProfile: () => context.push('${AppPaths.my}/profile'),
+          onPasswordChange: () => context.push('${AppPaths.my}/password'),
+          onContact: () => context.push(AppPaths.contact),
+          openExternal: openExternal,
+        ),
+        routes: [
+          GoRoute(
+            path: 'profile',
+            builder: (context, state) => ProfileScreen(
+              auth: auth,
+              onLogin: () => context.push(AppPaths.login),
+              openExternal: openExternal,
+            ),
+          ),
+          GoRoute(
+            path: 'password',
+            builder: (context, state) =>
+                PasswordChangeScreen(auth: auth, onDone: () => context.pop()),
           ),
         ],
       ),
