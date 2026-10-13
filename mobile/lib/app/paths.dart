@@ -9,7 +9,6 @@ abstract final class AppPaths {
   static const sermons = '/sermons';
   static const news = '/news';
   static const resources = '/resources';
-  static const more = '/more';
 
   // 자료 — 하단 탭을 덮는 전체 화면 뷰어
   static const bulletin = '/bulletin';
@@ -17,6 +16,10 @@ abstract final class AppPaths {
 
   // 계정 — 하단 탭을 덮고 열린다
   static const login = '/login';
+  static const signup = '/signup';
+
+  /// 마이페이지 (웹과 같은 주소) — 탭 화면 상단 오른쪽 사람 버튼으로 연다
+  static const my = '/my';
 
   // 사이드바 — 교회 안내
   static const welcome = '/welcome';

@@ -92,7 +92,7 @@ Finder tab(String label) =>
 Future<void> login(WidgetTester tester) async {
   await tester.enterText(find.byType(TextFormField).at(0), 'doyeon01');
   await tester.enterText(find.byType(TextFormField).at(1), '비밀번호12!');
-  await tester.tap(find.widgetWithText(FilledButton, '로그인'));
+  await tester.tap(find.widgetWithText(FilledButton, '로그인하기'));
   await tester.pumpAndSettle();
 }
 
@@ -179,5 +179,19 @@ void main() {
     await tester.tap(find.byTooltip('전체 메뉴'));
     await tester.pumpAndSettle();
     expect(find.text('김도연a님 · 일반 회원'), findsOneWidget);
+  });
+
+  testWidgets('사람 버튼 — 비로그인은 로그인 화면, 로그인하면 마이페이지', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.byTooltip('로그인 · 회원가입'));
+    await tester.pumpAndSettle();
+    await login(tester);
+    // 로그인을 마치면 연 화면(홈)으로 돌아온다
+
+    await tester.tap(find.byTooltip('마이페이지'));
+    await tester.pumpAndSettle();
+    expect(find.text('마이페이지'), findsOneWidget);
+    expect(find.text('김도연a'), findsOneWidget);
   });
 }

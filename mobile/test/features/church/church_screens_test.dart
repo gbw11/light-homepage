@@ -8,6 +8,7 @@ import 'package:light_mobile/content/welcome.dart';
 import 'package:light_mobile/core/theme/app_theme.dart';
 import 'package:light_mobile/features/church/about_screen.dart';
 import 'package:light_mobile/features/church/contact_screen.dart';
+import 'package:light_mobile/features/church/info_widgets.dart';
 import 'package:light_mobile/features/church/location_screen.dart';
 import 'package:light_mobile/features/church/welcome_screen.dart';
 import 'package:light_mobile/features/church/worship_screen.dart';
@@ -63,14 +64,13 @@ void main() {
       openExternal: r.open,
     );
 
-    testWidgets('본당이 아니라 드림센터라는 경고를 맨 위에 둔다', (tester) async {
+    testWidgets('맨 위는 엠블럼과 WELCOME TO LIGHT — 빨간 경고 상자는 없다', (tester) async {
       await pumpScreen(tester, screen(Recorder()));
 
-      expect(find.text('혼자 오셔도 괜찮습니다.'), findsOneWidget);
-      expect(
-        find.textContaining('본당이 아니라', findRichText: true),
-        findsOneWidget,
-      );
+      expect(find.text('WELCOME TO LIGHT'), findsOneWidget);
+      expect(find.textContaining('환영합니다'), findsNothing);
+      expect(find.byType(VenueWarning), findsNothing);
+      expect(find.text('드림센터를 찾아오세요'), findsOneWidget);
       expect(find.textContaining('도보 2분 (134m)'), findsOneWidget);
     });
 
@@ -78,10 +78,7 @@ void main() {
       await pumpScreen(tester, screen(Recorder()));
 
       for (final step in sundayTimeline) {
-        await tester.scrollUntilVisible(
-          find.text('${step.time} · ${step.label}'),
-          200,
-        );
+        await tester.scrollUntilVisible(find.text(step.label), 200);
       }
     });
 
@@ -90,6 +87,9 @@ void main() {
       final faq = welcomeFaq.first;
 
       await tester.scrollUntilVisible(find.text(faq.question), 300);
+      // scrollUntilVisible은 화면 끝에 걸치게만 올려서 탭이 빗나갈 수 있다
+      await tester.ensureVisible(find.text(faq.question));
+      await tester.pumpAndSettle();
       expect(find.text(faq.answer), findsNothing);
       await tester.tap(find.text(faq.question));
       await tester.pumpAndSettle();
@@ -97,19 +97,23 @@ void main() {
       expect(find.text(faq.answer), findsOneWidget);
     });
 
-    testWidgets('지도 · 오시는 길 · 새가족 등록으로 가는 길', (tester) async {
+    testWidgets('새가족 온라인 등록은 맨 위, 지도 · 오시는 길은 그 아래', (tester) async {
       final r = Recorder();
       await pumpScreen(tester, screen(r));
 
-      await tester.tap(find.text('지도 앱으로 열기'));
-      await tester.tap(find.text('오시는 길 자세히'));
-      await tester.scrollUntilVisible(find.text('새가족 등록하기'), 300);
-      // scrollUntilVisible은 화면 끝에 걸치게만 올려서 탭이 빗나갈 수 있다
-      await tester.ensureVisible(find.text('새가족 등록하기'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('새가족 등록하기'));
+      // 첫 화면에서 바로 보인다 — 내리지 않아도 누를 수 있다
+      expect(
+        tester.getTopLeft(find.text('새가족 온라인 등록')).dy,
+        lessThan(tester.getTopLeft(find.text('드림센터를 찾아오세요')).dy),
+      );
+      await tester.tap(find.text('새가족 온라인 등록'));
+      for (final label in ['지도 앱으로 열기', '오시는 길 자세히']) {
+        await tester.ensureVisible(find.text(label));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(label));
+      }
 
-      expect(r.calls, ['open:$kakaoMapUrl', 'directions', 'register']);
+      expect(r.calls, ['register', 'open:$kakaoMapUrl', 'directions']);
     });
 
     testWidgets('웹에서 ❓(확인 필요)로 남은 내용은 옮기지 않는다', (tester) async {

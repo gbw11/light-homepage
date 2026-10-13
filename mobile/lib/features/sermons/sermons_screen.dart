@@ -8,6 +8,7 @@ import '../../content/worship.dart';
 import '../../core/format/date_format.dart';
 import '../../core/paging/paged_list.dart';
 import '../../core/ui/menu_button.dart';
+import '../../core/ui/profile_button.dart';
 import '../../core/ui/paged_list_view.dart';
 import 'live_stream.dart';
 import 'sermon.dart';
@@ -105,6 +106,7 @@ class _SermonsScreenState extends State<SermonsScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: const MenuButton(),
+        actions: const [ProfileButton()],
         title: const Text('말씀', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: PagedListView<Sermon>(

@@ -2,9 +2,10 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/api/api_client.dart';
+import '../core/auth/auth_api.dart';
 import '../core/auth/auth_state.dart';
 import '../features/account/login_screen.dart';
-import '../features/account/more_screen.dart';
+import '../features/account/my_page_screen.dart';
 import '../features/account/password_change_screen.dart';
 import '../features/account/profile_screen.dart';
 import '../features/bulletins/bulletin_viewer_screen.dart';
@@ -55,6 +56,7 @@ GoRouter buildRouter({
   final bulletins = BulletinsApi(api);
   final meetings = MeetingsApi(api);
   final photos = PhotosApi(api);
+  final authApi = AuthApi(api);
 
   /// 공지 상세. 홈과 소식 두 탭에서 열린다 — 화면은 하나, 주소만 탭마다 다르다.
   /// 목록이 slug 대신 id로 연다: slug에는 한글이 올 수 있어 주소 인코딩을
@@ -97,6 +99,17 @@ GoRouter buildRouter({
       routes: [noticeDetail(':id', title: title)],
     );
   }
+
+  /// 로그인 · 회원가입 — 한 화면이고 처음 보여줄 칸만 다르다
+  LoginScreen loginScreen(BuildContext context, AuthMode mode) => LoginScreen(
+    auth: auth,
+    signupApi: authApi,
+    initialMode: mode,
+    // 연 화면으로 돌아간다. 그 화면은 로그인 상태로 다시 그려진다
+    onDone: () => context.canPop() ? context.pop() : context.go(AppPaths.home),
+    onFirstVisit: () => context.push(AppPaths.welcome),
+    openExternal: openExternal,
+  );
 
   return GoRouter(
     initialLocation: AppPaths.home,
@@ -236,37 +249,33 @@ GoRouter buildRouter({
               ),
             ],
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: AppPaths.more,
-                builder: (context, state) => MoreScreen(
-                  onLogin: () => context.push(AppPaths.login),
-                  onProfile: () => context.push('${AppPaths.more}/profile'),
-                  onPasswordChange: () =>
-                      context.push('${AppPaths.more}/password'),
-                  onContact: () => context.push(AppPaths.contact),
-                  openExternal: openExternal,
-                ),
-                routes: [
-                  GoRoute(
-                    path: 'profile',
-                    builder: (context, state) => ProfileScreen(
-                      auth: auth,
-                      onLogin: () => context.push(AppPaths.login),
-                      openExternal: openExternal,
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'password',
-                    builder: (context, state) => PasswordChangeScreen(
-                      auth: auth,
-                      onDone: () => context.pop(),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+        ],
+      ),
+
+      // ── 마이페이지 — 탭 화면 상단 오른쪽 사람 버튼으로 연다. 하단 탭을 덮는다 ──
+      GoRoute(
+        path: AppPaths.my,
+        builder: (context, state) => MyPageScreen(
+          onLogin: () => context.push(AppPaths.login),
+          onSignup: () => context.push(AppPaths.signup),
+          onProfile: () => context.push('${AppPaths.my}/profile'),
+          onPasswordChange: () => context.push('${AppPaths.my}/password'),
+          onContact: () => context.push(AppPaths.contact),
+          openExternal: openExternal,
+        ),
+        routes: [
+          GoRoute(
+            path: 'profile',
+            builder: (context, state) => ProfileScreen(
+              auth: auth,
+              onLogin: () => context.push(AppPaths.login),
+              openExternal: openExternal,
+            ),
+          ),
+          GoRoute(
+            path: 'password',
+            builder: (context, state) =>
+                PasswordChangeScreen(auth: auth, onDone: () => context.pop()),
           ),
         ],
       ),
@@ -293,14 +302,12 @@ GoRouter buildRouter({
       // ── 계정 ──
       GoRoute(
         path: AppPaths.login,
-        builder: (context, state) => LoginScreen(
-          auth: auth,
-          // 연 화면으로 돌아간다. 그 화면은 로그인 상태로 다시 그려진다
-          onDone: () =>
-              context.canPop() ? context.pop() : context.go(AppPaths.home),
-          onFirstVisit: () => context.push(AppPaths.welcome),
-          openExternal: openExternal,
-        ),
+        builder: (context, state) => loginScreen(context, AuthMode.login),
+      ),
+      // 마이페이지의 [회원가입] — 같은 화면을 회원가입 칸으로 연다
+      GoRoute(
+        path: AppPaths.signup,
+        builder: (context, state) => loginScreen(context, AuthMode.signup),
       ),
 
       // ── 사이드바(☰)의 교회 안내 — 하단 탭을 덮고 뒤로가기로 닫힌다 ──

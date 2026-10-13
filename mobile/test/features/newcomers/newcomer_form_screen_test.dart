@@ -53,17 +53,24 @@ Finder field(int index) => find.byType(TextFormField).at(index);
 FilledButton submitButton(WidgetTester tester) =>
     tester.widget<FilledButton>(find.widgetWithText(FilledButton, '등록하기'));
 
-Future<void> agree(WidgetTester tester) async {
-  await tester.ensureVisible(find.byType(CheckboxListTile));
-  await tester.tap(find.byType(CheckboxListTile));
-  await tester.pump();
-}
+/// 화면 목록 — 글 칸(TextField)도 안에 Scrollable을 가져서 바깥 것을 집는다
+final page = find.byType(Scrollable).first;
 
-Future<void> submit(WidgetTester tester) async {
-  await tester.ensureVisible(find.text('등록하기'));
-  await tester.tap(find.text('등록하기'));
+/// [finder]가 화면 안에 다 들어오게 내린 뒤 누른다 — 엠블럼 머리글로 폼이 길어져
+/// 아래 칸은 처음에 화면 밖이다
+Future<void> tapInView(WidgetTester tester, Finder finder) async {
+  await tester.scrollUntilVisible(finder, 200, scrollable: page);
+  await tester.drag(page, const Offset(0, -150));
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
   await tester.pumpAndSettle();
 }
+
+Future<void> agree(WidgetTester tester) =>
+    tapInView(tester, find.byType(CheckboxListTile));
+
+Future<void> submit(WidgetTester tester) =>
+    tapInView(tester, find.widgetWithText(FilledButton, '등록하기'));
 
 void main() {
   testWidgets('동의하기 전에는 [등록하기]가 눌리지 않는다', (tester) async {
@@ -126,7 +133,7 @@ void main() {
 
     expect(sentBody(server), {
       'name': '김새가족',
-      'phone': '01012345678',
+      'phone': '010-1234-5678',
       'gender': 'FEMALE',
       'ageGroup': 'LATE_20S',
       'referrer': 'FRIEND',

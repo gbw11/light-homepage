@@ -14,8 +14,13 @@ abstract final class AppColors {
   /// 카드·입력란·하단 탭 바
   static const surfaceContainer = Color(0xFFF8F3EB);
 
-  /// 주요 버튼·선택된 탭 — 올리브그린 (웹 CTA `--color-yellow`와 같은 값)
-  static const primary = Color(0xFF57674D);
+  /// 주요 버튼·선택된 탭 — **엠블럼(logo.png)의 초록** (2026-10-13 사용자 결정).
+  ///
+  /// 처음에는 웹 CTA(`--color-yellow`, 올리브 #57674D)와 같은 값이었는데, 엠블럼
+  /// 옆에 두니 색이 달라 보여 엠블럼에 맞췄다 — **이제 웹과 다르다.**
+  /// 엠블럼 띠에 가장 많은 초록(#408838)은 흰 글자 대비가 4.4:1로 WCAG AA(4.5:1)에
+  /// 조금 못 미쳐, 같은 띠의 한 단계 짙은 초록을 쓴다 (흰 글자 5.2:1)
+  static const primary = Color(0xFF3A7A33);
   static const onPrimary = Color(0xFFFFFFFF);
 
   /// 본문 — 딥 브라운 (웹 `--color-ink`)
