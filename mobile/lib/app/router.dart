@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/api/api_client.dart';
 import '../core/auth/auth_api.dart';
 import '../core/auth/auth_state.dart';
+import '../core/upload/pick_file.dart';
 import '../features/account/login_screen.dart';
 import '../features/account/my_page_screen.dart';
 import '../features/account/password_change_screen.dart';
@@ -18,6 +19,7 @@ import '../features/church/location_screen.dart';
 import '../features/church/welcome_screen.dart';
 import '../features/church/worship_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/meetings/meeting_upload_screen.dart';
 import '../features/meetings/meeting_viewer_screen.dart';
 import '../features/meetings/meetings_api.dart';
 import '../features/meetings/meetings_screen.dart';
@@ -233,6 +235,8 @@ GoRouter buildRouter({
                       onOpen: (m) =>
                           context.push('${AppPaths.meeting}/${m.id}'),
                       onLogin: () => context.push(AppPaths.login),
+                      onUpload: () =>
+                          context.push<bool>(AppPaths.uploadMeeting),
                     ),
                   ),
                   postsOf(
@@ -287,6 +291,14 @@ GoRouter buildRouter({
         builder: (context, state) => BulletinUploadScreen(
           bulletins: bulletins,
           pickImages: pickBulletinImages,
+          onDone: () => context.pop(true),
+        ),
+      ),
+      GoRoute(
+        path: AppPaths.uploadMeeting,
+        builder: (context, state) => MeetingUploadScreen(
+          meetings: meetings,
+          pickPdf: pickPdf,
           onDone: () => context.pop(true),
         ),
       ),
