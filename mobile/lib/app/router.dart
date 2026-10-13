@@ -119,6 +119,7 @@ GoRouter buildRouter({
                 builder: (context, state) => HomeScreen(
                   posts: posts,
                   sermons: sermons,
+                  bulletins: bulletins,
                   actions: HomeActions(
                     onSeeAllNotices: () => context.go(AppPaths.news),
                     onSeeAllSermons: () => context.go(AppPaths.sermons),
@@ -128,6 +129,8 @@ GoRouter buildRouter({
                         context.push('${AppPaths.home}/news/${notice.id}'),
                     onFirstVisit: () => context.push(AppPaths.welcome),
                     onDirections: () => context.push(AppPaths.location),
+                    onOpenBulletin: (id) =>
+                        context.push('${AppPaths.bulletin}/$id'),
                   ),
                 ),
                 routes: [noticeDetail('news/:id')],

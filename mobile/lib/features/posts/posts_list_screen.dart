@@ -5,7 +5,7 @@ import '../../core/paging/paged_list.dart';
 import '../../core/ui/paged_list_view.dart';
 import '../../core/ui/status_views.dart';
 import '../account/login_gate.dart';
-import 'news_screen.dart';
+import 'post_card.dart';
 import 'notice_feed.dart';
 import 'post_summary.dart';
 import 'posts_api.dart';
@@ -79,8 +79,9 @@ class _PostsListScreenState extends State<PostsListScreen> {
             list: _list,
             onRefresh: _list.refresh,
             emptyMessage: widget.emptyMessage,
+            cards: true,
             itemBuilder: (context, post) =>
-                NoticeTile(post, onTap: () => widget.onOpen(post)),
+                PostCard(post, onTap: () => widget.onOpen(post)),
           );
         },
       ),

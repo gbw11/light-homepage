@@ -59,7 +59,7 @@ void main() {
       expect(tab(label), findsOneWidget);
     }
     expect(selectedTab(tester), 0);
-    expect(find.text('주일 14:00 · 청년예배'), findsOneWidget);
+    expect(find.text('주일 14:00 · 드림센터 4층'), findsOneWidget);
   });
 
   testWidgets('탭을 누르면 그 화면으로 간다', (tester) async {
@@ -90,7 +90,7 @@ void main() {
   testWidgets('홈의 「공지 전체보기」는 소식 탭으로 간다', (tester) async {
     await pumpApp(tester);
 
-    await tester.tap(find.text('▸ 공지 전체보기'));
+    await tester.tap(find.text('공지 전체보기 ›'));
     await tester.pumpAndSettle();
 
     expect(selectedTab(tester), 2);
@@ -147,7 +147,7 @@ void main() {
 
     await pressSystemBack(tester);
 
-    expect(find.text('주일 14:00 · 청년예배'), findsOneWidget);
+    expect(find.text('주일 14:00 · 드림센터 4층'), findsOneWidget);
   });
 
   testWidgets('홈의 「오시는 길」은 탭을 덮고 열리고, 뒤로가기로 닫힌다', (tester) async {
@@ -161,7 +161,7 @@ void main() {
 
     await pressSystemBack(tester);
 
-    expect(find.text('주일 14:00 · 청년예배'), findsOneWidget);
+    expect(find.text('주일 14:00 · 드림센터 4층'), findsOneWidget);
   });
 
   testWidgets('☰를 누르면 사이드바가 열리고, 메뉴를 누르면 그 화면을 연다', (tester) async {
@@ -207,7 +207,7 @@ void main() {
     await pressSystemBack(tester);
 
     expect(find.byType(Drawer), findsNothing);
-    expect(find.text('주일 14:00 · 청년예배'), findsOneWidget);
+    expect(find.text('주일 14:00 · 드림센터 4층'), findsOneWidget);
   });
 
   testWidgets('사이드바 바로가기는 하단 탭을 옮긴다', (tester) async {
@@ -244,7 +244,7 @@ void main() {
     await pressSystemBack(tester);
 
     expect(selectedTab(tester), 0);
-    expect(find.text('주일 14:00 · 청년예배'), findsOneWidget);
+    expect(find.text('주일 14:00 · 드림센터 4층'), findsOneWidget);
   });
 
   testWidgets('작은 폰(360dp)에서 글자를 2배로 키워도 탭 바가 넘치지 않는다', (tester) async {
