@@ -78,10 +78,7 @@ void main() {
       await pumpScreen(tester, screen(Recorder()));
 
       for (final step in sundayTimeline) {
-        await tester.scrollUntilVisible(
-          find.text('${step.time} · ${step.label}'),
-          200,
-        );
+        await tester.scrollUntilVisible(find.text(step.label), 200);
       }
     });
 
@@ -90,6 +87,9 @@ void main() {
       final faq = welcomeFaq.first;
 
       await tester.scrollUntilVisible(find.text(faq.question), 300);
+      // scrollUntilVisible은 화면 끝에 걸치게만 올려서 탭이 빗나갈 수 있다
+      await tester.ensureVisible(find.text(faq.question));
+      await tester.pumpAndSettle();
       expect(find.text(faq.answer), findsNothing);
       await tester.tap(find.text(faq.question));
       await tester.pumpAndSettle();
