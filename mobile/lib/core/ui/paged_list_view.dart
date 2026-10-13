@@ -17,6 +17,9 @@ class PagedListView<T> extends StatelessWidget {
     this.header = const [],
     this.end,
     this.cards = false,
+    this.where,
+    this.noMatchMessage,
+    this.sectionHeader,
   });
 
   final PagedList<T> list;
@@ -36,56 +39,89 @@ class PagedListView<T> extends StatelessWidget {
   /// 칸이 카드면 구분선 대신 사이를 띄우고 양옆 여백을 둔다
   final bool cards;
 
+  /// 받은 것 중 보일 것만 (검색 등). 걸러서 하나도 안 남아도 아직 받을 것이
+  /// 있으면 꼬리가 다음 묶음을 계속 받는다 — 다 받고도 없으면 [noMatchMessage]
+  final bool Function(T item)? where;
+  final String? noMatchMessage;
+
+  /// 칸 위에 붙는 소제목 (「고정 공지」 등). [previous]는 바로 앞에 보이는 칸
+  final Widget? Function(T item, T? previous)? sectionHeader;
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListenableBuilder(
         listenable: list,
-        builder: (context, _) => CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            for (final widget in header) SliverToBoxAdapter(child: widget),
-            if (list.items.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: switch (list) {
-                  PagedList(error: final error?) => ErrorView(
-                    error: error,
-                    onRetry: list.loadMore,
-                  ),
-                  PagedList(hasMore: true) => const LoadingView(),
-                  _ => Column(
-                    children: [
-                      MessageView(message: emptyMessage),
-                      ?end,
-                    ],
-                  ),
-                },
-              )
-            else
-              SliverList.separated(
-                // 마지막 한 칸은 꼬리(더 받기 · 오류 · 끝)다
-                itemCount: list.items.length + 1,
-                separatorBuilder: (_, _) => cards
-                    ? const SizedBox(height: 12)
-                    : const Divider(height: 1, indent: 16, endIndent: 16),
-                itemBuilder: (context, i) => i < list.items.length
-                    ? cards
-                          ? Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                16,
-                                i == 0 ? 12 : 0,
-                                16,
-                                0,
-                              ),
-                              child: itemBuilder(context, list.items[i]),
-                            )
-                          : itemBuilder(context, list.items[i])
-                    : _Tail(list: list, end: end),
-              ),
-          ],
-        ),
+        builder: (context, _) {
+          final where = this.where;
+          final visible = where == null
+              ? list.items
+              : list.items.where(where).toList();
+          final noMatch =
+              visible.isEmpty && !list.hasMore && list.error == null;
+          return CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              for (final widget in header) SliverToBoxAdapter(child: widget),
+              if (list.items.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: switch (list) {
+                    PagedList(error: final error?) => ErrorView(
+                      error: error,
+                      onRetry: list.loadMore,
+                    ),
+                    PagedList(hasMore: true) => const LoadingView(),
+                    _ => Column(
+                      children: [
+                        MessageView(message: emptyMessage),
+                        ?end,
+                      ],
+                    ),
+                  },
+                )
+              else
+                SliverList.separated(
+                  // 마지막 한 칸은 꼬리(더 받기 · 오류 · 끝)다
+                  itemCount: visible.length + 1,
+                  separatorBuilder: (_, _) => cards
+                      ? const SizedBox(height: 12)
+                      : const Divider(height: 1, indent: 16, endIndent: 16),
+                  itemBuilder: (context, i) {
+                    if (i == visible.length) {
+                      return noMatch
+                          ? MessageView(message: noMatchMessage ?? emptyMessage)
+                          : _Tail(list: list, end: end);
+                    }
+                    final item = visible[i];
+                    final heading = sectionHeader?.call(
+                      item,
+                      i == 0 ? null : visible[i - 1],
+                    );
+                    final tile = itemBuilder(context, item);
+                    final body = heading == null
+                        ? tile
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [heading, tile],
+                          );
+                    return cards
+                        ? Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              16,
+                              i == 0 ? 12 : 0,
+                              16,
+                              0,
+                            ),
+                            child: body,
+                          )
+                        : body;
+                  },
+                ),
+            ],
+          );
+        },
       ),
     );
   }

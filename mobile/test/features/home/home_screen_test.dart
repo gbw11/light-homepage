@@ -171,7 +171,7 @@ void main() {
       ),
     );
 
-    expect(find.text('이번 주 소식'), findsOneWidget);
+    expect(find.text('공지사항'), findsOneWidget);
     expect(find.text('10월 셋째 주 광고'), findsOneWidget);
     expect(find.text('가을 수련회 신청 안내'), findsOneWidget);
     expect(find.text('고정'), findsOneWidget);

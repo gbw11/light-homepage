@@ -97,9 +97,9 @@ Future<void> login(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('소식 탭에서 로그인하면 돌아와서 회원 공지까지 보인다', (tester) async {
+  testWidgets('공지 탭에서 로그인하면 돌아와서 회원 공지까지 보인다', (tester) async {
     await pumpApp(tester);
-    await tester.tap(tab('소식'));
+    await tester.tap(tab('공지'));
     await tester.pumpAndSettle();
     expect(find.text('공개 공지'), findsOneWidget);
     expect(find.text('회원 공지'), findsNothing);
@@ -108,7 +108,7 @@ void main() {
     await tester.pumpAndSettle();
     await login(tester);
 
-    // 로그인 화면이 닫히고 소식 탭으로 돌아왔다
+    // 로그인 화면이 닫히고 공지 탭으로 돌아왔다
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text('회원 공지'), findsOneWidget);
     expect(find.text('공개 공지'), findsOneWidget);
@@ -118,7 +118,7 @@ void main() {
   testWidgets('앱을 켤 때 지난 로그인이 살아 있으면 회원 공지가 바로 보인다', (tester) async {
     await pumpApp(tester, loggedIn: true);
 
-    await tester.tap(tab('소식'));
+    await tester.tap(tab('공지'));
     await tester.pumpAndSettle();
 
     expect(find.text('회원 공지'), findsOneWidget);
@@ -126,7 +126,7 @@ void main() {
 
   testWidgets('회원 글에서 로그인 안내를 보고 로그인하면 그 글이 열린다', (tester) async {
     final backend = await pumpApp(tester, loggedIn: true);
-    await tester.tap(tab('소식'));
+    await tester.tap(tab('공지'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('회원 공지'));
     await tester.pumpAndSettle();
@@ -149,7 +149,7 @@ void main() {
 
   testWidgets('로그인하던 세션이 끊기면 알리고 회원 공지를 거둔다', (tester) async {
     final backend = await pumpApp(tester, loggedIn: true);
-    await tester.tap(tab('소식'));
+    await tester.tap(tab('공지'));
     await tester.pumpAndSettle();
     expect(find.text('회원 공지'), findsOneWidget);
 

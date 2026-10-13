@@ -39,7 +39,7 @@ class HomeActions {
 
 /// 홈 (웹 `/home`을 앱에 맞게 줄인 것).
 ///
-/// 앱을 여는 사람은 대부분 이미 다니는 회원이라 **이번 주 소식과 말씀**만 둔다.
+/// 앱을 여는 사람은 대부분 이미 다니는 회원이라 **공지사항과 말씀**만 둔다.
 /// 웹 홈의 「우리는」·「주일에는 이렇게 모입니다」는 더보기 탭으로 가고, 맨 아래
 /// 「처음 오시나요?」는 맨 위 버튼과 겹쳐서 뺐다.
 ///
@@ -176,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             _SectionHeader(
-              '이번 주 소식',
+              '공지사항',
               link: '공지 전체보기',
               onLink: actions.onSeeAllNotices,
             ),
