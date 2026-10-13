@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/auth/auth_state.dart';
 import '../core/ui/profile_button.dart';
 import 'app_drawer.dart';
 import 'paths.dart';
@@ -62,8 +63,13 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final onHome = shell.currentIndex == 0;
     void openMyPage() => context.push(AppPaths.my);
+    // 상단 오른쪽 사람 버튼 — 비로그인은 곧장 로그인 · 회원가입 화면으로
+    // (마이페이지에서 [로그인]을 한 번 더 누르게 하지 않는다). 로그인했으면 마이페이지
+    void openAccount() => AuthScope.maybeOf(context)?.isLoggedIn ?? false
+        ? openMyPage()
+        : context.push(AppPaths.login);
     return MyPageEntry(
-      onOpen: openMyPage,
+      onOpen: openAccount,
       child: PopScope(
         // 뒤로가기는 가장 위에 있는 것부터 닫는다:
         //   사이드바 → 탭 안에 쌓인 화면(go_router가 처리) → 홈이 아니면 홈으로 →

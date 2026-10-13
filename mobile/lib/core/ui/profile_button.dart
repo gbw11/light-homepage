@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../auth/auth_state.dart';
+
 /// 마이페이지로 가는 길 — 탭 틀(`AppShell`)이 단다.
 ///
 /// 버튼은 탭 화면마다 있지만 어디로 갈지는 탭 틀이 정한다 (화면 이동은 화면이
@@ -17,7 +19,8 @@ class MyPageEntry extends InheritedWidget {
   bool updateShouldNotify(MyPageEntry old) => onOpen != old.onOpen;
 }
 
-/// 탭 화면 상단 오른쪽 — 동그란 사람 아이콘. 누르면 마이페이지.
+/// 탭 화면 상단 오른쪽 — 동그란 사람 아이콘. 로그인했으면 마이페이지,
+/// 아니면 로그인 · 회원가입 (갈 곳은 탭 틀이 정한다 — [MyPageEntry])
 ///
 /// 탭 틀 없이 화면만 띄우면(테스트 등) 갈 곳이 없어 아무 일도 없다.
 class ProfileButton extends StatelessWidget {
@@ -30,7 +33,9 @@ class ProfileButton extends StatelessWidget {
       padding: const EdgeInsets.only(right: 8),
       child: IconButton(
         onPressed: MyPageEntry.maybeOf(context)?.onOpen,
-        tooltip: '마이페이지',
+        tooltip: (AuthScope.maybeOf(context)?.isLoggedIn ?? false)
+            ? '마이페이지'
+            : '로그인 · 회원가입',
         style: IconButton.styleFrom(
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,

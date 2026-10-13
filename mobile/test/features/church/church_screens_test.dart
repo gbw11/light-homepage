@@ -8,6 +8,7 @@ import 'package:light_mobile/content/welcome.dart';
 import 'package:light_mobile/core/theme/app_theme.dart';
 import 'package:light_mobile/features/church/about_screen.dart';
 import 'package:light_mobile/features/church/contact_screen.dart';
+import 'package:light_mobile/features/church/info_widgets.dart';
 import 'package:light_mobile/features/church/location_screen.dart';
 import 'package:light_mobile/features/church/welcome_screen.dart';
 import 'package:light_mobile/features/church/worship_screen.dart';
@@ -63,14 +64,12 @@ void main() {
       openExternal: r.open,
     );
 
-    testWidgets('본당이 아니라 드림센터라는 경고를 맨 위에 둔다', (tester) async {
+    testWidgets('인사 다음에 드림센터 찾아오는 길 — 빨간 경고 상자는 없다', (tester) async {
       await pumpScreen(tester, screen(Recorder()));
 
       expect(find.text('혼자 오셔도 괜찮습니다.'), findsOneWidget);
-      expect(
-        find.textContaining('본당이 아니라', findRichText: true),
-        findsOneWidget,
-      );
+      expect(find.byType(VenueWarning), findsNothing);
+      expect(find.text('드림센터를 찾아오세요'), findsOneWidget);
       expect(find.textContaining('도보 2분 (134m)'), findsOneWidget);
     });
 

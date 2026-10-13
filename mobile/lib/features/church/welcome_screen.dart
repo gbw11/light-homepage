@@ -31,9 +31,9 @@ class WelcomeScreen extends StatelessWidget {
       title: '처음 오시는 분',
       children: [
         const SizedBox(height: 8),
+        // 빨간 경고 상자(본당이 아니라 드림센터)는 오시는 길에만 둔다 —
+        // 사용자 결정 2026-10-13. 여기서는 아래 「드림센터를 찾아오세요」가 말한다
         const _Intro(),
-        const SizedBox(height: 16),
-        const VenueWarning(),
         InfoSection(
           title: '드림센터를 찾아오세요',
           children: [

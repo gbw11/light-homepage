@@ -137,8 +137,8 @@ class WarningBox extends StatelessWidget {
   }
 }
 
-/// "본당이 아니라 드림센터 4층" — 이 앱에서 가장 자주 놓치는 정보라 처음 오시는
-/// 분 · 오시는 길 두 화면 모두 맨 위에 둔다 (웹과 같다)
+/// "본당이 아니라 드림센터 4층" — 이 앱에서 가장 자주 놓치는 정보라 오시는 길
+/// 맨 위에 둔다. 웹은 처음 오시는 분에도 두지만 앱은 뺐다 (사용자 결정 2026-10-13)
 class VenueWarning extends StatelessWidget {
   const VenueWarning({super.key});
 

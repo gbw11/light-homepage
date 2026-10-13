@@ -248,21 +248,20 @@ void main() {
     expect(find.text('주일 14:00 · 드림센터 4층'), findsOneWidget);
   });
 
-  testWidgets('어느 탭에서든 오른쪽 위 사람 버튼은 마이페이지를 연다 — 뒤로가기로 그 탭에 돌아온다', (
+  testWidgets('비로그인이면 오른쪽 위 사람 버튼은 곧장 로그인 화면 — 뒤로가기로 그 탭에 돌아온다', (
     tester,
   ) async {
     await pumpApp(tester);
     await tester.tap(tab('소식'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('마이페이지'));
+    await tester.tap(find.byTooltip('로그인 · 회원가입'));
     await tester.pumpAndSettle();
-    expect(find.text('마이페이지'), findsOneWidget);
-    // 비로그인 — 로그인 · 회원가입
-    expect(find.widgetWithText(FilledButton, '로그인'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '로그인하기'), findsOneWidget);
+    expect(find.text('마이페이지'), findsNothing);
 
     await pressSystemBack(tester);
-    expect(find.text('마이페이지'), findsNothing);
+    expect(find.widgetWithText(FilledButton, '로그인하기'), findsNothing);
     expect(selectedTab(tester), 2);
   });
 
