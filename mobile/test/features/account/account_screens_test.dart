@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:light_mobile/core/auth/auth_state.dart';
 import 'package:light_mobile/core/theme/app_theme.dart';
-import 'package:light_mobile/features/account/more_screen.dart';
+import 'package:light_mobile/features/account/my_page_screen.dart';
 import 'package:light_mobile/features/account/password_change_screen.dart';
 import 'package:light_mobile/features/account/profile_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -83,8 +83,9 @@ Future<List<String>> pump(
   return calls;
 }
 
-MoreScreen more(List<String> calls) => MoreScreen(
+MyPageScreen more(List<String> calls) => MyPageScreen(
   onLogin: () => calls.add('login'),
+  onSignup: () => calls.add('signup'),
   onProfile: () => calls.add('profile'),
   onPasswordChange: () => calls.add('password'),
   onContact: () => calls.add('contact'),
@@ -102,14 +103,14 @@ void main() {
     ),
   );
 
-  group('더보기', () {
-    testWidgets('비로그인이면 [로그인]과 가입 안내를 둔다', (tester) async {
+  group('마이페이지', () {
+    testWidgets('비로그인이면 [로그인]과 [회원가입]을 둔다 — 가입은 앱 안에서', (tester) async {
       final (auth, _) = await start(tester, null);
       final calls = await pump(tester, auth, more);
 
-      expect(find.textContaining('회원가입은'), findsOneWidget);
       await tester.tap(find.widgetWithText(FilledButton, '로그인'));
-      expect(calls, ['login']);
+      await tester.tap(find.text('회원가입'));
+      expect(calls, ['login', 'signup']);
       expect(find.text('로그아웃'), findsNothing);
     });
 

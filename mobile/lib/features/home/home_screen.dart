@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/auth/auth_state.dart';
 import '../../core/format/date_format.dart';
 import '../../core/ui/menu_button.dart';
+import '../../core/ui/profile_button.dart';
 import '../bulletins/bulletin.dart';
 import '../bulletins/bulletins_api.dart';
 import '../posts/post_card.dart';
@@ -137,6 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: const MenuButton(),
+        actions: const [ProfileButton()],
         titleSpacing: 0,
         title: Row(
           mainAxisSize: MainAxisSize.min,
@@ -247,13 +249,13 @@ class _WelcomeCard extends StatelessWidget {
   final VoidCallback onFirstVisit;
   final VoidCallback onDirections;
 
-  /// 사진 위 어두운 막 — 앱 올리브그린을 어둡게 한 색. 흰 글자가 사진의 밝은
+  /// 사진 위 어두운 막 — 엠블럼 초록을 어둡게 한 색. 흰 글자가 사진의 밝은
   /// 곳(조명 · 화면)에 걸려도 읽히게 아래로 갈수록 짙다
-  static const _scrimTop = Color(0x8C232B1E);
-  static const _scrimBottom = Color(0xE6232B1E);
+  static const _scrimTop = Color(0x8C16301A);
+  static const _scrimBottom = Color(0xE616301A);
 
-  /// 시계 아이콘 — 막 위에서 보이는 연한 초록
-  static const _accent = Color(0xFFC9DDB8);
+  /// 시계 아이콘 — 막 위에서 보이는 연한 초록 (엠블럼 손의 연두)
+  static const _accent = Color(0xFFC8E0C8);
 
   @override
   Widget build(BuildContext context) {
