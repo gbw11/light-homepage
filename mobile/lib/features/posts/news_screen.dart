@@ -14,8 +14,6 @@ import 'posts_api.dart';
 /// 공지 탭 — 공지 목록 (웹 `/news`, 기획안 §2-2 ①, 사용자 시안 2026-10-13).
 ///
 /// ```
-///  공지 및 소식
-///  우리 공동체의 따뜻한 걸음과 나눔을 전합니다.
 ///  [🔍 공지사항과 소식을 검색해 보세요]
 ///  📌 고정 공지 (2건)                    꼭 확인해 주세요
 ///  ┌ 흰 카드 ─ [공지] [📎 1]          2026.09.04 ┐
@@ -116,8 +114,8 @@ class _NewsScreenState extends State<NewsScreen> {
         emptyMessage: '등록된 공지가 없어요.',
         noMatchMessage: '「$_query」가 들어간 공지가 없어요.',
         cards: true,
+        // 머리글은 두지 않는다 — 제목줄의 「공지」와 검색 칸이면 된다 (사용자 결정 2026-10-13)
         header: [
-          const _Intro(),
           _SearchField(
             controller: _search,
             onChanged: (v) => setState(() => _query = v.trim()),
@@ -128,41 +126,6 @@ class _NewsScreenState extends State<NewsScreen> {
         itemBuilder: (context, notice) =>
             _NoticeCard(notice, onTap: () => widget.onOpen(notice)),
         end: _seesMemberNotices ? null : _MemberHint(onLogin: widget.onLogin),
-      ),
-    );
-  }
-}
-
-/// 「공지 및 소식 / 한 줄」 — 그 위의 작은 글줄은 뺐다 (사용자 결정 2026-10-13)
-class _Intro extends StatelessWidget {
-  const _Intro();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Semantics(
-            header: true,
-            child: Text(
-              '공지 및 소식',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '우리 공동체의 따뜻한 걸음과 나눔을 전합니다.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
       ),
     );
   }
