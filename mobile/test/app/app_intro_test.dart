@@ -17,24 +17,10 @@ Widget _wrap({bool reduceMotion = false}) => MaterialApp(
 
 final _intro = find.byKey(const Key('app-intro'));
 
-/// 인트로 글귀 중 지금 **눈에 보이는** 글자들 (아직 안 쓴 글자는 투명하게 자리만 차지한다)
-List<String> _visibleLines(WidgetTester tester) => tester
-    .widgetList<RichText>(
-      find.descendant(of: _intro, matching: find.byType(RichText)),
-    )
-    .map((t) {
-      final buffer = StringBuffer();
-      t.text.visitChildren((span) {
-        if (span is TextSpan &&
-            span.text != null &&
-            (span.style?.color?.a ?? 1) > 0) {
-          buffer.write(span.text);
-        }
-        return true;
-      });
-      return buffer.toString();
-    })
-    .where((line) => line.isNotEmpty)
+/// 글귀 줄마다 펜으로 쓴 정도 (0 = 아직, 1 = 다 씀)
+List<double> _written(WidgetTester tester) => tester
+    .widgetList<IntroPenLine>(find.byType(IntroPenLine))
+    .map((line) => line.progress)
     .toList();
 
 void main() {
@@ -57,27 +43,34 @@ void main() {
     await tester.pumpWidget(_wrap());
     await tester.pump(introDuration * 0.7);
 
-    expect(_visibleLines(tester), ['Live', 'In', 'God', 'Help', 'The other']);
+    final lines = tester.widgetList<IntroPenLine>(find.byType(IntroPenLine));
+    expect(lines.map((l) => l.letter + l.rest), [
+      'Live',
+      'In',
+      'God',
+      'Help',
+      'The other',
+    ]);
+    expect(_written(tester), everyElement(1));
   });
 
-  testWidgets('글귀는 엠블럼 직후부터 한 글자씩 써진다', (tester) async {
+  testWidgets('글귀는 엠블럼 직후부터 위 줄부터 차례로 써진다', (tester) async {
     await tester.pumpWidget(_wrap());
 
-    // 처음에는 아무 글자도 없다
-    expect(_visibleLines(tester), isEmpty);
+    // 처음에는 아무것도 안 써 있다
+    expect(_written(tester), everyElement(0));
 
-    // 엠블럼이 뜨는 동안 이미 쓰기 시작한다 (예전에는 0.5초 넘게 비어 있었다)
-    await tester.pump(introDuration * 0.2);
-    final early = _visibleLines(tester);
-    expect(early, isNotEmpty);
-    expect(early.first, startsWith('L'));
-    expect(early.join().length, lessThan('LiveInGodHelpThe other'.length));
+    // 엠블럼이 뜨는 동안 이미 첫 줄을 쓰고 있다 (예전에는 0.5초 넘게 비어 있었다)
+    await tester.pump(introDuration * 0.13);
+    final early = _written(tester);
+    expect(early.first, inExclusiveRange(0, 1));
+    expect(early.skip(1), everyElement(0));
 
-    // 앞줄부터 차례로 — 중간에는 앞줄은 다 써 있고 뒷줄은 아직이다
-    await tester.pump(introDuration * 0.2);
-    final middle = _visibleLines(tester);
-    expect(middle.first, 'Live');
-    expect(middle.length, lessThan(5));
+    // 중간에는 앞줄은 다 써 있고 뒷줄은 아직이다
+    await tester.pump(introDuration * 0.25);
+    final middle = _written(tester);
+    expect(middle.first, 1);
+    expect(middle.last, 0);
   });
 
   testWidgets('누르면 바로 건너뛴다', (tester) async {
@@ -98,7 +91,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
 
     // 글귀가 처음부터 다 보인다 (써지는 움직임이 없다)
-    expect(_visibleLines(tester), ['Live', 'In', 'God', 'Help', 'The other']);
+    expect(_written(tester), everyElement(1));
 
     await tester.pump(introReducedDuration);
     await tester.pump();
