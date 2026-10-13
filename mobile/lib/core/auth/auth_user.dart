@@ -16,7 +16,7 @@ enum Role {
   static Role parse(String? raw) =>
       values.firstWhere((r) => r.wire == raw, orElse: () => Role.guest);
 
-  /// 임원 이상 — 예산안 · "관리는 웹에서"가 보인다 (기획안 §5)
+  /// 임원 이상 — 예산안 · 자료 올리기 · 마이페이지의 관리(웹)가 보인다 (기획안 §5)
   bool get isLeader => index >= Role.leader.index;
 }
 

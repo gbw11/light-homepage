@@ -39,7 +39,7 @@ class HomeActions {
 
 /// 홈 (웹 `/home`을 앱에 맞게 줄인 것).
 ///
-/// 앱을 여는 사람은 대부분 이미 다니는 회원이라 **이번 주 소식과 말씀**만 둔다.
+/// 앱을 여는 사람은 대부분 이미 다니는 회원이라 **공지사항과 말씀**만 둔다.
 /// 웹 홈의 「우리는」·「주일에는 이렇게 모입니다」는 더보기 탭으로 가고, 맨 아래
 /// 「처음 오시나요?」는 맨 위 버튼과 겹쳐서 뺐다.
 ///
@@ -168,13 +168,15 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _Hero(
               bulletin: _bulletin,
+              welcomeFirst:
+                  AuthScope.maybeOf(context)?.user?.role.isLeader ?? false,
               onOpenBulletin: actions.onOpenBulletin,
               onFirstVisit: actions.onFirstVisit,
               onDirections: actions.onDirections,
             ),
             const SizedBox(height: 16),
             _SectionHeader(
-              '이번 주 소식',
+              '공지사항',
               link: '공지 전체보기',
               onLink: actions.onSeeAllNotices,
             ),
@@ -194,12 +196,17 @@ class _HomeScreenState extends State<HomeScreen> {
 class _Hero extends StatelessWidget {
   const _Hero({
     required this.bulletin,
+    required this.welcomeFirst,
     required this.onOpenBulletin,
     required this.onFirstVisit,
     required this.onDirections,
   });
 
   final Bulletin? bulletin;
+
+  /// 소개 카드를 주보 위에 둔다 — 임원 이상 (사용자 결정 2026-10-13).
+  /// 일반 회원은 주보가 맨 위다
+  final bool welcomeFirst;
   final void Function(String id) onOpenBulletin;
   final VoidCallback onFirstVisit;
   final VoidCallback onDirections;
@@ -208,33 +215,51 @@ class _Hero extends StatelessWidget {
   Widget build(BuildContext context) {
     final bulletin = this.bulletin;
     final hasBulletin = bulletin != null && bulletin.pages.isNotEmpty;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // 주보는 장 비율을 따른다 (bulletinAspectRatio). 없으면 칸 자체가 없다 —
-        // 예배 사진은 아래 카드 배경이라 위에 또 두면 같은 사진이 두 번 보인다
-        AnimatedSize(
-          duration: const Duration(milliseconds: 300),
-          alignment: Alignment.topCenter,
-          child: hasBulletin
-              ? AspectRatio(
-                  key: ValueKey(bulletin.id),
+    // 주보는 장 비율을 따른다 (bulletinAspectRatio). 없으면 칸 자체가 없다 —
+    // 예배 사진은 소개 카드 배경이라 위에 또 두면 같은 사진이 두 번 보인다
+    final bulletinView = AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      alignment: Alignment.topCenter,
+      child: hasBulletin
+          ? Column(
+              key: ValueKey(bulletin.id),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 무엇인지 한눈에 — 사진처럼 보여 주보인 줄 모른다 (사용자 결정 2026-10-13)
+                const _SectionHeader('이번 주 주보'),
+                AspectRatio(
                   aspectRatio: bulletinAspectRatio(bulletin),
                   child: BulletinCarousel(
                     bulletin: bulletin,
                     onOpen: () => onOpenBulletin(bulletin.id),
                   ),
-                )
-              : const SizedBox(width: double.infinity),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(16, hasBulletin ? 16 : 8, 16, 0),
-          child: _WelcomeCard(
-            onFirstVisit: onFirstVisit,
-            onDirections: onDirections,
-          ),
-        ),
-      ],
+                ),
+              ],
+            )
+          : const SizedBox(width: double.infinity),
+    );
+    final welcome = _WelcomeCard(
+      onFirstVisit: onFirstVisit,
+      onDirections: onDirections,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: welcomeFirst
+          ? [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: welcome,
+              ),
+              if (hasBulletin) const SizedBox(height: 16),
+              bulletinView,
+            ]
+          : [
+              bulletinView,
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, hasBulletin ? 16 : 8, 16, 0),
+                child: welcome,
+              ),
+            ],
     );
   }
 }
@@ -370,11 +395,13 @@ class _WelcomeCard extends StatelessWidget {
 ///
 /// 큰 글씨에서 한 줄에 다 못 들어가면 링크가 다음 줄로 내려간다 (Wrap)
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title, {required this.link, required this.onLink});
+  const _SectionHeader(this.title, {this.link, this.onLink});
 
   final String title;
-  final String link;
-  final VoidCallback onLink;
+
+  /// 오른쪽 「… ›」 링크 — 없으면 제목만
+  final String? link;
+  final VoidCallback? onLink;
 
   @override
   Widget build(BuildContext context) {
@@ -411,7 +438,8 @@ class _SectionHeader extends StatelessWidget {
               ],
             ),
           ),
-          TextButton(onPressed: onLink, child: Text('$link ›')),
+          if (link case final link?)
+            TextButton(onPressed: onLink, child: Text('$link ›')),
         ],
       ),
     );

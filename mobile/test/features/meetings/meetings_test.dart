@@ -126,6 +126,10 @@ void main() {
           ),
           onOpen: (m) => opened.add(m.id),
           onLogin: () {},
+          onUpload: () async {
+            opened.add('upload');
+            return false;
+          },
         );
 
     testWidgets('회원: 기간 안은 [열람하기], 밖은 눌리지 않는 [열람 전] · [열람 종료]', (tester) async {
@@ -144,6 +148,8 @@ void main() {
       expect(buttonOf(tester, '열람 종료').onPressed, isNull);
       expect(find.textContaining('임원에게 문의해 주세요'), findsOneWidget);
       expect(find.text('임원 열람'), findsNothing);
+      // 올리기는 임원 이상만
+      expect(find.text('월례회 자료 올리기'), findsNothing);
 
       await tester.tap(find.text('열람하기'));
       expect(opened, ['10']);
@@ -160,7 +166,9 @@ void main() {
       expect(find.text('열람 종료'), findsNothing);
       expect(find.textContaining('임원에게 문의'), findsNothing);
       await tester.tap(find.text('임원 열람'));
-      expect(opened, ['9']);
+      await tester.tap(find.text('월례회 자료 올리기'));
+      await tester.pumpAndSettle();
+      expect(opened, ['9', 'upload']);
     });
 
     testWidgets('무엇을 막고 무엇을 못 막는지 사실대로 알린다', (tester) async {

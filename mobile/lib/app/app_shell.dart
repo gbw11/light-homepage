@@ -17,7 +17,7 @@ const appTabs = <AppTab>[
     icon: Icons.play_circle_outline,
     selectedIcon: Icons.play_circle,
   ),
-  (label: '소식', icon: Icons.campaign_outlined, selectedIcon: Icons.campaign),
+  (label: '공지', icon: Icons.campaign_outlined, selectedIcon: Icons.campaign),
   // 자물쇠는 달지 않는다 — 웹이 09-16에 뺐고, 비로그인은 탭 안의 안내로
   // 알린다 (기획안 결정 D4)
   (label: '자료', icon: Icons.folder_outlined, selectedIcon: Icons.folder),
