@@ -18,17 +18,23 @@ import 'meetings_api.dart';
 ///     (SPEC_API §7.1). 목록에 버튼이 없으면 임원이 끝난 자료를 열 길이 없다
 ///
 /// 끝난 자료도 목록에 남긴다 — "있었다"는 것은 알리되 내용은 막는다.
+///
+/// 임원 이상에게는 오른쪽 아래에 [월례회 자료 올리기]가 있다.
 class MeetingsScreen extends StatefulWidget {
   const MeetingsScreen({
     super.key,
     required this.meetings,
     required this.onOpen,
     required this.onLogin,
+    required this.onUpload,
   });
 
   final MeetingsApi meetings;
   final void Function(MeetingSummary meeting) onOpen;
   final VoidCallback onLogin;
+
+  /// 올리기 화면을 연다 — 다 올렸으면 true로 끝난다. 임원 이상에게만 보인다
+  final Future<bool?> Function() onUpload;
 
   @override
   State<MeetingsScreen> createState() => _MeetingsScreenState();
@@ -45,9 +51,20 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
     super.dispose();
   }
 
+  Future<void> _upload() async {
+    final uploaded = await widget.onUpload();
+    if (uploaded != true || !mounted) return;
+    await _list.refresh();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('월례회 자료를 올렸어요.')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final isLeader = AuthScope.maybeOf(context)?.user?.role.isLeader ?? false;
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -55,6 +72,16 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
+      floatingActionButton: isLeader
+          ? FloatingActionButton.extended(
+              onPressed: _upload,
+              // 테마가 만든 기본색(primaryContainer)은 형광빛이라 앱 초록으로
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              icon: const Icon(Icons.upload_outlined),
+              label: const Text('월례회 자료 올리기'),
+            )
+          : null,
       body: ListenableBuilder(
         listenable: _list,
         builder: (context, _) {

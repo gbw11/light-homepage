@@ -98,7 +98,7 @@ class AppDrawer extends StatelessWidget {
             const Divider(),
             const _GroupLabel('바로가기'),
             item(Icons.play_circle_outline, '말씀', onTap: () => onTab(1)),
-            item(Icons.campaign_outlined, '소식', onTap: () => onTab(2)),
+            item(Icons.campaign_outlined, '공지', onTap: () => onTab(2)),
             item(Icons.folder_outlined, '자료', onTap: () => onTab(3)),
             const Divider(),
             item(

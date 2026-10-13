@@ -100,6 +100,19 @@ class ApiClient {
   Future<void> postNoContent(String path, {Object? body}) =>
       _request('POST', path, body: body, decode: (_) {});
 
+  /// multipart/form-data POST — 주보 · 첨부 · 월례회 업로드.
+  ///
+  /// [form]은 **시도마다 새로** 만든다. 401 → 리프레시 → 재시도 때 이미 한 번
+  /// 보낸 FormData는 다시 보낼 수 없다 (웹 `real.ts`의 `form: () => …`와 같은 이유)
+  Future<T> postForm<T>(
+    String path, {
+    required FormData Function() form,
+    required Decoder<T> decode,
+  }) => _request('POST', path, body: form, decode: decode);
+
+  /// 본문 없는 응답(204)을 기대하는 DELETE
+  Future<void> delete(String path) => _request('DELETE', path, decode: (_) {});
+
   /// 302가 넘겨주는 주소를 따라가지 않고 **그 주소만** 받는다 — 첨부 다운로드
   /// (SPEC_API §4.2: 302 → 서명 URL, 10분).
   ///
@@ -215,8 +228,14 @@ class ApiClient {
     final queryParameters = {
       for (final MapEntry(:key, :value) in (query ?? {}).entries) key: ?value,
     };
+    // FormData는 만드는 함수로 온다 — 이번 시도용으로 새로 만든다 (postForm)
+    final payload = body is FormData Function() ? body() : body;
     final options = Options(
       method: method,
+      // 기본값은 JSON이다 — FormData면 경계(boundary)가 붙은 multipart로
+      contentType: payload is FormData
+          ? 'multipart/form-data; boundary=${payload.boundary}'
+          : null,
       followRedirects: followRedirects,
       responseType: bytes ? ResponseType.bytes : ResponseType.plain,
     );
@@ -230,7 +249,7 @@ class ApiClient {
     if (bytes) {
       final res = await _dio.request<List<int>>(
         path,
-        data: body,
+        data: payload,
         queryParameters: queryParameters,
         options: options,
       );
@@ -242,7 +261,7 @@ class ApiClient {
     } else {
       final res = await _dio.request<String>(
         path,
-        data: body,
+        data: payload,
         queryParameters: queryParameters,
         options: options,
       );

@@ -28,7 +28,7 @@ Future<FakeServer> pumpApp(
   return server;
 }
 
-/// 홈이 공지를 부른 횟수. 소식 탭도 /posts를 부르므로 홈의 요청(size=3)만 센다
+/// 홈이 공지를 부른 횟수. 공지 탭도 /posts를 부르므로 홈의 요청(size=3)만 센다
 int homeNoticeCalls(FakeServer server) => server.requests
     .where((r) => r.path == '/posts' && r.queryParameters['size'] == 3)
     .length;
@@ -55,7 +55,7 @@ void main() {
   testWidgets('하단 탭 4개가 있고 홈에서 시작한다 — 더보기 탭은 없다', (tester) async {
     await pumpApp(tester);
 
-    for (final label in ['홈', '말씀', '소식', '자료']) {
+    for (final label in ['홈', '말씀', '공지', '자료']) {
       expect(tab(label), findsOneWidget);
     }
     expect(tab('더보기'), findsNothing);
@@ -79,7 +79,7 @@ void main() {
     final server = await pumpApp(tester);
     expect(homeNoticeCalls(server), 1);
 
-    await tester.tap(tab('소식'));
+    await tester.tap(tab('공지'));
     await tester.pumpAndSettle();
     await tester.tap(tab('홈'));
     await tester.pumpAndSettle();
@@ -88,7 +88,7 @@ void main() {
     expect(homeNoticeCalls(server), 1);
   });
 
-  testWidgets('홈의 「공지 전체보기」는 소식 탭으로 간다', (tester) async {
+  testWidgets('홈의 「공지 전체보기」는 공지 탭으로 간다', (tester) async {
     await pumpApp(tester);
 
     await tester.tap(find.text('공지 전체보기 ›'));
@@ -184,7 +184,7 @@ void main() {
 
   testWidgets('사이드바를 연 채 뒤로가기를 누르면 사이드바만 닫힌다 — 탭은 그대로다', (tester) async {
     await pumpApp(tester);
-    await tester.tap(tab('소식'));
+    await tester.tap(tab('공지'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('전체 메뉴'));
     await tester.pumpAndSettle();
@@ -217,7 +217,7 @@ void main() {
     await tester.tap(find.byTooltip('전체 메뉴'));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.descendant(of: find.byType(Drawer), matching: find.text('소식')),
+      find.descendant(of: find.byType(Drawer), matching: find.text('공지')),
     );
     await tester.pumpAndSettle();
 
@@ -227,7 +227,7 @@ void main() {
 
   testWidgets('다른 탭에서도 ☰로 같은 사이드바를 연다', (tester) async {
     await pumpApp(tester);
-    await tester.tap(tab('소식'));
+    await tester.tap(tab('공지'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('전체 메뉴'));
@@ -238,7 +238,7 @@ void main() {
 
   testWidgets('홈이 아닌 탭에서 뒤로가기를 누르면 앱이 닫히지 않고 홈으로 온다', (tester) async {
     await pumpApp(tester);
-    await tester.tap(tab('소식'));
+    await tester.tap(tab('공지'));
     await tester.pumpAndSettle();
     expect(selectedTab(tester), 2);
 
@@ -252,7 +252,7 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester);
-    await tester.tap(tab('소식'));
+    await tester.tap(tab('공지'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('로그인 · 회원가입'));
@@ -269,7 +269,7 @@ void main() {
     await pumpApp(tester, screen: const Size(360, 740), textScale: 2);
 
     expect(tester.takeException(), isNull);
-    for (final label in ['홈', '말씀', '소식', '자료']) {
+    for (final label in ['홈', '말씀', '공지', '자료']) {
       expect(tab(label), findsOneWidget);
     }
   });

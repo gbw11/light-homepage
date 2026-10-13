@@ -107,11 +107,14 @@ void main() {
       ),
     );
 
-    expect(find.text('고정'), findsOneWidget);
-    expect(find.byIcon(Icons.attach_file), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
+    // 고정 공지 묶음 — 소제목과 건수, 그 아래 「전체 공지」
+    expect(find.text('고정 공지'), findsOneWidget);
+    expect(find.text('1건'), findsOneWidget);
+    expect(find.text('전체 공지'), findsOneWidget);
+    expect(find.text('📌 고정'), findsOneWidget);
+    expect(find.text('📎 2'), findsOneWidget);
     expect(
-      find.text(formatShortDate(DateTime.utc(2026, 10, 5, 3))),
+      find.text(formatDotDate(DateTime.utc(2026, 10, 5, 3))),
       findsNWidgets(2),
     );
   });
@@ -172,9 +175,48 @@ void main() {
     );
     await pumpNews(tester, server);
 
-    await tester.scrollUntilVisible(find.text('공지 20'), 400);
+    await tester.scrollUntilVisible(
+      find.text('공지 20'),
+      400,
+      // 검색 칸(TextField)도 Scrollable이라 바깥 목록을 집는다
+      scrollable: find.byType(Scrollable).first,
+    );
 
     expect(find.text('공지 20'), findsOneWidget);
+  });
+
+  testWidgets('검색하면 제목에 그 말이 든 공지만 보인다', (tester) async {
+    await pumpNews(
+      tester,
+      serverWith(
+        public: page([
+          notice('3', '가을 수련회 신청 안내'),
+          notice('2', '주일 예배 시간 안내'),
+          notice('1', '수련회 회비 안내'),
+        ]),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), '수련회');
+    await tester.pumpAndSettle();
+
+    expect(find.text('가을 수련회 신청 안내'), findsOneWidget);
+    expect(find.text('수련회 회비 안내'), findsOneWidget);
+    expect(find.text('주일 예배 시간 안내'), findsNothing);
+
+    // 지우면 다 보인다
+    await tester.tap(find.byTooltip('검색어 지우기'));
+    await tester.pumpAndSettle();
+    expect(find.text('주일 예배 시간 안내'), findsOneWidget);
+  });
+
+  testWidgets('찾는 공지가 없으면 없다고 말한다', (tester) async {
+    await pumpNews(tester, serverWith(public: page([notice('1', '광고')])));
+
+    await tester.enterText(find.byType(TextField), '수련회');
+    await tester.pumpAndSettle();
+
+    expect(find.text('「수련회」가 들어간 공지가 없어요.'), findsOneWidget);
   });
 
   testWidgets('누르면 그 공지를 연다', (tester) async {

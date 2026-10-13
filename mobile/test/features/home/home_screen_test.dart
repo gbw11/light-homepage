@@ -171,7 +171,7 @@ void main() {
       ),
     );
 
-    expect(find.text('이번 주 소식'), findsOneWidget);
+    expect(find.text('공지사항'), findsOneWidget);
     expect(find.text('10월 셋째 주 광고'), findsOneWidget);
     expect(find.text('가을 수련회 신청 안내'), findsOneWidget);
     expect(find.text('고정'), findsOneWidget);
@@ -268,6 +268,7 @@ void main() {
       await pumpHome(tester, server);
 
       expect(find.byType(BulletinCarousel), findsNothing);
+      expect(find.text('이번 주 주보'), findsNothing);
       expect(server.paths.where((p) => p.contains('/bulletins')), isEmpty);
     });
 
@@ -280,6 +281,7 @@ void main() {
       );
 
       expect(server.paths, contains('GET /bulletins/latest'));
+      expect(find.text('이번 주 주보'), findsOneWidget);
       expect(find.text('2026.10.11 주보 · 1/2'), findsOneWidget);
 
       await tester.tap(find.text('2026.10.11 주보 · 1/2'));
@@ -331,6 +333,35 @@ void main() {
 
       expect(find.text('2026.10.11 주보'), findsOneWidget);
     });
+
+    /// 소개 카드(예배 시간)와 주보 중 위에 있는 쪽
+    String topOf(WidgetTester tester) {
+      final card = tester.getTopLeft(find.text('주일 14:00 · 드림센터 4층')).dy;
+      final bulletin = tester.getTopLeft(find.byType(BulletinCarousel)).dy;
+      return card < bulletin ? 'card' : 'bulletin';
+    }
+
+    testWidgets('일반 회원은 주보가 맨 위, 소개 카드는 그 아래', (tester) async {
+      final server = serverWith();
+      await pumpHome(tester, server, auth: await memberOf(tester, server));
+
+      expect(topOf(tester), 'bulletin');
+    });
+
+    for (final role in ['LEADER', 'PASTOR']) {
+      testWidgets('임원 이상()은 소개 카드가 맨 위, 주보는 그 아래', (tester) async {
+        final server = FakeServer(
+          (o) async => o.path == '/auth/me'
+              ? respond(200, {
+                  'data': {...member, 'role': role},
+                })
+              : serverWith().handler(o),
+        );
+        await pumpHome(tester, server, auth: await memberOf(tester, server));
+
+        expect(topOf(tester), 'card');
+      });
+    }
 
     testWidgets('가로로 긴 주보는 잘리지 않게 그 비율로 칸을 잡는다', (tester) async {
       final server = serverWith();

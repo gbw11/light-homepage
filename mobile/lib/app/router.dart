@@ -4,19 +4,22 @@ import 'package:go_router/go_router.dart';
 import '../core/api/api_client.dart';
 import '../core/auth/auth_api.dart';
 import '../core/auth/auth_state.dart';
+import '../core/upload/pick_file.dart';
 import '../features/account/login_screen.dart';
 import '../features/account/my_page_screen.dart';
 import '../features/account/password_change_screen.dart';
 import '../features/account/profile_screen.dart';
+import '../features/bulletins/bulletin_upload_screen.dart';
 import '../features/bulletins/bulletin_viewer_screen.dart';
 import '../features/bulletins/bulletins_api.dart';
-import '../features/bulletins/bulletins_screen.dart';
+import '../features/bulletins/pick_bulletin_images.dart';
 import '../features/church/about_screen.dart';
 import '../features/church/contact_screen.dart';
 import '../features/church/location_screen.dart';
 import '../features/church/welcome_screen.dart';
 import '../features/church/worship_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/meetings/meeting_upload_screen.dart';
 import '../features/meetings/meeting_viewer_screen.dart';
 import '../features/meetings/meetings_api.dart';
 import '../features/meetings/meetings_screen.dart';
@@ -188,16 +191,16 @@ GoRouter buildRouter({
                   onOpen: (resource) => context.push(
                     '${AppPaths.resources}/${_resourcePaths[resource]}',
                   ),
-                  openExternal: openExternal,
                 ),
                 routes: [
                   GoRoute(
                     path: _resourcePaths[Resource.bulletins]!,
-                    builder: (context, state) => BulletinsScreen(
+                    // 목록 없이 곧장 최신 주보 — 지난 주보는 달력에서 고른다
+                    builder: (context, state) => BulletinViewerScreen(
                       bulletins: bulletins,
-                      onOpen: (b) =>
-                          context.push('${AppPaths.bulletin}/${b.id}'),
                       onLogin: () => context.push(AppPaths.login),
+                      onUpload: () =>
+                          context.push<bool>(AppPaths.uploadBulletin),
                     ),
                   ),
                   GoRoute(
@@ -232,6 +235,8 @@ GoRouter buildRouter({
                       onOpen: (m) =>
                           context.push('${AppPaths.meeting}/${m.id}'),
                       onLogin: () => context.push(AppPaths.login),
+                      onUpload: () =>
+                          context.push<bool>(AppPaths.uploadMeeting),
                     ),
                   ),
                   postsOf(
@@ -280,6 +285,24 @@ GoRouter buildRouter({
         ],
       ),
 
+      // ── 자료 올리기 — 임원 이상. 하단 탭을 덮는다 ──
+      GoRoute(
+        path: AppPaths.uploadBulletin,
+        builder: (context, state) => BulletinUploadScreen(
+          bulletins: bulletins,
+          pickImages: pickBulletinImages,
+          onDone: () => context.pop(true),
+        ),
+      ),
+      GoRoute(
+        path: AppPaths.uploadMeeting,
+        builder: (context, state) => MeetingUploadScreen(
+          meetings: meetings,
+          pickPdf: pickPdf,
+          onDone: () => context.pop(true),
+        ),
+      ),
+
       // ── 자료 뷰어 — 하단 탭을 덮는다 ──
       GoRoute(
         path: '${AppPaths.bulletin}/:id',
@@ -287,6 +310,7 @@ GoRouter buildRouter({
           bulletins: bulletins,
           id: state.pathParameters['id']!,
           onLogin: () => context.push(AppPaths.login),
+          onUpload: () => context.push<bool>(AppPaths.uploadBulletin),
         ),
       ),
 

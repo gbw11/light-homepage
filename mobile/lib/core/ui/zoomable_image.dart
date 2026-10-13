@@ -13,6 +13,7 @@ class ZoomableImage extends StatefulWidget {
     required this.active,
     required this.onZoomChanged,
     required this.onReload,
+    this.onLight = false,
   });
 
   /// 주보 · 사진은 서명된 주소([NetworkImage]), 월례회는 앱이 받아 둔 바이트([MemoryImage])
@@ -23,6 +24,10 @@ class ZoomableImage extends StatefulWidget {
 
   /// 못 불러왔을 때 [다시 불러오기] — 주소가 만료됐으면 새 주소를 받아 온다
   final VoidCallback onReload;
+
+  /// 밝은 바탕(흰 카드) 위에 둘 때 — 불러오는 표시 · 실패 안내를 어두운 색으로.
+  /// 기본은 어두운 전체 화면 뷰어(사진첩 · 월례회)라 밝은 색이다
+  final bool onLight;
 
   @override
   State<ZoomableImage> createState() => _ZoomableImageState();
@@ -79,6 +84,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final ink = widget.onLight ? scheme.onSurface : scheme.surface;
     return GestureDetector(
       onDoubleTapDown: (d) => _doubleTap = d,
       onDoubleTap: _toggleZoom,
@@ -97,7 +103,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
               if (progress == null) return child;
               final total = progress.expectedTotalBytes;
               return CircularProgressIndicator(
-                color: scheme.surface,
+                color: ink,
                 value: total == null
                     ? null
                     : progress.cumulativeBytesLoaded / total,
@@ -106,18 +112,15 @@ class _ZoomableImageState extends State<ZoomableImage> {
             errorBuilder: (context, _, _) => Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.broken_image_outlined, color: scheme.surface),
+                Icon(Icons.broken_image_outlined, color: ink),
                 const SizedBox(height: 8),
-                Text(
-                  '이미지를 불러오지 못했어요.',
-                  style: TextStyle(color: scheme.surface),
-                ),
+                Text('이미지를 불러오지 못했어요.', style: TextStyle(color: ink)),
                 const SizedBox(height: 8),
                 OutlinedButton(
                   onPressed: widget.onReload,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: scheme.surface,
-                    side: BorderSide(color: scheme.surface),
+                    foregroundColor: ink,
+                    side: BorderSide(color: ink),
                   ),
                   child: const Text('다시 불러오기'),
                 ),

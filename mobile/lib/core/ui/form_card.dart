@@ -124,6 +124,7 @@ class CardField extends StatelessWidget {
     this.minLines,
     this.maxLines = 1,
     this.onSubmitted,
+    this.onChanged,
     this.validator,
     this.errorText,
   });
@@ -151,6 +152,9 @@ class CardField extends StatelessWidget {
   final int? minLines;
   final int? maxLines;
   final ValueChanged<String>? onSubmitted;
+
+  /// 사람이 칸을 고칠 때마다 (코드가 바꾼 것은 오지 않는다)
+  final ValueChanged<String>? onChanged;
   final FormFieldValidator<String>? validator;
 
   /// 서버가 짚은 오류 (아이디 중복 등)
@@ -177,6 +181,7 @@ class CardField extends StatelessWidget {
             minLines: minLines,
             maxLines: maxLines,
             onFieldSubmitted: onSubmitted,
+            onChanged: onChanged,
             validator: validator,
             forceErrorText: errorText,
             decoration: cardInputDecoration(

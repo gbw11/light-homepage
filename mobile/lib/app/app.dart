@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -74,6 +75,10 @@ class _LightAppState extends State<LightApp> {
         theme: buildAppTheme(),
         scaffoldMessengerKey: _messenger,
         routerConfig: _router,
+        // 달력 · 뒤로가기 툴팁 같은 기본 문구를 한국어로 (주보 날짜 고르기 등)
+        locale: const Locale('ko'),
+        supportedLocales: const [Locale('ko')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         // 앱을 켤 때 인트로를 앱 본체 위에 덮는다 (app_intro.dart). 라우터 밖에 두어
         // 탭·화면 구성과 무관하게 한 번만 뜬다
         builder: (context, child) =>

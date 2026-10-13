@@ -14,6 +14,11 @@ abstract final class AppPaths {
   static const bulletin = '/bulletin';
   static const meeting = '/meeting';
 
+  // 자료 올리기 — 임원 이상. 하단 탭을 덮는다.
+  // `/bulletin/:id` 아래에 두면 'upload'가 id로 잡힌다 — 따로 둔다
+  static const uploadBulletin = '/upload/bulletin';
+  static const uploadMeeting = '/upload/meeting';
+
   // 계정 — 하단 탭을 덮고 열린다
   static const login = '/login';
   static const signup = '/signup';

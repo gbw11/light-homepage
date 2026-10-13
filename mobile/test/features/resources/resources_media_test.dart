@@ -7,7 +7,6 @@ import 'package:light_mobile/core/format/date_format.dart';
 import 'package:light_mobile/core/theme/app_theme.dart';
 import 'package:light_mobile/features/bulletins/bulletin_viewer_screen.dart';
 import 'package:light_mobile/features/bulletins/bulletins_api.dart';
-import 'package:light_mobile/features/bulletins/bulletins_screen.dart';
 import 'package:light_mobile/features/meetings/meetings_api.dart';
 import 'package:light_mobile/features/resources/resources_screen.dart';
 
@@ -109,7 +108,6 @@ void main() {
           meetings: MeetingsApi(clientFor(server)),
           onLogin: () => calls.add('login'),
           onOpen: (r) => calls.add(r.name),
-          openExternal: (url) => calls.add('open:$url'),
         );
 
     FakeServer meetingsWith(List<Object> items) =>
@@ -150,6 +148,8 @@ void main() {
       await pump(tester, screen(meetingsWith([]), []), auth: auth);
 
       expect(find.text('예산안'), findsOneWidget);
+      // 올리기는 각 자료 화면 안에 있다 — 웹으로 보내는 링크는 없다
+      expect(find.textContaining('관리는 웹에서'), findsNothing);
     });
 
     testWidgets('열람 기간인 월례회가 있으면 카드에 마감을 단다', (tester) async {
@@ -189,110 +189,134 @@ void main() {
     });
   });
 
-  group('주보 목록', () {
-    BulletinsScreen screen(FakeServer server, List<String> calls) =>
-        BulletinsScreen(
-          bulletins: BulletinsApi(clientFor(server)),
-          onOpen: (b) => calls.add(b.id),
-          onLogin: () => calls.add('login'),
-        );
+  group('주보 보기', () {
+    BulletinViewerScreen screen(
+      FakeServer server, {
+      String? id = '9',
+      List<String>? calls,
+    }) => BulletinViewerScreen(
+      bulletins: BulletinsApi(clientFor(server)),
+      id: id,
+      onLogin: () => calls?.add('login'),
+      onUpload: () async {
+        calls?.add('upload');
+        return false;
+      },
+    );
 
-    testWidgets('이번 주 주보를 크게, 지난 주보를 그 아래에', (tester) async {
-      final calls = <String>[];
+    /// 상세는 주보마다, 최신은 9번, 목록(달력 날짜)은 최근 세 부
+    FakeServer serverWith({int pages = 3}) => FakeServer(
+      (RequestOptions o) async => switch (o.path) {
+        '/bulletins' => page([
+          summary('9', '2026-10-11'),
+          summary('8', '2026-10-04'),
+          summary('7', '2026-09-27'),
+        ]),
+        '/bulletins/8' => respond(200, {
+          'data': {...detail('8', 1), 'serviceDate': '2026-10-04'},
+        }),
+        _ => respond(200, {'data': detail('9', pages)}),
+      },
+    );
+
+    testWidgets('날짜 제목 · 몇 면 중 몇 번째인지 보이고, 넘기면 바뀐다', (tester) async {
+      final server = serverWith();
+      await pump(tester, screen(server));
+
+      expect(server.paths, contains('GET /bulletins/9'));
+      expect(find.text('2026년 10월 11일'), findsOneWidget);
+      expect(find.text('1 / 3 면'), findsOneWidget);
+
+      await tester.fling(find.byType(PageView), const Offset(-300, 0), 1000);
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 / 3 면'), findsOneWidget);
+    });
+
+    testWidgets('주보를 정하지 않고 열면(자료 탭) 최신 주보를 보여준다', (tester) async {
+      final server = serverWith();
+      await pump(tester, screen(server, id: null));
+
+      expect(server.paths, contains('GET /bulletins/latest'));
+      expect(find.text('2026년 10월 11일'), findsOneWidget);
+    });
+
+    testWidgets('최신 주보가 아직 없으면 없다고 말한다', (tester) async {
       await pump(
         tester,
         screen(
           FakeServer(
-            (_) async => page([
-              summary('9', '2026-10-11', pages: 4),
-              summary('8', '2026-10-04'),
-            ]),
+            (o) async => o.path == '/bulletins/latest'
+                ? respond(200, {'data': null})
+                : page([]),
           ),
-          calls,
+          id: null,
         ),
       );
-
-      expect(find.text('이번 주 주보'), findsOneWidget);
-      expect(find.text('2026.10.11'), findsOneWidget);
-      expect(find.text('4장'), findsOneWidget);
-      expect(find.text('2026.10.04'), findsOneWidget);
-
-      await tester.tap(find.text('주보 보기'));
-      await tester.tap(find.text('2026.10.04'));
-      expect(calls, ['9', '8']);
-    });
-
-    testWidgets('주보가 없으면 없다고 말한다', (tester) async {
-      await pump(tester, screen(FakeServer((_) async => page([])), []));
 
       expect(find.text('아직 올라온 주보가 없어요.'), findsOneWidget);
     });
 
-    testWidgets('세션이 끊겼으면(401) 로그인 안내를 둔다', (tester) async {
-      final calls = <String>[];
-      await pump(
-        tester,
-        screen(FakeServer((_) async => unauthorized()), calls),
-      );
-
-      await tester.tap(find.widgetWithText(FilledButton, '로그인'));
-      expect(calls, ['login']);
-    });
-
-    testWidgets('작은 폰(360dp)에서 글자를 2배로 키워도 넘치지 않는다', (tester) async {
-      await pump(
-        tester,
-        screen(
-          FakeServer(
-            (_) async =>
-                page([summary('9', '2026-10-11'), summary('8', '2026-10-04')]),
-          ),
-          [],
-        ),
-        textScale: 2,
-        size: const Size(360, 740),
-      );
-
-      expect(tester.takeException(), isNull);
-    });
-  });
-
-  group('주보 보기', () {
-    BulletinViewerScreen screen(FakeServer server) => BulletinViewerScreen(
-      bulletins: BulletinsApi(clientFor(server)),
-      id: '9',
-      onLogin: () {},
-    );
-
-    testWidgets('몇 장 중 몇 번째인지 보이고, 넘기면 바뀐다', (tester) async {
-      final server = FakeServer(
-        (RequestOptions o) async => respond(200, {'data': detail('9', 3)}),
-      );
+    testWidgets('[지난 주보]는 달력 — 주보가 있는 날을 고르면 그 주보로 바뀐다', (tester) async {
+      final server = serverWith();
       await pump(tester, screen(server));
 
-      expect(server.paths, ['GET /bulletins/9']);
-      expect(find.text('2026.10.11 주보'), findsOneWidget);
-      expect(find.text('1 / 3'), findsOneWidget);
+      await tester.tap(find.text('지난 주보'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DatePickerDialog), findsOneWidget);
 
-      await tester.fling(find.byType(PageView), const Offset(-400, 0), 1000);
+      // 2026-10-04 — 같은 달 달력에 있다
+      await tester.tap(find.text('4'));
+      await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
 
-      expect(find.text('2 / 3'), findsOneWidget);
+      expect(server.paths, contains('GET /bulletins/8'));
+      expect(find.text('2026년 10월 4일'), findsOneWidget);
+      expect(find.text('1 / 1 면'), findsOneWidget);
+    });
+
+    testWidgets('달력에서 주보가 없는 날은 고를 수 없다', (tester) async {
+      await pump(tester, screen(serverWith()));
+
+      await tester.tap(find.text('지난 주보'));
+      await tester.pumpAndSettle();
+
+      // 10월 5일에는 주보가 없다 — 눌러도 그대로다
+      await tester.tap(find.text('5'));
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(find.text('2026년 10월 11일'), findsOneWidget);
+    });
+
+    testWidgets('일반 회원에게는 [주보 올리기]가 없다', (tester) async {
+      final auth = await authAs(tester, me('MEMBER'));
+      await pump(tester, screen(serverWith()), auth: auth);
+
+      expect(find.text('주보 올리기'), findsNothing);
+    });
+
+    testWidgets('임원 이상은 [주보 올리기]로 올리는 화면을 연다', (tester) async {
+      final auth = await authAs(tester, me('LEADER'));
+      final calls = <String>[];
+      await pump(tester, screen(serverWith(), calls: calls), auth: auth);
+
+      await tester.tap(find.text('주보 올리기'));
+      await tester.pumpAndSettle();
+      expect(calls, ['upload']);
     });
 
     testWidgets('이미지를 못 받으면(주소 만료 등) 새 주소를 받아 온다', (tester) async {
-      final server = FakeServer(
-        (_) async => respond(200, {'data': detail('9', 2)}),
-      );
+      final server = serverWith(pages: 2);
       await pump(tester, screen(server));
 
       // 테스트 환경에서는 네트워크 이미지를 못 받는다 — 실패 화면이 곧 만료 상황이다
+      await tester.ensureVisible(find.text('다시 불러오기').first);
       await tester.tap(find.text('다시 불러오기').first);
       // 확대용 두 번 누르기 판정이 끝나야 한 번 누르기가 확정된다
       await tester.pump(kDoubleTapTimeout);
       await tester.pumpAndSettle();
 
-      expect(server.paths, ['GET /bulletins/9', 'GET /bulletins/9']);
+      expect(server.paths.where((p) => p == 'GET /bulletins/9'), hasLength(2));
     });
 
     testWidgets('없는 주보는 찾을 수 없다고 말한다', (tester) async {
@@ -308,6 +332,17 @@ void main() {
       );
 
       expect(find.text('찾을 수 없는 주보예요.'), findsOneWidget);
+    });
+
+    testWidgets('작은 폰(360dp)에서 글자를 2배로 키워도 넘치지 않는다', (tester) async {
+      await pump(
+        tester,
+        screen(serverWith()),
+        textScale: 2,
+        size: const Size(360, 740),
+      );
+
+      expect(tester.takeException(), isNull);
     });
   });
 }
