@@ -64,10 +64,11 @@ void main() {
       openExternal: r.open,
     );
 
-    testWidgets('인사 다음에 드림센터 찾아오는 길 — 빨간 경고 상자는 없다', (tester) async {
+    testWidgets('맨 위는 WELCOME TO LIGHT 환영 문구 — 빨간 경고 상자는 없다', (tester) async {
       await pumpScreen(tester, screen(Recorder()));
 
-      expect(find.text('혼자 오셔도 괜찮습니다.'), findsOneWidget);
+      expect(find.text('WELCOME TO LIGHT · 환영합니다'), findsOneWidget);
+      expect(find.text('빛 가운데 동행할\n당신을 기쁨으로 환영합니다'), findsOneWidget);
       expect(find.byType(VenueWarning), findsNothing);
       expect(find.text('드림센터를 찾아오세요'), findsOneWidget);
       expect(find.textContaining('도보 2분 (134m)'), findsOneWidget);
@@ -96,16 +97,16 @@ void main() {
       expect(find.text(faq.answer), findsOneWidget);
     });
 
-    testWidgets('새가족 등록은 인사 바로 다음, 지도 · 오시는 길은 그 아래', (tester) async {
+    testWidgets('새가족 온라인 등록은 맨 위, 지도 · 오시는 길은 그 아래', (tester) async {
       final r = Recorder();
       await pumpScreen(tester, screen(r));
 
       // 첫 화면에서 바로 보인다 — 내리지 않아도 누를 수 있다
       expect(
-        tester.getTopLeft(find.text('새가족 등록하기')).dy,
+        tester.getTopLeft(find.text('새가족 온라인 등록')).dy,
         lessThan(tester.getTopLeft(find.text('드림센터를 찾아오세요')).dy),
       );
-      await tester.tap(find.text('새가족 등록하기'));
+      await tester.tap(find.text('새가족 온라인 등록'));
       for (final label in ['지도 앱으로 열기', '오시는 길 자세히']) {
         await tester.ensureVisible(find.text(label));
         await tester.pumpAndSettle();

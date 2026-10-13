@@ -30,14 +30,12 @@ class WelcomeScreen extends StatelessWidget {
     return InfoPage(
       title: '처음 오시는 분',
       children: [
-        const SizedBox(height: 8),
-        // 빨간 경고 상자(본당이 아니라 드림센터)는 오시는 길에만 둔다 —
-        // 사용자 결정 2026-10-13. 여기서는 아래 「드림센터를 찾아오세요」가 말한다
-        const _Intro(),
-        // 새가족 등록은 맨 아래에 두면 끝까지 내린 사람만 본다 — 인사 바로 다음에
-        // (사용자 결정 2026-10-13)
-        const SizedBox(height: 16),
-        _RegisterCard(onRegister: onRegister),
+        // 맨 위 — 엠블럼 · WELCOME TO LIGHT · 환영 문구 · [새가족 온라인 등록]
+        // (사용자 시안 2026-10-13). 새가족 등록은 맨 아래에 두면 끝까지 내린 사람만
+        // 본다 — 첫 화면에 둔다.
+        // 빨간 경고 상자(본당이 아니라 드림센터)는 오시는 길에만 둔다 — 여기서는
+        // 아래 「드림센터를 찾아오세요」가 말한다
+        _Hero(onRegister: onRegister),
         InfoSection(
           title: '드림센터를 찾아오세요',
           children: [
@@ -124,32 +122,122 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
-/// 맨 위 인사 — 옅은 초록 판
-class _Intro extends StatelessWidget {
-  const _Intro();
+/// 맨 위 — 흰 동그라미 속 엠블럼 · 「● WELCOME TO LIGHT · 환영합니다 🌿」 ·
+/// 큰 환영 문구 · 설명 · [👤+ 새가족 온라인 등록] (사용자 시안)
+class _Hero extends StatelessWidget {
+  const _Hero({required this.onRegister});
+
+  final VoidCallback onRegister;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SoftCard(
-      color: theme.colorScheme.primary.withValues(alpha: 0.08),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const TagPill('처음 오시는 분께'),
-            const SizedBox(height: 12),
-            Text(
-              '혼자 오셔도 괜찮습니다.',
+    final scheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 120,
+              height: 120,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                // 정한 색 토큰에 흰색이 따로 없어 onPrimary(흰색)를 쓴다
+                color: scheme.onPrimary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: scheme.onSurface.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/images/logo.png',
+                // 꾸밈이다 — 화면 이름은 위 제목줄과 아래 문구가 말한다
+                excludeFromSemantics: true,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: scheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'WELCOME TO LIGHT · 환영합니다',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const ExcludeSemantics(child: Text('🌿')),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Semantics(
+            header: true,
+            child: Text(
+              '빛 가운데 동행할\n당신을 기쁨으로 환영합니다',
+              textAlign: TextAlign.center,
               style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                height: 1.35,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '처음 교회의 문을 두드리신 분도, 학업과 직장으로 김해에 새로 정착하신 청년도 '
+            '어색함 없이 깃들 수 있는 따스한 쉼터가 되어드립니다.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: scheme.onSurfaceVariant,
+              height: 1.6,
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: onRegister,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+              shape: const StadiumBorder(),
+              textStyle: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 6),
-            const InfoText('편한 차림으로 오세요. 부담 없이 함께해요.', muted: true),
-          ],
-        ),
+            icon: const Icon(Icons.person_add_alt),
+            label: const Text('새가족 온라인 등록'),
+          ),
+        ],
       ),
     );
   }
@@ -239,61 +327,6 @@ class _Faq extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// 맨 아래 — 짙은 초록 판에 새가족 등록
-class _RegisterCard extends StatelessWidget {
-  const _RegisterCard({required this.onRegister});
-
-  final VoidCallback onRegister;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return SoftCard(
-      color: scheme.primary,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Semantics(
-              header: true,
-              child: Text(
-                '미리 알려주시면 맞이하겠습니다',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: scheme.onPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: onRegister,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                shape: const StadiumBorder(),
-                backgroundColor: scheme.surface,
-                foregroundColor: scheme.primary,
-                textStyle: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(child: Text('새가족 등록하기')),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, size: 20),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

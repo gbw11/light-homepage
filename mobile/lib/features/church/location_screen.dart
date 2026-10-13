@@ -97,7 +97,7 @@ class LocationScreen extends StatelessWidget {
           ],
         ),
         InfoSection(
-          title: '차로 — 주차 안내',
+          title: '주차 안내',
           children: [
             const InfoText(
               '드림센터 전용 주차장은 없고 김해교회 주차장 세 곳을 함께 씁니다. '
