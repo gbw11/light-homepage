@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import '../../core/auth/auth_state.dart';
 import '../../core/format/date_format.dart';
 import '../../core/ui/menu_button.dart';
-import '../../core/ui/signed_image.dart';
 import '../bulletins/bulletin.dart';
 import '../bulletins/bulletins_api.dart';
+import '../posts/post_card.dart';
 import '../posts/post_summary.dart';
 import '../posts/posts_api.dart';
 import '../sermons/sermon.dart';
 import '../sermons/sermons_api.dart';
 import '../sermons/video_thumbnail.dart';
+import 'bulletin_carousel.dart';
 
 /// 홈에서 다른 곳으로 가는 길. 화면 이동은 홈이 정하지 않고 바깥(탭 틀)이 정한다
 class HomeActions {
@@ -30,7 +31,9 @@ class HomeActions {
   final VoidCallback onSeeAllNotices;
   final void Function(Sermon sermon) onOpenSermon;
   final VoidCallback onSeeAllSermons;
-  final void Function(BulletinSummary bulletin) onOpenBulletin;
+
+  /// 주보 id
+  final void Function(String id) onOpenBulletin;
 }
 
 /// 홈 (웹 `/home`을 앱에 맞게 줄인 것).
@@ -42,9 +45,9 @@ class HomeActions {
 /// 맨 위는 웹과 같은 원칙을 지킨다 — **스크롤 없이 예배 시간 + 장소 + 다음 행동이
 /// 모두 보인다** (WIREFRAME §1).
 ///
-/// 맨 위 그림은 로그인한 회원에게 **최신 주보 표지**다. 임원이 매주 올리면 따라
-/// 바뀐다. 주보는 회원 전용이라(SPEC_API §5, 비로그인 401) 비로그인 · 주보 없음 ·
-/// 실패에는 예배 사진을 둔다.
+/// 맨 위 그림은 로그인한 회원에게 **최신 주보**다 — 임원이 매주 올리면 따라 바뀌고,
+/// 장을 2초마다 넘긴다 ([BulletinCarousel]). 주보는 회원 전용이라(SPEC_API §5,
+/// 비로그인 401) 비로그인 · 주보 없음 · 실패에는 예배 사진을 둔다.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
@@ -71,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<Sermon?> _sermon;
 
   /// 최신 주보. 비로그인 · 없음 · 실패면 null — 예배 사진이 대신 선다
-  BulletinSummary? _bulletin;
+  Bulletin? _bulletin;
   String? _bulletinFor;
 
   @override
@@ -95,11 +98,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadBulletin() async {
     final userId = _bulletinFor;
     try {
-      // 최신순 — 첫 줄의 thumbUrl이 1쪽 원본이다 (SPEC_API §5.2)
-      final page = await widget.bulletins.list(size: 1);
+      final bulletin = await widget.bulletins.latest();
       // 기다리는 사이 로그아웃했으면 버린다
       if (mounted && userId == _bulletinFor) {
-        setState(() => _bulletin = page.items.firstOrNull);
+        setState(() => _bulletin = bulletin);
       }
     } catch (_) {
       // 그림 하나 때문에 화면에 오류를 띄우지 않는다 — 사진이 그대로 선다
@@ -168,9 +170,12 @@ class _HomeScreenState extends State<HomeScreen> {
               onDirections: actions.onDirections,
             ),
             const SizedBox(height: 16),
-            _SectionTitle('이번 주'),
+            _SectionHeader(
+              '이번 주 소식',
+              link: '공지 전체보기',
+              onLink: actions.onSeeAllNotices,
+            ),
             _Notices(future: _notices, onOpen: actions.onOpenNotice),
-            _MoreLink('공지 전체보기', onPressed: actions.onSeeAllNotices),
             _LatestSermon(
               future: _sermon,
               onOpen: actions.onOpenSermon,
@@ -191,8 +196,8 @@ class _Hero extends StatelessWidget {
     required this.onDirections,
   });
 
-  final BulletinSummary? bulletin;
-  final void Function(BulletinSummary bulletin) onOpenBulletin;
+  final Bulletin? bulletin;
+  final void Function(String id) onOpenBulletin;
   final VoidCallback onFirstVisit;
   final VoidCallback onDirections;
 
@@ -203,24 +208,29 @@ class _Hero extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 16:9를 지킨다 — 더 키우면 작은 폰에서 예배 시간 · 버튼이 첫 화면 밖으로 밀린다.
-        // 사진은 원본이 16:9라 그대로 두고(크롭하면 특정 인물이 확대될 수 있다 — 웹 홈 주석),
-        // 세로로 긴 주보는 위쪽(제목 · 날짜가 있는 곳)을 남긴다
-        AspectRatio(
-          aspectRatio: 16 / 9,
+        // 사진은 원본이 16:9라 그대로 둔다 — 크롭하면 특정 인물이 확대될 수 있다
+        // (웹 홈 주석). 주보는 장 비율을 따른다 (bulletinAspectRatio)
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
-            child: bulletin == null
-                ? Image.asset(
-                    'assets/images/worship-hero.webp',
+            child: bulletin == null || bulletin.pages.isEmpty
+                ? AspectRatio(
                     key: const ValueKey('photo'),
-                    fit: BoxFit.cover,
-                    semanticLabel: '어두운 예배 공간에서 손을 들어 찬양하는 청년들의 실루엣',
+                    aspectRatio: 16 / 9,
+                    child: Image.asset(
+                      'assets/images/worship-hero.webp',
+                      fit: BoxFit.cover,
+                      semanticLabel: '어두운 예배 공간에서 손을 들어 찬양하는 청년들의 실루엣',
+                    ),
                   )
-                : _BulletinCover(
-                    bulletin,
+                : AspectRatio(
                     key: ValueKey(bulletin.id),
-                    onTap: () => onOpenBulletin(bulletin),
+                    aspectRatio: bulletinAspectRatio(bulletin),
+                    child: BulletinCarousel(
+                      bulletin: bulletin,
+                      onOpen: () => onOpenBulletin(bulletin.id),
+                    ),
                   ),
           ),
         ),
@@ -266,121 +276,53 @@ class _Hero extends StatelessWidget {
   }
 }
 
-/// 최신 주보 표지. 누르면 주보 보기로 간다 — 거기서 새 주소를 받으니
-/// 표지 주소가 만료돼도(10분) 누르면 열린다
-class _BulletinCover extends StatelessWidget {
-  const _BulletinCover(this.bulletin, {super.key, required this.onTap});
-
-  final BulletinSummary bulletin;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final date = formatYmd(bulletin.serviceDate);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // 그림과 글자는 아래 버튼 이름 하나로 읽힌다
-        ExcludeSemantics(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              SignedImage(
-                url: bulletin.thumbUrl,
-                alignment: Alignment.topCenter,
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: DecoratedBox(
-                  // 표지 색이 무엇이든 흰 글자가 읽히게 아래를 어둡게 깐다
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0x00000000), Color(0xB3000000)],
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '주보 · $date',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '보기 ›',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // 그림 위 어디를 눌러도 열리게, 물결은 맨 위에 그린다
-        // container — 없으면 아래 예배 시간 · 장소 글자까지 이 버튼 이름에 합쳐진다
-        Semantics(
-          container: true,
-          button: true,
-          label: '$date 주보 보기',
-          child: Material(
-            type: MaterialType.transparency,
-            child: InkWell(onTap: onTap),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.title);
+/// 칸 제목 — ▌제목 ··· 전체보기 ›
+///
+/// 큰 글씨에서 한 줄에 다 못 들어가면 링크가 다음 줄로 내려간다 (Wrap)
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.title, {required this.link, required this.onLink});
 
   final String title;
+  final String link;
+  final VoidCallback onLink;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Semantics(
-        header: true,
-        child: Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-      ),
-    );
-  }
-}
-
-/// 「▸ 전체보기」 링크. 웹처럼 목록 아래에 둔다 — 제목 옆에 두면 큰 글씨에서 한 줄이 넘친다
-class _MoreLink extends StatelessWidget {
-  const _MoreLink(this.label, {required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton(onPressed: onPressed, child: Text('▸ $label')),
+      padding: const EdgeInsets.fromLTRB(16, 16, 4, 8),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Semantics(
+            header: true,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 글자 크기를 따라 커지는 막대 — 고정 높이면 큰 글씨에서 짧아 보인다
+                Container(
+                  width: 6,
+                  height:
+                      (theme.textTheme.titleLarge?.fontSize ?? 22) *
+                      MediaQuery.textScalerOf(context).scale(1),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(onPressed: onLink, child: Text('$link ›')),
+        ],
       ),
     );
   }
@@ -406,62 +348,19 @@ class _Notices extends StatelessWidget {
         final notices = snapshot.requireData;
         if (notices.isEmpty) return const _Message('새 공지가 없어요.');
 
-        return Column(
-          children: [
-            for (final (i, notice) in notices.indexed) ...[
-              if (i > 0) const Divider(height: 1, indent: 16, endIndent: 16),
-              _NoticeRow(notice, onTap: () => onOpen(notice)),
-            ],
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _NoticeRow extends StatelessWidget {
-  const _NoticeRow(this.notice, {required this.onTap});
-
-  final PostSummary notice;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final publishedAt = notice.publishedAt;
-    return InkWell(
-      onTap: onTap,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 48),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 날짜 칸은 글자 크기를 따라 넓어져야 한다 — 고정 폭이면 큰 글씨에서 잘린다
-              Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: Text(
-                  publishedAt == null ? '' : formatMonthDay(publishedAt),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  notice.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+              for (final (i, notice) in notices.indexed) ...[
+                if (i > 0) const SizedBox(height: 12),
+                PostCard(notice, onTap: () => onOpen(notice)),
+              ],
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -490,12 +389,15 @@ class _LatestSermon extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 8),
-            const _SectionTitle('최근 말씀'),
+            const SizedBox(height: 16),
+            _SectionHeader('최근 말씀', link: '말씀 전체보기', onLink: onSeeAll),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Card(
                 margin: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: () => onOpen(sermon),
@@ -532,7 +434,6 @@ class _LatestSermon extends StatelessWidget {
                 ),
               ),
             ),
-            _MoreLink('지난 말씀 전체보기', onPressed: onSeeAll),
           ],
         );
       },

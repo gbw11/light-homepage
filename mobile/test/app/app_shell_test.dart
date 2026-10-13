@@ -90,7 +90,7 @@ void main() {
   testWidgets('홈의 「공지 전체보기」는 소식 탭으로 간다', (tester) async {
     await pumpApp(tester);
 
-    await tester.tap(find.text('▸ 공지 전체보기'));
+    await tester.tap(find.text('공지 전체보기 ›'));
     await tester.pumpAndSettle();
 
     expect(selectedTab(tester), 2);

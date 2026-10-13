@@ -126,8 +126,8 @@ GoRouter buildRouter({
                         context.push('${AppPaths.home}/news/${notice.id}'),
                     onFirstVisit: () => context.push(AppPaths.welcome),
                     onDirections: () => context.push(AppPaths.location),
-                    onOpenBulletin: (b) =>
-                        context.push('${AppPaths.bulletin}/${b.id}'),
+                    onOpenBulletin: (id) =>
+                        context.push('${AppPaths.bulletin}/$id'),
                   ),
                 ),
                 routes: [noticeDetail('news/:id')],
