@@ -1,68 +1,87 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/api_error.dart';
+import '../../core/auth/auth_state.dart';
 import '../../core/ui/status_views.dart';
 import '../../core/ui/zoomable_image.dart';
 import '../account/login_gate.dart';
 import 'bulletin.dart';
 import 'bulletins_api.dart';
-import 'bulletins_screen.dart' show bulletinAspectRatio;
+
+/// 크기를 기록하지 않은 옛 주보의 가로:세로 — 장변 2048px 세로 (SPEC_API §5.1 예시)
+const _fallbackAspectRatio = 1448 / 2048;
 
 /// 주보 보기 (기획안 §2-3 ②, 사용자 시안 2026-10-13).
 ///
 /// ```
 ///  주일 청년예배
-///  2026년 10월 18일              [지난 주보 ▾]
-///  (10월 18일 (이번 주)) (10월 4일) (8월 29일) …   ← 최근 주보, 눌러서 바꾼다
+///  2026년 10월 18일              [지난 주보 📅]   ← 달력에서 날짜를 고른다
 ///  ● 주보 순서지                         1 / 2 면
 ///  ┌ 흰 카드 ────────────────┐
 ///  │  (장 이미지 — 좌우로 넘기고 두 손가락으로 확대) │
 ///  └──────────────────────────┘
 /// ```
 ///
-/// 홈의 「이번 주 주보」와 주보 목록에서 들어온다. 시안의 「예배순서 텍스트」 칸은
-/// 없다 — 주보는 이미지로만 올라와서 글로 된 예배 순서가 서버에 없다.
+/// 자료 탭의 「주보」는 [id] 없이 열어 **최신 주보**를 보여준다. 홈의 「이번 주 주보」는
+/// 그 주보의 [id]로 연다. 임원 이상에게는 [주보 올리기]가 있다 — 다 올리면 최신
+/// 주보를 다시 받는다.
+///
+/// 시안의 「예배순서 텍스트」 칸은 없다 — 주보는 이미지로만 올라와서 글로 된 예배
+/// 순서가 서버에 없다.
 class BulletinViewerScreen extends StatefulWidget {
   const BulletinViewerScreen({
     super.key,
     required this.bulletins,
-    required this.id,
     required this.onLogin,
+    this.id,
+    this.onUpload,
   });
 
   final BulletinsApi bulletins;
-  final String id;
   final VoidCallback onLogin;
+
+  /// 볼 주보. 없으면 최신 주보
+  final String? id;
+
+  /// 주보 올리기 화면을 연다 — 다 올렸으면 true로 끝난다. 임원 이상에게만 보인다
+  final Future<bool?> Function()? onUpload;
 
   @override
   State<BulletinViewerScreen> createState() => _BulletinViewerScreenState();
 }
 
 class _BulletinViewerScreenState extends State<BulletinViewerScreen> {
-  late String _id = widget.id;
-  late Future<Bulletin> _bulletin = widget.bulletins.get(_id);
+  late String? _id = widget.id;
+  late Future<Bulletin?> _bulletin = _load();
 
-  /// 위쪽 날짜 칩 · [지난 주보] 목록. 못 받아 오면 칩 줄만 빠진다
-  late final Future<List<BulletinSummary>> _recent = widget.bulletins
-      .list(size: 20)
-      .then((page) => page.items)
-      .catchError((_) => <BulletinSummary>[]);
+  /// [지난 주보] 달력에서 고를 수 있는 날짜들. 못 받아 오면 버튼만 빠진다
+  late Future<List<BulletinSummary>> _all = _loadAll();
 
   var _pages = PageController();
   var _index = 0;
   var _zoomed = false;
 
+  Future<Bulletin?> _load() => switch (_id) {
+    final id? => widget.bulletins.get(id),
+    null => widget.bulletins.latest(),
+  };
+
+  /// 주 1회씩 쌓이니 100부면 2년 치다 — 그보다 오래된 주보는 웹에서 본다
+  Future<List<BulletinSummary>> _loadAll() => widget.bulletins
+      .list(size: 100)
+      .then((page) => page.items)
+      .catchError((_) => <BulletinSummary>[]);
+
   /// 주소(10분)가 만료됐으면 새로 받는다. 보던 장은 그대로다
   void _reload() => setState(() {
-    _bulletin = widget.bulletins.get(_id);
+    _bulletin = _load();
   });
 
-  /// 다른 주보로 — 첫 장부터 본다
-  void _open(String id) {
-    if (id == _id) return;
+  /// 다른 주보로 — 첫 장부터 본다. [id]가 null이면 최신 주보
+  void _open(String? id) {
     setState(() {
       _id = id;
-      _bulletin = widget.bulletins.get(id);
+      _bulletin = _load();
       _pages.dispose();
       _pages = PageController();
       _index = 0;
@@ -70,31 +89,32 @@ class _BulletinViewerScreenState extends State<BulletinViewerScreen> {
     });
   }
 
-  Future<void> _pickPast(List<BulletinSummary> recent) async {
-    final picked = await showModalBottomSheet<String>(
+  /// [지난 주보] — 달력에서 주보가 있는 날만 고를 수 있다
+  Future<void> _pickPast(Bulletin current, List<BulletinSummary> all) async {
+    final byDate = {for (final b in all) b.serviceDate: b.id};
+    final dates = [for (final b in all) _parse(b.serviceDate)]..sort();
+    final picked = await showDatePicker(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            for (final (i, b) in recent.indexed)
-              ListTile(
-                title: Text(_longDate(b.serviceDate)),
-                subtitle: Text('${b.pageCount}장${i == 0 ? ' · 이번 주' : ''}'),
-                trailing: b.id == _id
-                    ? Icon(
-                        Icons.check,
-                        color: Theme.of(context).colorScheme.primary,
-                      )
-                    : null,
-                onTap: () => Navigator.pop(context, b.id),
-              ),
-          ],
-        ),
-      ),
+      initialDate: _parse(current.serviceDate),
+      firstDate: dates.first,
+      lastDate: dates.last,
+      helpText: '주보가 있는 날만 고를 수 있어요',
+      selectableDayPredicate: (day) => byDate.containsKey(_ymd(day)),
     );
-    if (picked != null) _open(picked);
+    if (picked == null) return;
+    final id = byDate[_ymd(picked)];
+    if (id != null && id != current.id) _open(id);
+  }
+
+  Future<void> _upload() async {
+    final uploaded = await widget.onUpload?.call();
+    if (uploaded != true || !mounted) return;
+    // 올린 주보가 보이게 최신 주보로 · 달력의 날짜도 새로
+    _all = _loadAll();
+    _open(null);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('주보를 올렸어요.')));
   }
 
   @override
@@ -105,10 +125,22 @@ class _BulletinViewerScreenState extends State<BulletinViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isLeader = AuthScope.maybeOf(context)?.user?.role.isLeader ?? false;
     return Scaffold(
       appBar: AppBar(
         title: const Text('주보', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
+      floatingActionButton: isLeader && widget.onUpload != null
+          ? FloatingActionButton.extended(
+              onPressed: _upload,
+              // 테마가 만든 기본색(primaryContainer)은 형광빛이라 앱 초록으로
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              icon: const Icon(Icons.upload_outlined),
+              label: const Text('주보 올리기'),
+            )
+          : null,
       body: FutureBuilder(
         future: _bulletin,
         builder: (context, snapshot) => switch (snapshot) {
@@ -122,7 +154,11 @@ class _BulletinViewerScreenState extends State<BulletinViewerScreen> {
             ),
             _ => ErrorView(error: error, onRetry: _reload),
           },
-          AsyncSnapshot(data: final bulletin?) => _body(bulletin),
+          AsyncSnapshot(connectionState: ConnectionState.done, :final data) =>
+            switch (data) {
+              final bulletin? => _body(bulletin),
+              null => const MessageView(message: '아직 올라온 주보가 없어요.'),
+            },
           _ => const LoadingView(),
         },
       ),
@@ -133,73 +169,62 @@ class _BulletinViewerScreenState extends State<BulletinViewerScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return ListView(
-      padding: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.only(bottom: 96),
       children: [
         // 머리 — 옅은 베이지 띠
         ColoredBox(
           color: scheme.surfaceContainer,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-            child: FutureBuilder(
-              future: _recent,
-              builder: (context, snapshot) {
-                final recent = snapshot.data ?? const <BulletinSummary>[];
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '주일 청년예배',
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Semantics(
-                                header: true,
-                                child: Text(
-                                  _longDate(bulletin.serviceDate),
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '주일 청년예배',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Semantics(
+                        header: true,
+                        child: Text(
+                          _longDate(bulletin.serviceDate),
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                        if (recent.length > 1) ...[
-                          const SizedBox(width: 8),
-                          FilledButton.tonalIcon(
-                            onPressed: () => _pickPast(recent),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: scheme.onPrimary,
-                              foregroundColor: scheme.onSurface,
-                              shape: const StadiumBorder(),
-                            ),
-                            iconAlignment: IconAlignment.end,
-                            icon: const Icon(Icons.expand_more),
-                            label: const Text('지난 주보'),
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (recent.length > 1) ...[
-                      const SizedBox(height: 12),
-                      _DateChips(
-                        recent: recent,
-                        selectedId: _id,
-                        onSelected: _open,
                       ),
                     ],
-                  ],
-                );
-              },
+                  ),
+                ),
+                FutureBuilder(
+                  future: _all,
+                  builder: (context, snapshot) {
+                    final all = snapshot.data ?? const <BulletinSummary>[];
+                    // 고를 다른 주보가 없으면 버튼도 없다
+                    if (all.length < 2) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: FilledButton.tonalIcon(
+                        onPressed: () => _pickPast(bulletin, all),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: scheme.onPrimary,
+                          foregroundColor: scheme.onSurface,
+                          shape: const StadiumBorder(),
+                        ),
+                        iconAlignment: IconAlignment.end,
+                        icon: const Icon(Icons.calendar_month_outlined),
+                        label: const Text('지난 주보'),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ),
@@ -280,74 +305,20 @@ class _BulletinViewerScreenState extends State<BulletinViewerScreen> {
   }
 }
 
-/// `2026-10-18` → `2026년 10월 18일` (시간대를 바꾸지 않는다 — 날짜만 오는 값)
-String _longDate(String ymd) {
+/// `2026-10-18` → 그날 자정 (기기 시간대). 날짜만 오는 값이라 시간대를 바꾸지 않는다
+DateTime _parse(String ymd) {
   final [y, m, d] = ymd.split('-').map(int.parse).toList();
-  return '$y년 $m월 $d일';
+  return DateTime(y, m, d);
 }
 
-/// `2026-10-18` → `10월 18일`
-String _shortDate(String ymd) {
-  final [_, m, d] = ymd.split('-').map(int.parse).toList();
-  return '$m월 $d일';
-}
+String _ymd(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+    '${d.day.toString().padLeft(2, '0')}';
 
-/// 최근 주보 날짜 칩 — 맨 앞이 이번 주. 고른 것이 짙은 초록
-class _DateChips extends StatelessWidget {
-  const _DateChips({
-    required this.recent,
-    required this.selectedId,
-    required this.onSelected,
-  });
-
-  final List<BulletinSummary> recent;
-  final String selectedId;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        spacing: 8,
-        children: [
-          for (final (i, b) in recent.take(8).indexed)
-            Semantics(
-              button: true,
-              selected: b.id == selectedId,
-              child: Material(
-                color: b.id == selectedId ? scheme.primary : scheme.onPrimary,
-                shape: const StadiumBorder(),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => onSelected(b.id),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 44),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Center(
-                        widthFactor: 1,
-                        child: Text(
-                          '${_shortDate(b.serviceDate)}${i == 0 ? ' (이번 주)' : ''}',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: b.id == selectedId
-                                ? scheme.onPrimary
-                                : scheme.onSurface,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+/// `2026-10-18` → `2026년 10월 18일`
+String _longDate(String ymd) {
+  final d = _parse(ymd);
+  return '${d.year}년 ${d.month}월 ${d.day}일';
 }
 
 /// 흰 카드 속 장 이미지 — 좌우로 넘기고, 두 손가락으로 확대한다
@@ -374,7 +345,7 @@ class _PageCard extends StatelessWidget {
   double get _aspect {
     final first = bulletin.pages.first;
     final (w, h) = (first.width, first.height);
-    if (w == null || h == null || w <= 0 || h <= 0) return bulletinAspectRatio;
+    if (w == null || h == null || w <= 0 || h <= 0) return _fallbackAspectRatio;
     return w / h;
   }
 
@@ -384,6 +355,7 @@ class _PageCard extends StatelessWidget {
     final pages = bulletin.pages;
     return DecoratedBox(
       decoration: BoxDecoration(
+        // 정한 색 토큰에 흰색이 따로 없어 onPrimary(흰색)를 쓴다
         color: scheme.onPrimary,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [

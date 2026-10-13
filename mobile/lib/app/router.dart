@@ -11,7 +11,6 @@ import '../features/account/profile_screen.dart';
 import '../features/bulletins/bulletin_upload_screen.dart';
 import '../features/bulletins/bulletin_viewer_screen.dart';
 import '../features/bulletins/bulletins_api.dart';
-import '../features/bulletins/bulletins_screen.dart';
 import '../features/bulletins/pick_bulletin_images.dart';
 import '../features/church/about_screen.dart';
 import '../features/church/contact_screen.dart';
@@ -195,10 +194,9 @@ GoRouter buildRouter({
                 routes: [
                   GoRoute(
                     path: _resourcePaths[Resource.bulletins]!,
-                    builder: (context, state) => BulletinsScreen(
+                    // 목록 없이 곧장 최신 주보 — 지난 주보는 달력에서 고른다
+                    builder: (context, state) => BulletinViewerScreen(
                       bulletins: bulletins,
-                      onOpen: (b) =>
-                          context.push('${AppPaths.bulletin}/${b.id}'),
                       onLogin: () => context.push(AppPaths.login),
                       onUpload: () =>
                           context.push<bool>(AppPaths.uploadBulletin),
@@ -301,6 +299,7 @@ GoRouter buildRouter({
           bulletins: bulletins,
           id: state.pathParameters['id']!,
           onLogin: () => context.push(AppPaths.login),
+          onUpload: () => context.push<bool>(AppPaths.uploadBulletin),
         ),
       ),
 

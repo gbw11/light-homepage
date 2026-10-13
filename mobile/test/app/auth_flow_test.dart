@@ -134,7 +134,8 @@ void main() {
 
     // 보는 도중에 세션이 끊겼다고 치고, 다시 들어온다
     backend.loggedIn = false;
-    await tester.pageBack();
+    // 앱이 한국어라 pageBack()이 찾는 영어 툴팁(Back)이 없다 — 뒤로 버튼을 직접 누른다
+    await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     await tester.tap(find.text('회원 공지'));
     await tester.pumpAndSettle();

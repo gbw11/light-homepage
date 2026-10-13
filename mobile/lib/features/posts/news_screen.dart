@@ -14,7 +14,6 @@ import 'posts_api.dart';
 /// 공지 탭 — 공지 목록 (웹 `/news`, 기획안 §2-2 ①, 사용자 시안 2026-10-13).
 ///
 /// ```
-///  ● COMMUNITY NEWS            김해교회 LIGHT 청년교회
 ///  공지 및 소식
 ///  우리 공동체의 따뜻한 걸음과 나눔을 전합니다.
 ///  [🔍 공지사항과 소식을 검색해 보세요]
@@ -134,7 +133,7 @@ class _NewsScreenState extends State<NewsScreen> {
   }
 }
 
-/// 「● COMMUNITY NEWS · 김해교회 LIGHT 청년교회 / 공지 및 소식 / 한 줄」
+/// 「공지 및 소식 / 한 줄」 — 그 위의 작은 글줄은 뺐다 (사용자 결정 2026-10-13)
 class _Intro extends StatelessWidget {
   const _Intro();
 
@@ -142,48 +141,11 @@ class _Intro extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final small = theme.textTheme.labelLarge?.copyWith(
-      color: scheme.onSurfaceVariant,
-      fontWeight: FontWeight.w600,
-    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 양 끝에 하나씩 — 큰 글씨에서는 둘 다 말줄임표로 줄어든다
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: scheme.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'COMMUNITY NEWS',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: small,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Flexible(
-                child: Text(
-                  '김해교회 LIGHT 청년교회',
-                  textAlign: TextAlign.end,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: small,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
           Semantics(
             header: true,
             child: Text(
