@@ -78,7 +78,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     await tester.tap(_intro);
-    // 건너뛰기는 0.25초 — 원래 끝나는 2.6초보다 훨씬 이르게 걷힌다
+    // 건너뛰기는 0.25초 — 원래 끝나는 3초보다 훨씬 이르게 걷힌다
     for (var i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }

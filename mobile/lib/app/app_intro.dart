@@ -12,17 +12,17 @@ const _acrostic = <(String, String)>[
 const _logoAsset = 'assets/images/logo.png';
 
 /// 인트로 전체 길이. 엠블럼 → 글귀가 한 줄씩 떠오른다 → 잠깐 머문 뒤 사라진다
-const introDuration = Duration(milliseconds: 2600);
+const introDuration = Duration(milliseconds: 3000);
 
 /// 글귀가 떠오르는 구간 (전체 길이에 대한 비율). 엠블럼이 다 뜨기 전에 바로 시작한다
 /// (PM 요청 2026-10-13 — 엠블럼과 글귀 사이 공백이 길게 느껴짐)
-const _linesStart = 0.1;
-const _linesEnd = 0.62;
+const _linesStart = 0.08;
+const _linesEnd = 0.66;
 
 /// 줄마다 떠오르기 시작하는 간격과 한 줄이 떠오르는 데 걸리는 길이
 /// ([_linesStart]~[_linesEnd] 구간에 대한 비율). 앞줄이 다 뜨기 전에 다음 줄이 따라온다
-const _lineStagger = 0.16;
-const _lineRise = 0.36;
+const _lineStagger = 0.15;
+const _lineRise = 0.4;
 
 /// 떠오르기 전 줄이 놓이는 아래쪽 거리 (줄 높이에 대한 비율)
 const _riseFrom = 0.6;
