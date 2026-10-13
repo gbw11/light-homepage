@@ -16,6 +16,7 @@ class PagedListView<T> extends StatelessWidget {
     required this.emptyMessage,
     this.header = const [],
     this.end,
+    this.cards = false,
   });
 
   final PagedList<T> list;
@@ -31,6 +32,9 @@ class PagedListView<T> extends StatelessWidget {
 
   /// 끝까지 받았을 때 맨 아래에 붙는 칸
   final Widget? end;
+
+  /// 칸이 카드면 구분선 대신 사이를 띄우고 양옆 여백을 둔다
+  final bool cards;
 
   @override
   Widget build(BuildContext context) {
@@ -63,10 +67,21 @@ class PagedListView<T> extends StatelessWidget {
               SliverList.separated(
                 // 마지막 한 칸은 꼬리(더 받기 · 오류 · 끝)다
                 itemCount: list.items.length + 1,
-                separatorBuilder: (_, _) =>
-                    const Divider(height: 1, indent: 16, endIndent: 16),
+                separatorBuilder: (_, _) => cards
+                    ? const SizedBox(height: 12)
+                    : const Divider(height: 1, indent: 16, endIndent: 16),
                 itemBuilder: (context, i) => i < list.items.length
-                    ? itemBuilder(context, list.items[i])
+                    ? cards
+                          ? Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                16,
+                                i == 0 ? 12 : 0,
+                                16,
+                                0,
+                              ),
+                              child: itemBuilder(context, list.items[i]),
+                            )
+                          : itemBuilder(context, list.items[i])
                     : _Tail(list: list, end: end),
               ),
           ],

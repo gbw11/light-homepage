@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/format/date_format.dart';
 import '../../core/paging/paged_list.dart';
 import '../../core/ui/menu_button.dart';
 import '../../core/ui/paged_list_view.dart';
 import 'notice_feed.dart';
+import 'post_card.dart';
 import 'post_summary.dart';
 import 'posts_api.dart';
 
@@ -76,82 +76,10 @@ class _NewsScreenState extends State<NewsScreen> {
         list: _list,
         onRefresh: _list.refresh,
         emptyMessage: '등록된 공지가 없어요.',
+        cards: true,
         itemBuilder: (context, notice) =>
-            NoticeTile(notice, onTap: () => widget.onOpen(notice)),
+            PostCard(notice, onTap: () => widget.onOpen(notice)),
         end: _seesMemberNotices ? null : _MemberHint(onLogin: widget.onLogin),
-      ),
-    );
-  }
-}
-
-/// 공지 한 줄 — 📌 · 제목(두 줄까지) / 날짜 · 📎
-class NoticeTile extends StatelessWidget {
-  const NoticeTile(this.notice, {super.key, required this.onTap});
-
-  final PostSummary notice;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final muted = theme.textTheme.bodyMedium?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
-    final publishedAt = notice.publishedAt;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text.rich(
-              TextSpan(
-                children: [
-                  if (notice.pinned) ...[
-                    WidgetSpan(
-                      alignment: PlaceholderAlignment.middle,
-                      child: Icon(
-                        Icons.push_pin,
-                        size: 18,
-                        color: theme.colorScheme.primary,
-                        semanticLabel: '고정',
-                      ),
-                    ),
-                    const TextSpan(text: ' '),
-                  ],
-                  TextSpan(text: notice.title),
-                ],
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                if (publishedAt != null)
-                  Text(formatDotDate(publishedAt), style: muted),
-                if (notice.attachmentCount > 0)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.attach_file,
-                        size: 16,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      Text('첨부 ${notice.attachmentCount}', style: muted),
-                    ],
-                  ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

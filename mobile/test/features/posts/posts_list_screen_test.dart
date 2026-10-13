@@ -69,7 +69,7 @@ void main() {
       'MINUTES',
     });
     expect(find.text('9월 첫째 주 임원회의록'), findsOneWidget);
-    expect(find.text('첨부 1'), findsNWidgets(2));
+    expect(find.byIcon(Icons.attach_file), findsNWidgets(2));
 
     await tester.tap(find.text('8월 회의록'));
     expect(calls, ['2']);
