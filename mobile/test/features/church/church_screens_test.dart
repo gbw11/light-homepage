@@ -96,19 +96,23 @@ void main() {
       expect(find.text(faq.answer), findsOneWidget);
     });
 
-    testWidgets('지도 · 오시는 길 · 새가족 등록으로 가는 길', (tester) async {
+    testWidgets('새가족 등록은 인사 바로 다음, 지도 · 오시는 길은 그 아래', (tester) async {
       final r = Recorder();
       await pumpScreen(tester, screen(r));
 
-      await tester.tap(find.text('지도 앱으로 열기'));
-      await tester.tap(find.text('오시는 길 자세히'));
-      await tester.scrollUntilVisible(find.text('새가족 등록하기'), 300);
-      // scrollUntilVisible은 화면 끝에 걸치게만 올려서 탭이 빗나갈 수 있다
-      await tester.ensureVisible(find.text('새가족 등록하기'));
-      await tester.pumpAndSettle();
+      // 첫 화면에서 바로 보인다 — 내리지 않아도 누를 수 있다
+      expect(
+        tester.getTopLeft(find.text('새가족 등록하기')).dy,
+        lessThan(tester.getTopLeft(find.text('드림센터를 찾아오세요')).dy),
+      );
       await tester.tap(find.text('새가족 등록하기'));
+      for (final label in ['지도 앱으로 열기', '오시는 길 자세히']) {
+        await tester.ensureVisible(find.text(label));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(label));
+      }
 
-      expect(r.calls, ['open:$kakaoMapUrl', 'directions', 'register']);
+      expect(r.calls, ['register', 'open:$kakaoMapUrl', 'directions']);
     });
 
     testWidgets('웹에서 ❓(확인 필요)로 남은 내용은 옮기지 않는다', (tester) async {

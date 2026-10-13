@@ -34,6 +34,10 @@ class WelcomeScreen extends StatelessWidget {
         // 빨간 경고 상자(본당이 아니라 드림센터)는 오시는 길에만 둔다 —
         // 사용자 결정 2026-10-13. 여기서는 아래 「드림센터를 찾아오세요」가 말한다
         const _Intro(),
+        // 새가족 등록은 맨 아래에 두면 끝까지 내린 사람만 본다 — 인사 바로 다음에
+        // (사용자 결정 2026-10-13)
+        const SizedBox(height: 16),
+        _RegisterCard(onRegister: onRegister),
         InfoSection(
           title: '드림센터를 찾아오세요',
           children: [
@@ -115,8 +119,6 @@ class WelcomeScreen extends StatelessWidget {
           ],
         ),
         const InfoSection(title: '자주 묻는 질문', children: [_Faq()]),
-        const SizedBox(height: 36),
-        _RegisterCard(onRegister: onRegister),
       ],
     );
   }
