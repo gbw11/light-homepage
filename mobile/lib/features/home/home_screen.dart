@@ -168,6 +168,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _Hero(
               bulletin: _bulletin,
+              welcomeFirst:
+                  AuthScope.maybeOf(context)?.user?.role.isLeader ?? false,
               onOpenBulletin: actions.onOpenBulletin,
               onFirstVisit: actions.onFirstVisit,
               onDirections: actions.onDirections,
@@ -194,12 +196,17 @@ class _HomeScreenState extends State<HomeScreen> {
 class _Hero extends StatelessWidget {
   const _Hero({
     required this.bulletin,
+    required this.welcomeFirst,
     required this.onOpenBulletin,
     required this.onFirstVisit,
     required this.onDirections,
   });
 
   final Bulletin? bulletin;
+
+  /// 소개 카드를 주보 위에 둔다 — 임원 이상 (사용자 결정 2026-10-13).
+  /// 일반 회원은 주보가 맨 위다
+  final bool welcomeFirst;
   final void Function(String id) onOpenBulletin;
   final VoidCallback onFirstVisit;
   final VoidCallback onDirections;
@@ -208,33 +215,44 @@ class _Hero extends StatelessWidget {
   Widget build(BuildContext context) {
     final bulletin = this.bulletin;
     final hasBulletin = bulletin != null && bulletin.pages.isNotEmpty;
+    // 주보는 장 비율을 따른다 (bulletinAspectRatio). 없으면 칸 자체가 없다 —
+    // 예배 사진은 소개 카드 배경이라 위에 또 두면 같은 사진이 두 번 보인다
+    final bulletinView = AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      alignment: Alignment.topCenter,
+      child: hasBulletin
+          ? AspectRatio(
+              key: ValueKey(bulletin.id),
+              aspectRatio: bulletinAspectRatio(bulletin),
+              child: BulletinCarousel(
+                bulletin: bulletin,
+                onOpen: () => onOpenBulletin(bulletin.id),
+              ),
+            )
+          : const SizedBox(width: double.infinity),
+    );
+    final welcome = _WelcomeCard(
+      onFirstVisit: onFirstVisit,
+      onDirections: onDirections,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // 주보는 장 비율을 따른다 (bulletinAspectRatio). 없으면 칸 자체가 없다 —
-        // 예배 사진은 아래 카드 배경이라 위에 또 두면 같은 사진이 두 번 보인다
-        AnimatedSize(
-          duration: const Duration(milliseconds: 300),
-          alignment: Alignment.topCenter,
-          child: hasBulletin
-              ? AspectRatio(
-                  key: ValueKey(bulletin.id),
-                  aspectRatio: bulletinAspectRatio(bulletin),
-                  child: BulletinCarousel(
-                    bulletin: bulletin,
-                    onOpen: () => onOpenBulletin(bulletin.id),
-                  ),
-                )
-              : const SizedBox(width: double.infinity),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(16, hasBulletin ? 16 : 8, 16, 0),
-          child: _WelcomeCard(
-            onFirstVisit: onFirstVisit,
-            onDirections: onDirections,
-          ),
-        ),
-      ],
+      children: welcomeFirst
+          ? [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: welcome,
+              ),
+              if (hasBulletin) const SizedBox(height: 16),
+              bulletinView,
+            ]
+          : [
+              bulletinView,
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, hasBulletin ? 16 : 8, 16, 0),
+                child: welcome,
+              ),
+            ],
     );
   }
 }
