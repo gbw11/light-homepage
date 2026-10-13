@@ -17,6 +17,26 @@ Widget _wrap({bool reduceMotion = false}) => MaterialApp(
 
 final _intro = find.byKey(const Key('app-intro'));
 
+/// 인트로 글귀 중 지금 **눈에 보이는** 글자들 (아직 안 쓴 글자는 투명하게 자리만 차지한다)
+List<String> _visibleLines(WidgetTester tester) => tester
+    .widgetList<RichText>(
+      find.descendant(of: _intro, matching: find.byType(RichText)),
+    )
+    .map((t) {
+      final buffer = StringBuffer();
+      t.text.visitChildren((span) {
+        if (span is TextSpan &&
+            span.text != null &&
+            (span.style?.color?.a ?? 1) > 0) {
+          buffer.write(span.text);
+        }
+        return true;
+      });
+      return buffer.toString();
+    })
+    .where((line) => line.isNotEmpty)
+    .toList();
+
 void main() {
   testWidgets('켜면 인트로가 앱 본체를 덮고, 끝나면 걷힌다', (tester) async {
     await tester.pumpWidget(_wrap());
@@ -37,13 +57,27 @@ void main() {
     await tester.pumpWidget(_wrap());
     await tester.pump(introDuration * 0.7);
 
-    final texts = tester
-        .widgetList<RichText>(
-          find.descendant(of: _intro, matching: find.byType(RichText)),
-        )
-        .map((t) => t.text.toPlainText())
-        .toList();
-    expect(texts, containsAll(['Live', 'In', 'God', 'Help', 'The other']));
+    expect(_visibleLines(tester), ['Live', 'In', 'God', 'Help', 'The other']);
+  });
+
+  testWidgets('글귀는 엠블럼 직후부터 한 글자씩 써진다', (tester) async {
+    await tester.pumpWidget(_wrap());
+
+    // 처음에는 아무 글자도 없다
+    expect(_visibleLines(tester), isEmpty);
+
+    // 엠블럼이 뜨는 동안 이미 쓰기 시작한다 (예전에는 0.5초 넘게 비어 있었다)
+    await tester.pump(introDuration * 0.2);
+    final early = _visibleLines(tester);
+    expect(early, isNotEmpty);
+    expect(early.first, startsWith('L'));
+    expect(early.join().length, lessThan('LiveInGodHelpThe other'.length));
+
+    // 앞줄부터 차례로 — 중간에는 앞줄은 다 써 있고 뒷줄은 아직이다
+    await tester.pump(introDuration * 0.2);
+    final middle = _visibleLines(tester);
+    expect(middle.first, 'Live');
+    expect(middle.length, lessThan(5));
   });
 
   testWidgets('누르면 바로 건너뛴다', (tester) async {
@@ -63,11 +97,8 @@ void main() {
     await tester.pumpWidget(_wrap(reduceMotion: true));
     await tester.pump(const Duration(milliseconds: 50));
 
-    // 글귀가 처음부터 다 보인다 (차례로 나타나는 움직임이 없다)
-    final firstLine = find
-        .descendant(of: _intro, matching: find.byType(FadeTransition))
-        .last;
-    expect(tester.widget<FadeTransition>(firstLine).opacity.value, 1);
+    // 글귀가 처음부터 다 보인다 (써지는 움직임이 없다)
+    expect(_visibleLines(tester), ['Live', 'In', 'God', 'Help', 'The other']);
 
     await tester.pump(introReducedDuration);
     await tester.pump();
