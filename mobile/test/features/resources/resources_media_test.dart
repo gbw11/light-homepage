@@ -108,7 +108,6 @@ void main() {
           meetings: MeetingsApi(clientFor(server)),
           onLogin: () => calls.add('login'),
           onOpen: (r) => calls.add(r.name),
-          openExternal: (url) => calls.add('open:$url'),
         );
 
     FakeServer meetingsWith(List<Object> items) =>
@@ -149,6 +148,8 @@ void main() {
       await pump(tester, screen(meetingsWith([]), []), auth: auth);
 
       expect(find.text('예산안'), findsOneWidget);
+      // 올리기는 각 자료 화면 안에 있다 — 웹으로 보내는 링크는 없다
+      expect(find.textContaining('관리는 웹에서'), findsNothing);
     });
 
     testWidgets('열람 기간인 월례회가 있으면 카드에 마감을 단다', (tester) async {

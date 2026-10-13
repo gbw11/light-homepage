@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/auth/auth_state.dart';
-import '../../core/config.dart';
 import '../../core/format/date_format.dart';
 import '../../core/ui/menu_button.dart';
 import '../../core/ui/profile_button.dart';
@@ -24,13 +23,11 @@ class ResourcesScreen extends StatefulWidget {
     required this.meetings,
     required this.onLogin,
     required this.onOpen,
-    required this.openExternal,
   });
 
   final MeetingsApi meetings;
   final VoidCallback onLogin;
   final void Function(Resource resource) onOpen;
-  final void Function(String url) openExternal;
 
   @override
   State<ResourcesScreen> createState() => _ResourcesScreenState();
@@ -86,7 +83,6 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                 isLeader: user.role.isLeader,
                 openMeeting: _openMeeting,
                 onOpen: widget.onOpen,
-                openExternal: widget.openExternal,
               ),
             ),
     );
@@ -98,17 +94,14 @@ class _Hub extends StatelessWidget {
     required this.isLeader,
     required this.openMeeting,
     required this.onOpen,
-    required this.openExternal,
   });
 
   final bool isLeader;
   final MeetingSummary? openMeeting;
   final void Function(Resource resource) onOpen;
-  final void Function(String url) openExternal;
 
   @override
   Widget build(BuildContext context) {
-    final adminUrl = webUrl('/admin');
     final meeting = openMeeting;
     final cards = [
       _ResourceCard(
@@ -147,42 +140,19 @@ class _Hub extends StatelessWidget {
         ),
     ];
 
-    return ListView(
+    // 한 줄에 하나씩 세로로 (사용자 결정 2026-10-13). 올리기는 각 자료 화면 안에
+    // 있다 — 「관리는 웹에서」 링크는 뺐다
+    return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-      children: [
-        // 두 장씩 한 줄. 글자를 키워도 잘리지 않게 칸 높이를 내용에 맞춘다
-        for (var i = 0; i < cards.length; i += 2)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: cards[i]),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: i + 1 < cards.length
-                        ? cards[i + 1]
-                        : const SizedBox.shrink(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        // 관리 기능은 앱에 만들지 않는다 — 임원에게 웹으로 가는 길만 (기획안 §1)
-        if (isLeader && adminUrl != null)
-          Align(
-            child: TextButton(
-              onPressed: () => openExternal(adminUrl),
-              child: const Text('관리는 웹에서 →'),
-            ),
-          ),
-      ],
+      itemCount: cards.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (_, i) => cards[i],
     );
   }
 }
 
+/// 자료 한 줄 — 동그란 아이콘 · 이름 · 설명 · (열람 중 표시) · ›
 class _ResourceCard extends StatelessWidget {
   const _ResourceCard({
     required this.icon,
@@ -202,53 +172,73 @@ class _ResourceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Card(
-      margin: EdgeInsets.zero,
+    return Material(
+      // 정한 색 토큰에 흰색이 따로 없어 onPrimary(흰색)를 쓴다
+      color: scheme.onPrimary,
+      borderRadius: BorderRadius.circular(18),
+      elevation: 0.5,
+      shadowColor: scheme.onSurface.withValues(alpha: 0.2),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+          child: Row(
             children: [
-              Icon(icon, size: 32, color: scheme.primary),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
                 ),
+                child: Icon(icon, size: 26, color: scheme.primary),
               ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              if (badge case final badge?) ...[
-                const SizedBox(height: 8),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: scheme.primary,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    child: Text(
-                      badge,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: scheme.onPrimary,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (badge case final badge?) ...[
+                      const SizedBox(height: 6),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.primary,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 3,
+                          ),
+                          child: Text(
+                            badge,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: scheme.onPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
             ],
           ),
         ),

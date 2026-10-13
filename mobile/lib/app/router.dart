@@ -189,7 +189,6 @@ GoRouter buildRouter({
                   onOpen: (resource) => context.push(
                     '${AppPaths.resources}/${_resourcePaths[resource]}',
                   ),
-                  openExternal: openExternal,
                 ),
                 routes: [
                   GoRoute(
