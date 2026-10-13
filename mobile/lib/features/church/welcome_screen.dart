@@ -122,8 +122,7 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
-/// 맨 위 — 흰 동그라미 속 엠블럼 · 「● WELCOME TO LIGHT · 환영합니다 🌿」 ·
-/// 큰 환영 문구 · 설명 · [👤+ 새가족 온라인 등록] (사용자 시안)
+/// 맨 위 — 엠블럼 · 큰 「WELCOME TO LIGHT」 · [👤+ 새가족 온라인 등록]
 class _Hero extends StatelessWidget {
   const _Hero({required this.onRegister});
 
@@ -138,90 +137,27 @@ class _Hero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // 흰 동그라미 없이 엠블럼만 (사용자 결정 2026-10-13)
           Center(
-            child: Container(
-              width: 120,
-              height: 120,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                // 정한 색 토큰에 흰색이 따로 없어 onPrimary(흰색)를 쓴다
-                color: scheme.onPrimary,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: scheme.onSurface.withValues(alpha: 0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Image.asset(
-                'assets/images/logo.png',
-                // 꾸밈이다 — 화면 이름은 위 제목줄과 아래 문구가 말한다
-                excludeFromSemantics: true,
-              ),
+            child: Image.asset(
+              'assets/images/logo.png',
+              height: 110,
+              // 꾸밈이다 — 화면 이름은 위 제목줄과 아래 문구가 말한다
+              excludeFromSemantics: true,
             ),
           ),
           const SizedBox(height: 16),
-          Center(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: scheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'WELCOME TO LIGHT · 환영합니다',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: scheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const ExcludeSemantics(child: Text('🌿')),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
+          // 글은 이 한 줄만 크게 (사용자 결정 2026-10-13)
           Semantics(
             header: true,
             child: Text(
-              '빛 가운데 동행할\n당신을 기쁨으로 환영합니다',
+              'WELCOME TO LIGHT',
               textAlign: TextAlign.center,
-              style: theme.textTheme.headlineSmall?.copyWith(
+              style: theme.textTheme.headlineMedium?.copyWith(
+                color: scheme.primary,
                 fontWeight: FontWeight.w800,
-                height: 1.35,
+                letterSpacing: 1.5,
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '처음 교회의 문을 두드리신 분도, 학업과 직장으로 김해에 새로 정착하신 청년도 '
-            '어색함 없이 깃들 수 있는 따스한 쉼터가 되어드립니다.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: scheme.onSurfaceVariant,
-              height: 1.6,
             ),
           ),
           const SizedBox(height: 24),

@@ -64,11 +64,11 @@ void main() {
       openExternal: r.open,
     );
 
-    testWidgets('맨 위는 WELCOME TO LIGHT 환영 문구 — 빨간 경고 상자는 없다', (tester) async {
+    testWidgets('맨 위는 엠블럼과 WELCOME TO LIGHT — 빨간 경고 상자는 없다', (tester) async {
       await pumpScreen(tester, screen(Recorder()));
 
-      expect(find.text('WELCOME TO LIGHT · 환영합니다'), findsOneWidget);
-      expect(find.text('빛 가운데 동행할\n당신을 기쁨으로 환영합니다'), findsOneWidget);
+      expect(find.text('WELCOME TO LIGHT'), findsOneWidget);
+      expect(find.textContaining('환영합니다'), findsNothing);
       expect(find.byType(VenueWarning), findsNothing);
       expect(find.text('드림센터를 찾아오세요'), findsOneWidget);
       expect(find.textContaining('도보 2분 (134m)'), findsOneWidget);
