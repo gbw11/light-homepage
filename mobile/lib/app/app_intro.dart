@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 
 /// LIGHT의 뜻 — 웹 첫 화면(`frontend/src/app/_components/IntroGate.tsx`)과 같은 글귀
@@ -13,19 +11,21 @@ const _acrostic = <(String, String)>[
 
 const _logoAsset = 'assets/images/logo.png';
 
-/// 인트로 전체 길이. 엠블럼 → 글귀를 펜으로 써 내려간다 → 잠깐 머문 뒤 사라진다
+/// 인트로 전체 길이. 엠블럼 → 글귀가 한 줄씩 떠오른다 → 잠깐 머문 뒤 사라진다
 const introDuration = Duration(milliseconds: 2600);
 
-/// 글귀를 쓰는 구간 (전체 길이에 대한 비율). 엠블럼이 다 뜨기 전에 바로 쓰기 시작한다
+/// 글귀가 떠오르는 구간 (전체 길이에 대한 비율). 엠블럼이 다 뜨기 전에 바로 시작한다
 /// (PM 요청 2026-10-13 — 엠블럼과 글귀 사이 공백이 길게 느껴짐)
-const _writingStart = 0.1;
-const _writingEnd = 0.66;
+const _linesStart = 0.1;
+const _linesEnd = 0.62;
 
-/// 줄을 바꿀 때 몇 글자만큼 쉬는지 — 펜을 떼고 다음 줄로 옮기는 틈
-const _lineBreakPause = 2;
+/// 줄마다 떠오르기 시작하는 간격과 한 줄이 떠오르는 데 걸리는 길이
+/// ([_linesStart]~[_linesEnd] 구간에 대한 비율). 앞줄이 다 뜨기 전에 다음 줄이 따라온다
+const _lineStagger = 0.16;
+const _lineRise = 0.36;
 
-/// 펜 끝에서 잉크가 번지는 폭(px) — 글자가 칸 단위로 툭툭 생기지 않고 이어져 나온다
-const _inkEdge = 28.0;
+/// 떠오르기 전 줄이 놓이는 아래쪽 거리 (줄 높이에 대한 비율)
+const _riseFrom = 0.6;
 
 /// 동작 줄이기를 켠 사람에게는 움직임 없이 짧게만 보여준다
 const introReducedDuration = Duration(milliseconds: 900);
@@ -125,12 +125,12 @@ class _AppIntroState extends State<AppIntro>
       curve: Interval(_reduced ? 0.6 : 0.82, 1, curve: Curves.easeIn),
     );
     final logo = _phase(0, 0.12);
-    // 글귀 전체를 쓴 정도 0→1 (펜이 일정한 빠르기로 움직이도록 직선)
-    final writing = _reduced
+    // 글귀 전체가 떠오른 정도 0→1. 줄마다 나눠 쓴다
+    final lines = _reduced
         ? const AlwaysStoppedAnimation<double>(1)
         : CurvedAnimation(
             parent: _controller,
-            curve: const Interval(_writingStart, _writingEnd),
+            curve: const Interval(_linesStart, _linesEnd),
           );
     final lineStyle = (textTheme.headlineSmall ?? const TextStyle()).copyWith(
       fontWeight: FontWeight.w700,
@@ -174,11 +174,23 @@ class _AppIntroState extends State<AppIntro>
                       ),
                       const SizedBox(height: 32),
                       AnimatedBuilder(
-                        animation: writing,
-                        builder: (context, _) => _WrittenAcrostic(
-                          written: writing.value * _writingUnits,
-                          style: lineStyle,
-                          letterColor: scheme.primary,
+                        animation: lines,
+                        builder: (context, _) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (var i = 0; i < _acrostic.length; i++)
+                              IntroLine(
+                                letter: _acrostic[i].$1,
+                                rest: _acrostic[i].$2,
+                                progress:
+                                    ((lines.value - i * _lineStagger) /
+                                            _lineRise)
+                                        .clamp(0.0, 1.0),
+                                style: lineStyle,
+                                letterColor: scheme.primary,
+                              ),
+                          ],
                         ),
                       ),
                     ],
@@ -193,61 +205,14 @@ class _AppIntroState extends State<AppIntro>
   }
 }
 
-/// 글귀 전체를 쓰는 데 드는 단위 (글자 수 + 줄바꿈 쉼). 줄마다 글자 수만큼
-/// 시간을 받으므로 긴 줄은 오래, 짧은 줄은 짧게 — 펜 빠르기가 일정하다
-final int _writingUnits =
-    _acrostic.fold<int>(
-      0,
-      (sum, line) => sum + line.$1.length + line.$2.length,
-    ) +
-    (_acrostic.length - 1) * _lineBreakPause;
-
-/// LIGHT 글귀를 [written] 단위만큼 써 둔 모습 — 위 줄부터 차례로
-class _WrittenAcrostic extends StatelessWidget {
-  const _WrittenAcrostic({
-    required this.written,
-    required this.style,
-    required this.letterColor,
-  });
-
-  final double written;
-  final TextStyle style;
-  final Color letterColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final lines = <Widget>[];
-    var start = 0;
-    for (final (letter, rest) in _acrostic) {
-      final length = letter.length + rest.length;
-      lines.add(
-        IntroPenLine(
-          letter: letter,
-          rest: rest,
-          progress: ((written - start) / length).clamp(0.0, 1.0),
-          style: style,
-          letterColor: letterColor,
-        ),
-      );
-      start += length + _lineBreakPause;
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: lines,
-    );
-  }
-}
-
-/// 글귀 한 줄을 펜으로 쓰듯 왼쪽부터 이어서 드러낸다 (PM 요청 2026-10-13 —
-/// 한 글자씩 툭툭 생기는 타자기 느낌 말고 펜으로 쓰는 느낌).
+/// 글귀 한 줄 — 아래에서 살며시 떠오르며 나타난다 (PM 요청 2026-10-13 —
+/// 글자를 쓰는 느낌 말고 한 줄씩 떠오르는 느낌).
 ///
-/// 펜 끝 자리는 [_inkEdge] 폭만큼 흐리게 번져서, 한 글자 안에서도 획이 조금씩
-/// 나타난다. 줄 전체는 처음부터 자리를 차지하므로 글귀 묶음이 흔들리지 않는다.
+/// 줄은 처음부터 자리를 차지하고 그림만 움직이므로 글귀 묶음이 흔들리지 않는다.
 /// 첫 글자는 강조색, 나머지는 본문색.
 @visibleForTesting
-class IntroPenLine extends StatelessWidget {
-  const IntroPenLine({
+class IntroLine extends StatelessWidget {
+  const IntroLine({
     super.key,
     required this.letter,
     required this.rest,
@@ -259,41 +224,31 @@ class IntroPenLine extends StatelessWidget {
   final String letter;
   final String rest;
 
-  /// 이 줄을 쓴 정도 0(아직)→1(다 씀)
+  /// 이 줄이 떠오른 정도 0(아직)→1(제자리)
   final double progress;
   final TextStyle style;
   final Color letterColor;
 
   @override
   Widget build(BuildContext context) {
-    final text = Text.rich(
-      TextSpan(
-        style: style,
-        children: [
+    final eased = Curves.easeOutCubic.transform(progress);
+    return Opacity(
+      opacity: eased,
+      child: FractionalTranslation(
+        translation: Offset(0, (1 - eased) * _riseFrom),
+        child: Text.rich(
           TextSpan(
-            text: letter,
-            style: TextStyle(color: letterColor),
+            style: style,
+            children: [
+              TextSpan(
+                text: letter,
+                style: TextStyle(color: letterColor),
+              ),
+              TextSpan(text: rest),
+            ],
           ),
-          TextSpan(text: rest),
-        ],
+        ),
       ),
-    );
-    if (progress >= 1) return text;
-    if (progress <= 0) return Opacity(opacity: 0, child: text);
-    // 사람 손처럼 쓰기 시작과 끝에서 살짝 느리다
-    final eased = Curves.easeInOutSine.transform(progress);
-    return ShaderMask(
-      blendMode: BlendMode.dstIn,
-      shaderCallback: (bounds) {
-        // 번지는 폭까지 끝까지 지나가야 마지막 획이 다 진해진다
-        final pen = bounds.left + eased * (bounds.width + _inkEdge);
-        return ui.Gradient.linear(
-          Offset(pen - _inkEdge, 0),
-          Offset(pen, 0),
-          const [Colors.white, Colors.transparent],
-        );
-      },
-      child: text,
     );
   }
 }
