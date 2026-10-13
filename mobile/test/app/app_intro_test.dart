@@ -17,9 +17,9 @@ Widget _wrap({bool reduceMotion = false}) => MaterialApp(
 
 final _intro = find.byKey(const Key('app-intro'));
 
-/// 글귀 줄마다 펜으로 쓴 정도 (0 = 아직, 1 = 다 씀)
-List<double> _written(WidgetTester tester) => tester
-    .widgetList<IntroPenLine>(find.byType(IntroPenLine))
+/// 글귀 줄마다 떠오른 정도 (0 = 아직, 1 = 제자리)
+List<double> _risen(WidgetTester tester) => tester
+    .widgetList<IntroLine>(find.byType(IntroLine))
     .map((line) => line.progress)
     .toList();
 
@@ -43,7 +43,7 @@ void main() {
     await tester.pumpWidget(_wrap());
     await tester.pump(introDuration * 0.7);
 
-    final lines = tester.widgetList<IntroPenLine>(find.byType(IntroPenLine));
+    final lines = tester.widgetList<IntroLine>(find.byType(IntroLine));
     expect(lines.map((l) => l.letter + l.rest), [
       'Live',
       'In',
@@ -51,24 +51,24 @@ void main() {
       'Help',
       'The other',
     ]);
-    expect(_written(tester), everyElement(1));
+    expect(_risen(tester), everyElement(1));
   });
 
-  testWidgets('글귀는 엠블럼 직후부터 위 줄부터 차례로 써진다', (tester) async {
+  testWidgets('글귀는 엠블럼 직후부터 위 줄부터 한 줄씩 떠오른다', (tester) async {
     await tester.pumpWidget(_wrap());
 
-    // 처음에는 아무것도 안 써 있다
-    expect(_written(tester), everyElement(0));
+    // 처음에는 아무 줄도 없다
+    expect(_risen(tester), everyElement(0));
 
-    // 엠블럼이 뜨는 동안 이미 첫 줄을 쓰고 있다 (예전에는 0.5초 넘게 비어 있었다)
+    // 엠블럼이 뜨는 동안 이미 첫 줄이 떠오르고 있다 (예전에는 0.5초 넘게 비어 있었다)
     await tester.pump(introDuration * 0.13);
-    final early = _written(tester);
+    final early = _risen(tester);
     expect(early.first, inExclusiveRange(0, 1));
     expect(early.skip(1), everyElement(0));
 
-    // 중간에는 앞줄은 다 써 있고 뒷줄은 아직이다
+    // 중간에는 앞줄은 제자리에 있고 뒷줄은 아직이다
     await tester.pump(introDuration * 0.25);
-    final middle = _written(tester);
+    final middle = _risen(tester);
     expect(middle.first, 1);
     expect(middle.last, 0);
   });
@@ -90,8 +90,8 @@ void main() {
     await tester.pumpWidget(_wrap(reduceMotion: true));
     await tester.pump(const Duration(milliseconds: 50));
 
-    // 글귀가 처음부터 다 보인다 (써지는 움직임이 없다)
-    expect(_written(tester), everyElement(1));
+    // 글귀가 처음부터 다 보인다 (떠오르는 움직임이 없다)
+    expect(_risen(tester), everyElement(1));
 
     await tester.pump(introReducedDuration);
     await tester.pump();
