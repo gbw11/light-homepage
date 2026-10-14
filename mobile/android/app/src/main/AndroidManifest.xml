@@ -43,5 +43,12 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- 바깥 주소(지도 · YouTube · 인스타그램)를 설치된 앱으로 열 때 (url_launcher).
+             launchUrl만 쓰면 없어도 열리지만, Android 11+ 패키지 가시성 때문에
+             canLaunchUrl은 이 선언 없이는 항상 false라 url_launcher 문서대로 둔다 -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
     </queries>
 </manifest>
