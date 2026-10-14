@@ -75,7 +75,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
       body: user == null
           ? LoginGate(
               onLogin: widget.onLogin,
-              message: '회원 전용 자료예요.\n주보 · 사진첩 · 월례회 자료 · 회의록은\n로그인하면 볼 수 있어요.',
+              message: '회원 전용 자료입니다.\n로그인하면 열람 가능합니다.',
             )
           : RefreshIndicator(
               onRefresh: _loadOpenMeeting,
