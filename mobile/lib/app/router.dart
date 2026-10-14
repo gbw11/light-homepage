@@ -111,8 +111,9 @@ GoRouter buildRouter({
     auth: auth,
     signupApi: authApi,
     initialMode: mode,
-    // 연 화면으로 돌아간다. 그 화면은 로그인 상태로 다시 그려진다
-    onDone: () => context.canPop() ? context.pop() : context.go(AppPaths.home),
+    // 어디서 열었든 홈으로 간다 (사용자 결정 2026-10-14). 다른 탭은 로그인
+    // 상태로 다시 그려져 있다
+    onDone: () => context.go(AppPaths.home),
     onFirstVisit: () => context.push(AppPaths.welcome),
     openExternal: openExternal,
   );
