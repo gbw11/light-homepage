@@ -4,15 +4,18 @@ import 'package:flutter/services.dart';
 import '../../content/location.dart';
 import '../../content/parking.dart';
 import 'info_widgets.dart';
+import 'route_map.dart';
 
 /// 오시는 길 (웹 `/location`, WIREFRAME §8, 기획안 §3).
 ///
-/// 위에서부터 **경고 → 주소 · 지도 앱 → 걸어서 → 도착 → 주차** 순서다.
+/// 위에서부터 **경고 → 주소 · 지도 앱 → 걸어서(약도) → 도착 → 주차(약도)** 순서다.
 /// 가장 자주 놓치는 "본당이 아니다"를 맨 위에 두는 것은 웹과 같은 판단이다.
 /// 모양은 디자인 시안(Stitch "Warm Fellowship")을 따른다.
 ///
-/// 웹의 약도 그림(SVG)은 아직 옮기지 않았다. 지도는 설치된 카카오맵 ·
-/// 네이버지도 앱으로 연다 (없으면 브라우저). 대중교통은 웹도 ❓라 뺐다.
+/// 약도 두 장은 웹 `RouteMap.tsx`의 SVG를 그대로 옮겨 그린 것이다 ([RouteMap] ·
+/// [ParkingMap]) — 누르면 전체 화면에서 확대한다. 실제 지도는 설치된 카카오맵 ·
+/// 네이버지도 · 구글 지도 앱으로 연다 (없으면 브라우저). 대중교통은 웹도 ❓라 뺐다.
+/// 웹의 건물 그림(`BuildingSketch`)은 아직 옮기지 않았다.
 class LocationScreen extends StatelessWidget {
   const LocationScreen({
     super.key,
@@ -43,10 +46,13 @@ class LocationScreen extends StatelessWidget {
           onCopy: () => _copyAddress(context),
           onKakao: () => openExternal(kakaoMapUrl),
           onNaver: () => openExternal(naverMapUrl),
+          onGoogle: () => openExternal(googleMapUrl),
         ),
         const InfoSection(
           title: '걸어서 — 본당에서',
           children: [
+            MapFigure(title: '걸어서 — 본당에서 오는 길', map: RouteMap()),
+            SizedBox(height: 12),
             InfoCard(
               children: [
                 Row(
@@ -101,9 +107,12 @@ class LocationScreen extends StatelessWidget {
           children: [
             const InfoText(
               '드림센터 전용 주차장은 없고 김해교회 주차장 세 곳을 함께 씁니다. '
-              '세 곳 중 두 곳은 주일에만 주차할 수 있습니다.',
+              '세 곳 중 두 곳은 주일에만 주차할 수 있습니다. '
+              'P3(합성초)가 가장 가깝습니다.',
               muted: true,
             ),
+            const SizedBox(height: 14),
+            const MapFigure(title: '차로 — 주차장에서 오는 길', map: ParkingMap()),
             const SizedBox(height: 14),
             for (final lot in parkingLots) ...[
               _ParkingCard(lot),
@@ -136,17 +145,19 @@ class LocationScreen extends StatelessWidget {
   }
 }
 
-/// 주소 + [복사] + 지도 앱 두 개. 내비에 찍거나 남에게 보낼 때 쓴다
+/// 주소 + [복사] + 지도 앱(카카오 · 네이버 + 구글). 내비에 찍거나 남에게 보낼 때 쓴다
 class _AddressCard extends StatelessWidget {
   const _AddressCard({
     required this.onCopy,
     required this.onKakao,
     required this.onNaver,
+    required this.onGoogle,
   });
 
   final VoidCallback onCopy;
   final VoidCallback onKakao;
   final VoidCallback onNaver;
+  final VoidCallback onGoogle;
 
   @override
   Widget build(BuildContext context) {
@@ -206,6 +217,9 @@ class _AddressCard extends StatelessWidget {
             ),
           ],
         ),
+        // 국내 두 앱이 주 버튼이고, 구글은 둘 다 없는 휴대폰을 위한 보조 링크다
+        InfoLink('구글 지도로 보기', onPressed: onGoogle),
+        const InfoText('약도는 길을 알려주는 그림입니다. 실제 지도는 위 버튼으로 확인하세요.', muted: true),
       ],
     );
   }

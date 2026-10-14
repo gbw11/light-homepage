@@ -15,3 +15,9 @@ final kakaoMapUrl =
     'https://map.kakao.com/link/search/${Uri.encodeComponent(address)}';
 final naverMapUrl =
     'https://map.naver.com/p/search/${Uri.encodeComponent(address)}';
+
+/// 구글 지도 — **앱에만 있다** (웹은 카카오맵 · 네이버지도 두 개). 두 앱이 없는
+/// 휴대폰(외국인 방문자 · 아이폰 기본 상태)에서도 길찾기를 열 수 있게 둔다.
+/// 공식 "Maps URLs" 형식이라 앱이 있으면 앱, 없으면 브라우저로 열린다.
+final googleMapUrl =
+    'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}';
