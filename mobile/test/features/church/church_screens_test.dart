@@ -12,6 +12,7 @@ import 'package:light_mobile/features/church/contact_screen.dart';
 import 'package:light_mobile/features/church/info_widgets.dart';
 import 'package:light_mobile/features/church/location_screen.dart';
 import 'package:light_mobile/features/church/organization_screen.dart';
+import 'package:light_mobile/features/church/route_map.dart';
 import 'package:light_mobile/features/church/welcome_screen.dart';
 import 'package:light_mobile/features/church/worship_screen.dart';
 
@@ -149,6 +150,55 @@ void main() {
       await tester.tap(find.text('네이버지도'));
 
       expect(r.calls, ['open:$kakaoMapUrl', 'open:$naverMapUrl']);
+    });
+
+    testWidgets('지도 앱 주소는 드림센터 주소로 검색한다 (웹과 같은 링크)', (tester) async {
+      final r = Recorder();
+      await pumpScreen(tester, screen(r));
+
+      await tester.tap(find.text('▸ 구글 지도로 보기'));
+      expect(r.calls, ['open:$googleMapUrl']);
+
+      final encoded = Uri.encodeComponent(address);
+      expect(kakaoMapUrl, 'https://map.kakao.com/link/search/$encoded');
+      expect(naverMapUrl, 'https://map.naver.com/p/search/$encoded');
+      expect(
+        googleMapUrl,
+        'https://www.google.com/maps/search/?api=1&query=$encoded',
+      );
+    });
+
+    testWidgets('약도 두 장을 그리고, 스크린 리더에는 길 설명을 읽힌다', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpScreen(tester, screen(Recorder()));
+
+      expect(find.byType(RouteMap), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp('본당에서 드림센터까지 가는 약도')),
+        findsOneWidget,
+      );
+
+      await tester.scrollUntilVisible(find.byType(ParkingMap), 300);
+      expect(
+        find.bySemanticsLabel(RegExp('주차장 세 곳에서 드림센터로 가는 약도')),
+        findsOneWidget,
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('약도를 누르면 전체 화면에서 확대해 본다', (tester) async {
+      await pumpScreen(tester, screen(Recorder()));
+
+      await tester.tap(find.byType(RouteMap));
+      await tester.pumpAndSettle();
+
+      expect(find.text('걸어서 — 본당에서 오는 길'), findsOneWidget);
+      expect(find.byType(InteractiveViewer), findsOneWidget);
+      expect(find.byType(RouteMap), findsWidgets);
+
+      await tester.tap(find.byType(CloseButton));
+      await tester.pumpAndSettle();
+      expect(find.byType(InteractiveViewer), findsNothing);
     });
 
     testWidgets('주소를 복사한다', (tester) async {
