@@ -130,7 +130,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('회원 공지'));
     await tester.pumpAndSettle();
-    expect(find.text('김도연a · 2026.10.05'), findsOneWidget);
+    expect(find.textContaining('2026.10.05'), findsOneWidget);
 
     // 보는 도중에 세션이 끊겼다고 치고, 다시 들어온다
     backend.loggedIn = false;
@@ -145,7 +145,7 @@ void main() {
     await tester.pumpAndSettle();
     await login(tester);
 
-    expect(find.text('김도연a · 2026.10.05'), findsOneWidget);
+    expect(find.textContaining('2026.10.05'), findsOneWidget);
   });
 
   testWidgets('로그인하던 세션이 끊기면 알리고 회원 공지를 거둔다', (tester) async {

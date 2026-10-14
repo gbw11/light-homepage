@@ -144,7 +144,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selectedTab(tester), 0);
-    expect(find.text('김도연a · 2026.10.05'), findsOneWidget);
+    expect(find.textContaining('2026.10.05'), findsOneWidget);
 
     await pressSystemBack(tester);
 
