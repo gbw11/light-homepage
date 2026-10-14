@@ -33,11 +33,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 주보 인가 (SPEC_API.md §10 · §5).
  *
- * <p><b>★ 열람은 회원(M)부터다 — 2026-09-04에 G에서 올렸다.</b> 그전까지는
- * 비로그인도 볼 수 있었고, 문서 세 곳이 그렇게 적고 있었다. 되돌리는 변경이
- * 조용히 일어나지 않도록 이 표가 기준을 들고 있는다.
+ * <p><b>★ 열람은 권한 G다 — 로그인 없이 본다</b> (2026-10-14).
  *
- * <p>쓰기는 그대로 임원(L)이다.
+ * <p><b>이 권한은 두 번 뒤집혔다</b> — G → M(2026-09-04) → G(2026-10-14).
+ * 그만큼 조용히 바뀌기 쉬운 자리라, 이 표가 기준을 들고 있는다.
+ * 뒤집을 때 고쳐야 할 곳은 둘이다: {@code BulletinController}의 메서드 단위
+ * {@code @PreAuthorize}와 {@code SecurityConfig.PUBLIC_GET_PATHS}.
+ * <b>한쪽만 고치면 익명이 401이나 403에서 막히고</b>, 이 표가 그걸 잡는다.
+ *
+ * <p>쓰기는 바뀐 적이 없다 — 그대로 임원(L)이다.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -54,13 +58,13 @@ class BulletinAuthorizationTest {
         memberRepository.deleteAllInBatch();
     }
 
-    /** 읽기 — 로그인해야 본다 (M 이상) */
+    /** 읽기 — 누구나 본다 (G) */
     static Stream<Arguments> readRoles() {
         return Stream.of(
-                // ★ 비로그인은 401이다. 예산안(§10 주의 2)처럼 403이 아니다 —
-                //   주보가 있다는 사실 자체는 비밀이 아니라 "로그인하면 볼 수
-                //   있습니다"로 안내해야 하고, FE는 401에서 로그인 화면을 띄운다.
-                arguments(null,        401, "UNAUTHORIZED"),
+                // ★ 비로그인도 200이다. 교회 밖에서 처음 온 사람이 이번 주
+                //   예배 순서를 보는 것이 주보의 쓰임이라, 로그인을 요구하면
+                //   그 쓰임이 사라진다.
+                arguments(null,        200, null),
                 arguments(Role.MEMBER, 200, null),
                 arguments(Role.LEADER, 200, null),
                 arguments(Role.PASTOR, 200, null)
@@ -95,8 +99,9 @@ class BulletinAuthorizationTest {
     @ParameterizedTest(name = "GET page download × {0} → {1}")
     @MethodSource("readRoles")
     void 장별_다운로드_인가(Role role, int expectedStatus, String expectedCode) throws Exception {
-        // ⚠️ 계약(§5)에 없는 경로다 — FE가 [CONTRACT]로 제안했고 권한을 M으로
-        //    맞췄다. 주보 열람이 M이 되면서 앞뒤가 맞았다 (2026-09-04).
+        // ⚠️ 계약(§5)에 없는 경로다 — FE가 [CONTRACT]로 제안했다 (§5.6).
+        //    열람과 같은 권한을 따라간다: 뷰어가 이미 같은 객체의 presigned
+        //    URL을 내려주므로, 열람만 열고 다운로드를 막는 것은 의미가 없다.
         var result = mockMvc.perform(
                 withRole(get("/api/bulletins/" + ANY_ID + "/pages/1/download"), role));
 
@@ -110,20 +115,23 @@ class BulletinAuthorizationTest {
     }
 
     @Test
-    @DisplayName("★ 로그인했는데 주보가 없으면 data가 null이다 — 404가 아니다")
+    @DisplayName("★ 주보가 없으면 data가 null이다 — 404가 아니다 (비로그인)")
     void 주보가_없으면_null() throws Exception {
         // "아직 안 올라옴"은 오류가 아니라 정상 상태다. 404를 주면 화면이
         // 에러 처리로 빠져 "주보를 준비 중입니다"를 못 보여준다.
-        mockMvc.perform(get("/api/bulletins/latest").with(as(Role.MEMBER)))
+        // ★ 비로그인으로 부른다 — 열린 경로가 끝까지 도는지까지 같이 본다.
+        mockMvc.perform(get("/api/bulletins/latest"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").doesNotExist())
                 .andExpect(jsonPath("$.error").doesNotExist());
     }
 
     @Test
-    @DisplayName("⚠️ 막힌 응답에 주보 내용이 새지 않는다")
-    void 막힌_응답이_비어_있다() throws Exception {
-        String body = mockMvc.perform(get("/api/bulletins/latest"))
+    @DisplayName("⚠️ 막힌 쓰기 응답에 주보 내용이 새지 않는다")
+    void 막힌_쓰기_응답이_비어_있다() throws Exception {
+        // 읽기가 열리면서 이 확인의 대상이 쓰기로 옮겨갔다. 401 본문에
+        // 엔티티가 실려 나가면, 막은 의미가 응답에서 사라진다.
+        String body = mockMvc.perform(delete("/api/bulletins/" + ANY_ID))
                 .andExpect(status().isUnauthorized())
                 .andReturn().getResponse().getContentAsString();
 
@@ -178,8 +186,9 @@ class BulletinAuthorizationTest {
     @Test
     @DisplayName("⚠️ 쓰기 경로에만 인가를 걸었다 — 새 쓰기 메서드를 추가하면 여기에 행을 넣을 것")
     void 쓰기_경로를_빠뜨리지_않았다() throws Exception {
-        // 읽기가 공개라 클래스 단위 @PreAuthorize를 쓸 수 없다. 그래서 메서드마다
-        // 달아야 하고, 그 방식은 빠뜨리기 쉽다. 지금 걸려 있는 두 개를 확인한다.
+        // ★ 읽기가 열려도 클래스 단위 @PreAuthorize("hasRole('MEMBER')")는 남겨뒀다.
+        //   기본이 막힘이어야 새로 추가하는 메서드가 조용히 열리지 않는다.
+        //   지금 걸려 있는 쓰기 두 개를 확인한다.
         mockMvc.perform(multipart("/api/bulletins")
                         .file(new MockMultipartFile("pages", "1.webp", "image/webp", "x".getBytes()))
                         .param("serviceDate", "2026-08-24"))
