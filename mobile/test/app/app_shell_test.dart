@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:light_mobile/app/app.dart';
+import 'package:light_mobile/app/paths.dart';
+import 'package:light_mobile/features/church/organization_screen.dart';
 
 import '../support/fake_server.dart';
 
@@ -272,5 +275,16 @@ void main() {
     for (final label in ['홈', '말씀', '공지', '자료']) {
       expect(tab(label), findsOneWidget);
     }
+  });
+  // 사이드바 메뉴 구성과 상관없이 주소만으로 확인한다
+  testWidgets('/organization 은 준비 중 화면이 아니라 조직도를 탭 위에 연다', (tester) async {
+    await pumpApp(tester);
+
+    GoRouter.of(tester.element(find.byType(NavigationBar)))
+        .push(AppPaths.organization);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OrganizationScreen), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
   });
 }

@@ -16,6 +16,7 @@ import '../features/bulletins/pick_bulletin_images.dart';
 import '../features/church/about_screen.dart';
 import '../features/church/contact_screen.dart';
 import '../features/church/location_screen.dart';
+import '../features/church/organization_screen.dart';
 import '../features/church/welcome_screen.dart';
 import '../features/church/worship_screen.dart';
 import '../features/home/home_screen.dart';
@@ -361,11 +362,10 @@ GoRouter buildRouter({
         path: AppPaths.about,
         builder: (context, state) => const AboutScreen(),
       ),
-      // 웹도 섬기는 사람들 정보가 모두 ❓(확인 필요)다. 정해지면 채운다
-      _comingSoon(
-        AppPaths.organization,
-        '조직도',
-        description: '섬기는 사람들을 정리하고 있어요.',
+      // 이름 · 명단은 웹처럼 ❓(확인 필요) 자리표시 — 마지막에 채운다 (PM 결정 2026-09-10)
+      GoRoute(
+        path: AppPaths.organization,
+        builder: (context, state) => const OrganizationScreen(),
       ),
       GoRoute(
         path: AppPaths.newcomer,
@@ -387,6 +387,8 @@ GoRouter buildRouter({
   );
 }
 
+// 아직 쓰는 곳이 없지만 남겨 둔다 — 사이드바 정리 작업과 겹치지 않게, 지울지는 그쪽에서 정한다
+// ignore: unused_element
 GoRoute _comingSoon(String path, String title, {String? description}) =>
     GoRoute(
       path: path,
