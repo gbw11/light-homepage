@@ -345,18 +345,13 @@ class _NoticeCard extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        if (notice.pinned)
-                          pill(
-                            '📌 고정',
-                            bg: scheme.primary.withValues(alpha: 0.14),
-                            fg: scheme.primary,
-                          )
-                        else
-                          pill(
-                            '공지',
-                            bg: scheme.outlineVariant.withValues(alpha: 0.6),
-                            fg: scheme.onSurfaceVariant,
-                          ),
+                        // 고정 공지도 같은 갈색 딱지 — 고정인지는 위 「고정 공지」
+                        // 소제목이 말한다 (사용자 결정 2026-10-14)
+                        pill(
+                          '공지',
+                          bg: scheme.outlineVariant.withValues(alpha: 0.6),
+                          fg: scheme.onSurfaceVariant,
+                        ),
                         if (notice.attachmentCount > 0)
                           Semantics(
                             label: '첨부 ${notice.attachmentCount}개',
