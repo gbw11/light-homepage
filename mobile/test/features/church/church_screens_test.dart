@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:light_mobile/content/contact.dart';
 import 'package:light_mobile/content/location.dart';
+import 'package:light_mobile/content/organization.dart';
 import 'package:light_mobile/content/parking.dart';
 import 'package:light_mobile/content/welcome.dart';
 import 'package:light_mobile/core/theme/app_theme.dart';
@@ -10,6 +11,7 @@ import 'package:light_mobile/features/church/about_screen.dart';
 import 'package:light_mobile/features/church/contact_screen.dart';
 import 'package:light_mobile/features/church/info_widgets.dart';
 import 'package:light_mobile/features/church/location_screen.dart';
+import 'package:light_mobile/features/church/organization_screen.dart';
 import 'package:light_mobile/features/church/welcome_screen.dart';
 import 'package:light_mobile/features/church/worship_screen.dart';
 
@@ -293,6 +295,72 @@ void main() {
       await pumpScreen(
         tester,
         screen(Recorder()),
+        textScale: 2,
+        size: const Size(360, 740),
+      );
+      await expectNoOverflowToEnd(tester);
+    });
+  });
+  group('조직도', () {
+    testWidgets('웹과 같은 소개 문구와 세 묶음(임원단 · 마을 · 팀)을 보여준다', (tester) async {
+      await pumpScreen(tester, const OrganizationScreen());
+
+      expect(find.text('조직도'), findsOneWidget);
+      expect(find.textContaining('팀은 지원제로 운영됩니다'), findsOneWidget);
+      for (final title in ['임원단', '마을 (9개)', '팀']) {
+        await tester.scrollUntilVisible(find.text(title), 200);
+      }
+      expect(find.textContaining('1인 1마을'), findsOneWidget);
+      expect(find.textContaining('팀장·총무·회계·팀원으로 구성됩니다'), findsOneWidget);
+    });
+
+    testWidgets('임원 4칸은 2열이다', (tester) async {
+      await pumpScreen(tester, const OrganizationScreen());
+
+      for (var i = 1; i <= officerCount; i++) {
+        await tester.scrollUntilVisible(find.text('임원 $i'), 200);
+      }
+      expect(officerCount, 4);
+      // 1·2번이 한 줄, 3번은 그 아래 줄 왼쪽
+      final one = tester.getTopLeft(find.text('임원 1'));
+      final two = tester.getTopLeft(find.text('임원 2'));
+      final three = tester.getTopLeft(find.text('임원 3'));
+      expect(two.dy, one.dy);
+      expect(two.dx, greaterThan(one.dx));
+      expect(three.dx, one.dx);
+      expect(three.dy, greaterThan(one.dy));
+    });
+
+    testWidgets('마을 9개를 촌장 · 마을원 자리와 함께 보여준다', (tester) async {
+      await pumpScreen(tester, const OrganizationScreen());
+
+      for (var i = 1; i <= villageCount; i++) {
+        await tester.scrollUntilVisible(find.text('마을 $i'), 200);
+      }
+      expect(find.text('마을 10'), findsNothing);
+      expect(villageCount, 9);
+    });
+
+    testWidgets('팀 6개를 팀장 · 총무 · 회계 · 팀원 자리와 함께 보여준다', (tester) async {
+      await pumpScreen(tester, const OrganizationScreen());
+
+      expect(teams, hasLength(6));
+      for (final team in teams) {
+        await tester.scrollUntilVisible(find.text(team), 200);
+      }
+      // 마지막 팀(선교팀) 카드까지 내려 역할 네 줄을 확인한다
+      for (final role in teamRoles) {
+        await tester.scrollUntilVisible(
+          find.text('$role: $unknownLabel').last,
+          200,
+        );
+      }
+    });
+
+    testWidgets('작은 폰(360dp)에서 글자를 2배로 키워도 넘치지 않는다', (tester) async {
+      await pumpScreen(
+        tester,
+        const OrganizationScreen(),
         textScale: 2,
         size: const Size(360, 740),
       );
