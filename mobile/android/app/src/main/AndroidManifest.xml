@@ -50,5 +50,14 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>
         </intent>
+        <!-- 카카오맵 · 네이버지도 앱을 바로 연다 (lib/content/location.dart) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="kakaomap"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="nmap"/>
+        </intent>
     </queries>
 </manifest>

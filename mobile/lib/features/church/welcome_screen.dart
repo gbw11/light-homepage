@@ -62,7 +62,7 @@ class WelcomeScreen extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     FilledButton.icon(
-                      onPressed: () => openExternal(kakaoMapUrl),
+                      onPressed: () => openExternal(kakaoMapAppUrl),
                       style: pillButtonStyle(context),
                       icon: const Icon(Icons.map_outlined, size: 20),
                       label: const Text('지도 앱으로 열기'),
