@@ -103,9 +103,17 @@ public class SecurityConfig {
             //   그 판단은 AttachmentService가 **원글의 분류**로 한다 —
             //   필터에서 막으면 공개공지 첨부까지 함께 막힌다.
             "/api/files/**",
-            // ⚠️ 주보(§5)는 여기 없다 — 2026-09-04에 G에서 M으로 올렸다.
-            //    로그인해야 본다. 인가는 BulletinController의 클래스 단위
-            //    @PreAuthorize("hasRole('MEMBER')")가 건다.
+            // 주보 읽기 (§5) — 권한 G. 교회 밖에서도 본다.
+            //   ⚠️ 이 줄은 두 번 뒤집혔다: 2026-09-04에 G→M으로 올렸다가
+            //      2026-10-14에 다시 G로 내렸다. 되돌릴 때는 **두 곳**을 같이
+            //      봐야 한다 — 여기(필터)와 BulletinController의 메서드 단위
+            //      @PreAuthorize. 한쪽만 고치면 조용히 어긋난다:
+            //        · 여기만 열면  → 익명이 필터는 통과하고 @PreAuthorize에서 403
+            //        · 저기만 열면  → 익명이 필터에서 401 (permitAll까지 가지도 못한다)
+            //   ★ GET만 연다. 업로드·삭제는 POST·DELETE라 이 목록에 걸리지 않고,
+            //     컨트롤러의 hasRole('LEADER')가 그대로 지킨다.
+            "/api/bulletins",
+            "/api/bulletins/**",
             // 설교 영상 (SPEC_API.md §9.2 · §9.3) — 권한 G, 누구나 본다
             "/api/sermons",
             "/api/sermons/live"
