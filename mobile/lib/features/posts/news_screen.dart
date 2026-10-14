@@ -16,7 +16,7 @@ import 'posts_api.dart';
 ///
 /// ```
 ///  [🔍 검색]
-///  📌 고정 공지 (2건)                    꼭 확인해 주세요
+///  📌 고정 공지 (2건)
 ///  ┌ 흰 카드 ─ [공지] [📎 1]          2026.09.04 ┐
 ///  │ 제목 (두 줄까지)                          │
 ///  │ 👤 작성자                       상세보기 → │
@@ -192,7 +192,7 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-/// 「📌 고정 공지 (2건) ··· 꼭 확인해 주세요」
+/// 「📌 고정 공지 (2건)」 — 오른쪽 안내 문구는 뺐다 (사용자 결정 2026-10-14)
 class _PinnedHeader extends StatelessWidget {
   const _PinnedHeader({required this.count});
 
@@ -233,19 +233,6 @@ class _PinnedHeader extends StatelessWidget {
                   color: scheme.primary,
                   fontWeight: FontWeight.w700,
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // 큰 글씨에서 한 줄에 다 못 들어가면 이 안내가 줄어든다 — 제목 · 건수가 먼저다
-          Expanded(
-            child: Text(
-              '꼭 확인해 주세요',
-              textAlign: TextAlign.end,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
