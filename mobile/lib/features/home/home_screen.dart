@@ -46,10 +46,10 @@ class HomeActions {
 /// 맨 위는 웹과 같은 원칙을 지킨다 — **스크롤 없이 예배 시간 + 장소 + 다음 행동이
 /// 모두 보인다** (WIREFRAME §1).
 ///
-/// 그 아래가 예배 사진을 깐 소개 카드다 — 한 줄 소개 · 예배 시간 · 장소 · 버튼 2개.
-/// 그 위에 **최신 주보**가 더 있다 — 비회원도 본다 (SPEC_API §5, 2026-10-14 공개 G로
+/// 맨 위가 예배 사진을 깐 소개 카드다 — 한 줄 소개 · 예배 시간 · 장소 · 버튼 2개.
+/// 그 아래에 **최신 주보**가 있다 — 비회원도 본다 (SPEC_API §5, 2026-10-14 공개 G로
 /// 되돌림). 임원이 매주 올리면 따라 바뀌고, 장을 2초마다 넘긴다 ([BulletinCarousel]).
-/// 주보 없음 · 실패에는 카드만 있다. 임원 이상은 카드가 주보 위다.
+/// 주보 없음 · 실패에는 카드만 있다. 비회원 · 회원 · 임원 모두 같은 홈이다.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
@@ -173,8 +173,6 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _Hero(
               bulletin: _bulletin,
-              welcomeFirst:
-                  AuthScope.maybeOf(context)?.user?.role.isLeader ?? false,
               onOpenBulletin: actions.onOpenBulletin,
               onFirstVisit: actions.onFirstVisit,
               onDirections: actions.onDirections,
@@ -201,7 +199,6 @@ class _HomeScreenState extends State<HomeScreen> {
 class _Hero extends StatelessWidget {
   const _Hero({
     required this.bulletin,
-    required this.welcomeFirst,
     required this.onOpenBulletin,
     required this.onFirstVisit,
     required this.onDirections,
@@ -209,9 +206,6 @@ class _Hero extends StatelessWidget {
 
   final Bulletin? bulletin;
 
-  /// 소개 카드를 주보 위에 둔다 — 임원 이상 (사용자 결정 2026-10-13).
-  /// 일반 회원은 주보가 맨 위다
-  final bool welcomeFirst;
   final void Function(String id) onOpenBulletin;
   final VoidCallback onFirstVisit;
   final VoidCallback onDirections;
@@ -247,24 +241,18 @@ class _Hero extends StatelessWidget {
       onFirstVisit: onFirstVisit,
       onDirections: onDirections,
     );
+    // 비회원 · 회원 · 임원 모두 같은 순서 — 소개 카드, 그 아래 주보
+    // (사용자 결정 2026-10-14, 임원 홈을 기준으로 통일)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: welcomeFirst
-          ? [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: welcome,
-              ),
-              if (hasBulletin) const SizedBox(height: 16),
-              bulletinView,
-            ]
-          : [
-              bulletinView,
-              Padding(
-                padding: EdgeInsets.fromLTRB(16, hasBulletin ? 16 : 8, 16, 0),
-                child: welcome,
-              ),
-            ],
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: welcome,
+        ),
+        if (hasBulletin) const SizedBox(height: 16),
+        bulletinView,
+      ],
     );
   }
 }

@@ -280,14 +280,13 @@ void main() {
   });
 
   group('맨 위 그림', () {
-    testWidgets('비로그인도 회원처럼 최신 주보가 맨 위에 있다 (2026-10-14 공개)', (tester) async {
+    testWidgets('비로그인도 회원처럼 최신 주보를 본다 (2026-10-14 공개)', (tester) async {
       final server = serverWith();
       await pumpHome(tester, server);
 
       expect(server.paths, contains('GET /bulletins/latest'));
       expect(find.byType(BulletinCarousel), findsOneWidget);
       expect(find.text('이번 주 주보'), findsOneWidget);
-      expect(topOf(tester), 'bulletin');
     });
 
     testWidgets('회원은 최신 주보, 누르면 그 주보를 연다', (tester) async {
@@ -352,24 +351,25 @@ void main() {
       expect(find.text('2026.10.11 주보'), findsOneWidget);
     });
 
-    testWidgets('일반 회원은 주보가 맨 위, 소개 카드는 그 아래', (tester) async {
-      final server = serverWith();
-      await pumpHome(tester, server, auth: await memberOf(tester, server));
-
-      expect(topOf(tester), 'bulletin');
-    });
-
-    for (final role in ['LEADER', 'PASTOR']) {
-      testWidgets('임원 이상()은 소개 카드가 맨 위, 주보는 그 아래', (tester) async {
+    // 비회원 · 회원 · 임원 · 목회자 모두 같은 홈 (2026-10-14, 임원 홈을 기준으로 통일)
+    for (final role in [null, 'MEMBER', 'LEADER', 'PASTOR']) {
+      testWidgets('${role ?? '비회원'}도 소개 카드가 맨 위, 주보는 그 아래', (tester) async {
         final server = FakeServer(
           (o) async => o.path == '/auth/me'
-              ? respond(200, {
-                  'data': {...member, 'role': role},
-                })
+              ? (role == null
+                    ? unauthorized()
+                    : respond(200, {
+                        'data': {...member, 'role': role},
+                      }))
               : serverWith().handler(o),
         );
-        await pumpHome(tester, server, auth: await memberOf(tester, server));
+        await pumpHome(
+          tester,
+          server,
+          auth: role == null ? null : await memberOf(tester, server),
+        );
 
+        expect(find.byType(BulletinCarousel), findsOneWidget);
         expect(topOf(tester), 'card');
       });
     }
