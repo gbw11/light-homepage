@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../content/location.dart';
 import '../../content/welcome.dart';
+import '../../core/theme/app_theme.dart';
 import 'info_widgets.dart';
 
 /// 처음 오시는 분 (웹 `/welcome`, WIREFRAME §2 "최우선 페이지", 기획안 §3).
@@ -154,10 +155,11 @@ class _Hero extends StatelessWidget {
               'WELCOME TO LIGHT',
               textAlign: TextAlign.center,
               style: theme.textTheme.headlineMedium?.copyWith(
-                // 본문과 같은 진한 갈색 (사용자 결정 2026-10-14)
+                // 로고 리본 글자 같은 세리프 · 본문과 같은 진한 갈색 (사용자 결정 2026-10-14)
+                fontFamily: displayFontFamily,
                 color: scheme.onSurface,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2,
               ),
             ),
           ),

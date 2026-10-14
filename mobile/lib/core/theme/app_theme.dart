@@ -7,6 +7,9 @@ import 'app_colors.dart';
 /// 한글·영문 공통 글꼴. `pubspec.yaml`의 `fonts:`에 등록한 이름과 같아야 한다
 const appFontFamily = 'Pretendard';
 
+/// 로고 같은 대문자 세리프 — 라틴 글자만 있다. 「WELCOME TO LIGHT」에만 쓴다
+const displayFontFamily = 'Cinzel';
+
 /// 앱 전체 테마 (라이트만 — 다크 모드는 아직 정하지 않았다).
 ///
 /// 정해진 색([AppColors])은 직접 넣고, 나머지 역할(`primaryContainer` 등)은
@@ -37,7 +40,7 @@ ThemeData buildAppTheme() {
   return ThemeData(colorScheme: colorScheme, fontFamily: appFontFamily);
 }
 
-/// Pretendard 라이선스(SIL OFL 1.1)를 앱의 라이선스 페이지에 올린다.
+/// 글꼴 라이선스(Pretendard · Cinzel, 둘 다 SIL OFL 1.1)를 앱의 라이선스 페이지에 올린다.
 ///
 /// OFL은 글꼴을 배포할 때 라이선스를 함께 넣으라고 요구한다. 파일을 번들하는
 /// 것만으로는 사용자가 볼 수 없으므로 `showLicensePage`에 나오게 등록한다.
@@ -47,5 +50,9 @@ void registerFontLicenses() {
       'assets/fonts/pretendard/LICENSE.txt',
     );
     yield LicenseEntryWithLineBreaks(const ['Pretendard'], text);
+  });
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString('assets/fonts/cinzel/LICENSE.txt');
+    yield LicenseEntryWithLineBreaks(const ['Cinzel'], text);
   });
 }

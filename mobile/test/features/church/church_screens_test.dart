@@ -68,6 +68,11 @@ void main() {
       await pumpScreen(tester, screen(Recorder()));
 
       expect(find.text('WELCOME TO LIGHT'), findsOneWidget);
+      // 로고 리본 글자 같은 세리프
+      expect(
+        tester.widget<Text>(find.text('WELCOME TO LIGHT')).style?.fontFamily,
+        displayFontFamily,
+      );
       expect(find.textContaining('환영합니다'), findsNothing);
       expect(find.byType(VenueWarning), findsNothing);
       expect(find.text('드림센터를 찾아오세요'), findsOneWidget);
