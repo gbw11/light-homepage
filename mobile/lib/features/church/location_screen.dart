@@ -219,10 +219,7 @@ class _AddressCard extends StatelessWidget {
         ),
         // 국내 두 앱이 주 버튼이고, 구글은 둘 다 없는 휴대폰을 위한 보조 링크다
         InfoLink('구글 지도로 보기', onPressed: onGoogle),
-        const InfoText(
-          '약도는 길을 알려주는 그림입니다. 실제 지도는 위 버튼으로 확인하세요.',
-          muted: true,
-        ),
+        const InfoText('약도는 길을 알려주는 그림입니다. 실제 지도는 위 버튼으로 확인하세요.', muted: true),
       ],
     );
   }

@@ -166,11 +166,12 @@ abstract class _MapPainter extends CustomPainter {
 
     // 도착 — 강조 원 + 별
     canvas.drawCircle(const Offset(140, 248), 17, Paint()..color = p.accent);
-    canvas.drawPath(_star(const Offset(140, 248.5), 8.5, 3.6),
-        Paint()..color = p.onAccent);
+    canvas.drawPath(
+      _star(const Offset(140, 248.5), 8.5, 3.6),
+      Paint()..color = p.onAccent,
+    );
 
-    text(canvas, '드림센터', labelX, titleY,
-        size: 21, bold: true, color: p.ink);
+    text(canvas, '드림센터', labelX, titleY, size: 21, bold: true, color: p.ink);
     text(canvas, '4층', labelX, floorY, size: 18, bold: true, color: p.red);
 
     // 북쪽 표시
@@ -212,8 +213,9 @@ abstract class _MapPainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    final baseline =
-        painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
+    final baseline = painter.computeDistanceToActualBaseline(
+      TextBaseline.alphabetic,
+    );
     final left = anchor == _Anchor.middle ? x - painter.width / 2 : x;
     painter.paint(canvas, Offset(left, y - baseline));
     painter.dispose();
@@ -284,18 +286,48 @@ class _RouteMapPainter extends _MapPainter {
       gap: 9,
     );
 
-    text(canvas, '95m', 272, 166,
-        size: 18, bold: true, color: p.red, anchor: _Anchor.start);
+    text(
+      canvas,
+      '95m',
+      272,
+      166,
+      size: 18,
+      bold: true,
+      color: p.red,
+      anchor: _Anchor.start,
+    );
     text(canvas, '39m', 204, 228, size: 18, bold: true, color: p.red);
 
     canvas.drawCircle(const Offset(250, 60), 13, Paint()..color = p.gray);
-    text(canvas, '본당', 272, 50,
-        size: 20, bold: true, color: p.ink, anchor: _Anchor.start);
-    text(canvas, '김해교회', 272, 72,
-        size: 16, color: p.gray, anchor: _Anchor.start);
+    text(
+      canvas,
+      '본당',
+      272,
+      50,
+      size: 20,
+      bold: true,
+      color: p.ink,
+      anchor: _Anchor.start,
+    );
+    text(
+      canvas,
+      '김해교회',
+      272,
+      72,
+      size: 16,
+      color: p.gray,
+      anchor: _Anchor.start,
+    );
 
-    text(canvas, '도보 $walkMinutes분 · ${walkMeters}m', 180, 342,
-        size: 19, bold: true, color: p.ink);
+    text(
+      canvas,
+      '도보 $walkMinutes분 · ${walkMeters}m',
+      180,
+      342,
+      size: 19,
+      bold: true,
+      color: p.ink,
+    );
   }
 }
 
@@ -444,10 +476,7 @@ class _MapViewer extends StatelessWidget {
               child: InteractiveViewer(
                 maxScale: 5,
                 child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: map,
-                  ),
+                  child: Padding(padding: const EdgeInsets.all(16), child: map),
                 ),
               ),
             ),
