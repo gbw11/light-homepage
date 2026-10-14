@@ -154,7 +154,8 @@ class _Hero extends StatelessWidget {
               'WELCOME TO LIGHT',
               textAlign: TextAlign.center,
               style: theme.textTheme.headlineMedium?.copyWith(
-                color: scheme.primary,
+                // 본문과 같은 진한 갈색 (사용자 결정 2026-10-14)
+                color: scheme.onSurface,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.5,
               ),
