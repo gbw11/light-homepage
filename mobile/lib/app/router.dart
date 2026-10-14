@@ -39,7 +39,6 @@ import '../features/resources/resources_screen.dart';
 import '../features/sermons/sermons_api.dart';
 import '../features/sermons/sermons_screen.dart';
 import 'app_shell.dart';
-import 'coming_soon_screen.dart';
 import 'paths.dart';
 
 export 'paths.dart';
@@ -386,15 +385,6 @@ GoRouter buildRouter({
     ],
   );
 }
-
-// 아직 쓰는 곳이 없지만 남겨 둔다 — 사이드바 정리 작업과 겹치지 않게, 지울지는 그쪽에서 정한다
-// ignore: unused_element
-GoRoute _comingSoon(String path, String title, {String? description}) =>
-    GoRoute(
-      path: path,
-      builder: (context, state) =>
-          ComingSoonScreen(title: title, description: description),
-    );
 
 /// 자료 탭 아래 주소 (`/resources/<이것>`)
 const _resourcePaths = {
