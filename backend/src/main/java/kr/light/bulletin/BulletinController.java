@@ -28,13 +28,21 @@ import java.util.Map;
 /**
  * 주보 (SPEC_API.md §5).
  *
- * <p><b>⚠️ 열람은 회원(M)부터다 — 2026-09-04에 G에서 올렸다.</b> 그전까지는
- * 비로그인도 볼 수 있었다.
+ * <p><b>열람은 권한 G다 — 로그인 없이 본다</b> (2026-10-14).
  *
- * <p>클래스 단위로 {@code hasRole('MEMBER')}를 걸어 <b>기본이 막힘</b>이 되게
- * 한다. 메서드마다 달면 새 메서드에서 빠뜨릴 수 있는데, 여기서 빠뜨리면
- * 주보가 인터넷에 열린다. 쓰기 두 개는 메서드 단위 {@code hasRole('LEADER')}가
- * 덮어쓴다 — 스프링 시큐리티는 더 구체적인 쪽(메서드)을 쓴다.
+ * <h2>⚠️ 이 권한은 두 번 뒤집혔다</h2>
+ * 처음엔 G였고, 2026-09-04에 M으로 올렸다가, 2026-10-14에 다시 G로 내렸다.
+ * 세 번째로 뒤집을 일이 생기면 <b>두 곳을 같이</b> 고쳐야 한다 —
+ * 아래 메서드 단위 {@code @PreAuthorize}와
+ * {@code SecurityConfig.PUBLIC_GET_PATHS}다. 한쪽만 고치면 조용히 어긋난다.
+ *
+ * <h2>★ 클래스 기본은 여전히 {@code hasRole('MEMBER')}다</h2>
+ * 전부 열렸는데 왜 남겨두는가 — <b>기본이 막힘이어야 하기 때문이다.</b>
+ * 클래스 단위를 {@code permitAll()}로 바꾸면 나중에 추가하는 메서드가
+ * <b>아무 표시 없이 인터넷에 열린다.</b> 지금 열려 있는 넷은 하나씩
+ * 명시해서 열었고, 그래서 다섯 번째 메서드를 만드는 사람은 권한을
+ * <b>한 번은 생각하게 된다.</b> 쓰기 둘은 {@code hasRole('LEADER')}가 덮는다 —
+ * 스프링 시큐리티는 더 구체적인 쪽(메서드)을 쓴다.
  */
 @Tag(name = "주보", description = "주보 열람 · 업로드")
 @RestController
@@ -56,10 +64,9 @@ public class BulletinController {
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200", description = "조회 성공 (없으면 data: null)"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED")
+                    responseCode = "200", description = "조회 성공 (없으면 data: null)")
     })
+    @PreAuthorize("permitAll()")
     @GetMapping("/latest")
     public ApiResponse<BulletinResponse> latest() {
         return ApiResponse.of(bulletinService.latest().orElse(null));
@@ -74,6 +81,7 @@ public class BulletinController {
                     WebP 디코딩을 512MB 인스턴스에서 하지 않기 위해서입니다.
                     화면에서 크기를 줄여 쓰고, 목록이 길면 지연 로딩하세요.
                     """)
+    @PreAuthorize("permitAll()")
     @GetMapping
     public ApiResponse<PageResponse<BulletinSummaryResponse>> list(
             @Parameter(description = "0부터. 기본 0")
@@ -91,10 +99,9 @@ public class BulletinController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200", description = "조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404", ref = "#/components/responses/NOT_FOUND")
     })
+    @PreAuthorize("permitAll()")
     @GetMapping("/{id}")
     public ApiResponse<BulletinResponse> get(@PathVariable Long id) {
         return ApiResponse.of(bulletinService.get(id));
@@ -165,10 +172,9 @@ public class BulletinController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "302", description = "presigned URL로 리다이렉트"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401", ref = "#/components/responses/UNAUTHORIZED"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404", ref = "#/components/responses/NOT_FOUND")
     })
+    @PreAuthorize("permitAll()")
     @GetMapping("/{id}/pages/{pageNo}/download")
     public ResponseEntity<Void> downloadPage(@PathVariable Long id, @PathVariable int pageNo) {
         return ResponseEntity.status(HttpStatus.FOUND)

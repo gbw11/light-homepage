@@ -93,7 +93,11 @@ class AuthorizationCoverageTest {
             "DELETE /api/admin/members/{id}",
 
             // 주보 (BulletinAuthorizationTest)
-            //   ★ 읽기 셋은 비로그인에게 열려 있다 — 교회 밖에서도 보는 공개 자료다
+            //   ★ 읽기 넷은 비로그인에게 열려 있다 — 교회 밖에서도 보는 공개 자료다.
+            //     ⚠️ 이 권한은 두 번 뒤집혔다: G → M(2026-09-04) → G(2026-10-14).
+            //        이 주석은 M이던 시기에도 "열려 있다"로 남아 있었다 — 주석은
+            //        테스트가 아니라서 틀려도 아무 일이 일어나지 않는다. 기준은
+            //        BulletinAuthorizationTest의 역할표다.
             "GET /api/bulletins/latest",
             "GET /api/bulletins",
             "GET /api/bulletins/{id}",
