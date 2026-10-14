@@ -14,7 +14,7 @@ import 'posts_api.dart';
 /// 공지 탭 — 공지 목록 (웹 `/news`, 기획안 §2-2 ①, 사용자 시안 2026-10-13).
 ///
 /// ```
-///  [🔍 공지사항과 소식을 검색해 보세요]
+///  [🔍 검색]
 ///  📌 고정 공지 (2건)                    꼭 확인해 주세요
 ///  ┌ 흰 카드 ─ [공지] [📎 1]          2026.09.04 ┐
 ///  │ 제목 (두 줄까지)                          │
@@ -152,7 +152,7 @@ class _SearchField extends StatelessWidget {
           decoration: cardInputDecoration(
             context,
             icon: Icons.search,
-            hint: '공지사항과 소식을 검색해 보세요',
+            hint: '검색',
             suffix: controller.text.isEmpty
                 ? null
                 : IconButton(
