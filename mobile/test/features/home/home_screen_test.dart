@@ -140,6 +140,13 @@ Future<Recorder> pumpHome(
   return recorder;
 }
 
+/// 소개 카드(예배 시간)와 주보 중 위에 있는 쪽
+String topOf(WidgetTester tester) {
+  final card = tester.getTopLeft(find.text('주일 14:00 · 드림센터 4층')).dy;
+  final bulletin = tester.getTopLeft(find.byType(BulletinCarousel)).dy;
+  return card < bulletin ? 'card' : 'bulletin';
+}
+
 void main() {
   testWidgets('맨 위에 예배 시간·장소·버튼 2개가 있다 (WIREFRAME §1)', (tester) async {
     await pumpHome(tester, serverWith());
@@ -208,7 +215,12 @@ void main() {
 
   testWidgets('최신 설교를 제목·날짜로 보여준다', (tester) async {
     await pumpHome(tester, serverWith());
-    await tester.scrollUntilVisible(find.text('오늘, 다시 시작하는 믿음'), 200);
+    await tester.scrollUntilVisible(
+      find.text('오늘, 다시 시작하는 믿음'),
+      200,
+      // 주보 칸도 (가로로) 스크롤되니 바깥 목록을 집어 준다
+      scrollable: find.byType(Scrollable).first,
+    );
 
     expect(find.text('최근 말씀'), findsOneWidget);
     expect(find.text('말씀 전체보기 ›'), findsOneWidget);
@@ -245,7 +257,12 @@ void main() {
     await tester.tap(find.text('오시는 길'));
     await tester.tap(find.text('첫 공지'));
     await tester.tap(find.text('공지 전체보기 ›'));
-    await tester.scrollUntilVisible(find.text('오늘, 다시 시작하는 믿음'), 200);
+    await tester.scrollUntilVisible(
+      find.text('오늘, 다시 시작하는 믿음'),
+      200,
+      // 주보 칸도 (가로로) 스크롤되니 바깥 목록을 집어 준다
+      scrollable: find.byType(Scrollable).first,
+    );
     // scrollUntilVisible은 화면 끝에 걸치게만 올려서 탭이 빗나갈 수 있다
     await tester.ensureVisible(find.text('오늘, 다시 시작하는 믿음'));
     await tester.pumpAndSettle();
@@ -263,13 +280,13 @@ void main() {
   });
 
   group('맨 위 그림', () {
-    testWidgets('비로그인은 소개 카드만 — 회원 전용 주보를 부르지 않는다', (tester) async {
+    testWidgets('비로그인도 회원처럼 최신 주보를 본다 (2026-10-14 공개)', (tester) async {
       final server = serverWith();
       await pumpHome(tester, server);
 
-      expect(find.byType(BulletinCarousel), findsNothing);
-      expect(find.text('이번 주 주보'), findsNothing);
-      expect(server.paths.where((p) => p.contains('/bulletins')), isEmpty);
+      expect(server.paths, contains('GET /bulletins/latest'));
+      expect(find.byType(BulletinCarousel), findsOneWidget);
+      expect(find.text('이번 주 주보'), findsOneWidget);
     });
 
     testWidgets('회원은 최신 주보, 누르면 그 주보를 연다', (tester) async {
@@ -334,31 +351,25 @@ void main() {
       expect(find.text('2026.10.11 주보'), findsOneWidget);
     });
 
-    /// 소개 카드(예배 시간)와 주보 중 위에 있는 쪽
-    String topOf(WidgetTester tester) {
-      final card = tester.getTopLeft(find.text('주일 14:00 · 드림센터 4층')).dy;
-      final bulletin = tester.getTopLeft(find.byType(BulletinCarousel)).dy;
-      return card < bulletin ? 'card' : 'bulletin';
-    }
-
-    testWidgets('일반 회원은 주보가 맨 위, 소개 카드는 그 아래', (tester) async {
-      final server = serverWith();
-      await pumpHome(tester, server, auth: await memberOf(tester, server));
-
-      expect(topOf(tester), 'bulletin');
-    });
-
-    for (final role in ['LEADER', 'PASTOR']) {
-      testWidgets('임원 이상()은 소개 카드가 맨 위, 주보는 그 아래', (tester) async {
+    // 비회원 · 회원 · 임원 · 목회자 모두 같은 홈 (2026-10-14, 임원 홈을 기준으로 통일)
+    for (final role in [null, 'MEMBER', 'LEADER', 'PASTOR']) {
+      testWidgets('${role ?? '비회원'}도 소개 카드가 맨 위, 주보는 그 아래', (tester) async {
         final server = FakeServer(
           (o) async => o.path == '/auth/me'
-              ? respond(200, {
-                  'data': {...member, 'role': role},
-                })
+              ? (role == null
+                    ? unauthorized()
+                    : respond(200, {
+                        'data': {...member, 'role': role},
+                      }))
               : serverWith().handler(o),
         );
-        await pumpHome(tester, server, auth: await memberOf(tester, server));
+        await pumpHome(
+          tester,
+          server,
+          auth: role == null ? null : await memberOf(tester, server),
+        );
 
+        expect(find.byType(BulletinCarousel), findsOneWidget);
         expect(topOf(tester), 'card');
       });
     }
@@ -390,7 +401,7 @@ void main() {
       });
     }
 
-    testWidgets('로그아웃하면 주보 칸이 사라진다', (tester) async {
+    testWidgets('로그아웃해도 주보는 그대로 보인다', (tester) async {
       final server = serverWith();
       final auth = await memberOf(tester, server);
       await pumpHome(tester, server, auth: auth);
@@ -398,8 +409,11 @@ void main() {
 
       await tester.runAsync(auth.logout);
       await tester.pumpAndSettle();
+      // 로그아웃하면 비회원으로 다시 받는다 — 그 요청까지 끝낸다
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pumpAndSettle();
 
-      expect(find.byType(BulletinCarousel), findsNothing);
+      expect(find.byType(BulletinCarousel), findsOneWidget);
     });
 
     testWidgets('당기면 주보도 다시 받는다 — 그새 올라온 주보로 바뀐다', (tester) async {

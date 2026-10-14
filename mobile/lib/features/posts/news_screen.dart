@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/format/date_format.dart';
 import '../../core/paging/paged_list.dart';
 import '../../core/ui/form_card.dart';
+import '../../core/ui/leader_fab.dart';
 import '../../core/ui/menu_button.dart';
 import '../../core/ui/profile_button.dart';
 import '../../core/ui/paged_list_view.dart';
@@ -14,8 +15,8 @@ import 'posts_api.dart';
 /// 공지 탭 — 공지 목록 (웹 `/news`, 기획안 §2-2 ①, 사용자 시안 2026-10-13).
 ///
 /// ```
-///  [🔍 공지사항과 소식을 검색해 보세요]
-///  📌 고정 공지 (2건)                    꼭 확인해 주세요
+///  [🔍 검색]
+///  📌 고정 공지 (2건)
 ///  ┌ 흰 카드 ─ [공지] [📎 1]          2026.09.04 ┐
 ///  │ 제목 (두 줄까지)                          │
 ///  │ 👤 작성자                       상세보기 → │
@@ -35,6 +36,7 @@ class NewsScreen extends StatefulWidget {
     required this.categories,
     required this.onOpen,
     this.onLogin,
+    this.onWrite,
   });
 
   final PostsApi posts;
@@ -47,6 +49,9 @@ class NewsScreen extends StatefulWidget {
 
   /// 비로그인 안내 줄을 누르면
   final VoidCallback? onLogin;
+
+  /// 글 쓰기 화면을 연다 — 다 쓰면 만든 글의 id. 임원 이상에게만 보인다
+  final Future<String?> Function()? onWrite;
 
   @override
   State<NewsScreen> createState() => _NewsScreenState();
@@ -100,6 +105,17 @@ class _NewsScreenState extends State<NewsScreen> {
     return null;
   }
 
+  /// 다 쓰고 돌아오면 목록을 새로 받고 알린다
+  Future<void> _write() async {
+    final written = await widget.onWrite?.call();
+    if (written == null || !mounted) return;
+    await _list.refresh();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('글을 올렸어요.')));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,6 +123,12 @@ class _NewsScreenState extends State<NewsScreen> {
         leading: const MenuButton(),
         actions: const [ProfileButton()],
         title: const Text('공지', style: TextStyle(fontWeight: FontWeight.w700)),
+      ),
+      floatingActionButton: leaderFab(
+        context,
+        label: '공지 쓰기',
+        icon: Icons.edit_outlined,
+        onPressed: widget.onWrite == null ? null : _write,
       ),
       body: PagedListView<PostSummary>(
         list: _list,
@@ -152,7 +174,7 @@ class _SearchField extends StatelessWidget {
           decoration: cardInputDecoration(
             context,
             icon: Icons.search,
-            hint: '공지사항과 소식을 검색해 보세요',
+            hint: '검색',
             suffix: controller.text.isEmpty
                 ? null
                 : IconButton(
@@ -170,7 +192,7 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-/// 「📌 고정 공지 (2건) ··· 꼭 확인해 주세요」
+/// 「📌 고정 공지 (2건)」 — 오른쪽 안내 문구는 뺐다 (사용자 결정 2026-10-14)
 class _PinnedHeader extends StatelessWidget {
   const _PinnedHeader({required this.count});
 
@@ -211,19 +233,6 @@ class _PinnedHeader extends StatelessWidget {
                   color: scheme.primary,
                   fontWeight: FontWeight.w700,
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // 큰 글씨에서 한 줄에 다 못 들어가면 이 안내가 줄어든다 — 제목 · 건수가 먼저다
-          Expanded(
-            child: Text(
-              '꼭 확인해 주세요',
-              textAlign: TextAlign.end,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -323,18 +332,13 @@ class _NoticeCard extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        if (notice.pinned)
-                          pill(
-                            '📌 고정',
-                            bg: scheme.primary.withValues(alpha: 0.14),
-                            fg: scheme.primary,
-                          )
-                        else
-                          pill(
-                            '공지',
-                            bg: scheme.outlineVariant.withValues(alpha: 0.6),
-                            fg: scheme.onSurfaceVariant,
-                          ),
+                        // 고정 공지도 같은 갈색 딱지 — 고정인지는 위 「고정 공지」
+                        // 소제목이 말한다 (사용자 결정 2026-10-14)
+                        pill(
+                          '공지',
+                          bg: scheme.outlineVariant.withValues(alpha: 0.6),
+                          fg: scheme.onSurfaceVariant,
+                        ),
                         if (notice.attachmentCount > 0)
                           Semantics(
                             label: '첨부 ${notice.attachmentCount}개',

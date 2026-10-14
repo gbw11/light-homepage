@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/api_error.dart';
 import '../../core/paging/paged_list.dart';
+import '../../core/ui/leader_fab.dart';
 import '../../core/ui/paged_list_view.dart';
 import '../../core/ui/status_views.dart';
 import '../account/login_gate.dart';
@@ -28,6 +29,7 @@ class PostsListScreen extends StatefulWidget {
     required this.emptyMessage,
     required this.onOpen,
     required this.onLogin,
+    this.onWrite,
   });
 
   final PostsApi posts;
@@ -36,6 +38,9 @@ class PostsListScreen extends StatefulWidget {
   final String emptyMessage;
   final void Function(PostSummary post) onOpen;
   final VoidCallback onLogin;
+
+  /// 글 쓰기 화면을 연다 — 다 쓰면 만든 글의 id. 임원 이상에게만 보인다
+  final Future<String?> Function()? onWrite;
 
   @override
   State<PostsListScreen> createState() => _PostsListScreenState();
@@ -52,6 +57,17 @@ class _PostsListScreenState extends State<PostsListScreen> {
     super.dispose();
   }
 
+  /// 다 쓰고 돌아오면 목록을 새로 받고 알린다
+  Future<void> _write() async {
+    final written = await widget.onWrite?.call();
+    if (written == null || !mounted) return;
+    await _list.refresh();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('글을 올렸어요.')));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,6 +76,12 @@ class _PostsListScreenState extends State<PostsListScreen> {
           widget.title,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
+      ),
+      floatingActionButton: leaderFab(
+        context,
+        label: '${widget.title} 쓰기',
+        icon: Icons.edit_outlined,
+        onPressed: widget.onWrite == null ? null : _write,
       ),
       body: ListenableBuilder(
         listenable: _list,

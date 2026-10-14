@@ -120,7 +120,8 @@ void main() {
       );
 
       expect(find.text('여름 수련회'), findsOneWidget);
-      expect(find.text('2026.09.04 · 사진 243장'), findsOneWidget);
+      expect(find.text('2026.09.04'), findsOneWidget);
+      expect(find.text('243장'), findsOneWidget);
       await tester.tap(find.text('여름 수련회'));
       expect(opened, ['여름 수련회']);
     });

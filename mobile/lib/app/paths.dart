@@ -19,6 +19,9 @@ abstract final class AppPaths {
   static const uploadBulletin = '/upload/bulletin';
   static const uploadMeeting = '/upload/meeting';
 
+  /// 글 쓰기 — `?c=notice` · `minutes` · `budget`
+  static const writePost = '/write';
+
   // 계정 — 하단 탭을 덮고 열린다
   static const login = '/login';
   static const signup = '/signup';

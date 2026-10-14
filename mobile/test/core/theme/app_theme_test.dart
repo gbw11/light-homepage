@@ -71,15 +71,17 @@ void main() {
     expect(style.fontFamily, appFontFamily);
   });
 
-  test('Pretendard 라이선스가 라이선스 페이지에 올라간다', () async {
+  test('글꼴 라이선스(Pretendard · Cinzel)가 라이선스 페이지에 올라간다', () async {
     registerFontLicenses();
 
     final entries = await LicenseRegistry.licenses.toList();
-    final pretendard = entries.where((e) => e.packages.contains('Pretendard'));
-    expect(pretendard, isNotEmpty);
-    expect(
-      pretendard.first.paragraphs.map((p) => p.text).join(),
-      contains('SIL Open Font License'),
-    );
+    for (final font in ['Pretendard', 'Cinzel']) {
+      final entry = entries.where((e) => e.packages.contains(font));
+      expect(entry, isNotEmpty, reason: font);
+      expect(
+        entry.first.paragraphs.map((p) => p.text).join(),
+        contains('SIL Open Font License'),
+      );
+    }
   });
 }

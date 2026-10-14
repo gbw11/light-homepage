@@ -74,7 +74,7 @@ void main() {
 
     expect(selectedTab(tester), 3);
     // 비로그인 — 회원 전용이라는 안내와 [로그인]
-    expect(find.textContaining('회원 전용 자료예요'), findsOneWidget);
+    expect(find.textContaining('회원 전용 자료입니다'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, '로그인'), findsOneWidget);
   });
 
@@ -147,7 +147,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selectedTab(tester), 0);
-    expect(find.text('김도연a · 2026.10.05'), findsOneWidget);
+    expect(find.textContaining('2026.10.05'), findsOneWidget);
 
     await pressSystemBack(tester);
 

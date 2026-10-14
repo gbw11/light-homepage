@@ -8,13 +8,13 @@ import 'route_map.dart';
 
 /// 오시는 길 (웹 `/location`, WIREFRAME §8, 기획안 §3).
 ///
-/// 위에서부터 **경고 → 주소 · 지도 앱 → 걸어서(약도) → 도착 → 주차(약도)** 순서다.
+/// 위에서부터 **경고 → 주소 · 지도 앱 → 본당에서(약도) → 건물 안내 → 주차(약도)** 순서다.
 /// 가장 자주 놓치는 "본당이 아니다"를 맨 위에 두는 것은 웹과 같은 판단이다.
 /// 모양은 디자인 시안(Stitch "Warm Fellowship")을 따른다.
 ///
 /// 약도 두 장은 웹 `RouteMap.tsx`의 SVG를 그대로 옮겨 그린 것이다 ([RouteMap] ·
 /// [ParkingMap]) — 누르면 전체 화면에서 확대한다. 실제 지도는 설치된 카카오맵 ·
-/// 네이버지도 · 구글 지도 앱으로 연다 (없으면 브라우저). 대중교통은 웹도 ❓라 뺐다.
+/// 네이버지도 · 구글 지도 앱으로 바로 연다 (없으면 웹 지도). 대중교통은 웹도 ❓라 뺐다.
 /// 웹의 건물 그림(`BuildingSketch`)은 아직 옮기지 않았다.
 class LocationScreen extends StatelessWidget {
   const LocationScreen({
@@ -44,43 +44,17 @@ class LocationScreen extends StatelessWidget {
         const SizedBox(height: 16),
         _AddressCard(
           onCopy: () => _copyAddress(context),
-          onKakao: () => openExternal(kakaoMapUrl),
-          onNaver: () => openExternal(naverMapUrl),
+          onKakao: () => openExternal(kakaoMapAppUrl),
+          onNaver: () => openExternal(naverMapAppUrl),
           onGoogle: () => openExternal(googleMapUrl),
         ),
+        // 약도만 둔다 — 아래 설명 글은 뺐다 (사용자 결정 2026-10-14)
         const InfoSection(
-          title: '걸어서 — 본당에서',
-          children: [
-            MapFigure(title: '걸어서 — 본당에서 오는 길', map: RouteMap()),
-            SizedBox(height: 12),
-            InfoCard(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    IconBadge(Icons.directions_walk),
-                    SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TagPill('도보 $walkMinutes분 · ${walkMeters}m'),
-                          SizedBox(height: 8),
-                          InfoText(
-                            '본당 앞에서 남쪽으로 95m 내려가, 김해합성초등학교가 끝나는 '
-                            '곳에서 오른쪽으로 39m. 갈림길이 없어 한 번만 꺾으면 됩니다.',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+          title: '본당에서',
+          children: [MapFigure(title: '본당에서 오는 길', map: RouteMap())],
         ),
         const InfoSection(
-          title: '도착 — 이 건물입니다',
+          title: '건물 안내',
           children: [
             InfoCard(
               children: [
@@ -112,7 +86,7 @@ class LocationScreen extends StatelessWidget {
               muted: true,
             ),
             const SizedBox(height: 14),
-            const MapFigure(title: '차로 — 주차장에서 오는 길', map: ParkingMap()),
+            const MapFigure(title: '주차장에서 오는 길', map: ParkingMap()),
             const SizedBox(height: 14),
             for (final lot in parkingLots) ...[
               _ParkingCard(lot),

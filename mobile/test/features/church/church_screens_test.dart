@@ -71,6 +71,11 @@ void main() {
       await pumpScreen(tester, screen(Recorder()));
 
       expect(find.text('WELCOME TO LIGHT'), findsOneWidget);
+      // 로고 리본 글자 같은 세리프
+      expect(
+        tester.widget<Text>(find.text('WELCOME TO LIGHT')).style?.fontFamily,
+        displayFontFamily,
+      );
       expect(find.textContaining('환영합니다'), findsNothing);
       expect(find.byType(VenueWarning), findsNothing);
       expect(find.text('드림센터를 찾아오세요'), findsOneWidget);
@@ -116,7 +121,7 @@ void main() {
         await tester.tap(find.text(label));
       }
 
-      expect(r.calls, ['register', 'open:$kakaoMapUrl', 'directions']);
+      expect(r.calls, ['register', 'open:$kakaoMapAppUrl', 'directions']);
     });
 
     testWidgets('웹에서 ❓(확인 필요)로 남은 내용은 옮기지 않는다', (tester) async {
@@ -149,7 +154,7 @@ void main() {
       await tester.tap(find.text('카카오맵'));
       await tester.tap(find.text('네이버지도'));
 
-      expect(r.calls, ['open:$kakaoMapUrl', 'open:$naverMapUrl']);
+      expect(r.calls, ['open:$kakaoMapAppUrl', 'open:$naverMapAppUrl']);
     });
 
     testWidgets('지도 앱 주소는 드림센터 주소로 검색한다 (웹과 같은 링크)', (tester) async {
@@ -162,6 +167,16 @@ void main() {
       final encoded = Uri.encodeComponent(address);
       expect(kakaoMapUrl, 'https://map.kakao.com/link/search/$encoded');
       expect(naverMapUrl, 'https://map.naver.com/p/search/$encoded');
+      // 앱 주소는 앱이 없으면 위 웹 주소로 넘어간다
+      expect(kakaoMapAppUrl, 'kakaomap://search?q=$encoded');
+      expect(
+        naverMapAppUrl,
+        'nmap://search?query=$encoded&appname=kr.light.app',
+      );
+      expect(appUrlFallbacks, {
+        kakaoMapAppUrl: kakaoMapUrl,
+        naverMapAppUrl: naverMapUrl,
+      });
       expect(
         googleMapUrl,
         'https://www.google.com/maps/search/?api=1&query=$encoded',
@@ -192,7 +207,7 @@ void main() {
       await tester.tap(find.byType(RouteMap));
       await tester.pumpAndSettle();
 
-      expect(find.text('걸어서 — 본당에서 오는 길'), findsOneWidget);
+      expect(find.text('본당에서 오는 길'), findsOneWidget);
       expect(find.byType(InteractiveViewer), findsOneWidget);
       expect(find.byType(RouteMap), findsWidgets);
 

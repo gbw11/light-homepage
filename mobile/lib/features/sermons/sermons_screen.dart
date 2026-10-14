@@ -126,7 +126,8 @@ class _SermonsScreenState extends State<SermonsScreen> {
           ),
           const _SectionTitle('지난 말씀'),
         ],
-        itemBuilder: (context, sermon) => _SermonRow(
+        cards: true,
+        itemBuilder: (context, sermon) => _SermonCard(
           sermon,
           onTap: () => widget.openExternal(sermon.youtubeUrl),
         ),
@@ -305,10 +306,22 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// 지난 말씀 한 줄 — 왼쪽 썸네일, 오른쪽 제목·날짜 (YouTube 앱 목록 모양).
-/// 비율로 나눠서 글자를 키워도 썸네일이 글자를 밀어내지 않는다
-class _SermonRow extends StatelessWidget {
-  const _SermonRow(this.sermon, {required this.onTap});
+/// 지난 말씀 한 장 (사용자 시안 2026-10-14):
+///
+/// ```
+/// ┌ 흰 카드 ──────────────────────────┐
+/// │ [썸네일]  설교 · 2026.10.11          │
+/// │           내가 받은 만큼 (크고 굵게)   │
+/// │           김해교회 LIGHT청년교회      │
+/// │                         [▶ 영상 보기] │
+/// └───────────────────────────────────┘
+/// ```
+///
+/// 영상 제목 「날짜 l 설교 제목 l [채널]」에서 가운데를 크게 쓴다 ([Sermon.headline]).
+/// 시안의 시리즈 · 본문 구절 · 설교자 · 요약 · 노트 · 재생 시간은 없다 — 서버가
+/// YouTube 제목 · 날짜 · 썸네일만 준다 (SPEC_API §9.2). 카드 어디를 눌러도 YouTube로 간다.
+class _SermonCard extends StatelessWidget {
+  const _SermonCard(this.sermon, {required this.onTap});
 
   final Sermon sermon;
   final VoidCallback onTap;
@@ -316,48 +329,123 @@ class _SermonRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 2,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: VideoThumbnail(
-                  url: sermon.thumbnailUrl,
-                  semanticLabel: '${sermon.title} 영상',
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 3,
-              child: Column(
+    final scheme = theme.colorScheme;
+    final headline = sermon.headline;
+    return Material(
+      // 정한 색 토큰에 흰색이 따로 없어 onPrimary(흰색)를 쓴다
+      color: scheme.onPrimary,
+      borderRadius: BorderRadius.circular(22),
+      elevation: 0.5,
+      shadowColor: scheme.onSurface.withValues(alpha: 0.2),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    sermon.title,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
+                  // 비율로 나눠서 글자를 키워도 썸네일이 글자를 밀어내지 않는다
+                  Expanded(
+                    flex: 2,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: VideoThumbnail(
+                        url: sermon.thumbnailUrl,
+                        semanticLabel: '$headline 영상',
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    formatDotDate(sermon.publishedAt),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '설교',
+                                style: TextStyle(
+                                  color: scheme.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const TextSpan(text: '  ·  '),
+                              TextSpan(text: formatDotDate(sermon.publishedAt)),
+                            ],
+                          ),
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          headline,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '김해교회 LIGHT청년교회',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                // 카드 전체가 눌리는 자리라 버튼은 모양만 — 스크린리더에 두 번 읽히지 않게
+                child: ExcludeSemantics(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.play_arrow_rounded,
+                            size: 20,
+                            color: scheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '영상 보기',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: scheme.primary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

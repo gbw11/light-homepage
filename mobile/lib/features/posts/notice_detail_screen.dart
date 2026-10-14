@@ -7,6 +7,7 @@ import '../../core/ui/status_views.dart';
 import '../account/login_gate.dart';
 import 'post_body_view.dart';
 import 'post_detail.dart';
+import 'post_summary.dart';
 import 'posts_api.dart';
 
 /// 공지 상세 (웹 `/news/[slug]`, 기획안 §2-2 ②).
@@ -127,6 +128,19 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
   }
 }
 
+/// 글 한 편 (사용자 시안 2026-10-14):
+///
+/// ```
+///  [공지 | 📌 고정]
+///  제목 (크고 굵게)
+///  (🌿) 작성자 · 2026.09.04 10:30
+///  ┌ 베이지 판 ──────────┐
+///  │ 본문                │
+///  └─────────────────────┘
+///  첨부파일 …
+/// ```
+///
+/// 시안의 「조회 342회」는 없다 — 서버가 조회 수를 세지 않는다 (SPEC_API §3.3).
 class _Content extends StatelessWidget {
   const _Content(
     this.post, {
@@ -143,39 +157,18 @@ class _Content extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final muted = theme.textTheme.bodyMedium?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
+      color: scheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
     );
     final publishedAt = post.publishedAt;
-    final meta = [
-      ?post.authorName,
-      if (publishedAt != null) formatDotDate(publishedAt),
-    ].join(' · ');
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
       children: [
-        if (post.pinned)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.push_pin,
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '고정 공지',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        Align(alignment: Alignment.centerLeft, child: _CategoryChip(post)),
+        const SizedBox(height: 12),
         // 본문은 길게 눌러 복사할 수 있다 — 계좌번호·장소를 옮겨 적는 일이 많다
         SelectionArea(
           child: Column(
@@ -186,56 +179,190 @@ class _Content extends StatelessWidget {
                 child: Text(
                   post.title,
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
+                    height: 1.35,
                   ),
                 ),
               ),
-              if (meta.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(meta, style: muted),
-              ],
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Divider(height: 1),
+              const SizedBox(height: 14),
+              // 작성자 · 날짜 — 큰 글씨에서는 날짜가 다음 줄로 내려간다
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 10,
+                runSpacing: 6,
+                children: [
+                  if (post.authorName case final author?)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ExcludeSemantics(
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: scheme.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.eco_outlined,
+                              size: 20,
+                              color: scheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(author, style: muted)),
+                      ],
+                    ),
+                  if (post.authorName != null && publishedAt != null)
+                    ExcludeSemantics(
+                      child: Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: scheme.outlineVariant,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  if (publishedAt != null)
+                    Text(_dateTime(publishedAt), style: muted),
+                ],
               ),
-              PostBodyView(body: post.body, onOpenLink: onOpenLink),
+              const SizedBox(height: 20),
+              // 본문 — 베이지 판 위에
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+                  child: PostBodyView(body: post.body, onOpenLink: onOpenLink),
+                ),
+              ),
             ],
           ),
         ),
         if (post.attachments.isNotEmpty) ...[
-          const SizedBox(height: 32),
-          Text(
-            '첨부파일',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            margin: EdgeInsets.zero,
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (final (i, a) in post.attachments.indexed) ...[
-                  if (i > 0) const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.insert_drive_file_outlined),
-                    title: Text(a.filename),
-                    subtitle: Text(formatFileSize(a.sizeBytes)),
-                    trailing: opening == a.id
-                        ? const SizedBox.square(
-                            dimension: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.download_outlined),
-                    onTap: () => onOpenAttachment(a),
+          const SizedBox(height: 28),
+          Row(
+            children: [
+              Icon(Icons.attach_file, size: 20, color: scheme.primary),
+              const SizedBox(width: 6),
+              Semantics(
+                header: true,
+                child: Text(
+                  '첨부파일 ${post.attachments.length}',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
-                ],
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 10),
+          for (final a in post.attachments) ...[
+            _AttachmentRow(
+              a,
+              opening: opening == a.id,
+              onTap: () => onOpenAttachment(a),
+            ),
+            const SizedBox(height: 8),
+          ],
         ],
       ],
+    );
+  }
+
+  /// `2026.09.04 10:30` — 기기 시간대로
+  static String _dateTime(DateTime at) {
+    final local = at.toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '${formatDotDate(at)} $hh:$mm';
+  }
+}
+
+/// 「📌 고정」 또는 분류 이름 — 목록 카드와 같은 딱지
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip(this.post);
+
+  final PostDetail post;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final label = post.pinned
+        ? '📌 고정'
+        : switch (post.category) {
+            PostCategory.noticePublic || PostCategory.noticeMember => '공지',
+            PostCategory.minutes => '회의록',
+            PostCategory.budget => '예산안',
+          };
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.primary.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: scheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 첨부 한 줄 — 흰 판 · 파일 아이콘 · 이름 · 크기 · 받기
+class _AttachmentRow extends StatelessWidget {
+  const _AttachmentRow(
+    this.attachment, {
+    required this.opening,
+    required this.onTap,
+  });
+
+  final Attachment attachment;
+  final bool opening;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Material(
+      // 정한 색 토큰에 흰색이 따로 없어 onPrimary(흰색)를 쓴다
+      color: scheme.onPrimary,
+      borderRadius: BorderRadius.circular(16),
+      elevation: 0.5,
+      shadowColor: scheme.onSurface.withValues(alpha: 0.2),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        leading: Icon(Icons.insert_drive_file_outlined, color: scheme.primary),
+        title: Text(
+          attachment.filename,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(formatFileSize(attachment.sizeBytes)),
+        trailing: opening
+            ? const SizedBox.square(
+                dimension: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.download_outlined),
+      ),
     );
   }
 }

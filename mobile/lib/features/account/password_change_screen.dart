@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/api_error.dart';
 import '../../core/auth/auth_state.dart';
+import '../../core/ui/form_card.dart';
 import '../../core/ui/status_views.dart';
 
 /// BCrypt가 다루는 상한은 글자 수가 아니라 **72바이트**다 — 한글은 한 글자가
@@ -35,6 +36,8 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
   final _confirm = TextEditingController();
   final _currentFocus = FocusNode();
   var _submitting = false;
+  var _hideCurrent = true;
+  var _hideNext = true;
 
   /// 서버가 짚어 준 오류
   String? _currentError;
@@ -114,71 +117,104 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-          children: [
-            Text(
-              '바꾸면 이 기기를 뺀 다른 기기에서는 모두 로그아웃돼요.',
-              style: theme.textTheme.bodyLarge?.copyWith(
+      // 로그인 화면과 같은 모양 — 흰 카드 · 채운 칸 · 둥근 버튼 (사용자 결정 2026-10-14)
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+        children: [
+          FormCard(
+            child: AutofillGroup(
+              child: Form(
+                key: _form,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    CardField(
+                      label: '현재 비밀번호',
+                      icon: Icons.lock_outline,
+                      controller: _current,
+                      focusNode: _currentFocus,
+                      hint: '지금 쓰는 비밀번호',
+                      obscureText: _hideCurrent,
+                      suffix: PasswordVisibilityButton(
+                        hidden: _hideCurrent,
+                        onToggle: () =>
+                            setState(() => _hideCurrent = !_hideCurrent),
+                      ),
+                      autofillHints: const [AutofillHints.password],
+                      textInputAction: TextInputAction.next,
+                      errorText: _currentError,
+                      validator: (v) =>
+                          (v ?? '').isEmpty ? '현재 비밀번호를 입력해주세요.' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    CardField(
+                      label: '새 비밀번호',
+                      icon: Icons.lock_reset_outlined,
+                      controller: _next,
+                      hint: '8자 이상',
+                      obscureText: _hideNext,
+                      suffix: PasswordVisibilityButton(
+                        hidden: _hideNext,
+                        onToggle: () => setState(() => _hideNext = !_hideNext),
+                      ),
+                      autofillHints: const [AutofillHints.newPassword],
+                      textInputAction: TextInputAction.next,
+                      errorText: _nextError,
+                      validator: _validateNext,
+                    ),
+                    const SizedBox(height: 16),
+                    CardField(
+                      label: '새 비밀번호 확인',
+                      icon: Icons.check_circle_outline,
+                      controller: _confirm,
+                      hint: '한 번 더 입력해 주세요',
+                      obscureText: _hideNext,
+                      autofillHints: const [AutofillHints.newPassword],
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _submit(),
+                      validator: (v) {
+                        if ((v ?? '').isEmpty) return '새 비밀번호 확인을 입력해주세요.';
+                        if (v != _next.text) return '새 비밀번호가 일치하지 않습니다.';
+                        return null;
+                      },
+                    ),
+                    if (_formError case final error?) ...[
+                      const SizedBox(height: 12),
+                      FormErrorText(error),
+                    ],
+                    const SizedBox(height: 24),
+                    PillSubmitButton(
+                      label: '비밀번호 변경하기',
+                      busyLabel: '바꾸는 중...',
+                      busy: _submitting,
+                      onPressed: _submit,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: 18,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
-            ),
-            const SizedBox(height: 24),
-            TextFormField(
-              controller: _current,
-              focusNode: _currentFocus,
-              obscureText: true,
-              autofillHints: const [AutofillHints.password],
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(labelText: '현재 비밀번호'),
-              forceErrorText: _currentError,
-              validator: (v) => (v ?? '').isEmpty ? '현재 비밀번호를 입력해주세요.' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _next,
-              obscureText: true,
-              autofillHints: const [AutofillHints.newPassword],
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: '새 비밀번호',
-                helperText: '8자 이상',
-              ),
-              forceErrorText: _nextError,
-              validator: _validateNext,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _confirm,
-              obscureText: true,
-              autofillHints: const [AutofillHints.newPassword],
-              textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(labelText: '새 비밀번호 확인'),
-              onFieldSubmitted: (_) => _submit(),
-              validator: (v) {
-                if ((v ?? '').isEmpty) return '새 비밀번호 확인을 입력해주세요.';
-                if (v != _next.text) return '새 비밀번호가 일치하지 않습니다.';
-                return null;
-              },
-            ),
-            if (_formError case final error?) ...[
-              const SizedBox(height: 16),
-              Text(
-                error,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.error,
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '바꾸면 이 기기를 뺀 다른 기기에서는 모두 로그아웃돼요.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _submitting ? null : _submit,
-              child: Text(_submitting ? '바꾸는 중...' : '비밀번호 변경'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
