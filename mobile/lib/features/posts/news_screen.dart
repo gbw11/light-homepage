@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/format/date_format.dart';
 import '../../core/paging/paged_list.dart';
 import '../../core/ui/form_card.dart';
+import '../../core/ui/leader_fab.dart';
 import '../../core/ui/menu_button.dart';
 import '../../core/ui/profile_button.dart';
 import '../../core/ui/paged_list_view.dart';
@@ -35,6 +36,7 @@ class NewsScreen extends StatefulWidget {
     required this.categories,
     required this.onOpen,
     this.onLogin,
+    this.onWrite,
   });
 
   final PostsApi posts;
@@ -47,6 +49,9 @@ class NewsScreen extends StatefulWidget {
 
   /// 비로그인 안내 줄을 누르면
   final VoidCallback? onLogin;
+
+  /// 글 쓰기 화면을 연다 — 다 쓰면 만든 글의 id. 임원 이상에게만 보인다
+  final Future<String?> Function()? onWrite;
 
   @override
   State<NewsScreen> createState() => _NewsScreenState();
@@ -100,6 +105,17 @@ class _NewsScreenState extends State<NewsScreen> {
     return null;
   }
 
+  /// 다 쓰고 돌아오면 목록을 새로 받고 알린다
+  Future<void> _write() async {
+    final written = await widget.onWrite?.call();
+    if (written == null || !mounted) return;
+    await _list.refresh();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('글을 올렸어요.')));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,6 +123,12 @@ class _NewsScreenState extends State<NewsScreen> {
         leading: const MenuButton(),
         actions: const [ProfileButton()],
         title: const Text('공지', style: TextStyle(fontWeight: FontWeight.w700)),
+      ),
+      floatingActionButton: leaderFab(
+        context,
+        label: '공지 쓰기',
+        icon: Icons.edit_outlined,
+        onPressed: widget.onWrite == null ? null : _write,
       ),
       body: PagedListView<PostSummary>(
         list: _list,
