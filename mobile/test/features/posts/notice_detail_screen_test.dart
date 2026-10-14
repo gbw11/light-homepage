@@ -81,10 +81,14 @@ void main() {
 
     expect(server.paths, ['GET /posts/18']);
     expect(find.text('여름 수련회 신청 안내'), findsOneWidget);
-    expect(find.text('김도연a · 2026.08.24'), findsOneWidget);
+    // 작성자와 날짜(시각까지)는 따로 — 분류 딱지는 맨 위에
+    expect(find.text('김도연a'), findsOneWidget);
+    expect(find.textContaining('2026.08.24'), findsOneWidget);
+    // 제목줄의 「공지」와 분류 딱지
+    expect(find.text('공지'), findsNWidgets(2));
     expect(find.textContaining('8월 20일까지', findRichText: true), findsOneWidget);
-    expect(find.text('고정 공지'), findsNothing);
-    expect(find.text('첨부파일'), findsNothing);
+    expect(find.text('📌 고정'), findsNothing);
+    expect(find.textContaining('첨부파일'), findsNothing);
   });
 
   testWidgets('고정 공지는 표시를 단다', (tester) async {
@@ -93,7 +97,7 @@ void main() {
       FakeServer((_) async => respond(200, {'data': detail(pinned: true)})),
     );
 
-    expect(find.text('고정 공지'), findsOneWidget);
+    expect(find.text('📌 고정'), findsOneWidget);
   });
 
   testWidgets('첨부를 누르면 권한이 실린 요청으로 주소를 받아 바깥에서 연다', (tester) async {

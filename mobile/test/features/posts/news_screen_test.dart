@@ -96,7 +96,7 @@ void main() {
     });
   });
 
-  testWidgets('카드로 — 고정 글에는 딱지, 첨부가 있으면 첨부 수를 단다', (tester) async {
+  testWidgets('카드로 — 고정 글도 같은 「공지」 딱지, 첨부가 있으면 첨부 수를 단다', (tester) async {
     await pumpNews(
       tester,
       serverWith(
@@ -111,7 +111,15 @@ void main() {
     expect(find.text('고정 공지'), findsOneWidget);
     expect(find.text('1건'), findsOneWidget);
     expect(find.text('전체 공지'), findsOneWidget);
-    expect(find.text('📌 고정'), findsOneWidget);
+    // 고정 글에도 핀 딱지 없이 같은 「공지」 딱지 — 고정은 소제목이 말한다
+    expect(find.text('📌 고정'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(Scrollable).first,
+        matching: find.text('공지'),
+      ),
+      findsNWidgets(2),
+    );
     expect(find.text('📎 2'), findsOneWidget);
     expect(
       find.text(formatDotDate(DateTime.utc(2026, 10, 5, 3))),

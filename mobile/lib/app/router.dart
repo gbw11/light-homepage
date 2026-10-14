@@ -35,6 +35,7 @@ import '../features/posts/notice_detail_screen.dart';
 import '../features/posts/post_summary.dart';
 import '../features/posts/posts_api.dart';
 import '../features/posts/posts_list_screen.dart';
+import '../features/posts/post_write_screen.dart';
 import '../features/resources/resources_screen.dart';
 import '../features/sermons/sermons_api.dart';
 import '../features/sermons/sermons_screen.dart';
@@ -98,6 +99,8 @@ GoRouter buildRouter({
         onOpen: (post) =>
             context.push('${AppPaths.resources}/$path/${post.id}'),
         onLogin: () => context.push(AppPaths.login),
+        onWrite: () =>
+            context.push<String>('${AppPaths.writePost}?c=${category.wire}'),
       ),
       routes: [noticeDetail(':id', title: title)],
     );
@@ -108,8 +111,9 @@ GoRouter buildRouter({
     auth: auth,
     signupApi: authApi,
     initialMode: mode,
-    // 연 화면으로 돌아간다. 그 화면은 로그인 상태로 다시 그려진다
-    onDone: () => context.canPop() ? context.pop() : context.go(AppPaths.home),
+    // 어디서 열었든 홈으로 간다 (사용자 결정 2026-10-14). 다른 탭은 로그인
+    // 상태로 다시 그려져 있다
+    onDone: () => context.go(AppPaths.home),
     onFirstVisit: () => context.push(AppPaths.welcome),
     openExternal: openExternal,
   );
@@ -175,6 +179,9 @@ GoRouter buildRouter({
                     onOpen: (notice) =>
                         context.push('${AppPaths.news}/${notice.id}'),
                     onLogin: () => context.push(AppPaths.login),
+                    onWrite: () => context.push<String>(
+                      '${AppPaths.writePost}?c=${PostCategory.noticePublic.wire}',
+                    ),
                   ),
                 ),
                 routes: [noticeDetail(':id')],
@@ -301,6 +308,27 @@ GoRouter buildRouter({
           pickPdf: pickPdf,
           onDone: () => context.pop(true),
         ),
+      ),
+      GoRoute(
+        path: AppPaths.writePost,
+        builder: (context, state) {
+          final category = PostCategory.parse(
+            state.uri.queryParameters['c'] ?? PostCategory.noticePublic.wire,
+          );
+          return PostWriteScreen(
+            posts: posts,
+            // 공지는 전체 공개 · 회원만을 고른다. 회의록 · 예산안은 그 분류 하나
+            categories: switch (category) {
+              PostCategory.noticePublic || PostCategory.noticeMember => const [
+                PostCategory.noticePublic,
+                PostCategory.noticeMember,
+              ],
+              _ => [category],
+            },
+            pickAttachments: pickAttachments,
+            onDone: (id) => context.pop(id),
+          );
+        },
       ),
 
       // ── 자료 뷰어 — 하단 탭을 덮는다 ──

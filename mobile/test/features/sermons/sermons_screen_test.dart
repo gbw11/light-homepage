@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:light_mobile/content/links.dart';
 import 'package:light_mobile/core/theme/app_theme.dart';
+import 'package:light_mobile/features/sermons/sermon.dart';
 import 'package:light_mobile/features/sermons/sermons_api.dart';
 import 'package:light_mobile/features/sermons/sermons_screen.dart';
 
@@ -215,5 +216,24 @@ void main() {
     await tester.scrollUntilVisible(find.text('유튜브 채널에서 더 보기'), 300);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  group('설교 제목', () {
+    Sermon withTitle(String title) =>
+        Sermon.fromJson({...sermon(1), 'title': title});
+
+    test('「날짜 l 제목 l [채널]」에서 가운데를 꺼낸다 — l · | · I 모두', () {
+      expect(
+        withTitle('2026년 10월 11일 l 내가 받은 만큼 l [김해교회 LIGHT청년교회]').headline,
+        '내가 받은 만큼',
+      );
+      expect(withTitle('2026년 9월 20일 | 하나님의 계산법 | [채널]').headline, '하나님의 계산법');
+      expect(withTitle('2026년 9월 13일 I 은혜 I [채널]').headline, '은혜');
+    });
+
+    test('그 꼴이 아니면 영상 제목 그대로 — 단어 속 l은 자르지 않는다', () {
+      expect(withTitle('설교 1').headline, '설교 1');
+      expect(withTitle('Hello world').headline, 'Hello world');
+    });
   });
 }

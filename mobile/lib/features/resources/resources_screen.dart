@@ -75,7 +75,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
       body: user == null
           ? LoginGate(
               onLogin: widget.onLogin,
-              message: '회원 전용 자료예요.\n주보 · 사진첩 · 월례회 자료 · 회의록은\n로그인하면 볼 수 있어요.',
+              message: '회원 전용 자료입니다.\n로그인하면 열람 가능합니다.',
             )
           : RefreshIndicator(
               onRefresh: _loadOpenMeeting,
@@ -107,19 +107,16 @@ class _Hub extends StatelessWidget {
       _ResourceCard(
         icon: Icons.menu_book_outlined,
         title: '주보',
-        subtitle: '예배 순서와 이번 주 광고',
         onTap: () => onOpen(Resource.bulletins),
       ),
       _ResourceCard(
         icon: Icons.photo_library_outlined,
         title: '사진첩',
-        subtitle: '모임과 행사 사진',
         onTap: () => onOpen(Resource.photos),
       ),
       _ResourceCard(
         icon: Icons.description_outlined,
         title: '월례회 자료',
-        subtitle: '열람 기간에만 볼 수 있어요',
         badge: meeting == null
             ? null
             : '열람 중 · ~${formatMonthDayTime(meeting.viewableUntil)}',
@@ -128,14 +125,12 @@ class _Hub extends StatelessWidget {
       _ResourceCard(
         icon: Icons.edit_note_outlined,
         title: '회의록',
-        subtitle: '회의에서 정한 것',
         onTap: () => onOpen(Resource.minutes),
       ),
       if (isLeader)
         _ResourceCard(
           icon: Icons.account_balance_wallet_outlined,
           title: '예산안',
-          subtitle: '임원 이상',
           onTap: () => onOpen(Resource.budget),
         ),
     ];
@@ -152,19 +147,19 @@ class _Hub extends StatelessWidget {
   }
 }
 
-/// 자료 한 줄 — 동그란 아이콘 · 이름 · 설명 · (열람 중 표시) · ›
+/// 자료 한 줄 — 동그란 아이콘 · 이름 · (열람 중 표시) · ›
+///
+/// 이름 아래 설명은 두지 않는다 (사용자 결정 2026-10-14)
 class _ResourceCard extends StatelessWidget {
   const _ResourceCard({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.onTap,
     this.badge,
   });
 
   final IconData icon;
   final String title;
-  final String subtitle;
   final VoidCallback onTap;
   final String? badge;
 
@@ -203,13 +198,6 @@ class _ResourceCard extends StatelessWidget {
                       title,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                     if (badge case final badge?) ...[

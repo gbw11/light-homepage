@@ -103,6 +103,7 @@ flutter:
   # 라이선스 페이지에 띄우려고 번들한다 (SIL OFL 1.1 — 글꼴과 함께 배포해야 한다)
   assets:
     - assets/fonts/pretendard/LICENSE.txt
+    - assets/fonts/cinzel/LICENSE.txt
     # 웹 `frontend/public/images/`와 같은 파일. 얼굴이 식별되지 않는 공개용 사진만 넣는다
     # (DECISIONS "수련회 실사진 공개 페이지 적용 범위")
     - assets/images/worship-hero.webp
@@ -121,4 +122,10 @@ flutter:
         - asset: assets/fonts/pretendard/Pretendard-SemiBold.otf
           weight: 600
         - asset: assets/fonts/pretendard/Pretendard-Bold.otf
+          weight: 700
+    # Cinzel v2.000 — 로고 리본의 「L I G H T」 같은 대문자 세리프. 라틴 글자만 있고
+    # 「WELCOME TO LIGHT」 한 줄에만 쓴다 (사용자 결정 2026-10-14). 굵기는 Bold 하나
+    - family: Cinzel
+      fonts:
+        - asset: assets/fonts/cinzel/Cinzel-Bold.ttf
           weight: 700

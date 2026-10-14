@@ -119,7 +119,7 @@ void main() {
       final server = meetingsWith([]);
       await pump(tester, screen(server, calls), auth: auth);
 
-      expect(find.textContaining('회원 전용 자료예요'), findsOneWidget);
+      expect(find.textContaining('회원 전용 자료입니다'), findsOneWidget);
       expect(find.text('주보'), findsNothing);
       // 비로그인에게 회원 API를 부르지 않는다 (서버는 401)
       expect(server.requests, isEmpty);

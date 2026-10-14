@@ -4,6 +4,7 @@ import '../../core/api/api_error.dart';
 import '../../core/auth/auth_state.dart';
 import '../../core/format/date_format.dart';
 import '../../core/paging/paged_list.dart';
+import '../../core/ui/list_card.dart';
 import '../../core/ui/paged_list_view.dart';
 import '../account/login_gate.dart';
 import 'meeting.dart';
@@ -95,6 +96,7 @@ class _MeetingsScreenState extends State<MeetingsScreen> {
             list: _list,
             onRefresh: _list.refresh,
             emptyMessage: '아직 올라온 월례회 자료가 없어요.',
+            cards: true,
             itemBuilder: (context, meeting) => _MeetingCard(
               meeting,
               isLeader: isLeader,
@@ -159,34 +161,56 @@ class _MeetingCard extends StatelessWidget {
       ),
     };
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    // 카드 위쪽 딱지 — 지금 열 수 있는지가 가장 먼저 보이게
+    final (statusLabel, statusStrong) = switch (status) {
+      MeetingStatus.open => ('열람 중', true),
+      MeetingStatus.scheduled => ('열람 전', false),
+      _ => ('열람 종료', false),
+    };
+
+    return ListCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    const ListChip('월례회'),
+                    ListChip(statusLabel, strong: statusStrong),
+                    ListChip(
+                      '${meeting.pageCount}쪽',
+                      icon: Icons.description_outlined,
+                    ),
+                  ],
+                ),
+              ),
+              Text(formatYmd(meeting.meetingDate), style: muted),
+            ],
+          ),
+          const SizedBox(height: 10),
           Text(
             meeting.title,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
+              height: 1.4,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${formatYmd(meeting.meetingDate)} · ${meeting.pageCount}페이지',
-            style: muted,
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             note,
             style: open
-                ? theme.textTheme.bodyLarge?.copyWith(
+                ? theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.primary,
                     fontWeight: FontWeight.w700,
                   )
                 : muted,
           ),
           const SizedBox(height: 12),
-          button,
+          Align(alignment: Alignment.centerRight, child: button),
         ],
       ),
     );

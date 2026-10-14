@@ -16,6 +16,16 @@ class Sermon {
     thumbnailUrl: json['thumbnailUrl'] as String,
   );
 
+  /// 설교 제목만 — 영상 제목은 「2026년 10월 11일 l 내가 받은 만큼 l [김해교회 …]」
+  /// 꼴이라 가운데 칸이 설교 제목이다. 구분자는 l(소문자 엘) · | · I 를 다 받는다.
+  /// 그 꼴이 아니면 영상 제목 그대로
+  String get headline {
+    final parts = title.split(RegExp(r'\s[lI|｜]\s'));
+    if (parts.length < 2) return title;
+    final middle = parts[1].trim();
+    return middle.isEmpty ? title : middle;
+  }
+
   /// YouTube 영상 id — 목록 키로만 쓴다
   final String id;
   final String title;

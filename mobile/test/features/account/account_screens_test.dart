@@ -268,7 +268,7 @@ void main() {
       await tester.enterText(fields.at(0), current);
       await tester.enterText(fields.at(1), next);
       await tester.enterText(fields.at(2), confirm ?? next);
-      await tester.tap(find.widgetWithText(FilledButton, '비밀번호 변경'));
+      await tester.tap(find.widgetWithText(FilledButton, '비밀번호 변경하기'));
       await tester.pumpAndSettle();
     }
 

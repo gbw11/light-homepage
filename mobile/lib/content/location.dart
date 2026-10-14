@@ -16,6 +16,20 @@ final kakaoMapUrl =
 final naverMapUrl =
     'https://map.naver.com/p/search/${Uri.encodeComponent(address)}';
 
+/// 카카오맵 · 네이버지도 앱을 **바로** 여는 주소 (각 앱의 공식 URL 스킴).
+/// 위 https 주소는 안드로이드에서 앱이 아니라 브라우저로 열린다 — 버튼은 이 주소를
+/// 먼저 열고, 앱이 없으면 [appUrlFallbacks]의 웹 주소로 다시 연다 (app.dart).
+/// 네이버는 `appname`(부른 앱의 패키지명)을 꼭 받는다
+final kakaoMapAppUrl = 'kakaomap://search?q=${Uri.encodeComponent(address)}';
+final naverMapAppUrl =
+    'nmap://search?query=${Uri.encodeComponent(address)}&appname=kr.light.app';
+
+/// 앱 주소 → 앱이 없을 때 대신 열 웹 주소
+final appUrlFallbacks = {
+  kakaoMapAppUrl: kakaoMapUrl,
+  naverMapAppUrl: naverMapUrl,
+};
+
 /// 구글 지도 — **앱에만 있다** (웹은 카카오맵 · 네이버지도 두 개). 두 앱이 없는
 /// 휴대폰(외국인 방문자 · 아이폰 기본 상태)에서도 길찾기를 열 수 있게 둔다.
 /// 공식 "Maps URLs" 형식이라 앱이 있으면 앱, 없으면 브라우저로 열린다.

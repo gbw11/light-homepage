@@ -109,12 +109,12 @@ class _Chip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final pinned = post.pinned;
-    final fg = pinned ? scheme.onPrimaryContainer : scheme.onSurfaceVariant;
+    // 고정도 같은 갈색 딱지에 핀만 단다 — 옅은 민트(primaryContainer)는 크림 바탕과
+    // 겉돌았다 (사용자 결정 2026-10-14)
+    final fg = scheme.onSurfaceVariant;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: pinned
-            ? scheme.primaryContainer
-            : scheme.outlineVariant.withValues(alpha: 0.6),
+        color: scheme.outlineVariant.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Padding(
@@ -123,7 +123,7 @@ class _Chip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (pinned) ...[
-              Icon(Icons.push_pin, size: 14, color: fg),
+              Icon(Icons.push_pin_outlined, size: 14, color: fg),
               const SizedBox(width: 4),
             ],
             Text(

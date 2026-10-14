@@ -163,7 +163,8 @@ void main() {
         auth: await authAs(tester, 'LEADER'),
       );
 
-      expect(find.text('열람 종료'), findsNothing);
+      // 「열람 종료」는 상태 딱지로만 — 막힌 버튼이 아니라 [임원 열람]이다
+      expect(find.widgetWithText(FilledButton, '열람 종료'), findsNothing);
       expect(find.textContaining('임원에게 문의'), findsNothing);
       await tester.tap(find.text('임원 열람'));
       await tester.tap(find.text('월례회 자료 올리기'));

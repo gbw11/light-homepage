@@ -5,8 +5,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../content/location.dart';
 import '../core/api/api_client.dart';
 import '../core/auth/auth_state.dart';
+import '../core/platform/open_url.dart';
 import '../core/theme/app_theme.dart';
 import 'app_intro.dart';
 import 'router.dart';
@@ -56,13 +58,18 @@ class _LightAppState extends State<LightApp> {
     ?..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(message)));
 
-  /// YouTube·지도 같은 바깥 주소는 앱 안이 아니라 설치된 앱(없으면 브라우저)으로 연다
+  /// YouTube·지도 같은 바깥 주소는 앱 안이 아니라 설치된 앱(없으면 브라우저)으로 연다.
+  /// 지도 앱 주소(`kakaomap://` 등)는 앱이 없으면 웹 지도로 다시 연다
   Future<void> _openExternal(String url) async {
-    // 열 앱이 없으면 false를 주기도, 예외를 던지기도 한다 (플랫폼마다 다르다)
-    final opened = await launchUrl(
-      Uri.parse(url),
-      mode: LaunchMode.externalApplication,
-    ).catchError((_) => false);
+    final opened = await openWithFallback(
+      url,
+      fallbacks: appUrlFallbacks,
+      // 열 앱이 없으면 false를 주기도, 예외를 던지기도 한다 (플랫폼마다 다르다)
+      launch: (url) => launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      ).catchError((_) => false),
+    );
     if (!opened) _toast('열 수 없어요. 잠시 후 다시 시도해 주세요.');
   }
 
