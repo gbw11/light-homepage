@@ -10,6 +10,7 @@
 | CI | `.github/workflows/mobile-ci.yml` · Jenkins `Mobile` 스테이지 (`docs/ops/CICD.md §3.8`) |
 | 릴리스 | `.github/workflows/mobile-release.yml` — `mobile-v*` 태그 |
 | API 주소 | `mobile/env/prod.json` → `https://light-homepage.onrender.com/api` |
+| 푸시 알림 | Firebase `light-kr-app` — `infra/firebase/README.md` |
 
 > ⚠️ **앱 ID는 스토어에 한 번 올리면 바꿀 수 없습니다.** 바꾸면 다른 앱이 됩니다.
 

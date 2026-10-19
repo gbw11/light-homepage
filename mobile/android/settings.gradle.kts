@@ -21,6 +21,8 @@ plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "9.1.0" apply false
     id("org.jetbrains.kotlin.android") version "2.4.0" apply false
+    // Firebase(푸시 알림) — app/google-services.json을 읽는다 (infra/firebase/README.md)
+    id("com.google.gms.google-services") version "4.5.0" apply false
 }
 
 include(":app")
