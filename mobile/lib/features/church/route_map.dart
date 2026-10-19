@@ -379,15 +379,16 @@ class _RouteMapPainter extends _MapPainter {
 class _ParkingMapPainter extends _MapPainter {
   _ParkingMapPainter(super.p);
 
-  // P3에서 내려오는 점선(x=176)이 이름표 오른쪽 끝을 가로지르지 않게 왼쪽으로 민다
+  // 「드림센터 4층」을 한 줄로, 가락로 아래에 둔다 (PM 요청 2026-10-19).
+  // 길 위쪽은 P3에서 내려오는 점선이 지나고, 오른쪽 아래는 P2 점선이 비스듬히
+  // 올라오므로(x≈165~) 묶음을 그보다 왼쪽에 둔다
   @override
-  double get labelX => 104;
+  double get labelX => 98;
   @override
-  double get titleY => 214;
+  double get titleY => 296;
   @override
-  double get floorY => 292;
+  double get floorY => 296;
 
-  // 「드림센터 4층」을 한 줄로 (PM 요청 2026-10-19)
   @override
   bool get floorBesideTitle => true;
 
