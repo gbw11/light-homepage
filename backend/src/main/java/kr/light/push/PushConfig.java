@@ -14,7 +14,7 @@ import java.util.concurrent.Executor;
  * <ul>
  *   <li>{@code app.push.firebase-service-account}(= {@code FIREBASE_SERVICE_ACCOUNT})가
  *       있으면 {@link FcmPushSender}</li>
- *   <li>없으면 {@link NoopPushSender} — 알림만 건너뛰고 앱은 정상 동작</li>
+ *   <li>없거나 깨졌으면 {@link NoopPushSender} — 알림만 건너뛰고 앱은 정상 동작</li>
  * </ul>
  */
 @Slf4j
@@ -27,7 +27,14 @@ public class PushConfig {
             log.info("FIREBASE_SERVICE_ACCOUNT 없음 — 푸시를 보내지 않는다");
             return new NoopPushSender();
         }
-        return new FcmPushSender(serviceAccountJson);
+        try {
+            return new FcmPushSender(serviceAccountJson);
+        } catch (IllegalStateException e) {
+            // 키가 깨졌다고 서버를 못 켜면 웹 · 앱 전체가 내려간다. 알림만 포기한다 —
+            // 배포 설정을 고쳐야 하니 ERROR로 남긴다 (키 내용은 남기지 않는다)
+            log.error("FIREBASE_SERVICE_ACCOUNT를 쓸 수 없다 — 푸시를 보내지 않는다: {}", e.getMessage());
+            return new NoopPushSender();
+        }
     }
 
     /**
