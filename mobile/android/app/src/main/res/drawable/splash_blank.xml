@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 이상 시스템 스플래시의 빈 아이콘. 아이콘을 지정하지 않으면 런처 아이콘이
+     뜨므로 투명한 그림을 둔다 — 시작 화면에 로고를 두지 않는다 (PM 요청 2026-10-19) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>
