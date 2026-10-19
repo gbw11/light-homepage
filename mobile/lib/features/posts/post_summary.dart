@@ -11,6 +11,11 @@ enum PostCategory {
 
   static PostCategory parse(String raw) =>
       values.firstWhere((c) => c.wire == raw);
+
+  /// 회의록 · 예산안 — 상세를 열면 열람자 워터마크를 깔고 캡처 · 녹화 · 본문 복사를
+  /// 막는다 (2026-10-19 결정, 월례회 자료와 같은 보호). 서버에서는 열람 기간도 이
+  /// 두 분류에만 걸린다 (SPEC_API §3.1)
+  bool get isConfidential => this == minutes || this == budget;
 }
 
 /// 게시물 목록의 한 줄 (SPEC_API §3.2)
