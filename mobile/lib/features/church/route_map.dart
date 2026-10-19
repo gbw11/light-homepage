@@ -310,10 +310,16 @@ abstract class _MapPainter extends CustomPainter {
 class _RouteMapPainter extends _MapPainter {
   _RouteMapPainter(super.p);
 
+  // 「드림센터 4층」을 한 줄로, 가락로 아래에 둔다 — 주차장 약도와 같은 배치
+  // (PM 요청 2026-10-19). 이 약도는 길 아래로 지나는 점선이 없어 별 바로 아래
+  // 가운데(x=140)에 둔다. 아래쪽 「가락로」(x≈318)·「도보 …」(y=342)와 겹치지 않는다
   @override
-  double get titleY => 212;
+  double get titleY => 292;
   @override
   double get floorY => 292;
+
+  @override
+  bool get floorBesideTitle => true;
 
   @override
   void drawLayer(Canvas canvas) {
