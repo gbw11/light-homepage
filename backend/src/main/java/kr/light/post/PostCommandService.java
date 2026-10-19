@@ -5,6 +5,7 @@ import kr.light.attachment.Attachment;
 import kr.light.attachment.AttachmentRepository;
 import kr.light.common.ApiException;
 import kr.light.member.Member;
+import kr.light.member.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,11 +33,13 @@ public class PostCommandService {
     private final PostRepository postRepository;
     private final AttachmentRepository attachmentRepository;
     private final PostSlugGenerator slugGenerator;
+    private final PostQueryService postQueryService;
 
     // ── 작성 (§3.4) ───────────────────────────────────────────
 
     @Transactional
     public Long create(PostWriteRequest request, Member author, Instant now) {
+        ViewWindow window = viewWindowOf(request);
         Post post = postRepository.save(Post.write(
                 request.category(),
                 request.title(),
@@ -44,7 +47,9 @@ public class PostCommandService {
                 request.body().toString(),
                 request.pinned(),
                 author,
-                request.publish() ? now : null));
+                request.publish() ? now : null,
+                window.from(),
+                window.until()));
 
         linkAttachments(post, request.attachmentIdsOrEmpty());
         return post.getId();
@@ -58,20 +63,65 @@ public class PostCommandService {
      * <p><b>⚠️ 임시저장 글도 수정 대상이다.</b> 조회용
      * {@code findPublishedByIdOrSlug}를 쓰면 안 된다 — 그건 게시된 글만
      * 찾으므로, 작성 중인 글을 이어서 고칠 수가 없어진다.
+     *
+     * <p><b>⚠️ 열람 기간 밖의 회의록 · 예산안은 볼 수 있는 사람만 고친다</b>
+     * (2026-10-19) — 전도사와 글쓴이. 다른 임원은 기간 밖 글을 열지 못하므로
+     * 고치지도 못한다. 이 검사는 <b>고치기 전의 글</b> 기준이다 — 고치면서 분류나
+     * 기간을 바꿔 검사를 비켜 가지 못하게.
      */
     @Transactional
-    public void update(Long postId, PostWriteRequest request, Instant now) {
+    public void update(Long postId, PostWriteRequest request, Long editorId, Role editorRole,
+                       Instant now) {
         Post post = postRepository.findById(postId).orElseThrow(ApiException::notFound);
+        postQueryService.assertContentViewable(post, editorRole, editorId, now);
 
+        ViewWindow window = viewWindowOf(request);
         post.edit(
                 request.category(),
                 request.title(),
                 slugFor(request, postId),
                 request.body().toString(),
                 request.pinned(),
-                resolvePublishedAt(post, request.publish(), now));
+                resolvePublishedAt(post, request.publish(), now),
+                window.from(),
+                window.until());
 
         relinkAttachments(post, request.attachmentIdsOrEmpty());
+    }
+
+    /** 저장할 열람 기간. 둘 다 null이면 기간 없음 */
+    record ViewWindow(Instant from, Instant until) {
+        static final ViewWindow NONE = new ViewWindow(null, null);
+    }
+
+    /**
+     * 열람 기간을 정한다 (2026-10-19, V11).
+     *
+     * <ul>
+     *   <li>공지 — 기간이 없다. 보내도 버린다 (수정 화면에서 분류를 바꾼 경우)</li>
+     *   <li>회의록 · 예산안 임시저장 — 비워 둘 수 있다. 하나만 보내면 거부한다</li>
+     *   <li>회의록 · 예산안 게시 — <b>필수</b>, 끝이 시작보다 뒤</li>
+     * </ul>
+     *
+     * <p>문구 · 칸 이름은 월례회 업로드({@code MeetingUploadService})와 같다.
+     */
+    private static ViewWindow viewWindowOf(PostWriteRequest request) {
+        if (!request.category().hasViewWindow()) {
+            return ViewWindow.NONE;
+        }
+        Instant from = request.viewableFrom();
+        Instant until = request.viewableUntil();
+        if (from == null && until == null && !request.publish()) {
+            return ViewWindow.NONE;
+        }
+        if (from == null || until == null) {
+            throw ApiException.validation("viewableFrom", "열람 기간을 입력해 주세요.");
+        }
+        if (!until.isAfter(from)) {
+            // DB에도 CHECK가 있지만, 여기서 막아야 사용자가 이유를 안다
+            throw ApiException.validation("viewableUntil", "종료 시각이 시작 시각보다 뒤여야 합니다.");
+        }
+        return new ViewWindow(from, until);
     }
 
     /**

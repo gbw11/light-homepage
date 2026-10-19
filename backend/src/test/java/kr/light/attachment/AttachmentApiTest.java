@@ -254,6 +254,9 @@ class AttachmentApiTest {
                 .body("{\"blocks\":[]}")
                 .pinned(false)
                 .publishedAt(Instant.now().minusSeconds(3600))
+                // 회의록 · 예산안은 열람 기간 안이어야 첨부가 열린다 (V11)
+                .viewableFrom(category.hasViewWindow() ? Instant.now().minusSeconds(86_400) : null)
+                .viewableUntil(category.hasViewWindow() ? Instant.now().plusSeconds(86_400) : null)
                 .build());
 
         return attachmentRepository.saveAndFlush(Attachment.builder()

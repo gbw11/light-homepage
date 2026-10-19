@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -102,9 +103,11 @@ public class AttachmentController {
     ) {
         // ⚠️ 비로그인이면 principal이 null이다 — 공개공지 첨부는 그 상태로 통과한다
         Role role = principal == null ? null : principal.role();
+        Long memberId = principal == null ? null : principal.memberId();
 
         return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(attachmentService.downloadUrl(attachmentId, role)))
+                .location(URI.create(
+                        attachmentService.downloadUrl(attachmentId, role, memberId, Instant.now())))
                 .build();
     }
 }
