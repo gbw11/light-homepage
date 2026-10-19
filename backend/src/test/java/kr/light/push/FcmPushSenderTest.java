@@ -60,7 +60,8 @@ class FcmPushSenderTest {
     private static String fakeServiceAccount() throws Exception {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
-        String pem = "-----BEGIN PRIVATE KEY-----\n"
+        // 머리말 글자만 있고 키 값은 위에서 매번 새로 만든다 — Secret Scan 예외
+        String pem = "-----BEGIN PRIVATE KEY-----\n" // allowlist-secret
                 + Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(
                         generator.generateKeyPair().getPrivate().getEncoded())
                 + "\n-----END PRIVATE KEY-----\n";
