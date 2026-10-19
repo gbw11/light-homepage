@@ -53,6 +53,14 @@ dependencies {
 	// ── 월례회: PDF → 페이지 이미지 ─────────────────────────
 	implementation 'org.apache.pdfbox:pdfbox:3.0.3'
 
+	// ── 앱 푸시 알림 (FCM, infra/firebase/README.md) ───────────
+	// 메시징만 쓴다. Firestore · Cloud Storage 클라이언트는 빼서 jar와 메모리를
+	// 줄인다 — Render 인스턴스가 작다(-Xmx400m)
+	implementation('com.google.firebase:firebase-admin:9.9.0') {
+		exclude group: 'com.google.cloud', module: 'google-cloud-firestore'
+		exclude group: 'com.google.cloud', module: 'google-cloud-storage'
+	}
+
 	// ── Lombok ───────────────────────────────────────────
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
