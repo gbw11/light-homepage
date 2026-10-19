@@ -25,8 +25,6 @@ const TEAMS = [
   "선교팀",
 ] as const;
 
-const TEAM_ROLES = ["팀장", "총무", "회계", "팀원"] as const;
-
 /** WIREFRAME.md에 아직 없음 — 이 페이지 자체가 이번 기능(LIGHT-300)의 뼈대다 */
 export default function OrganizationPage() {
   return (
@@ -80,8 +78,7 @@ export default function OrganizationPage() {
 
       <Section title="팀">
         <p className="mb-6 text-sm text-[var(--color-gray-400)]">
-          팀은 지원자를 받아 운영하며, 마을 소속과 별개입니다. 각 팀은
-          팀장·총무·회계·팀원으로 구성됩니다.
+          팀은 지원자를 받아 운영하며, 마을 소속과 별개입니다.
         </p>
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
           {TEAMS.map((team) => (
@@ -90,16 +87,10 @@ export default function OrganizationPage() {
               className="rounded-[var(--radius-card)] border border-[var(--color-navy-100)] p-4"
             >
               <p className="font-bold">{team}</p>
-              <ul className="mt-2 flex flex-col gap-1">
-                {TEAM_ROLES.map((role) => (
-                  <li
-                    key={role}
-                    className="text-sm text-[var(--color-gray-400)]"
-                  >
-                    {role}: ❓ 확인 필요
-                  </li>
-                ))}
-              </ul>
+              {/* 팀마다 팀장만 보인다 — 앱과 같이 (기획안 D6, 2026-10-19) */}
+              <p className="mt-2 text-sm text-[var(--color-gray-400)]">
+                팀장: ❓ 확인 필요
+              </p>
             </div>
           ))}
         </div>
