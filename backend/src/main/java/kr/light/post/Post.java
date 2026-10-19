@@ -53,6 +53,16 @@ public class Post {
     @Column(name = "published_at")
     private Instant publishedAt;
 
+    /**
+     * 열람 기간 — 회의록 · 예산안만 (V11, 2026-10-19). 공지는 늘 null.
+     * 둘 다 있거나 둘 다 없다(DB CHECK). 기간이 없는 회의록 · 예산안은 잠김이다
+     */
+    @Column(name = "viewable_from")
+    private Instant viewableFrom;
+
+    @Column(name = "viewable_until")
+    private Instant viewableUntil;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -63,6 +73,33 @@ public class Post {
 
     public boolean isPublished() {
         return publishedAt != null;
+    }
+
+    /**
+     * 지금 열람 상태. 기간이 없는 분류(공지)는 null.
+     *
+     * <p>기간이 정해지지 않은 회의록 · 예산안(V11 이전 글)은 {@code CLOSED}다 —
+     * 「기간 안에만 본다」는 규칙에서 기간이 없으면 볼 수 있는 때가 없다.
+     */
+    public PostViewStatus viewStatusAt(Instant now) {
+        if (!category.hasViewWindow()) {
+            return null;
+        }
+        if (viewableFrom == null || viewableUntil == null) {
+            return PostViewStatus.CLOSED;
+        }
+        if (now.isBefore(viewableFrom)) {
+            return PostViewStatus.SCHEDULED;
+        }
+        if (now.isAfter(viewableUntil)) {
+            return PostViewStatus.CLOSED;
+        }
+        return PostViewStatus.OPEN;
+    }
+
+    /** 글쓴이인가 — 탈퇴한 작성자의 글은 누구의 것도 아니다 */
+    public boolean isWrittenBy(Long memberId) {
+        return memberId != null && author != null && memberId.equals(author.getId());
     }
 
     // ── 작성·수정 (SPEC_API.md §3.4 · §3.5) ────────────────────
@@ -77,7 +114,8 @@ public class Post {
      * @param publishedAt null이면 임시저장
      */
     public static Post write(PostCategory category, String title, String slug, String body,
-                             boolean pinned, Member author, Instant publishedAt) {
+                             boolean pinned, Member author, Instant publishedAt,
+                             Instant viewableFrom, Instant viewableUntil) {
         return Post.builder()
                 .category(category)
                 .title(title)
@@ -86,6 +124,8 @@ public class Post {
                 .pinned(pinned)
                 .author(author)
                 .publishedAt(publishedAt)
+                .viewableFrom(viewableFrom)
+                .viewableUntil(viewableUntil)
                 .build();
     }
 
@@ -100,12 +140,15 @@ public class Post {
      * 허용한다 — 잘못 올린 글을 내리는 수단이 삭제뿐이면 너무 거칠다.
      */
     public void edit(PostCategory category, String title, String slug, String body,
-                     boolean pinned, Instant publishedAt) {
+                     boolean pinned, Instant publishedAt,
+                     Instant viewableFrom, Instant viewableUntil) {
         this.category = category;
         this.title = title;
         this.slug = slug;
         this.body = body;
         this.pinned = pinned;
         this.publishedAt = publishedAt;
+        this.viewableFrom = viewableFrom;
+        this.viewableUntil = viewableUntil;
     }
 }

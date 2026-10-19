@@ -91,12 +91,15 @@ public class AttachmentService {
     /**
      * 내려받기용 URL — <b>원글의 권한을 상속</b>한다 (§4.2).
      *
-     * <p>권한이 없으면 원글과 마찬가지로 <b>404</b>다 (존재를 숨긴다).
+     * <p>권한이 없으면 원글과 마찬가지로 <b>404</b>다 (존재를 숨긴다). 회의록 ·
+     * 예산안이 <b>열람 기간 밖</b>이면 원글 상세와 같은 <b>403</b>이다 (2026-10-19) —
+     * 본문을 막고 첨부를 열어 두면 기간이 의미가 없다.
      *
-     * @param role 비로그인이면 null
+     * @param role     비로그인이면 null
+     * @param memberId 비로그인이면 null (글쓴이 판별)
      */
     @Transactional(readOnly = true)
-    public String downloadUrl(Long attachmentId, Role role) {
+    public String downloadUrl(Long attachmentId, Role role, Long memberId, Instant now) {
         Attachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(ApiException::notFound);
 
@@ -109,6 +112,7 @@ public class AttachmentService {
 
         // ★ 관문은 하나다. 여기서 규칙을 다시 쓰지 않는다
         postQueryService.assertVisible(post.getCategory(), role);
+        postQueryService.assertContentViewable(post, role, memberId, now);
 
         return r2Client.presignedDownloadUrl(attachment.getR2Key(), attachment.getFilename());
     }

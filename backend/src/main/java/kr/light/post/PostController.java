@@ -83,11 +83,16 @@ public class PostController {
             @RequestParam(required = false) Integer page,
 
             @Parameter(description = "기본 20, 최대 100")
-            @RequestParam(required = false) Integer size
+            @RequestParam(required = false) Integer size,
+
+            // 비로그인이면 null — 글쓴이 판별(열람 기간 예외)에만 쓴다
+            @AuthenticationPrincipal AuthPrincipal principal
     ) {
         return ApiResponse.of(postQueryService.list(
                 category,
                 currentRole(),
+                memberIdOf(principal),
+                Instant.now(),
                 PostQueryService.normalizePage(page),
                 PostQueryService.normalizeSize(size)));
     }
@@ -110,9 +115,12 @@ public class PostController {
     @GetMapping("/{idOrSlug}")
     public ApiResponse<PostDetailResponse> get(
             @Parameter(description = "게시물 ID 또는 slug", example = "summer-retreat-2026")
-            @PathVariable String idOrSlug
+            @PathVariable String idOrSlug,
+
+            @AuthenticationPrincipal AuthPrincipal principal
     ) {
-        return ApiResponse.of(postQueryService.get(idOrSlug, currentRole()));
+        return ApiResponse.of(postQueryService.get(
+                idOrSlug, currentRole(), memberIdOf(principal), Instant.now()));
     }
 
     // ── 쓰기 (SPEC_API.md §3.4 · §3.5) ─────────────────────────
@@ -174,8 +182,11 @@ public class PostController {
     @PreAuthorize("hasRole('LEADER')")
     @PutMapping("/{id}")
     public ResponseEntity<Void> update(@PathVariable Long id,
-                                       @Valid @RequestBody PostWriteRequest request) {
-        postCommandService.update(id, request, Instant.now());
+                                       @Valid @RequestBody PostWriteRequest request,
+                                       @AuthenticationPrincipal AuthPrincipal principal) {
+        // 열람 기간 밖의 회의록 · 예산안은 전도사 · 글쓴이만 고친다 (403)
+        postCommandService.update(id, request, principal.memberId(), principal.role(),
+                Instant.now());
         return ResponseEntity.noContent().build();
     }
 
@@ -209,6 +220,10 @@ public class PostController {
      * <p>{@code AuthPrincipal}은 id와 역할만 들고 있으므로 실제 회원을 읽어온다.
      * 글에 작성자를 남기지 못하면 목록의 {@code authorName}이 비어버린다.
      */
+    private static Long memberIdOf(AuthPrincipal principal) {
+        return principal == null ? null : principal.memberId();
+    }
+
     private Member author(AuthPrincipal principal) {
         return memberRepository.findById(principal.memberId())
                 .orElseThrow(ApiException::unauthorized);

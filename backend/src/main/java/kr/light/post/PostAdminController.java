@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
+
 /**
  * 게시물 — 임원 작업용 조회 (SPEC_API.md §3.6 · §3.7, 2026-10-07).
  *
@@ -68,6 +70,8 @@ public class PostAdminController {
     ) {
         return ApiResponse.of(postQueryService.drafts(
                 principal.role(),
+                principal.memberId(),
+                Instant.now(),
                 PostQueryService.normalizePage(page),
                 PostQueryService.normalizeSize(size)));
     }
@@ -93,6 +97,8 @@ public class PostAdminController {
             @Parameter(description = "게시물 ID", example = "18")
             @PathVariable Long id
     ) {
-        return ApiResponse.of(postQueryService.getForEdit(id, principal.role()));
+        // 열람 기간 밖의 회의록 · 예산안은 전도사 · 글쓴이만 연다 (403)
+        return ApiResponse.of(postQueryService.getForEdit(
+                id, principal.role(), principal.memberId(), Instant.now()));
     }
 }

@@ -383,6 +383,11 @@ class PostWriteApiTest {
         body.put("body", Map.of("type", "doc", "content", List.of()));
         body.put("pinned", false);
         body.put("publish", publish);
+        if (category.hasViewWindow()) {
+            // 회의록 · 예산안은 게시할 때 열람 기간이 필수다 (V11) — 지금 열린 기간
+            body.put("viewableFrom", java.time.Instant.now().minusSeconds(86_400).toString());
+            body.put("viewableUntil", java.time.Instant.now().plusSeconds(86_400).toString());
+        }
         return body;
     }
 
