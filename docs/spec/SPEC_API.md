@@ -851,7 +851,7 @@ URL을 내려주므로, 열람만 열고 내려받기를 막는 것은 **의미�
     "items": [
       {
         "id": "14", "name": "김OO", "phone": "010-1234-5678",
-        "gender": "MALE", "ageGroup": "EARLY_20S", "referrer": "FRIEND",
+        "gender": "MALE", "birthDate": "2001-03-14", "referrer": "FRIEND",
         "message": "친구 소개로 가보려고요",
         "createdAt": "2026-08-19T10:22:00Z"
       }
@@ -861,6 +861,10 @@ URL을 내려주므로, 열람만 열고 내려받기를 막는 것은 **의미�
 }
 ```
 개인정보이므로 **보유기간 1년** 후 삭제합니다.
+
+⚠️ **2026-10-19 `[CONTRACT]` — `ageGroup` → `birthDate`** (§9.1과 함께). `birthDate`는
+`YYYY-MM-DD`이고, **이 날짜 이전 신청은 `null`**입니다(그때는 나이대를 받았습니다).
+`ageGroup` 필드는 응답에서 빠졌습니다.
 
 ✅ **2026-09-04 구현.** 서버가 하루 한 번 돌며 1년 지난 신청을 지웁니다 (`NewcomerAdminService.purgeExpired`). 그전까지는 문서에만 있는 규칙이었고 지우는 코드가 없었습니다 — 계속 보관해야 하는 내용은 임원이 따로 옮겨 두어야 합니다.
 
@@ -875,7 +879,7 @@ URL을 내려주므로, 열람만 열고 내려받기를 막는 것은 **의미�
   "name": "김OO",
   "phone": "010-1234-5678",
   "gender": "MALE",
-  "ageGroup": "EARLY_20S",
+  "birthDate": "2001-03-14",
   "referrer": "FRIEND",
   "message": "친구 소개로 가보려고요",
   "agreed": true,
@@ -885,11 +889,16 @@ URL을 내려주므로, 열람만 열고 내려받기를 막는 것은 **의미�
 | 필드 | 필수 | 값 |
 |---|---|---|
 | `name` `phone` | ✅ | |
+| `birthDate` | ✅ | `YYYY-MM-DD`. 달력에 없는 날짜 · 미래 · 1900년 이전은 `VALIDATION_ERROR` (field: `birthDate`) |
 | `gender` | — | `MALE` \| `FEMALE` |
-| `ageGroup` | — | `EARLY_20S` \| `LATE_20S` \| `EARLY_30S` \| `LATE_30S` |
 | `referrer` | — | `FRIEND` \| `SEARCH` \| `SNS` \| `ETC` |
 | `agreed` | ✅ | **`true`가 아니면 거부** |
 | `honeypot` | — | 값이 있으면 봇 → 조용히 `204` |
+
+> ⚠️ **2026-10-19 `[CONTRACT]` — 나이대(`ageGroup`)를 생년월일(`birthDate`, 필수)로
+> 교체했습니다.** `ageGroup`을 보내도 서버가 읽지 않습니다. **`birthDate` 없이 보내면
+> `400`이라, 웹 새가족 폼이 바뀌기 전에 이 서버가 배포되면 웹 등록이 막힙니다** —
+> 배포 순서를 맞춰야 합니다. 동의 문구의 수집 항목에도 생년월일을 넣어야 합니다.
 
 `201 { "data": { "id": "14" } }`
 - 동일 IP **5분 5회** 초과 시 거부

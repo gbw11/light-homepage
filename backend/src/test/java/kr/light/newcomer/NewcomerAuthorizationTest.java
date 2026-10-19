@@ -45,6 +45,7 @@ class NewcomerAuthorizationTest {
         Map<String, Object> body = new HashMap<>();
         body.put("name", "김도연");
         body.put("phone", "010-1234-5678");
+        body.put("birthDate", "2001-03-14");
         body.put("agreed", true);
 
         mockMvc.perform(post("/api/newcomers")

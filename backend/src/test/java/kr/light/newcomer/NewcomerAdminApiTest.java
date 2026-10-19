@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 
@@ -66,7 +67,7 @@ class NewcomerAdminApiTest {
     @Test
     @DisplayName("계약이 정한 필드가 그대로 나온다 (§8.6)")
     void 응답_형태() throws Exception {
-        save("김도연", "010-1234-5678", Gender.FEMALE, AgeGroup.EARLY_20S,
+        save("김도연", "010-1234-5678", Gender.FEMALE, LocalDate.of(2001, 3, 14),
                 Referrer.FRIEND, "친구 소개로 가보려고요");
 
         mockMvc.perform(get("/api/admin/newcomers").with(as(leader)))
@@ -75,21 +76,24 @@ class NewcomerAdminApiTest {
                 .andExpect(jsonPath("$.data.items[0].name").value("김도연"))
                 .andExpect(jsonPath("$.data.items[0].phone").value("010-1234-5678"))
                 .andExpect(jsonPath("$.data.items[0].gender").value("FEMALE"))
-                .andExpect(jsonPath("$.data.items[0].ageGroup").value("EARLY_20S"))
+                .andExpect(jsonPath("$.data.items[0].birthDate").value("2001-03-14"))
+                // 나이대는 생년월일로 교체됐다 — 응답에서도 빠진다
+                .andExpect(jsonPath("$.data.items[0].ageGroup").doesNotExist())
                 .andExpect(jsonPath("$.data.items[0].referrer").value("FRIEND"))
                 .andExpect(jsonPath("$.data.items[0].message").value("친구 소개로 가보려고요"))
                 .andExpect(jsonPath("$.data.items[0].createdAt").isString());
     }
 
     @Test
-    @DisplayName("★ 선택 항목은 null로 나간다 — 빈 문자열로 바꾸지 않는다")
+    @DisplayName("★ 선택 항목 · 예전 신청의 생년월일은 null로 나간다 — 빈 문자열로 바꾸지 않는다")
     void 선택_항목() throws Exception {
-        // FE 타입이 `Gender | null`이라 빈 문자열을 주면 라벨 조회가 깨진다
+        // FE 타입이 `Gender | null`이라 빈 문자열을 주면 라벨 조회가 깨진다.
+        // 생년월일은 필수지만 V10 이전(나이대를 받던 때) 신청에는 없다
         save("이름만", "010-0000-0000", null, null, null, null);
 
         mockMvc.perform(get("/api/admin/newcomers").with(as(leader)))
                 .andExpect(jsonPath("$.data.items[0].gender").value(org.hamcrest.Matchers.nullValue()))
-                .andExpect(jsonPath("$.data.items[0].ageGroup").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.data.items[0].birthDate").value(org.hamcrest.Matchers.nullValue()))
                 .andExpect(jsonPath("$.data.items[0].referrer").value(org.hamcrest.Matchers.nullValue()))
                 .andExpect(jsonPath("$.data.items[0].message").value(org.hamcrest.Matchers.nullValue()));
     }
@@ -187,12 +191,12 @@ class NewcomerAdminApiTest {
     // ── 보조 ─────────────────────────────────────────────────
 
     private NewcomerRequest save(String name, String phone, Gender gender,
-                                 AgeGroup ageGroup, Referrer referrer, String message) {
+                                 LocalDate birthDate, Referrer referrer, String message) {
         return newcomerRepository.saveAndFlush(NewcomerRequest.builder()
                 .name(name)
                 .phone(phone)
                 .gender(gender)
-                .ageGroup(ageGroup)
+                .birthDate(birthDate)
                 .referrer(referrer)
                 .message(message)
                 .agreedAt(Instant.now())
