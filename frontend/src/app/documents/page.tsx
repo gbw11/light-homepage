@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { MemberGate } from "@/components/auth/MemberGate";
-import { DocumentBoard, parseDocumentTab } from "./_components/DocumentBoard";
+import { DocumentBoard } from "./_components/DocumentBoard";
+import { parseDocumentTab } from "./_components/documentTab";
 
 export const metadata: Metadata = {
   title: "문서",

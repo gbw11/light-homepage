@@ -5,7 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthUser, PostSummary, Role } from "@/types/api";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { DocumentBoard, parseDocumentTab, type DocumentCategory } from "./DocumentBoard";
+import { DocumentBoard } from "./DocumentBoard";
+import { parseDocumentTab, type DocumentCategory } from "./documentTab";
 
 vi.mock("@/components/providers/AuthProvider", () => ({
   useAuth: vi.fn(),

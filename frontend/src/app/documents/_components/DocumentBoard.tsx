@@ -9,7 +9,8 @@ import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import { isLeaderOrAbove } from "@/components/auth/RequireLeader";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { formatDeadline } from "@/lib/viewWindow";
-import type { PostCategory, PostSummary } from "@/types/api";
+import type { DocumentCategory } from "./documentTab";
+import type { PostSummary } from "@/types/api";
 
 /**
  * 이 화면이 다루는 분류. **열람 권한이 서로 다르다** (SPEC_API §3.1 v1.3):
@@ -21,20 +22,10 @@ const TABS = [
   { category: "MINUTES", label: "회의록", leaderOnly: false },
   { category: "BUDGET", label: "예산안", leaderOnly: true },
 ] as const satisfies readonly {
-  category: PostCategory;
+  category: DocumentCategory;
   label: string;
   leaderOnly: boolean;
 }[];
-
-export type DocumentCategory = (typeof TABS)[number]["category"];
-
-/**
- * `/documents?tab=budget` → 예산안 탭으로 연다 (관리 홈 "예산안" 링크).
- * 알 수 없는 값·없음은 기본 탭(회의록)이다.
- */
-export function parseDocumentTab(tab: string | string[] | undefined): DocumentCategory {
-  return tab === "budget" ? "BUDGET" : "MINUTES";
-}
 
 /** 임시저장(`publish: false`) 글은 `publishedAt`이 null이다 (SPEC_API §3.4) */
 function formatDate(iso: string | null): string {
