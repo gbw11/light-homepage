@@ -12,6 +12,11 @@ function post(id: string, pinned: boolean, publishedAt: string | null): PostSumm
     authorName: "임원",
     publishedAt,
     attachmentCount: 0,
+    // 공지는 열람 기간이 없다 (§3.2)
+    viewableFrom: null,
+    viewableUntil: null,
+    status: null,
+    canView: true,
   };
 }
 

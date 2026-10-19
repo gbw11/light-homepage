@@ -42,14 +42,22 @@ export function PostEditLoader({ id }: { id: string }) {
   }
 
   if (isError || !post) {
-    // 권한이 없어도 서버는 상세에 NOT_FOUND를 준다 (SPEC_API §3.3) —
-    // 존재 여부를 알려주지 않는 게 의도라 화면도 구분하지 않는다.
-    const missing =
-      isApiError(error) && (error.code === "NOT_FOUND" || error.code === "FORBIDDEN");
+    /*
+      · `FORBIDDEN`(403) — 열람 기간 밖의 회의록·예산안이다. 기간 밖 글은 **전도사·글쓴이만**
+        고칠 수 있다 (SPEC_API §3.5 · §3.7, 2026-10-19). 임원이 목록에서 보고 들어온 글이라
+        숨길 이유가 없다 — 누가 고칠 수 있는지를 알린다
+      · `NOT_FOUND` — 없는 글. 존재 여부를 알려주지 않는 게 의도라 구분하지 않는다
+    */
+    const outsideWindow = isApiError(error) && error.code === "FORBIDDEN";
+    const missing = isApiError(error) && error.code === "NOT_FOUND";
     return (
       <Section>
         <p role="alert" className="text-[var(--color-red-500)]">
-          {missing ? "찾을 수 없는 글입니다." : "글을 불러오지 못했습니다."}
+          {outsideWindow
+            ? "열람 기간이 아닌 글은 전도사와 글쓴이만 수정할 수 있습니다."
+            : missing
+              ? "찾을 수 없는 글입니다."
+              : "글을 불러오지 못했습니다."}
         </p>
         <Link
           href="/my"
