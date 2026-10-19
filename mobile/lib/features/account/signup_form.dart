@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../core/api/api_error.dart';
 import '../../core/auth/auth_api.dart';
 import '../../core/auth/auth_user.dart';
+import '../../core/format/birth_date.dart';
 import '../../core/format/dashed_digits_formatter.dart';
 import '../../core/ui/status_views.dart';
 import '../../core/ui/form_card.dart';
@@ -260,20 +261,6 @@ class _VerifyStepState extends State<_VerifyStep> {
       ),
     );
   }
-}
-
-/// `YYYY-MM-DD` 모양이고 실제 있는 날짜인지 — `2001-02-30`은 모양만 맞다
-bool isValidBirthDate(String value) {
-  final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value);
-  if (match == null) return false;
-  final [y, m, d] = [for (var i = 1; i <= 3; i++) int.parse(match[i]!)];
-  final date = DateTime.utc(y, m, d);
-  // 없는 날짜는 DateTime이 다음 달로 넘겨 버린다 — 되돌려 비교한다
-  return date.year == y &&
-      date.month == m &&
-      date.day == d &&
-      y >= 1900 &&
-      date.isBefore(DateTime.now().toUtc());
 }
 
 class _RegisterStep extends StatefulWidget {

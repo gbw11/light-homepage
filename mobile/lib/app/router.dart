@@ -368,7 +368,6 @@ GoRouter buildRouter({
         builder: (context, state) => WelcomeScreen(
           onDirections: () => context.push(AppPaths.location),
           onRegister: () => context.push(AppPaths.newcomer),
-          openExternal: openExternal,
         ),
       ),
       GoRoute(

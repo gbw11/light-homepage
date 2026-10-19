@@ -119,7 +119,7 @@ class LocationScreen extends StatelessWidget {
   }
 }
 
-/// 주소 + [복사] + 지도 앱(카카오 · 네이버 + 구글). 내비에 찍거나 남에게 보낼 때 쓴다
+/// 주소 + [복사] + 지도 앱(카카오 · 네이버 · 구글). 내비에 찍거나 남에게 보낼 때 쓴다
 class _AddressCard extends StatelessWidget {
   const _AddressCard({
     required this.onCopy,
@@ -170,31 +170,86 @@ class _AddressCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
+        // 세 지도 앱을 같은 크기로 한 줄에 — 각 앱의 아이콘 + 아래 이름
+        // (2026-10-19 사용자 결정. 전에는 카카오 · 네이버만 버튼이고 구글은 작은
+        // 글자 링크였다). 폰 홈 화면의 앱 아이콘과 같은 모양이라 무엇을 여는지
+        // 한눈에 안다
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: onKakao,
-                style: pillButtonStyle(context),
-                icon: const Icon(Icons.map_outlined, size: 20),
-                label: const Text('카카오맵'),
+            for (final (label, asset, onPressed) in [
+              ('카카오맵', 'kakao_map', onKakao),
+              ('네이버지도', 'naver_map', onNaver),
+              ('구글지도', 'google_map', onGoogle),
+            ])
+              Expanded(
+                child: _MapAppButton(
+                  label: label,
+                  asset: 'assets/images/map_apps/$asset.webp',
+                  onPressed: onPressed,
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: onNaver,
-                style: pillButtonStyle(context, primary: false),
-                icon: const Icon(Icons.map_outlined, size: 20),
-                label: const Text('네이버지도'),
-              ),
-            ),
           ],
         ),
-        // 국내 두 앱이 주 버튼이고, 구글은 둘 다 없는 휴대폰을 위한 보조 링크다
-        InfoLink('구글 지도로 보기', onPressed: onGoogle),
-        const InfoText('약도는 길을 알려주는 그림입니다. 실제 지도는 위 버튼으로 확인하세요.', muted: true),
+        // 버튼 아래 안내 글(「약도는 길을 알려주는 그림입니다…」)은 뺐다
+        // (2026-10-19 사용자 결정)
       ],
+    );
+  }
+}
+
+/// 지도 앱 하나 — 둥근 네모 앱 아이콘 + 아래 이름. 누르는 범위는 아이콘과 이름 전체다
+class _MapAppButton extends StatelessWidget {
+  const _MapAppButton({
+    required this.label,
+    required this.asset,
+    required this.onPressed,
+  });
+
+  final String label;
+  final String asset;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      // 「~으로 열기」는 받침에 따라 조사가 달라진다 — 조사 없이 쓴다
+      label: '$label 열기',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          child: Column(
+            children: [
+              // 폰 홈 화면의 앱 아이콘처럼 흰 둥근 네모 칸 위에 둔다 — 네이버 ·
+              // 구글 아이콘은 배경이 투명하다. 테두리는 두지 않는다 (2026-10-19
+              // 사용자 결정)
+              Container(
+                width: 56,
+                height: 56,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Image.asset(asset, fit: BoxFit.cover),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

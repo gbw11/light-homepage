@@ -42,11 +42,7 @@ class OrganizationScreen extends StatelessWidget {
         InfoSection(
           title: '팀',
           children: [
-            InfoText(
-              '팀은 지원자를 받아 운영하며, 마을 소속과 별개입니다. '
-              '각 팀은 팀장·총무·회계·팀원으로 구성됩니다.',
-              muted: true,
-            ),
+            InfoText('팀은 지원자를 받아 운영하며, 마을 소속과 별개입니다.', muted: true),
             SizedBox(height: 16),
             _TeamList(),
           ],
@@ -190,7 +186,7 @@ class _VillageList extends StatelessWidget {
   }
 }
 
-/// 팀 6개 — 한 줄에 하나. 팀 이름 아래 팀장 · 총무 · 회계 · 팀원
+/// 팀 6개 — 한 줄에 하나. 팀 이름 아래 팀장만
 class _TeamList extends StatelessWidget {
   const _TeamList();
 
@@ -223,11 +219,7 @@ class _TeamList extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              for (final role in teamRoles)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text('$role: $unknownLabel', style: muted),
-                ),
+              Text('팀장: $unknownLabel', style: muted),
             ],
           ),
         ],

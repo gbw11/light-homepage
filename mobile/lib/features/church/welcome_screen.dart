@@ -13,18 +13,16 @@ import 'info_widgets.dart';
 ///
 /// 웹에서 ❓(확인 필요)로 남은 것 — 입구 사진 · 새가족마을 운영 방식 · 버스 ·
 /// 카카오톡 문의 — 은 앱에 옮기지 않았다. 앱 사용자에게 "확인 필요"를 보여줄
-/// 이유가 없다. 웹의 약도 그림(SVG)도 아직 옮기지 않았다 — 대신 지도 앱으로 연다.
+/// 이유가 없다. 약도와 지도 앱은 오시는 길 화면에 있다.
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({
     super.key,
     required this.onDirections,
     required this.onRegister,
-    required this.openExternal,
   });
 
   final VoidCallback onDirections;
   final VoidCallback onRegister;
-  final void Function(String url) openExternal;
 
   @override
   Widget build(BuildContext context) {
@@ -56,24 +54,16 @@ class WelcomeScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // 큰 글씨에서는 한 줄에 둘이 못 들어간다 — 그때는 아래로 내려간다
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => openExternal(kakaoMapAppUrl),
-                      style: pillButtonStyle(context),
-                      icon: const Icon(Icons.map_outlined, size: 20),
-                      label: const Text('지도 앱으로 열기'),
-                    ),
-                    FilledButton.icon(
-                      onPressed: onDirections,
-                      style: pillButtonStyle(context, primary: false),
-                      icon: const Icon(Icons.near_me_outlined, size: 20),
-                      label: const Text('오시는 길 자세히'),
-                    ),
-                  ],
+                // 지도 앱 버튼은 뺐다 (2026-10-19 사용자 결정) — 지도 앱은
+                // 오시는 길 화면에서 연다. 남은 버튼 하나는 오른쪽에 둔다 (같은 날 결정)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: onDirections,
+                    style: pillButtonStyle(context, primary: false),
+                    icon: const Icon(Icons.near_me_outlined, size: 20),
+                    label: const Text('오시는 길 자세히'),
+                  ),
                 ),
               ],
             ),
@@ -81,10 +71,10 @@ class WelcomeScreen extends StatelessWidget {
         ),
         const InfoSection(
           title: '주일은 이렇게 흘러갑니다',
+          // 「예배만 참석하고 가셔도 괜찮아요」는 카드 아래가 아니라 「예배 종료 ·
+          // 교제」 칸 안으로 옮겼다 (2026-10-19 사용자 결정, content/welcome.dart)
           children: [
             InfoCard(children: [_Timeline()]),
-            SizedBox(height: 12),
-            InfoText('예배만 참석하고 가셔도 괜찮아요.', muted: true),
           ],
         ),
         const InfoSection(
