@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,6 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -63,7 +66,7 @@ class NewcomerApiTest {
         NewcomerRequest saved = repository.findAll().get(0);
         assertThat(saved.getName()).isEqualTo("김도연");
         assertThat(saved.getGender()).isEqualTo(Gender.MALE);
-        assertThat(saved.getAgeGroup()).isEqualTo(AgeGroup.EARLY_20S);
+        assertThat(saved.getBirthDate()).isEqualTo(LocalDate.of(2001, 3, 14));
         assertThat(saved.getReferrer()).isEqualTo(Referrer.FRIEND);
         // 동의 시각은 서버가 찍는다
         assertThat(saved.getAgreedAt()).isNotNull();
@@ -75,12 +78,62 @@ class NewcomerApiTest {
         Map<String, Object> body = new HashMap<>();
         body.put("name", "김도연");
         body.put("phone", "010-1234-5678");
+        body.put("birthDate", "2001-03-14");
         body.put("agreed", true);
 
         mockMvc.perform(submit(body, "1.1.1.2"))
                 .andExpect(status().isCreated());
 
         assertThat(repository.count()).isEqualTo(1);
+    }
+
+    // ── 생년월일 (2026-10-19 나이대를 대체, 필수) ─────────────
+
+    @Test
+    @DisplayName("생년월일이 없으면 400이고 birthDate 칸을 짚는다")
+    void 생년월일_누락() throws Exception {
+        Map<String, Object> body = form();
+        body.remove("birthDate");
+
+        mockMvc.perform(submit(body, "1.1.2.1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.error.field").value("birthDate"));
+
+        assertThat(repository.count()).isZero();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {
+            "2001.03.14",   // 형식이 다르다
+            "2001-02-30",   // 형식은 맞지만 달력에 없다
+            "2999-01-01",   // 미래
+            "1899-12-31"    // 1900년보다 앞 (DB 제약과 같은 하한)
+    })
+    @DisplayName("생년월일이 날짜로 말이 안 되면 400이고 저장되지 않는다")
+    void 생년월일_잘못됨(String birthDate) throws Exception {
+        Map<String, Object> body = form();
+        body.put("birthDate", birthDate);
+
+        mockMvc.perform(submit(body, "1.1.2.2"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.error.field").value("birthDate"));
+
+        assertThat(repository.count()).isZero();
+    }
+
+    @Test
+    @DisplayName("나이대(ageGroup)를 보내도 받지 않는다 — 생년월일로 교체됐다")
+    void 나이대는_무시() throws Exception {
+        Map<String, Object> body = form();
+        body.put("ageGroup", "EARLY_20S");
+
+        mockMvc.perform(submit(body, "1.1.2.3"))
+                .andExpect(status().isCreated());
+
+        assertThat(repository.findAll().get(0).getBirthDate())
+                .isEqualTo(LocalDate.of(2001, 3, 14));
     }
 
     // ── 동의 검증 (FR-PUB-08) ─────────────────────────────────
@@ -210,7 +263,7 @@ class NewcomerApiTest {
         body.put("name", "김도연");
         body.put("phone", "010-1234-5678");
         body.put("gender", "MALE");
-        body.put("ageGroup", "EARLY_20S");
+        body.put("birthDate", "2001-03-14");
         body.put("referrer", "FRIEND");
         body.put("message", "친구 소개로 가보려고요");
         body.put("agreed", true);

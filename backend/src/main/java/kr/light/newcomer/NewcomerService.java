@@ -8,6 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
 /**
@@ -23,6 +26,10 @@ public class NewcomerService {
     /** 동일 IP 5분 5회 (SPEC_API.md §9.1 · SPEC_NONFUNCTIONAL.md NFR-SEC-26) */
     private static final int MAX_SUBMISSIONS = 5;
     private static final Duration WINDOW = Duration.ofMinutes(5);
+
+    /** "오늘"은 교회가 있는 한국 날짜로 센다 — UTC로 세면 자정~오전 9시에 하루가 어긋난다 */
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final LocalDate EARLIEST_BIRTH_DATE = LocalDate.of(1900, 1, 1);
 
     private final NewcomerRepository repository;
     private final NewcomerNotifier notifier;
@@ -62,6 +69,8 @@ public class NewcomerService {
             throw ApiException.validation("agreed", "개인정보 수집·이용에 동의해주세요.");
         }
 
+        LocalDate birthDate = parseBirthDate(request.birthDate(), now);
+
         if (!rateLimiter.tryAcquire(clientIp, now)) {
             throw ApiException.rateLimited();
         }
@@ -70,7 +79,7 @@ public class NewcomerService {
                 .name(request.name())
                 .phone(request.phone())
                 .gender(request.gender())
-                .ageGroup(request.ageGroup())
+                .birthDate(birthDate)
                 .referrer(request.referrer())
                 .message(request.message())
                 // 동의 시각은 클라이언트가 보낸 값이 아니라 서버 시각이다.
@@ -80,6 +89,27 @@ public class NewcomerService {
 
         notifyQuietly(saved);
         return Optional.of(saved);
+    }
+
+    /**
+     * 생년월일 문자열을 날짜로.
+     *
+     * <p>형식({@code YYYY-MM-DD})은 요청 바인딩에서 이미 걸렀다. 여기서는 형식은
+     * 맞지만 달력에 없는 날짜({@code 2001-02-30})와, 오늘(한국 시각)보다 뒤인
+     * 날짜·1900년 이전 날짜를 거른다 — DB 제약(V10)과 같은 하한이다.
+     */
+    private static LocalDate parseBirthDate(String raw, Instant now) {
+        LocalDate birthDate;
+        try {
+            birthDate = LocalDate.parse(raw);
+        } catch (DateTimeParseException e) {
+            throw ApiException.validation("birthDate", "생년월일을 확인해주세요.");
+        }
+        LocalDate today = LocalDate.ofInstant(now, KST);
+        if (birthDate.isAfter(today) || birthDate.isBefore(EARLIEST_BIRTH_DATE)) {
+            throw ApiException.validation("birthDate", "생년월일을 확인해주세요.");
+        }
+        return birthDate;
     }
 
     /**

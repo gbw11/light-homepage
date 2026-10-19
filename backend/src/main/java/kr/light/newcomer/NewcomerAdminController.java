@@ -44,8 +44,9 @@ public class NewcomerAdminController {
                     ⚠️ **보유기간 1년**입니다. 지난 신청은 서버가 자동으로
                     삭제하므로, 계속 보관해야 하는 내용은 따로 옮겨 두세요.
 
-                    `gender`·`ageGroup`·`referrer`·`message`는 선택 항목이라
-                    `null`일 수 있습니다.
+                    `gender`·`referrer`·`message`는 선택 항목이라
+                    `null`일 수 있습니다. `birthDate`는 필수지만 2026-10-19
+                    이전 신청(나이대를 받던 때)은 `null`입니다.
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(

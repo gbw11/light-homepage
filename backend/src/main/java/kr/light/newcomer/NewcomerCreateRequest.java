@@ -2,6 +2,7 @@ package kr.light.newcomer;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -32,8 +33,20 @@ public record NewcomerCreateRequest(
         @Schema(nullable = true, example = "MALE")
         Gender gender,
 
-        @Schema(nullable = true, example = "EARLY_20S")
-        AgeGroup ageGroup,
+        /**
+         * 생년월일 — 2026-10-19 나이대(ageGroup)를 대체했다 (§9.1 [CONTRACT]).
+         *
+         * <p>가입 명단 확인({@code VerifyRosterRequest})과 같은 모양으로 문자열로
+         * 받는다. {@code LocalDate}로 받으면 형식이 틀렸을 때 "본문을 읽을 수 없다"는
+         * 필드 없는 오류가 나서, 폼이 어느 칸이 틀렸는지 짚어주지 못한다.
+         * 달력에 없는 날짜·미래 날짜는 {@link NewcomerService}가 거른다.
+         */
+        @Schema(description = "생년월일 (YYYY-MM-DD)", example = "2001-03-14",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotBlank(message = "생년월일을 입력해주세요.")
+        @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}",
+                message = "생년월일은 YYYY-MM-DD 형식입니다.")
+        String birthDate,
 
         @Schema(description = "알게 된 경로", nullable = true, example = "FRIEND")
         Referrer referrer,

@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 /**
  * 새가족 등록 신청 (공개 폼).
@@ -34,9 +35,12 @@ public class NewcomerRequest {
     @Column(length = 10)
     private Gender gender;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "age_group", length = 20)
-    private AgeGroup ageGroup;
+    /**
+     * 생년월일. V10 이전 신청은 null이다 — 그때는 나이대(age_group)를 받았다.
+     * age_group 컬럼은 DB에 남아 있지만 더 이상 읽고 쓰지 않는다 (V10 주석)
+     */
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
