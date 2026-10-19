@@ -6,7 +6,9 @@ import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import { PostBodyView } from "@/components/post/PostBodyView";
 import { EditPostLink } from "@/components/post/EditPostLink";
-import type { PostCategory } from "@/types/api";
+import { ScreenWatermark } from "@/components/post/ScreenWatermark";
+import { useAuth } from "@/components/providers/AuthProvider";
+import type { PostBody, PostCategory } from "@/types/api";
 
 const CATEGORY_LABEL: Partial<Record<PostCategory, string>> = {
   MINUTES: "회의록",
@@ -86,7 +88,7 @@ export function DocumentDetail({ slug }: { slug: string }) {
         <EditPostLink postId={post.id} />
       </div>
 
-      <PostBodyView body={post.body} className="mt-8" />
+      <DocumentBody category={post.category} body={post.body} />
 
       {post.attachments.length > 0 && (
         <div className="mt-8 border-t border-[var(--color-navy-100)] pt-6">
@@ -117,6 +119,21 @@ export function DocumentDetail({ slug }: { slug: string }) {
       </div>
     </Section>
   );
+}
+
+/**
+ * 회의록·예산안 본문에는 화면 워터마크를 얹는다 (PM 결정 2026-10-19 — `ScreenWatermark` 주석).
+ * 공지는 이 화면에 오지 않지만, 분류로 한 번 더 가른다 — 공지에는 넣지 않는다.
+ *
+ * 별도 컴포넌트인 이유: `useAuth`를 **본문을 그릴 때만** 부른다. 실패 화면까지
+ * 로그인 정보에 묶이지 않게.
+ */
+function DocumentBody({ category, body }: { category: PostCategory; body: PostBody }) {
+  const { user } = useAuth();
+  const view = <PostBodyView body={body} className="mt-8" />;
+  // 이 화면은 MemberGate 안이라 user가 있다. 없으면 박을 이름이 없으니 본문만 그린다
+  if (!user || (category !== "MINUTES" && category !== "BUDGET")) return view;
+  return <ScreenWatermark user={user}>{view}</ScreenWatermark>;
 }
 
 function BackLink() {
