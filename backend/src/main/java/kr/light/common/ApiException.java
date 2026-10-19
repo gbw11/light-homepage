@@ -49,6 +49,11 @@ public class ApiException extends RuntimeException {
         return new ApiException(ErrorCode.FORBIDDEN, ErrorCode.FORBIDDEN.defaultMessage(), null);
     }
 
+    /** 문구를 지정하는 403 — 「열람 기간이 아닙니다」처럼 이유를 알려줘도 되는 곳 */
+    public static ApiException forbidden(String message) {
+        return new ApiException(ErrorCode.FORBIDDEN, message, null);
+    }
+
     /** 없거나, 있어도 권한이 없어 숨기는 경우 */
     public static ApiException notFound() {
         return new ApiException(ErrorCode.NOT_FOUND, ErrorCode.NOT_FOUND.defaultMessage(), null);

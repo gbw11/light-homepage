@@ -59,7 +59,15 @@ public record PostDetailResponse(
         @Schema(example = "2026-08-24T01:00:00Z")
         Instant updatedAt,
 
-        List<PostAttachment> attachments
+        List<PostAttachment> attachments,
+
+        @Schema(description = "열람 시작 (회의록·예산안만, 그 외 null). 수정 화면이 이 값을 채운다",
+                example = "2026-10-19T00:00:00Z", nullable = true)
+        Instant viewableFrom,
+
+        @Schema(description = "열람 종료 (회의록·예산안만, 그 외 null)",
+                example = "2026-10-26T14:59:00Z", nullable = true)
+        Instant viewableUntil
 ) {
 
     /**
@@ -106,7 +114,9 @@ public record PostDetailResponse(
                 post.getAuthor() != null ? post.getAuthor().getName() : null,
                 post.getPublishedAt(),
                 post.getUpdatedAt(),
-                attachments.stream().map(PostAttachment::of).toList()
+                attachments.stream().map(PostAttachment::of).toList(),
+                post.getViewableFrom(),
+                post.getViewableUntil()
         );
     }
 }

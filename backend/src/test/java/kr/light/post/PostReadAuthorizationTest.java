@@ -74,6 +74,10 @@ class PostReadAuthorizationTest {
                     .body("{\"blocks\":[]}")
                     .pinned(false)
                     .publishedAt(Instant.now().minusSeconds(3600))
+                    // 회의록 · 예산안은 열람 기간 안이어야 내용이 열린다 (V11) — 이 매트릭스는
+                    // 분류 권한만 본다. 기간 규칙은 PostViewWindowApiTest가 본다
+                    .viewableFrom(category.hasViewWindow() ? Instant.now().minusSeconds(86_400) : null)
+                    .viewableUntil(category.hasViewWindow() ? Instant.now().plusSeconds(86_400) : null)
                     .build());
             postIds.put(category, post.getId());
         }

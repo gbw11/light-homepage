@@ -41,10 +41,32 @@ public record PostSummaryResponse(
         Instant publishedAt,
 
         @Schema(description = "첨부파일 개수", example = "1")
-        long attachmentCount
+        long attachmentCount,
+
+        @Schema(description = "열람 시작 (회의록·예산안만). 공지와 기간 없는 예전 글은 null",
+                example = "2026-10-19T00:00:00Z", nullable = true)
+        Instant viewableFrom,
+
+        @Schema(description = "열람 종료 (회의록·예산안만)", example = "2026-10-26T14:59:00Z",
+                nullable = true)
+        Instant viewableUntil,
+
+        @Schema(description = """
+                열람 상태 (회의록·예산안만, 공지는 null) — SCHEDULED(시작 전) · OPEN(열람 가능) ·
+                CLOSED(종료, 또는 기간이 정해지지 않은 예전 글). 월례회와 같은 값이다.""",
+                example = "OPEN", nullable = true)
+        PostViewStatus status,
+
+        @Schema(description = """
+                **요청한 사람 기준** 지금 내용을 열 수 있는가. 공지는 늘 true.
+                회의록·예산안은 기간 안이거나, 전도사이거나, 글쓴이면 true —
+                false면 상세 · 첨부가 403이다. 같은 글이라도 사람마다 값이 다르다.""",
+                example = "true")
+        boolean canView
 ) {
 
-    static PostSummaryResponse of(Post post, long attachmentCount) {
+    static PostSummaryResponse of(Post post, long attachmentCount,
+                                  PostViewStatus status, boolean canView) {
         return new PostSummaryResponse(
                 String.valueOf(post.getId()),
                 post.getCategory(),
@@ -54,7 +76,11 @@ public record PostSummaryResponse(
                 // 작성자가 탈퇴해도 글은 남는다 (author_id ON DELETE SET NULL)
                 post.getAuthor() != null ? post.getAuthor().getName() : null,
                 post.getPublishedAt(),
-                attachmentCount
+                attachmentCount,
+                post.getViewableFrom(),
+                post.getViewableUntil(),
+                status,
+                canView
         );
     }
 }

@@ -12,8 +12,18 @@ public enum PostCategory {
     NOTICE_PUBLIC,
     /** 내부 공지 — MEMBER 이상 */
     NOTICE_MEMBER,
-    /** 회의록 — LEADER 이상 */
+    /** 회의록 — MEMBER 이상 (v1.3 완화). 열람 기간 안에만 */
     MINUTES,
-    /** 예산안 — LEADER 이상. 존재 자체를 숨긴다(권한 없으면 404) */
-    BUDGET
+    /** 예산안 — LEADER 이상. 존재 자체를 숨긴다(권한 없으면 404). 열람 기간 안에만 */
+    BUDGET;
+
+    /**
+     * 열람 기간이 있는 분류인가 (2026-10-19 결정, V11).
+     *
+     * <p>월례회 자료처럼 정한 기간에만 본다. 기간 밖에는 전도사와 글쓴이만 연다 —
+     * 규칙은 {@link PostQueryService#canViewContent}.
+     */
+    public boolean hasViewWindow() {
+        return this == MINUTES || this == BUDGET;
+    }
 }

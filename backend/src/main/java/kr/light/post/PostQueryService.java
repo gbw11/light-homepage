@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -132,6 +133,48 @@ public class PostQueryService {
         };
     }
 
+    // ── 열람 기간 (2026-10-19, V11) ───────────────────────────
+
+    /**
+     * 이 사람이 지금 이 글의 <b>내용</b>(본문 · 첨부)을 볼 수 있는가.
+     *
+     * <p>분류 권한({@link #assertReadable})을 통과한 <b>다음</b> 단계다. 회의록 ·
+     * 예산안은 열람 기간 안에만 본다. 예외는 둘:
+     * <ul>
+     *   <li><b>전도사(PASTOR)</b> — 관리자라 언제나</li>
+     *   <li><b>글쓴이</b> — 기간 밖에도 고치거나 기간을 다시 정해야 한다</li>
+     * </ul>
+     *
+     * <p>⚠️ <b>임원(LEADER)도 기간을 따른다</b> — 월례회(임원은 언제나)와 다르다.
+     * 예산안은 원래 임원만 보는 글이라, 임원을 빼면 기간이 아무에게도 걸리지 않는다
+     * (2026-10-19 결정).
+     *
+     * @param memberId 비로그인이면 null
+     */
+    public boolean canViewContent(Post post, Role role, Long memberId, Instant now) {
+        if (!post.getCategory().hasViewWindow()) {
+            return true;
+        }
+        if (role == Role.PASTOR || post.isWrittenBy(memberId)) {
+            return true;
+        }
+        return post.viewStatusAt(now) == PostViewStatus.OPEN;
+    }
+
+    /**
+     * {@link #canViewContent}가 거짓이면 403.
+     *
+     * <p>404가 아니라 <b>403</b>이다 — 이 단계에 오는 사람은 이미 분류 권한이 있어
+     * 목록에서 그 글을 보고 있다. 숨길 존재가 없고, 「열람 기간이 아닙니다」를
+     * 알려야 다시 시도하지 않는다. 분류 권한조차 없는 사람은 앞 단계
+     * ({@link #assertVisible})에서 404로 끝난다.
+     */
+    public void assertContentViewable(Post post, Role role, Long memberId, Instant now) {
+        if (!canViewContent(post, role, memberId, now)) {
+            throw ApiException.forbidden("열람 기간이 아닙니다.");
+        }
+    }
+
     // ── 조회 ──────────────────────────────────────────────────
 
     /**
@@ -139,16 +182,20 @@ public class PostQueryService {
      *
      * <p>정렬은 리포지토리 쿼리에 고정돼 있다 — {@code pinned} 우선 →
      * {@code publishedAt} 최신순.
+     *
+     * <p>회의록 · 예산안은 <b>기간 밖의 글도 목록에 남는다</b>(제목 · 기간만) —
+     * 내용은 상세 · 첨부에서 막는다. 글마다 {@code status}와 이 사람 기준
+     * {@code canView}를 단다.
+     *
+     * @param memberId 비로그인이면 null
      */
     @Transactional(readOnly = true)
-    public PageResponse<PostSummaryResponse> list(PostCategory category, Role role, int page, int size) {
+    public PageResponse<PostSummaryResponse> list(PostCategory category, Role role, Long memberId,
+                                                  Instant now, int page, int size) {
         assertReadable(category, role);
 
         Page<Post> posts = postRepository.findPublished(category, PageRequest.of(page, size));
-        Map<Long, Long> counts = attachmentCounts(posts.getContent());
-
-        return PageResponse.of(posts, post ->
-                PostSummaryResponse.of(post, counts.getOrDefault(post.getId(), 0L)));
+        return summaries(posts, role, memberId, now);
     }
 
     /**
@@ -161,12 +208,13 @@ public class PostQueryService {
      * 그 차이만으로 존재를 알아낼 수 있다.
      */
     @Transactional(readOnly = true)
-    public PostDetailResponse get(String idOrSlug, Role role) {
+    public PostDetailResponse get(String idOrSlug, Role role, Long memberId, Instant now) {
         Post post = postRepository
                 .findPublishedByIdOrSlug(parseIdOrNull(idOrSlug), idOrSlug)
                 .orElseThrow(ApiException::notFound);
 
         assertVisible(post.getCategory(), role);
+        assertContentViewable(post, role, memberId, now);
 
         List<Attachment> attachments =
                 attachmentRepository.findByPostIdOrderBySortOrderAscIdAsc(post.getId());
@@ -182,13 +230,11 @@ public class PostQueryService {
      * 임시저장이 엉뚱한 사람에게 새지 않게 하는 장치다.
      */
     @Transactional(readOnly = true)
-    public PageResponse<PostSummaryResponse> drafts(Role role, int page, int size) {
+    public PageResponse<PostSummaryResponse> drafts(Role role, Long memberId, Instant now,
+                                                    int page, int size) {
         Page<Post> posts = postRepository.findDrafts(PageRequest.of(page, size));
         posts.forEach(post -> assertVisible(post.getCategory(), role));
-        Map<Long, Long> counts = attachmentCounts(posts.getContent());
-
-        return PageResponse.of(posts, post ->
-                PostSummaryResponse.of(post, counts.getOrDefault(post.getId(), 0L)));
+        return summaries(posts, role, memberId, now);
     }
 
     /**
@@ -199,10 +245,12 @@ public class PostQueryService {
      * 임시저장 글을 404로 숨긴다 — 쓰던 글이 공개 주소로 열리면 안 된다.
      */
     @Transactional(readOnly = true)
-    public PostDetailResponse getForEdit(Long id, Role role) {
+    public PostDetailResponse getForEdit(Long id, Role role, Long memberId, Instant now) {
         Post post = postRepository.findForEdit(id).orElseThrow(ApiException::notFound);
 
         assertVisible(post.getCategory(), role);
+        // 기간 밖 글은 전도사 · 글쓴이만 고친다 — 수정 화면이 먼저 여기서 글을 받는다
+        assertContentViewable(post, role, memberId, now);
 
         List<Attachment> attachments =
                 attachmentRepository.findByPostIdOrderBySortOrderAscIdAsc(post.getId());
@@ -242,6 +290,17 @@ public class PostQueryService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /** 목록 아이템 — 첨부 개수 · 열람 상태 · 이 사람 기준 열람 가능 여부를 단다 */
+    private PageResponse<PostSummaryResponse> summaries(Page<Post> posts, Role role,
+                                                        Long memberId, Instant now) {
+        Map<Long, Long> counts = attachmentCounts(posts.getContent());
+        return PageResponse.of(posts, post -> PostSummaryResponse.of(
+                post,
+                counts.getOrDefault(post.getId(), 0L),
+                post.viewStatusAt(now),
+                canViewContent(post, role, memberId, now)));
     }
 
     /** 게시물별 첨부 개수. 첨부가 없는 글은 결과에 없으므로 호출부에서 0으로 채운다. */

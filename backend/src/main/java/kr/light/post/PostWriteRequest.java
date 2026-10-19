@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -51,7 +52,22 @@ public record PostWriteRequest(
 
         @Schema(description = "false면 임시저장(`publishedAt = null`)이라 목록에 나오지 않는다.",
                 example = "true")
-        boolean publish
+        boolean publish,
+
+        /**
+         * 열람 기간 — 회의록 · 예산안만 (2026-10-19, V11).
+         *
+         * <p>회의록 · 예산안을 <b>게시할 때는 필수</b>다. 임시저장은 비워 둘 수 있다
+         * (쓰는 중에 기간을 아직 모를 수 있다). 공지에는 기간이 없어 보내도 무시한다 —
+         * 수정 화면에서 분류를 공지로 바꿨을 때 남은 값으로 거부하지 않기 위해서다.
+         */
+        @Schema(description = "열람 시작 (ISO-8601 UTC). 회의록·예산안을 게시할 때 필수. 공지는 무시",
+                example = "2026-10-19T00:00:00Z", nullable = true)
+        Instant viewableFrom,
+
+        @Schema(description = "열람 종료 (ISO-8601 UTC). 시작보다 뒤여야 한다",
+                example = "2026-10-26T14:59:00Z", nullable = true)
+        Instant viewableUntil
 ) {
 
     /** 없으면 빈 목록으로 다룬다 — 호출부마다 null 검사를 반복하지 않기 위해 */
