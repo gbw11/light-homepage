@@ -92,9 +92,20 @@ class AuthState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 로그아웃 **직전에** 할 일 — 아직 로그인이 살아 있을 때 (푸시 기기 해제,
+  /// SPEC_API §15.2). 실패하거나 오래 걸려도 로그아웃은 이어 간다
+  Future<void> Function()? beforeLogout;
+
   /// 서버에 알리고, 기기 쪽 쿠키도 비운다. 서버가 응답하지 않아도 로그아웃은 된다 —
   /// 로그아웃을 눌렀는데 로그인이 남아 있는 것이 더 나쁜 실패다
   Future<void> logout() async {
+    if (beforeLogout case final before?) {
+      try {
+        await before().timeout(const Duration(seconds: 5));
+      } catch (_) {
+        // 위 주석
+      }
+    }
     try {
       await _api.logout();
     } catch (_) {
