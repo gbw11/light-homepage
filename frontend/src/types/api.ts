@@ -333,7 +333,8 @@ export type NewcomerRecord = {
   name: string;
   phone: string;
   gender: Gender | null;
-  ageGroup: AgeGroup | null;
+  /** `YYYY-MM-DD`. 2026-10-19 이전 신청은 `null` — 그때는 나이대를 받았다 (§8.6) */
+  birthDate: string | null;
   referrer: Referrer | null;
   message: string | null;
   createdAt: string;
@@ -566,14 +567,14 @@ export type UploadCommitResult = {
 
 // ── 새가족 등록 (SPEC_API §9.1) ────────────────────────────
 export type Gender = "MALE" | "FEMALE";
-export type AgeGroup = "EARLY_20S" | "LATE_20S" | "EARLY_30S" | "LATE_30S";
 export type Referrer = "FRIEND" | "SEARCH" | "SNS" | "ETC";
 
 export type NewcomerSubmission = {
   name: string;
   phone: string;
+  /** 필수 `YYYY-MM-DD` — 2026-10-19 나이대(`ageGroup`)를 대신했다 (§9.1 `[CONTRACT]`) */
+  birthDate: string;
   gender?: Gender;
-  ageGroup?: AgeGroup;
   referrer?: Referrer;
   message?: string;
   agreed: boolean;

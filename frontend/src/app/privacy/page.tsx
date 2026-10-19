@@ -15,7 +15,7 @@ export const metadata: Metadata = {
  * 옮겼다 — 없는 기능을 적어 넣지 않았다.
  *
  * 근거 파일:
- * - 새가족 등록: `welcome/register/RegisterForm.tsx` (이름·연락처, 1년 보유,
+ * - 새가족 등록: `welcome/register/RegisterForm.tsx` (이름·연락처·생년월일, 1년 보유,
  *   이미 화면에 같은 문구가 있다 — 이 페이지는 그 문구를 반박하지 않고 같은
  *   근거로 확장한다)
  * - 회원가입: `signup/SignupFlow.tsx` (이름·생년월일·전화번호는 명단 대조용 —
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
           <div>
             <p className="font-bold">새가족 등록 (/welcome/register)</p>
             <p className="mt-1 text-sm text-[var(--color-gray-400)]">
-              필수: 이름, 연락처. 선택: 성별, 연령대, 방문 경로, 남기고 싶은 말.
+              필수: 이름, 연락처, 생년월일. 선택: 성별, 방문 경로, 남기고 싶은 말.
             </p>
           </div>
           <div>
