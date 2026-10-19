@@ -6,7 +6,7 @@ import { NewcomerList } from "./_components/NewcomerList";
 export const metadata: Metadata = {
   title: "새가족 등록 내역",
   /*
-   * ⚠️ 이 화면은 **개인정보**(이름·연락처·연령대)를 나열한다. 색인은
+   * ⚠️ 이 화면은 **개인정보**(이름·연락처·생년월일)를 나열한다. 색인은
    * 삼중으로 막혀 있다: 여기 `robots` + `src/app/robots.ts`의 `/admin`
    * disallow + `next.config.ts`의 `X-Robots-Tag: noindex, nofollow`
    * (`/(my|admin)/:path*` — `/admin` 단독 경로까지 포함, 응답 헤더로 확인함).

@@ -5,17 +5,10 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
 import { Section } from "@/components/ui/Section";
 import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
-import type { AgeGroup, Gender, NewcomerRecord, Referrer } from "@/types/api";
+import type { Gender, NewcomerRecord, Referrer } from "@/types/api";
 
 /** 라벨은 `/welcome/register` 폼의 선택지와 같은 문구를 쓴다 (같은 데이터다) */
 const GENDER_LABEL: Record<Gender, string> = { MALE: "남", FEMALE: "여" };
-
-const AGE_GROUP_LABEL: Record<AgeGroup, string> = {
-  EARLY_20S: "20대 초반",
-  LATE_20S: "20대 후반",
-  EARLY_30S: "30대 초반",
-  LATE_30S: "30대 후반",
-};
 
 const REFERRER_LABEL: Record<Referrer, string> = {
   FRIEND: "지인 소개",
@@ -31,15 +24,18 @@ function formatDate(iso: string): string {
 }
 
 /**
- * 선택 항목이 비어 있을 수 있다 (`/welcome/register`가 성별·연령대·유입경로를
+ * 선택 항목이 비어 있을 수 있다 (`/welcome/register`가 성별·유입경로를
  * 필수로 받지 않는다). 채워진 것만 `·`로 이어 붙인다 — 빈 값을 "—"로
  * 늘어놓으면 실제로 채워진 정보가 묻힌다.
+ *
+ * 생년월일은 필수지만 2026-10-19 이전 신청은 `null`이다 (그때는 나이대를
+ * 받았다, SPEC_API §8.6) — 그래서 여기서도 비어 있을 수 있는 칸으로 다룬다.
  */
 function metaLine(record: NewcomerRecord): string {
   const parts = [
     record.phone,
+    record.birthDate,
     record.gender ? GENDER_LABEL[record.gender] : null,
-    record.ageGroup ? AGE_GROUP_LABEL[record.ageGroup] : null,
     record.referrer ? REFERRER_LABEL[record.referrer] : null,
   ].filter((v): v is string => Boolean(v));
   return parts.join(" · ");

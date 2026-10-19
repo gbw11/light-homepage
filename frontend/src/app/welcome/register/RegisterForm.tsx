@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { YOUTH_SERVICE_LINE } from "@/content/worship";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,24 +14,23 @@ import {
 import { api, isApiError } from "@/lib/api";
 import type { NewcomerSubmission } from "@/types/api";
 import { Button } from "@/components/ui/Button";
+import { birthDateProblem, formatBirthDateInput } from "@/lib/birthDate";
 
 /**
  * WIREFRAME.md §9, SPEC_API.md §9.1(POST /api/newcomers), FR-PUB-08.
- * 필수: name · phone · agreed(true). 나머지는 선택.
+ * 필수: name · phone · birthDate · agreed(true). 나머지는 선택.
+ *
+ * 2026-10-19 `[CONTRACT]`: 나이대(`ageGroup`)를 생년월일(`birthDate`, 필수)로
+ * 바꿨다 — 서버는 `birthDate` 없이 오면 400이다 (§9.1, BE #260).
  */
 const schema = z.object({
   name: z.string().trim().min(1, "이름을 입력해주세요."),
   phone: z.string().trim().min(1, "연락처를 입력해주세요."),
+  birthDate: z.string().trim().superRefine((v, ctx) => {
+    const problem = birthDateProblem(v);
+    if (problem) ctx.addIssue({ code: "custom", message: problem });
+  }),
   gender: z.union([z.literal("MALE"), z.literal("FEMALE"), z.literal("")]).optional(),
-  ageGroup: z
-    .union([
-      z.literal("EARLY_20S"),
-      z.literal("LATE_20S"),
-      z.literal("EARLY_30S"),
-      z.literal("LATE_30S"),
-      z.literal(""),
-    ])
-    .optional(),
   referrer: z
     .union([
       z.literal("FRIEND"),
@@ -54,8 +53,8 @@ function toSubmission(values: FormValues): NewcomerSubmission {
   return {
     name: values.name,
     phone: values.phone,
+    birthDate: values.birthDate,
     gender: values.gender ? values.gender : undefined,
-    ageGroup: values.ageGroup ? values.ageGroup : undefined,
     referrer: values.referrer ? values.referrer : undefined,
     message: values.message?.trim() ? values.message.trim() : undefined,
     agreed: values.agreed,
@@ -79,8 +78,8 @@ function RegisterFormInner() {
     defaultValues: {
       name: "",
       phone: "",
+      birthDate: "",
       gender: "",
-      ageGroup: "",
       referrer: "",
       message: "",
       agreed: false,
@@ -153,6 +152,29 @@ function RegisterFormInner() {
       </div>
 
       <div>
+        <label htmlFor="birthDate" className="mb-1 block text-sm font-bold">
+          생년월일 *
+        </label>
+        <input
+          id="birthDate"
+          type="text"
+          inputMode="numeric"
+          placeholder="2001-03-14"
+          autoComplete="bday"
+          className={inputClass}
+          {...register("birthDate", {
+            // 숫자만 눌러도 대시가 붙는다 (앱 새가족 폼과 같은 입력)
+            onChange: (e: ChangeEvent<HTMLInputElement>) => {
+              e.target.value = formatBirthDateInput(e.target.value);
+            },
+          })}
+        />
+        {errors.birthDate && (
+          <p role="alert" className="mt-1 text-sm text-[var(--color-red-500)]">{errors.birthDate.message}</p>
+        )}
+      </div>
+
+      <div>
         <span className="mb-1 block text-sm font-bold">성별</span>
         <div className="flex gap-2">
           <label className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-navy-100)] px-4">
@@ -162,19 +184,6 @@ function RegisterFormInner() {
             <input type="radio" value="FEMALE" {...register("gender")} /> 여
           </label>
         </div>
-      </div>
-
-      <div>
-        <label htmlFor="ageGroup" className="mb-1 block text-sm font-bold">
-          나이대
-        </label>
-        <select id="ageGroup" className={inputClass} {...register("ageGroup")}>
-          <option value="">선택 안 함</option>
-          <option value="EARLY_20S">20대 초반</option>
-          <option value="LATE_20S">20대 후반</option>
-          <option value="EARLY_30S">30대 초반</option>
-          <option value="LATE_30S">30대 후반</option>
-        </select>
       </div>
 
       <div>
@@ -214,7 +223,7 @@ function RegisterFormInner() {
             개인정보 수집·이용 동의 *
             <br />
             <span className="text-[var(--color-gray-400)]">
-              수집 항목: 이름·연락처. 목적: 새가족 안내. 보유 기간: 등록일로부터 1년.
+              수집 항목: 이름·연락처·생년월일. 목적: 새가족 안내. 보유 기간: 등록일로부터 1년.
             </span>
           </span>
         </label>

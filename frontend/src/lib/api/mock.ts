@@ -46,6 +46,7 @@ import type {
   VerifyRosterInput,
   VerifyRosterResult,
 } from "@/types/api";
+import { birthDateProblem } from "@/lib/birthDate";
 import { ApiError } from "./error";
 import { notifySessionExpired } from "./session";
 import type { Api } from "./types";
@@ -898,7 +899,7 @@ const ADMIN_NEWCOMERS: NewcomerRecord[] = [
     name: "김OO",
     phone: "010-1234-5678",
     gender: "MALE",
-    ageGroup: "EARLY_20S",
+    birthDate: "2001-03-14",
     referrer: "FRIEND",
     message: "친구 소개로 가보려고요",
     createdAt: "2026-08-19T10:22:00Z",
@@ -908,7 +909,7 @@ const ADMIN_NEWCOMERS: NewcomerRecord[] = [
     name: "박OO",
     phone: "010-5555-6666",
     gender: "FEMALE",
-    ageGroup: "LATE_20S",
+    birthDate: "1998-11-02",
     referrer: "SEARCH",
     // 선택 항목이 비어 있는 경우도 화면이 처리해야 한다
     message: null,
@@ -921,7 +922,8 @@ const ADMIN_NEWCOMERS: NewcomerRecord[] = [
     name: "이OO",
     phone: `010-2000-${String(20 - i).padStart(4, "0")}`,
     gender: null,
-    ageGroup: null,
+    // 2026-10-19 이전 신청 — 나이대를 받던 때라 생년월일이 없다 (§8.6)
+    birthDate: null,
     referrer: null,
     message: null,
     createdAt: new Date(Date.UTC(2026, 6, 20 - i, 3, 0, 0)).toISOString(),
@@ -1658,6 +1660,17 @@ export const mockApi: Api = {
           message: "개인정보 동의가 필요합니다.",
           status: 400,
           field: "agreed",
+        });
+      }
+
+      // §9.1 2026-10-19 — 생년월일 필수. 없거나 형식·달력·범위가 틀리면 field birthDate
+      const birthDate = input.birthDate?.trim() ?? "";
+      if (birthDateProblem(birthDate)) {
+        throw new ApiError({
+          code: "VALIDATION_ERROR",
+          message: birthDate ? "생년월일을 확인해주세요." : "생년월일을 입력해주세요.",
+          status: 400,
+          field: "birthDate",
         });
       }
 

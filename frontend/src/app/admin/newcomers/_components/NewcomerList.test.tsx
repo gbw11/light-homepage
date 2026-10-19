@@ -13,13 +13,13 @@ vi.mock("@/lib/api", () => ({
 
 const mockNewcomers = vi.mocked(api.admin.newcomers);
 
-function record(id: string, name: string): NewcomerRecord {
+function record(id: string, name: string, birthDate: string | null = null): NewcomerRecord {
   return {
     id,
     name,
     phone: "010-0000-0000",
     gender: null,
-    ageGroup: null,
+    birthDate,
     referrer: null,
     message: null,
     createdAt: "2026-08-19T10:22:00Z",
@@ -67,5 +67,25 @@ describe("NewcomerList — 페이지 넘김 (점검 🟠-5)", () => {
 
     expect(await screen.findByText("박OO")).toBeInTheDocument();
     expect(mockNewcomers).toHaveBeenCalledWith({ page: 1 });
+  });
+});
+
+describe("NewcomerList — 생년월일 (§8.6 2026-10-19)", () => {
+  beforeEach(() => {
+    mockNewcomers.mockReset();
+  });
+
+  it("생년월일이 있으면 한 줄 정보에 넣고, 예전 신청(null)은 빼고 그린다", async () => {
+    mockNewcomers.mockResolvedValue({
+      items: [record("14", "김OO", "2001-03-14"), record("13", "박OO")],
+      page: 0,
+      size: 20,
+      hasNext: false,
+    });
+    renderList();
+
+    expect(await screen.findByText("010-0000-0000 · 2001-03-14")).toBeInTheDocument();
+    // 생년월일이 없는 예전 신청은 빈 칸 표시 없이 연락처만
+    expect(screen.getByText("010-0000-0000")).toBeInTheDocument();
   });
 });
