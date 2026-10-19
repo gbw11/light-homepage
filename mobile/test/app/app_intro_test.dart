@@ -54,14 +54,14 @@ void main() {
     expect(_risen(tester), everyElement(1));
   });
 
-  testWidgets('글귀는 엠블럼 직후부터 위 줄부터 한 줄씩 떠오른다', (tester) async {
+  testWidgets('글귀는 켜자마자 위 줄부터 한 줄씩 떠오른다', (tester) async {
     await tester.pumpWidget(_wrap());
 
     // 처음에는 아무 줄도 없다
     expect(_risen(tester), everyElement(0));
 
-    // 엠블럼이 뜨는 동안 이미 첫 줄이 떠오르고 있다 (예전에는 0.5초 넘게 비어 있었다)
-    await tester.pump(introDuration * 0.13);
+    // 엠블럼 없이 바로 첫 줄이 떠오르고 있다
+    await tester.pump(introDuration * 0.08);
     final early = _risen(tester);
     expect(early.first, inExclusiveRange(0, 1));
     expect(early.skip(1), everyElement(0));
