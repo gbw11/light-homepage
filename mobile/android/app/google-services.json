@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "939456752834",
+    "project_id": "light-kr-app",
+    "storage_bucket": "light-kr-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:939456752834:android:c6e61b8f8de843656d5f5b",
+        "android_client_info": {
+          "package_name": "kr.light.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwi45TR49JZ_vbaWSl8TVzMWXPeGBs2Vg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
