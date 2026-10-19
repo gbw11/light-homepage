@@ -64,7 +64,6 @@ void main() {
     Widget screen(Recorder r) => WelcomeScreen(
       onDirections: r.call('directions'),
       onRegister: r.call('register'),
-      openExternal: r.open,
     );
 
     testWidgets('맨 위는 엠블럼과 WELCOME TO LIGHT — 빨간 경고 상자는 없다', (tester) async {
@@ -90,6 +89,23 @@ void main() {
       }
     });
 
+    testWidgets('「예배만 참석하고 가셔도 괜찮아요」는 예배 종료 칸 아래에 있다', (tester) async {
+      await pumpScreen(tester, screen(Recorder()));
+
+      final note = find.text('예배만 참석하고 가셔도 괜찮아요');
+      await tester.scrollUntilVisible(note, 200);
+      expect(note, findsOneWidget);
+      final end = tester.getRect(find.text('예배 종료 · 교제'));
+      final noteRect = tester.getRect(note);
+      // 예배 종료 바로 아래, 같은 들여쓰기
+      expect(noteRect.top, greaterThan(end.top));
+      expect(noteRect.left, end.left);
+      expect(
+        noteRect.top,
+        lessThan(tester.getRect(find.text('마을모임 (30분)')).top),
+      );
+    });
+
     testWidgets('자주 묻는 질문을 누르면 답이 펼쳐진다', (tester) async {
       await pumpScreen(tester, screen(Recorder()));
       final faq = welcomeFaq.first;
@@ -105,7 +121,7 @@ void main() {
       expect(find.text(faq.answer), findsOneWidget);
     });
 
-    testWidgets('새가족 온라인 등록은 맨 위, 지도 · 오시는 길은 그 아래', (tester) async {
+    testWidgets('새가족 온라인 등록은 맨 위, 오시는 길 자세히는 그 아래', (tester) async {
       final r = Recorder();
       await pumpScreen(tester, screen(r));
 
@@ -115,13 +131,24 @@ void main() {
         lessThan(tester.getTopLeft(find.text('드림센터를 찾아오세요')).dy),
       );
       await tester.tap(find.text('새가족 온라인 등록'));
-      for (final label in ['지도 앱으로 열기', '오시는 길 자세히']) {
-        await tester.ensureVisible(find.text(label));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text(label));
-      }
+      await tester.ensureVisible(find.text('오시는 길 자세히'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('오시는 길 자세히'));
 
-      expect(r.calls, ['register', 'open:$kakaoMapAppUrl', 'directions']);
+      expect(r.calls, ['register', 'directions']);
+      // 지도 앱 버튼은 오시는 길 화면에만 있다 (2026-10-19)
+      expect(find.text('지도 앱으로 열기'), findsNothing);
+      // 남은 버튼은 카드 오른쪽 끝에 붙는다 — 안내 글(왼쪽에서 시작)보다 오른쪽
+      final button = find.widgetWithText(FilledButton, '오시는 길 자세히');
+      final text = find.textContaining('도보 2분');
+      expect(
+        tester.getTopRight(button).dx,
+        greaterThan(tester.getTopRight(text).dx - 1),
+      );
+      expect(
+        tester.getTopLeft(button).dx,
+        greaterThan(tester.getTopLeft(text).dx),
+      );
     });
 
     testWidgets('웹에서 ❓(확인 필요)로 남은 내용은 옮기지 않는다', (tester) async {
@@ -146,24 +173,49 @@ void main() {
     Widget screen(Recorder r) =>
         LocationScreen(openExternal: r.open, onFirstVisit: r.call('welcome'));
 
-    testWidgets('주소와 지도 앱 버튼이 첫 화면에 있다', (tester) async {
+    testWidgets('주소와 지도 앱 버튼 셋이 첫 화면에 있다', (tester) async {
       final r = Recorder();
       await pumpScreen(tester, screen(r));
 
       expect(find.text(address), findsOneWidget);
       await tester.tap(find.text('카카오맵'));
       await tester.tap(find.text('네이버지도'));
+      await tester.tap(find.text('구글지도'));
 
-      expect(r.calls, ['open:$kakaoMapAppUrl', 'open:$naverMapAppUrl']);
+      expect(r.calls, [
+        'open:$kakaoMapAppUrl',
+        'open:$naverMapAppUrl',
+        'open:$googleMapUrl',
+      ]);
+    });
+
+    testWidgets('지도 버튼 셋은 한 줄에 같은 크기의 앱 아이콘이다 (구글만 작은 링크였다)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpScreen(tester, screen(Recorder()));
+
+      Finder iconOf(String asset) => find.byWidgetPredicate(
+        (w) =>
+            w is Image &&
+            w.image is AssetImage &&
+            (w.image as AssetImage).assetName ==
+                'assets/images/map_apps/$asset.webp',
+      );
+      for (final asset in ['kakao_map', 'naver_map', 'google_map']) {
+        expect(iconOf(asset), findsOneWidget, reason: asset);
+      }
+      Rect rectOf(String asset) => tester.getRect(iconOf(asset));
+      expect(rectOf('google_map').size, rectOf('kakao_map').size);
+      expect(rectOf('naver_map').size, rectOf('kakao_map').size);
+      expect(rectOf('google_map').top, rectOf('kakao_map').top);
+      // 스크린 리더는 버튼 하나로 읽는다
+      expect(find.bySemanticsLabel('네이버지도 열기'), findsOneWidget);
+      semantics.dispose();
+      expect(find.textContaining('구글 지도로 보기'), findsNothing);
+      // 버튼 아래 안내 글도 없다 (2026-10-19)
+      expect(find.textContaining('약도는 길을 알려주는 그림'), findsNothing);
     });
 
     testWidgets('지도 앱 주소는 드림센터 주소로 검색한다 (웹과 같은 링크)', (tester) async {
-      final r = Recorder();
-      await pumpScreen(tester, screen(r));
-
-      await tester.tap(find.text('▸ 구글 지도로 보기'));
-      expect(r.calls, ['open:$googleMapUrl']);
-
       final encoded = Uri.encodeComponent(address);
       expect(kakaoMapUrl, 'https://map.kakao.com/link/search/$encoded');
       expect(naverMapUrl, 'https://map.naver.com/p/search/$encoded');
@@ -376,7 +428,7 @@ void main() {
         await tester.scrollUntilVisible(find.text(title), 200);
       }
       expect(find.textContaining('1인 1마을'), findsOneWidget);
-      expect(find.textContaining('팀장·총무·회계·팀원으로 구성됩니다'), findsOneWidget);
+      expect(find.textContaining('마을 소속과 별개입니다'), findsOneWidget);
     });
 
     testWidgets('임원 4칸은 2열이다', (tester) async {
@@ -406,19 +458,17 @@ void main() {
       expect(villageCount, 9);
     });
 
-    testWidgets('팀 6개를 팀장 · 총무 · 회계 · 팀원 자리와 함께 보여준다', (tester) async {
+    testWidgets('팀 6개를 팀장 자리만 두고 보여준다', (tester) async {
       await pumpScreen(tester, const OrganizationScreen());
 
       expect(teams, hasLength(6));
       for (final team in teams) {
         await tester.scrollUntilVisible(find.text(team), 200);
       }
-      // 마지막 팀(선교팀) 카드까지 내려 역할 네 줄을 확인한다
-      for (final role in teamRoles) {
-        await tester.scrollUntilVisible(
-          find.text('$role: $unknownLabel').last,
-          200,
-        );
+      // 마지막 팀(선교팀) 카드까지 내려왔다 — 팀마다 팀장 한 줄뿐이다
+      await tester.scrollUntilVisible(find.text('팀장: $unknownLabel').last, 200);
+      for (final role in ['총무', '회계', '팀원']) {
+        expect(find.textContaining('$role:'), findsNothing);
       }
     });
 

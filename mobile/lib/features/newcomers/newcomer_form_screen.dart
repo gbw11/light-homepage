@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/api_error.dart';
+import '../../core/format/birth_date.dart';
 import '../../core/format/dashed_digits_formatter.dart';
 import '../../core/ui/form_card.dart';
 import '../../core/ui/status_views.dart';
@@ -8,8 +9,9 @@ import 'newcomers_api.dart';
 
 /// 새가족 등록 (웹 `/welcome/register`, WIREFRAME §9, 기획안 §3 M12).
 ///
-/// 칸 · 선택지 · 문구는 웹 폼과 같다. 필수는 이름 · 연락처 · 개인정보 동의 셋이고,
-/// **동의하기 전에는 [등록하기]가 눌리지 않는다.**
+/// 칸 · 선택지 · 문구는 웹 폼과 같다 — 나이대 대신 생년월일을 받는 것만 다르다
+/// (2026-10-19, SPEC_API §9.1). 필수는 이름 · 연락처 · 생년월일 · 개인정보 동의
+/// 넷이고, **동의하기 전에는 [등록하기]가 눌리지 않는다.**
 ///
 /// 모양은 로그인 화면과 같다 — 엠블럼 · 흰 카드 · 굵은 이름표(✱는 필수만) · 채운
 /// 입력칸 · 끝이 둥근 큰 버튼 (`core/ui/form_card.dart`).
@@ -33,9 +35,9 @@ class _NewcomerFormScreenState extends State<NewcomerFormScreen> {
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _phone = TextEditingController();
+  final _birthDate = TextEditingController();
   final _message = TextEditingController();
   String? _gender;
-  String? _ageGroup;
   String? _referrer;
   var _agreed = false;
 
@@ -45,6 +47,7 @@ class _NewcomerFormScreenState extends State<NewcomerFormScreen> {
   /// 서버가 칸을 짚어 준 오류 (`VALIDATION_ERROR`의 `field`)
   String? _nameError;
   String? _phoneError;
+  String? _birthDateError;
 
   /// 칸에 붙일 수 없는 오류 — 버튼 위에 둔다
   String? _formError;
@@ -53,6 +56,7 @@ class _NewcomerFormScreenState extends State<NewcomerFormScreen> {
   void dispose() {
     _name.dispose();
     _phone.dispose();
+    _birthDate.dispose();
     _message.dispose();
     super.dispose();
   }
@@ -61,6 +65,7 @@ class _NewcomerFormScreenState extends State<NewcomerFormScreen> {
     setState(() {
       _nameError = null;
       _phoneError = null;
+      _birthDateError = null;
       _formError = null;
     });
     if (!_form.currentState!.validate()) return;
@@ -71,8 +76,8 @@ class _NewcomerFormScreenState extends State<NewcomerFormScreen> {
       await widget.api.submit((
         name: _name.text.trim(),
         phone: _phone.text.trim(),
+        birthDate: _birthDate.text.trim(),
         gender: _gender,
-        ageGroup: _ageGroup,
         referrer: _referrer,
         message: message.isEmpty ? null : message,
       ));
@@ -85,6 +90,8 @@ class _NewcomerFormScreenState extends State<NewcomerFormScreen> {
             _nameError = error.message;
           case ApiError(code: ErrorCode.validationError, field: 'phone'):
             _phoneError = error.message;
+          case ApiError(code: ErrorCode.validationError, field: 'birthDate'):
+            _birthDateError = error.message;
           // 검증 문구는 사람이 읽으라고 쓴 것이라 그대로 보인다
           case ApiError(code: ErrorCode.validationError):
             _formError = error.message;
@@ -149,21 +156,29 @@ class _NewcomerFormScreenState extends State<NewcomerFormScreen> {
             validator: (v) => (v ?? '').trim().isEmpty ? '연락처를 입력해주세요.' : null,
           ),
           const SizedBox(height: 16),
+          // 회원가입과 같은 입력 — 숫자만 누르면 2001-03-14 모양이 된다
+          CardField(
+            label: '생년월일',
+            icon: Icons.cake_outlined,
+            controller: _birthDate,
+            hint: '2001-03-14',
+            helper: '숫자만 누르면 돼요',
+            errorText: _birthDateError,
+            keyboardType: TextInputType.number,
+            inputFormatters: const [DashedDigitsFormatter.birthDate()],
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.birthday],
+            validator: (v) => isValidBirthDate((v ?? '').trim())
+                ? null
+                : '생년월일을 2001-03-14처럼 입력해 주세요.',
+          ),
+          const SizedBox(height: 16),
           const FieldLabel('성별', isRequired: false),
           const SizedBox(height: 8),
           _PillChoice(
             choices: genderChoices,
             value: _gender,
             onChanged: (v) => setState(() => _gender = v),
-          ),
-          const SizedBox(height: 16),
-          const FieldLabel('나이대', isRequired: false),
-          const SizedBox(height: 8),
-          _ChoiceField(
-            icon: Icons.cake_outlined,
-            choices: ageGroupChoices,
-            value: _ageGroup,
-            onChanged: (v) => setState(() => _ageGroup = v),
           ),
           const SizedBox(height: 16),
           const FieldLabel('어떻게 알게 되셨나요?', isRequired: false),
@@ -213,7 +228,7 @@ class _NewcomerFormScreenState extends State<NewcomerFormScreen> {
                 ),
               ),
               subtitle: const Text(
-                '수집 항목: 이름·연락처. 목적: 새가족 안내. 보유 기간: 등록일로부터 1년.',
+                '수집 항목: 이름·연락처·생년월일. 목적: 새가족 안내. 보유 기간: 등록일로부터 1년.',
               ),
             ),
           ),
