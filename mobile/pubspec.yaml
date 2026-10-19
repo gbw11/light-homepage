@@ -109,6 +109,9 @@ flutter:
     - assets/images/worship-hero.webp
     # 앱 인트로 엠블럼 (웹 `frontend/public/images/logo.png`와 같은 새 엠블럼, 2026-10-07)
     - assets/images/logo.png
+    # 오시는 길의 지도 앱 버튼 — 각 앱의 Google Play 공식 아이콘 (192px, 2026-10-19).
+    # 그 앱을 여는 버튼에만 쓴다 (상표라 다른 용도로 쓰지 않는다)
+    - assets/images/map_apps/
 
   # Pretendard v1.3.9 (한글·영문 공통). 쓰는 굵기만 넣는다 — 하나에 약 1.5MB다.
   # 여기 없는 굵기(w300 등)를 요청하면 가장 가까운 굵기로 그려진다.
