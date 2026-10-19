@@ -18,7 +18,7 @@
 | 파일 | 어디 | 공개 | 쓰는 곳 |
 |---|---|---|---|
 | `google-services.json` | `mobile/android/app/` (**저장소에 커밋**) | ✅ 괜찮다 | 앱이 어느 Firebase 프로젝트인지 안다 |
-| 서비스 계정 키 (`*-firebase-adminsdk-*.json`) | PM PC `C:\Users\SSAFY\light-signing\` (저장소 **밖**) | ❌ 절대 안 됨 | 백엔드가 알림을 **보낸다** |
+| 서비스 계정 키 | PM PC `C:\Users\SSAFY\light-signing\light-kr-app-firebase-adminsdk-fbsvc-6ac41fb2e3.json` (저장소 **밖**, 2026-10-19 발급 · 유일한 원본 — 백업 필요) | ❌ 절대 안 됨 | 백엔드가 알림을 **보낸다** (`firebase-adminsdk-fbsvc@light-kr-app.iam.gserviceaccount.com`) |
 
 - `google-services.json`은 비밀이 아니다 — 앱 APK를 열면 누구나 볼 수 있는 값이다
   (Firebase 공식 안내). CI가 따로 주입할 필요 없게 커밋한다

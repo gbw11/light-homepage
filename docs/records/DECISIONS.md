@@ -20,7 +20,7 @@ PM(프론트엔드·인프라·기획 총괄)이 대화 중 구두로 전달한 
   - Firebase 프로젝트 `light-kr-app`(표시 이름 LIGHT, 무료)을 PM 계정으로 만들고 Android 앱 `kr.light.app` 등록
   - `google-services.json`은 공개해도 되는 설정이라 저장소에 커밋, 서비스 계정 키는 저장소 밖
   - 애널리틱스는 사용 안 함, iOS는 보류
-- **미확정 사항**: ① 회원 전용 공지도 알림을 보낼지(보내면 기기 토큰 저장 필요, 공개 공지만이면 주제 구독으로 끝)
+- **미확정 사항**: ① 회원 전용 공지도 알림을 보낼지 — **백엔드 담당자가 정해서 진행** (PM 2026-10-19)
   ② 프로젝트 소유자로 공용 계정 추가
 - **구현**: `infra/firebase/README.md` · `mobile/android/app/google-services.json` — 브랜치 `feat/mobile-firebase-config`
 
