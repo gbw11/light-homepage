@@ -60,6 +60,11 @@ dependencies {
 		exclude group: 'com.google.cloud', module: 'google-cloud-firestore'
 		exclude group: 'com.google.cloud', module: 'google-cloud-storage'
 	}
+	// ⚠️ firebase-admin은 JSON을 JacksonFactory로 읽는데(ApiClientUtils.getDefaultJsonFactory),
+	//    그 라이브러리를 스스로 선언하지 않고 위에서 뺀 Firestore · Storage에 기대고 있었다.
+	//    빼면 키를 넣고 켜는 순간 NoClassDefFoundError — google-http-client와 같은 버전으로 직접 넣는다
+	//    (FcmPushSenderTest가 지킨다)
+	implementation 'com.google.http-client:google-http-client-jackson2:2.1.0'
 
 	// ── Lombok ───────────────────────────────────────────
 	compileOnly 'org.projectlombok:lombok'
