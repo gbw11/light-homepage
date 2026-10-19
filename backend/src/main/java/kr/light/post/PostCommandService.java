@@ -6,8 +6,10 @@ import kr.light.attachment.AttachmentRepository;
 import kr.light.common.ApiException;
 import kr.light.member.Member;
 import kr.light.member.Role;
+import kr.light.push.PushEvents;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,7 @@ public class PostCommandService {
     private final AttachmentRepository attachmentRepository;
     private final PostSlugGenerator slugGenerator;
     private final PostQueryService postQueryService;
+    private final ApplicationEventPublisher events;
 
     // ── 작성 (§3.4) ───────────────────────────────────────────
 
@@ -52,6 +55,7 @@ public class PostCommandService {
                 window.until()));
 
         linkAttachments(post, request.attachmentIdsOrEmpty());
+        announceIfFirstPublished(false, post);
         return post.getId();
     }
 
@@ -76,6 +80,7 @@ public class PostCommandService {
         postQueryService.assertContentViewable(post, editorRole, editorId, now);
 
         ViewWindow window = viewWindowOf(request);
+        boolean wasPublished = post.isPublished();
         post.edit(
                 request.category(),
                 request.title(),
@@ -87,6 +92,22 @@ public class PostCommandService {
                 window.until());
 
         relinkAttachments(post, request.attachmentIdsOrEmpty());
+        announceIfFirstPublished(wasPublished, post);
+    }
+
+    /**
+     * 처음 게시됐으면 알림 이벤트를 낸다 (SPEC_API.md §15.3) — 보내는 것은 커밋 뒤
+     * {@code PushNotifier}다.
+     *
+     * <p><b>처음 게시될 때 한 번만</b>이다 — 임시저장 → 게시도 포함. 이미 게시된 글을
+     * 다시 저장(오타 수정)할 때마다 알림이 가면 안 된다. 알림을 보낼지(공지만)는
+     * 받는 쪽이 분류로 정한다.
+     */
+    private void announceIfFirstPublished(boolean wasPublished, Post post) {
+        if (!wasPublished && post.isPublished()) {
+            events.publishEvent(new PushEvents.PostPublished(
+                    post.getId(), post.getCategory(), post.getTitle()));
+        }
     }
 
     /** 저장할 열람 기간. 둘 다 null이면 기간 없음 */

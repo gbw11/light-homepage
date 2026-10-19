@@ -5,10 +5,12 @@ import kr.light.attachment.AttachmentRepository;
 import kr.light.common.ApiException;
 import kr.light.common.PageResponse;
 import kr.light.member.Member;
+import kr.light.push.PushEvents;
 import kr.light.storage.R2Client;
 import kr.light.storage.StorageUsageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -60,6 +62,7 @@ public class BulletinService {
     private final AttachmentRepository attachmentRepository;
     private final StorageUsageService storageUsageService;
     private final R2Client r2Client;
+    private final ApplicationEventPublisher events;
 
     // ── §5.2 목록 ────────────────────────────────────────────────────
 
@@ -154,6 +157,8 @@ public class BulletinService {
 
         log.info("주보 업로드: id={} date={} pages={}",
                 bulletin.getId(), serviceDate, saved.size());
+        // 앱 푸시 (§15.3) — 보내는 것은 커밋 뒤 PushNotifier. 저장이 되돌려지면 안 나간다
+        events.publishEvent(new PushEvents.BulletinUploaded(bulletin.getId(), serviceDate));
         return new Created(String.valueOf(bulletin.getId()), saved.size());
     }
 

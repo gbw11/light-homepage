@@ -43,3 +43,9 @@ app:
     bucket: test-bucket
     access-key-id: test-access-key         # allowlist-secret
     secret-access-key: test-secret-key     # allowlist-secret
+
+  # 푸시 — 키가 없어 실제로 보내지 않는다. 테스트는 PushSender를 @MockitoBean으로
+  # 가로채 "무엇을 누구에게 보냈나"를 본다. 같은 스레드에서 보내야 응답 직후에 확인된다
+  push:
+    firebase-service-account: ""
+    async: false

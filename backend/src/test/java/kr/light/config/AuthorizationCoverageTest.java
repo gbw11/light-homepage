@@ -76,6 +76,9 @@ class AuthorizationCoverageTest {
             "PATCH /api/auth/me",
             "DELETE /api/auth/me",
             "POST /api/auth/password/change",
+            // 푸시를 받을 기기 — 로그인한 회원 누구나 (DeviceAuthorizationTest, §15.2)
+            "POST /api/me/devices",
+            "DELETE /api/me/devices/{token}",
 
             // 게시물 읽기 (PostAuthorizationTest 서비스 · PostReadAuthorizationTest HTTP)
             "GET /api/posts",
