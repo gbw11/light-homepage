@@ -438,6 +438,7 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | `GET /api/admin/newcomers` | 401 | 403 | **403** | 200 | 200 |
 | `GET /api/admin/notifications` | 401 | 403 | **403** | 200 | 200 |
 | `POST /api/admin/notifications/read` | 401 | 403 | **403** | 200 | 200 |
+| `POST /api/me/devices` · `DELETE /api/me/devices/{token}` | 401 | — | 204 | 204 | 204 |
 | `GET /api/meetings/{id}/pages/{n}` (기간 내) | 401 | 403 | 200 | 200 | 200 |
 | `GET /api/meetings/{id}/pages/{n}` (**기간 외**) | 401 | 403 | **403** | 200 | 200 |
 | `POST /api/meetings` | 401 | 403 | **403** | 200 | 200 |
@@ -522,6 +523,7 @@ void 인가_매트릭스(String method, String path, Role role, int expectedStat
 | GET | `/api/admin/storage` | LEADER |
 | GET | `/api/admin/newcomers` | LEADER |
 | GET | `/api/admin/notifications` | LEADER | 새가족 알림 (§14) |
+| POST · DELETE | `/api/me/devices` · `/api/me/devices/{token}` | MEMBER | 푸시 받을 기기 (§15) |
 | POST | `/api/admin/notifications/read` | LEADER | 읽음 표시 — 사람별 (§14) |
 | POST | `/api/newcomers` | GUEST |
 

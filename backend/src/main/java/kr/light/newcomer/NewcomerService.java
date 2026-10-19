@@ -2,7 +2,9 @@ package kr.light.newcomer;
 
 import kr.light.common.ApiException;
 import kr.light.common.SlidingWindowRateLimiter;
+import kr.light.push.PushEvents;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,11 +35,14 @@ public class NewcomerService {
 
     private final NewcomerRepository repository;
     private final NewcomerNotifier notifier;
+    private final ApplicationEventPublisher events;
     private final SlidingWindowRateLimiter rateLimiter;
 
-    public NewcomerService(NewcomerRepository repository, NewcomerNotifier notifier) {
+    public NewcomerService(NewcomerRepository repository, NewcomerNotifier notifier,
+                           ApplicationEventPublisher events) {
         this.repository = repository;
         this.notifier = notifier;
+        this.events = events;
         this.rateLimiter = new SlidingWindowRateLimiter(MAX_SUBMISSIONS, WINDOW);
     }
 
@@ -88,6 +93,9 @@ public class NewcomerService {
                 .build());
 
         notifyQuietly(saved);
+        // 전도사 · 임원 앱에 푸시 (§15.3) — 커밋 뒤 PushNotifier가 보낸다. 봇(honeypot)은
+        // 위에서 이미 끝났으므로 여기까지 오지 않는다
+        events.publishEvent(new PushEvents.NewcomerRegistered(saved.getId()));
         return Optional.of(saved);
     }
 
