@@ -32,15 +32,15 @@ export const metadata: Metadata = {
 const TIMELINE = [
   { time: "~13:50", label: "도착", detail: "입구에서 안내받기" },
   { time: YOUTH_SERVICE_TIME, label: "청년예배", detail: VENUE },
-  { time: "~15:20", label: "예배 종료 · 교제", detail: null },
-  { time: VILLAGE_TIME, label: "마을모임 (30분)", detail: "처음이면 새가족마을" },
+  { time: "~15:20", label: "예배 종료 · 교제", detail: "예배만 참석하고 가셔도 괜찮아요." },
+  { time: VILLAGE_TIME, label: "마을모임 (30분)", detail: "5주간 새가족 마을" },
   { time: VILLAGE_END_TIME, label: "마치고 자유롭게", detail: null },
 ];
 
 const FAQ_ITEMS = [
   { question: "몇 살까지 청년교회인가요?", answer: "20세~39세 또는 결혼 전까지입니다." },
   { question: "뭘 입고 가야 하나요?", answer: "편한 차림으로 오시면 됩니다." },
-  { question: "혼자 가도 괜찮을까요?", answer: "네, 혼자 오셔도 전혀 괜찮습니다." },
+  { question: "혼자 가도 괜찮을까요?", answer: "네, 혼자 오셔도 전혀 상관없습니다." },
   { question: "헌금을 해야 하나요?", answer: "필수가 아닙니다. 부담 없이 오세요." },
   {
     question: "마을에 꼭 들어가야 하나요?",
@@ -50,7 +50,7 @@ const FAQ_ITEMS = [
 
 /**
  * WIREFRAME.md §2 — ★최우선 페이지.
- * ❓ 표시는 아직 확정되지 않은 정보(사진 3장, 도보 시간, 새가족마을 운영 방식,
+ * ❓ 표시는 아직 확정되지 않은 정보(사진 3장, 도보 시간, 새가족마을 배정 방식,
  * 주차/대중교통, 카카오톡 문의)다. 확정되기 전까지 이 페이지는 완성이 아니다.
  */
 export default function WelcomePage() {
@@ -138,13 +138,12 @@ export default function WelcomePage() {
             </li>
           ))}
         </ol>
-        <p className="mt-6 text-base">예배만 참석하고 가셔도 괜찮아요.</p>
       </Section>
 
       <Section title="③ 새가족마을">
-        <p>처음 오신 분들이 함께 모이는 마을이 따로 있습니다.</p>
+        <p>처음 오신 분들이 5주간 함께 모이는 마을이 따로 있습니다.</p>
         <p className="mt-2 text-sm text-[var(--color-gray-400)]">
-          ❓ 운영 기간 · 배정 방식 확인 필요
+          ❓ 배정 방식 확인 필요
         </p>
       </Section>
 
