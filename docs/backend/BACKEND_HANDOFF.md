@@ -28,6 +28,23 @@
 
 형식: 최신 항목이 위에 온다.
 
+## 2026-10-19 — 📱 앱 푸시 알림(FCM) — 신규 요구사항 (아직 계약 아님)
+
+**상태**: 신규 요구사항
+
+- **내용**: 공지를 올리면 앱에 푸시 알림. Firebase 프로젝트 `light-kr-app`은 준비됐습니다 (`infra/firebase/README.md`)
+  - 발송: Firebase Admin SDK(`com.google.firebase:firebase-admin`)로 FCM HTTP v1 호출
+  - 키: Render 환경변수 **`FIREBASE_SERVICE_ACCOUNT`**(서비스 계정 키 JSON 내용 전체, 제안). **없으면 알림만 건너뛰고** 글 등록은 성공해야 합니다 (로컬·테스트·CI에는 키가 없습니다)
+  - 발송 시점: 공지 등록(`POST /api/posts`, 공지 카테고리) 성공 직후. 알림 실패가 글 등록을 실패시키면 안 됩니다
+  - 페이로드 제안: `notification{title: "새 공지", body: 공지 제목}` + `data{type: "notice", postId}` — 앱이 누르면 그 공지를 엽니다
+- **왜 필요한지**: PM 요청 2026-10-19 "앱에서 공지를 올리면 알림이 뜨게"
+- **미확정 사항** (PM 결정 대기 — 방식이 달라집니다):
+  - **공개 공지만** → FCM 주제(topic) `notices`로 한 번 보내면 끝. 백엔드는 발송만, 토큰 저장 불필요
+  - **회원 전용 공지까지** → 주제는 누구나 구독할 수 있어 비회원에게 새어 나갑니다. 로그인한 기기의 FCM 토큰을 저장하는 API(예: `POST/DELETE /api/me/devices`)와 테이블이 필요합니다
+- **관련 PR**: `feat/mobile-firebase-config` (앱 설정만, 알림 수신 코드는 아직)
+
+---
+
 ## 2026-10-07 — 📱 모바일 앱(Android)이 같은 백엔드를 부릅니다 — 협의 3건 (아직 계약 아님)
 
 `mobile/`(Flutter, #204)이 웹과 **같은 API·같은 쿠키 인증**을 씁니다. 앱 ID
