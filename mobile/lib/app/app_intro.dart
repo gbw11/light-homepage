@@ -9,14 +9,12 @@ const _acrostic = <(String, String)>[
   ('T', 'he other'),
 ];
 
-const _logoAsset = 'assets/images/logo.png';
-
-/// 인트로 전체 길이. 엠블럼 → 글귀가 한 줄씩 떠오른다 → 잠깐 머문 뒤 사라진다
+/// 인트로 전체 길이. 글귀가 한 줄씩 떠오른다 → 잠깐 머문 뒤 사라진다
 const introDuration = Duration(milliseconds: 3000);
 
-/// 글귀가 떠오르는 구간 (전체 길이에 대한 비율). 엠블럼이 다 뜨기 전에 바로 시작한다
-/// (PM 요청 2026-10-13 — 엠블럼과 글귀 사이 공백이 길게 느껴짐)
-const _linesStart = 0.08;
+/// 글귀가 떠오르는 구간 (전체 길이에 대한 비율). 엠블럼 없이 글자만 보이므로
+/// 켜자마자 바로 시작한다 (PM 요청 2026-10-19 — 로고를 빼고 글자만)
+const _linesStart = 0.0;
 const _linesEnd = 0.66;
 
 /// 줄마다 떠오르기 시작하는 간격과 한 줄이 떠오르는 데 걸리는 길이
@@ -38,7 +36,8 @@ const _skipDuration = Duration(milliseconds: 250);
 /// 웹 첫 화면은 "누르면 펼쳐지고, 한 번 더 누르면 들어간다"는 2단계인데, 앱은
 /// 켤 때마다 보이므로 두 번 누르게 하면 번거롭다. 그래서 **저절로 재생되고,
 /// 누르면 바로 건너뛴다.** 시스템 스플래시(Android `values-v31/styles.xml`)와
-/// 같은 크림 배경·엠블럼으로 이어져서 화면이 끊기지 않는다.
+/// 같은 크림 배경으로 이어져서 화면이 끊기지 않는다. 엠블럼은 두지 않고 글귀만
+/// 보인다 (PM 요청 2026-10-19 — 스플래시에서도 뺐다).
 ///
 /// [child](라우터가 그리는 앱 본체)는 처음부터 **아래에서 함께 그려진다** — 인트로가
 /// 도는 동안 홈이 공지·말씀을 미리 불러오므로, 인트로가 걷히면 바로 내용이 있다.
@@ -75,8 +74,6 @@ class _AppIntroState extends State<AppIntro>
     // MediaQuery는 initState에서 읽을 수 없다 — 첫 의존성 시점에 한 번만 정한다
     _reduced = MediaQuery.of(context).disableAnimations;
     if (_reduced) _controller.duration = introReducedDuration;
-    // 엠블럼을 미리 디코드해 둔다 — 아니면 첫 몇 프레임에 그림 없이 글자만 지나간다
-    precacheImage(const AssetImage(_logoAsset), context);
     _controller.forward();
     _restartWhenVisible();
   }
@@ -105,14 +102,6 @@ class _AppIntroState extends State<AppIntro>
     _controller.animateTo(1, duration: _skipDuration);
   }
 
-  /// [begin]~[end] 구간에서 0→1. 동작 줄이기면 처음부터 1(마지막 퇴장만 남긴다)
-  Animation<double> _phase(double begin, double end) => _reduced
-      ? const AlwaysStoppedAnimation(1)
-      : CurvedAnimation(
-          parent: _controller,
-          curve: Interval(begin, end, curve: Curves.easeOutCubic),
-        );
-
   @override
   Widget build(BuildContext context) {
     if (_done) return widget.child;
@@ -124,7 +113,6 @@ class _AppIntroState extends State<AppIntro>
       parent: _controller,
       curve: Interval(_reduced ? 0.6 : 0.82, 1, curve: Curves.easeIn),
     );
-    final logo = _phase(0, 0.12);
     // 글귀 전체가 떠오른 정도 0→1. 줄마다 나눠 쓴다
     final lines = _reduced
         ? const AlwaysStoppedAnimation<double>(1)
@@ -160,19 +148,6 @@ class _AppIntroState extends State<AppIntro>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      FadeTransition(
-                        opacity: logo,
-                        child: ScaleTransition(
-                          scale: Tween(begin: 0.92, end: 1.0).animate(logo),
-                          child: Image.asset(
-                            _logoAsset,
-                            height: 160,
-                            // 시스템 스플래시에서 이어지는 그림이라 장식이다
-                            excludeFromSemantics: true,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
                       AnimatedBuilder(
                         animation: lines,
                         builder: (context, _) => Column(
