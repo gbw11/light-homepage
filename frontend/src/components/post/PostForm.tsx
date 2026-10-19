@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { EMPTY_POST_BODY, isPostBodyEmpty } from "@/components/post/postBody";
 import { PostBodyView } from "@/components/post/PostBodyView";
 import { postHref } from "@/lib/post/href";
+import { isoToLocalInput, localInputToIso } from "@/lib/viewWindow";
 import type { PostBody, PostCategory, PostDetail, PostInput } from "@/types/api";
 
 /**
@@ -63,10 +64,21 @@ const CATEGORIES: { value: PostCategory; label: string; audience: string; isPubl
   { value: "BUDGET", label: "예산안", audience: "임원 이상", isPublic: false },
 ];
 
+/**
+ * 열람 기간을 받는 분류 (SPEC_API §3.1 · §3.4, 2026-10-19). 월례회처럼 정한 기간에만
+ * 내용을 본다 — 공지는 기간이 없다(서버가 보내도 무시한다).
+ */
+function hasViewWindow(category: PostCategory): boolean {
+  return category === "MINUTES" || category === "BUDGET";
+}
+
 const schema = z.object({
   category: z.enum(["NOTICE_PUBLIC", "NOTICE_MEMBER", "MINUTES", "BUDGET"]),
   title: z.string().trim().min(1, "제목을 입력해주세요.").max(200, "제목이 너무 깁니다."),
   pinned: z.boolean(),
+  /** `<input type="datetime-local">` 값(현지 시각). 보낼 때 UTC ISO로 바꾼다 */
+  viewableFrom: z.string(),
+  viewableUntil: z.string(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -80,6 +92,8 @@ const FIELD_ERROR_SLOTS: Record<keyof FormValues, true> = {
   category: true,
   title: true,
   pinned: true,
+  viewableFrom: true,
+  viewableUntil: true,
 };
 
 /** 업로드 중인/끝난 첨부 하나 */
@@ -92,6 +106,14 @@ type AttachmentItem = {
   /** 서버가 준 id — `attachmentIds`로 보낼 값. 성공 전에는 null */
   id: string | null;
   error?: string;
+};
+
+const EMPTY_VALUES: FormValues = {
+  category: "NOTICE_PUBLIC",
+  title: "",
+  pinned: false,
+  viewableFrom: "",
+  viewableUntil: "",
 };
 
 const inputClass =
@@ -134,8 +156,15 @@ export function PostForm({ post }: { post?: PostDetail }) {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: post
-      ? { category: post.category, title: post.title, pinned: post.pinned }
-      : { category: "NOTICE_PUBLIC", title: "", pinned: false },
+      ? {
+          category: post.category,
+          title: post.title,
+          pinned: post.pinned,
+          // ⚠️ 수정 화면에서 기간을 채우지 않으면 그대로 다시 저장할 때 400이다 (§3.4 게시 시 필수)
+          viewableFrom: post.viewableFrom ? isoToLocalInput(post.viewableFrom) : "",
+          viewableUntil: post.viewableUntil ? isoToLocalInput(post.viewableUntil) : "",
+        }
+      : EMPTY_VALUES,
   });
 
   const category = useWatch({ control, name: "category" });
@@ -146,6 +175,8 @@ export function PostForm({ post }: { post?: PostDetail }) {
 
   const save = useMutation({
     mutationFn: ({ publish, values }: { publish: boolean; values: FormValues }) => {
+      // 공지로 바꾼 글에 남은 기간은 보내지 않는다 — 서버가 무시하지만 보낼 이유도 없다
+      const windowed = hasViewWindow(values.category);
       const input: PostInput = {
         category: values.category,
         title: values.title.trim(),
@@ -154,6 +185,8 @@ export function PostForm({ post }: { post?: PostDetail }) {
         // 업로드에 성공한 것만 연결한다. 실패한 파일은 id가 없다
         attachmentIds: attachments.filter((a) => a.id).map((a) => a.id as string),
         publish,
+        viewableFrom: windowed && values.viewableFrom ? localInputToIso(values.viewableFrom) : null,
+        viewableUntil: windowed && values.viewableUntil ? localInputToIso(values.viewableUntil) : null,
       };
       // §3.5의 update는 204라 id를 돌려주지 않는다 — 이미 아는 값을 쓴다
       return isEdit
@@ -194,8 +227,32 @@ export function PostForm({ post }: { post?: PostDetail }) {
         return;
       }
       setBodyError(null);
+      if (!checkViewWindow(values, publish)) return;
       save.mutate({ publish, values });
     });
+  }
+
+  /**
+   * 서버 규칙(§3.4)을 보내기 전에 먼저 본다 — 문구는 월례회 업로드와 같다.
+   * 게시: 둘 다 필수, 끝 > 시작. 임시저장: 둘 다 비우거나 둘 다 채운다(하나만이면 서버가 거부).
+   */
+  function checkViewWindow(values: FormValues, publish: boolean): boolean {
+    if (!hasViewWindow(values.category)) return true;
+    const { viewableFrom: from, viewableUntil: until } = values;
+    if (!from && !until && !publish) return true;
+    if (!from) {
+      setError("viewableFrom", { message: "열람 기간을 입력해주세요." });
+      return false;
+    }
+    if (!until) {
+      setError("viewableUntil", { message: "열람 기간을 입력해주세요." });
+      return false;
+    }
+    if (new Date(until).getTime() <= new Date(from).getTime()) {
+      setError("viewableUntil", { message: "열람 종료는 시작보다 뒤여야 합니다." });
+      return false;
+    }
+    return true;
   }
 
   async function upload(files: FileList | null) {
@@ -317,7 +374,7 @@ export function PostForm({ post }: { post?: PostDetail }) {
                 setAttachments([]);
                 setBody(EMPTY_POST_BODY);
                 // 제목·분류·상단고정도 비운다 (에디터는 리마운트되며 저절로 빈다)
-                reset({ category: "NOTICE_PUBLIC", title: "", pinned: false });
+                reset(EMPTY_VALUES);
               }}
             >
               새 글 쓰기
@@ -363,9 +420,57 @@ export function PostForm({ post }: { post?: PostDetail }) {
         ) : (
           <p role="status" className="mt-2 text-sm text-[var(--color-gray-400)]">
             🔒 {selected.audience}만 볼 수 있습니다. (열람 시 로그인 필요)
+            {hasViewWindow(selected.value) && " 아래 열람 기간에만 열립니다."}
           </p>
         )}
       </div>
+
+      {/* ── 열람 기간 (회의록·예산안) ──────────────────────── */}
+      {hasViewWindow(selected.value) && (
+        <fieldset>
+          <legend className="text-sm font-bold">열람 기간</legend>
+          {/*
+            임원도 기간을 따른다 — 월례회(임원은 언제나)와 다르다 (SPEC_API §3.1).
+            예산안은 원래 임원만 보는 글이라 임원을 빼면 기간이 아무에게도 걸리지 않는다.
+          */}
+          <p className="mt-1 text-sm text-[var(--color-gray-400)]">
+            이 기간에만 회원·임원이 본문과 첨부를 볼 수 있습니다. 전도사와 글쓴이는 언제나
+            볼 수 있습니다. 게시할 때 필수이고, 임시저장은 비워 둘 수 있습니다.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="viewableFrom" className="text-sm text-[var(--color-gray-400)]">
+                시작
+              </label>
+              <input
+                id="viewableFrom"
+                type="datetime-local"
+                className={`${inputClass} mt-1`}
+                aria-invalid={errors.viewableFrom ? true : undefined}
+                {...register("viewableFrom")}
+              />
+              {errors.viewableFrom && (
+                <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.viewableFrom.message}</p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="viewableUntil" className="text-sm text-[var(--color-gray-400)]">
+                종료
+              </label>
+              <input
+                id="viewableUntil"
+                type="datetime-local"
+                className={`${inputClass} mt-1`}
+                aria-invalid={errors.viewableUntil ? true : undefined}
+                {...register("viewableUntil")}
+              />
+              {errors.viewableUntil && (
+                <p className="mt-1 text-sm text-[var(--color-red-500)]">{errors.viewableUntil.message}</p>
+              )}
+            </div>
+          </div>
+        </fieldset>
+      )}
 
       {/* ── 제목 ─────────────────────────────────────────── */}
       <div>

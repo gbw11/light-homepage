@@ -69,7 +69,27 @@ export type PostSummary = {
   /** ISO-8601 UTC. **임시저장(`publish: false`)이면 null** (SPEC_API §3.4) */
   publishedAt: string | null;
   attachmentCount: number;
+  /**
+   * 회의록·예산안의 열람 기간 (UTC, SPEC_API §3.1 · §3.2 2026-10-19).
+   * 공지와 **기간 없는 예전 글은 null**.
+   */
+  viewableFrom: string | null;
+  viewableUntil: string | null;
+  /**
+   * 기간 상태 — 월례회(§7.1)와 같은 값. **공지는 null**. 기간 없는 예전 글은 `CLOSED`.
+   * ⚠️ 표시용이다. 열 수 있는지는 `canView`가 말한다 (전도사·글쓴이는 기간 밖도 연다)
+   */
+  status: PostViewStatus | null;
+  /**
+   * **요청한 사람 기준** 지금 내용을 열 수 있는가. 공지는 늘 `true`.
+   * `false`면 상세(§3.3)·첨부(§4.2)가 `403` — 화면은 잠금으로 그린다.
+   * ⚠️ UI 편의일 뿐 보안이 아니다 — 서버가 상세·첨부 요청 때 다시 판정한다
+   */
+  canView: boolean;
 };
+
+/** 회의록·예산안 열람 기간 상태 (SPEC_API §3.2) — 월례회와 같은 집합 */
+export type PostViewStatus = "SCHEDULED" | "OPEN" | "CLOSED";
 
 /** 첨부파일 (SPEC_API §3.3) */
 export type PostAttachment = {
@@ -124,6 +144,14 @@ export type PostInput = {
   attachmentIds: string[];
   /** `false`면 임시저장 (`publishedAt = null`) */
   publish: boolean;
+  /**
+   * 열람 기간 (ISO-8601 UTC, SPEC_API §3.4 2026-10-19).
+   * **회의록·예산안을 게시할 때 필수** — 없으면 400 field `viewableFrom`,
+   * 끝 ≤ 시작이면 400 field `viewableUntil`. 임시저장은 둘 다 비울 수 있다
+   * (하나만 보내면 거부). 공지는 보내도 서버가 무시한다.
+   */
+  viewableFrom: string | null;
+  viewableUntil: string | null;
 };
 
 /** 첨부 업로드 응답 (SPEC_API §4.1) */
@@ -147,6 +175,9 @@ export type PostDetail = {
   /** ISO-8601 UTC */
   updatedAt: string;
   attachments: PostAttachment[];
+  /** 회의록·예산안만 값이 있다 — 수정 화면이 폼을 채운다 (§3.3 2026-10-19) */
+  viewableFrom: string | null;
+  viewableUntil: string | null;
 };
 
 // ── 인증·회원 (SPEC_API §2 v1.3 — 명단 대조 가입 · 즉시 MEMBER) ──────

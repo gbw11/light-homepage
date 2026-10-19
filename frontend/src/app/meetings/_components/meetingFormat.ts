@@ -30,14 +30,8 @@ export function formatMeetingDate(localDate: string): string {
   return `${Number(month)}/${Number(day)}`;
 }
 
-/** ISO(UTC) → `8/26 23:59` — 사용자 기기의 로컬 시간으로 보여준다 */
-export function formatDeadline(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`;
-}
+/** ISO(UTC) → `8/26 23:59` — 회의록·예산안 목록도 같은 모양이라 `@/lib/viewWindow`에 둔다 */
+export { formatDeadline } from "@/lib/viewWindow";
 
 /**
  * 남은 초 → `2일 3시간 남음`.

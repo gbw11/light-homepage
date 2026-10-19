@@ -52,9 +52,31 @@ export function DocumentDetail({ slug }: { slug: string }) {
   }
 
   if (isError || !post) {
-    // 권한이 없어도 서버는 NOT_FOUND를 준다 (SPEC_API §3.3) — 존재 여부를
-    // 알려주지 않는 게 의도이므로 화면도 구분하지 않고 같은 문구를 쓴다.
-    const notFound = isApiError(error) && (error.code === "NOT_FOUND" || error.code === "FORBIDDEN");
+    /*
+      두 경우를 가른다 (SPEC_API §3.1 · §3.3, 2026-10-19):
+      · `FORBIDDEN`(403) — 분류 권한은 있는데 **열람 기간 밖**이다. 목록에서 그 글을 이미
+        보고 온 사람이라 존재를 숨길 이유가 없다 — 왜 못 여는지를 알린다
+      · `NOT_FOUND`(404) — 없는 글이거나 분류 권한이 없다(예산안 × 회원). 존재 여부를
+        알려주지 않는 게 의도라 같은 문구를 쓴다
+    */
+    if (isApiError(error) && error.code === "FORBIDDEN") {
+      return (
+        <Section>
+          <div className="mx-auto max-w-md py-8 text-center">
+            <p className="text-4xl" aria-hidden>
+              🔒
+            </p>
+            <h2 className="mt-4 text-xl font-bold">열람 기간이 아닙니다</h2>
+            <p className="mt-2 text-[var(--color-gray-400)]">
+              이 문서는 정해진 열람 기간에만 볼 수 있습니다. 기간은 문서 목록에서 확인할 수 있고,
+              기간이 필요하면 임원에게 문의해 주세요.
+            </p>
+            <BackLink />
+          </div>
+        </Section>
+      );
+    }
+    const notFound = isApiError(error) && error.code === "NOT_FOUND";
     return (
       <Section>
         <p role="alert" className="text-[var(--color-red-500)]">

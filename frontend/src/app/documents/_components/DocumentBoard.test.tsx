@@ -19,7 +19,7 @@ vi.mock("@/lib/api", () => ({
 const mockUseAuth = vi.mocked(useAuth);
 const mockList = vi.mocked(api.posts.list);
 
-function minutes(n: number): PostSummary {
+function minutes(n: number, overrides: Partial<PostSummary> = {}): PostSummary {
   return {
     id: `m${n}`,
     category: "MINUTES",
@@ -29,6 +29,11 @@ function minutes(n: number): PostSummary {
     authorName: "박OO",
     publishedAt: "2026-08-01T00:00:00Z",
     attachmentCount: 0,
+    viewableFrom: "2026-08-01T00:00:00Z",
+    viewableUntil: "2099-08-08T14:59:00Z",
+    status: "OPEN",
+    canView: true,
+    ...overrides,
   };
 }
 
@@ -104,5 +109,48 @@ describe("DocumentBoard — 21번째 문서부터 (점검 🟠-5)", () => {
     expect(screen.getByText("회의록 1")).toBeInTheDocument();
     expect(mockList).toHaveBeenLastCalledWith({ category: "MINUTES", page: 1 });
     expect(screen.queryByRole("button", { name: "더 보기" })).not.toBeInTheDocument();
+  });
+});
+
+describe("DocumentBoard — 열람 기간 (§3.1 · §3.2 2026-10-19)", () => {
+  beforeEach(() => mockList.mockReset());
+
+  it("canView: false인 글은 목록에 남지만 링크가 없고 잠금으로 그린다", async () => {
+    mockList.mockResolvedValue({
+      items: [
+        minutes(1),
+        minutes(2, { status: "CLOSED", canView: false, viewableUntil: "2026-08-03T14:59:00Z" }),
+        minutes(3, { status: "CLOSED", canView: false, viewableFrom: null, viewableUntil: null }),
+      ],
+      page: 0,
+      size: 20,
+      hasNext: false,
+    });
+    renderBoard("MEMBER");
+
+    expect(await screen.findByText("회의록 1")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /회의록 1/ })).toHaveAttribute("href", "/documents/minutes-1");
+
+    // 기간 밖 · 기간 없는 예전 글 — 존재는 알리고 열 길은 주지 않는다
+    expect(screen.getByText("회의록 2")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /회의록 2/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/^열람 기간 종료/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /회의록 3/ })).not.toBeInTheDocument();
+    expect(screen.getByText("열람 기간 미정")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("잠김")).toHaveLength(2);
+  });
+
+  it("전도사·글쓴이처럼 기간 밖이어도 canView: true면 그대로 열린다", async () => {
+    mockList.mockResolvedValue({
+      items: [minutes(1, { status: "SCHEDULED", canView: true, viewableFrom: "2099-01-01T00:00:00Z" })],
+      page: 0,
+      size: 20,
+      hasNext: false,
+    });
+    renderBoard("PASTOR");
+
+    expect(await screen.findByRole("link", { name: /회의록 1/ })).toBeInTheDocument();
+    expect(screen.getByText(/부터$/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("잠김")).not.toBeInTheDocument();
   });
 });
