@@ -3,6 +3,7 @@ package kr.light.newcomer;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 /**
  * 새가족 신청 한 건 (SPEC_API.md §8.6).
@@ -26,8 +27,9 @@ public record NewcomerRecordResponse(
         @Schema(description = "선택 항목이라 null일 수 있다", nullable = true)
         Gender gender,
 
-        @Schema(nullable = true)
-        AgeGroup ageGroup,
+        @Schema(description = "생년월일 (YYYY-MM-DD). 2026-10-19 이전 신청은 null — 그때는 나이대를 받았다",
+                nullable = true, example = "2001-03-14")
+        LocalDate birthDate,
 
         @Schema(nullable = true)
         Referrer referrer,
@@ -45,7 +47,7 @@ public record NewcomerRecordResponse(
                 request.getName(),
                 request.getPhone(),
                 request.getGender(),
-                request.getAgeGroup(),
+                request.getBirthDate(),
                 request.getReferrer(),
                 request.getMessage(),
                 request.getCreatedAt());
