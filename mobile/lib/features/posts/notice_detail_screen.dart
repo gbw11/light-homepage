@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/api_error.dart';
+import '../../core/auth/auth_state.dart';
 import '../../core/format/date_format.dart';
 import '../../core/format/file_size.dart';
+import '../../core/platform/screen_security.dart';
 import '../../core/ui/status_views.dart';
+import '../../core/ui/watermark.dart';
 import '../account/login_gate.dart';
 import 'post_body_view.dart';
 import 'post_detail.dart';
@@ -13,6 +16,8 @@ import 'posts_api.dart';
 /// 공지 상세 (웹 `/news/[slug]`, 기획안 §2-2 ②).
 ///
 /// 회의록·예산안 상세(M9)도 같은 모양이라 [title]만 바꿔 쓸 수 있게 둔다.
+/// 다만 회의록 · 예산안은 **열람자 워터마크 · 캡처 막기 · 복사 막기**가 더해진다
+/// (2026-10-19, [PostCategory.isConfidential]).
 class NoticeDetailScreen extends StatefulWidget {
   const NoticeDetailScreen({
     super.key,
@@ -40,15 +45,38 @@ class NoticeDetailScreen extends StatefulWidget {
 }
 
 class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
-  late Future<PostDetail> _post = widget.posts.get(widget.idOrSlug);
+  late Future<PostDetail> _post = _load();
 
   /// 주소를 받는 중인 첨부. 두 번 누르면 두 번 열리지 않게 막는다
   String? _opening;
 
+  /// 워터마크의 열람 시각 — 화면을 연 때로 고정한다 (그리는 때마다 바뀌지 않게)
+  final _viewedAt = DateTime.now();
+
+  Future<PostDetail> _load() {
+    final post = widget.posts.get(widget.idOrSlug);
+    post.then((p) {
+      if (p.category.isConfidential) _ensurePhone();
+    }, onError: (_) {});
+    return post;
+  }
+
   void _retry() {
     setState(() {
-      _post = widget.posts.get(widget.idOrSlug);
+      _post = _load();
     });
+  }
+
+  /// 워터마크에 연락처 뒷4자리가 들어가야 하는데, 로그인 응답에는 연락처가 없다
+  /// (SPEC_API §2.3 — `/auth/me`에만 있다). 비어 있으면 한 번 받아 온다.
+  /// 실패해도 워터마크는 이름 · 시각만으로 그린다
+  void _ensurePhone() {
+    if (!mounted) return;
+    // build 밖이라 의존을 걸지 않고 꺼낸다 — 다시 그리는 것은 아래 _Content가 맡는다
+    final auth = context.getInheritedWidgetOfExactType<AuthScope>()?.notifier;
+    final user = auth?.user;
+    if (auth == null || user == null || user.phone != null) return;
+    auth.refreshMe().ignore();
   }
 
   /// 첨부 열기 — 권한이 실린 요청으로 서명 주소를 받고, 그 주소를 바깥에서 연다.
@@ -116,11 +144,25 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
               _ => ErrorView(error: error, onRetry: _retry),
             };
           }
-          return _Content(
-            snapshot.requireData,
+          final post = snapshot.requireData;
+          final content = _Content(
+            post,
             opening: _opening,
             onOpenLink: widget.openExternal,
             onOpenAttachment: _openAttachment,
+          );
+          if (!post.category.isConfidential) return content;
+          // 회의록 · 예산안 — 월례회 자료처럼 캡처 · 녹화를 막고 열람자를 새긴다
+          // (2026-10-19). 로그인 상태가 바뀌면(연락처를 받아 오면) 문구도 다시 그린다
+          return SecureScreen(
+            child: Watermark(
+              text: watermarkText(
+                AuthScope.maybeOf(context)?.user,
+                _viewedAt,
+                documentId: post.id,
+              ),
+              child: content,
+            ),
           );
         },
       ),
@@ -169,8 +211,10 @@ class _Content extends StatelessWidget {
       children: [
         Align(alignment: Alignment.centerLeft, child: _CategoryChip(post)),
         const SizedBox(height: 12),
-        // 본문은 길게 눌러 복사할 수 있다 — 계좌번호·장소를 옮겨 적는 일이 많다
-        SelectionArea(
+        // 본문은 길게 눌러 복사할 수 있다 — 계좌번호·장소를 옮겨 적는 일이 많다.
+        // 회의록 · 예산안만 복사를 막는다 — 워터마크는 글자째 가져가는 것을 못 막는다
+        _selectable(
+          post.category.isConfidential,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -274,6 +318,10 @@ class _Content extends StatelessWidget {
       ],
     );
   }
+
+  /// 본문 선택(복사) 허용 여부. 막을 때는 [SelectionArea]를 두지 않는다
+  static Widget _selectable(bool confidential, {required Widget child}) =>
+      confidential ? child : SelectionArea(child: child);
 
   /// `2026.09.04 10:30` — 기기 시간대로
   static String _dateTime(DateTime at) {
