@@ -130,6 +130,10 @@ abstract class _MapPainter extends CustomPainter {
   double get titleY;
   double get floorY;
 
+  /// true면 「4층」을 별 아래가 아니라 「드림센터」 오른쪽 같은 줄에 둔다.
+  /// [labelX]는 두 글자 묶음의 가운데가 된다 ([floorY]는 쓰지 않는다)
+  bool get floorBesideTitle => false;
+
   void drawLayer(Canvas canvas);
 
   @override
@@ -171,8 +175,35 @@ abstract class _MapPainter extends CustomPainter {
       Paint()..color = p.onAccent,
     );
 
-    text(canvas, '드림센터', labelX, titleY, size: 21, bold: true, color: p.ink);
-    text(canvas, '4층', labelX, floorY, size: 18, bold: true, color: p.red);
+    if (floorBesideTitle) {
+      const gap = 6.0;
+      final titleW = _textWidth('드림센터', size: 21, bold: true);
+      final floorW = _textWidth('4층', size: 18, bold: true);
+      final left = labelX - (titleW + gap + floorW) / 2;
+      text(
+        canvas,
+        '드림센터',
+        left,
+        titleY,
+        size: 21,
+        bold: true,
+        color: p.ink,
+        anchor: _Anchor.start,
+      );
+      text(
+        canvas,
+        '4층',
+        left + titleW + gap,
+        titleY,
+        size: 18,
+        bold: true,
+        color: p.red,
+        anchor: _Anchor.start,
+      );
+    } else {
+      text(canvas, '드림센터', labelX, titleY, size: 21, bold: true, color: p.ink);
+      text(canvas, '4층', labelX, floorY, size: 18, bold: true, color: p.red);
+    }
 
     // 북쪽 표시
     canvas.save();
@@ -190,6 +221,31 @@ abstract class _MapPainter extends CustomPainter {
     canvas.restore();
   }
 
+  TextPainter _layout(
+    String value, {
+    required double size,
+    required Color color,
+    bool bold = false,
+  }) => TextPainter(
+    text: TextSpan(
+      text: value,
+      style: TextStyle(
+        fontFamily: p.font,
+        fontSize: size,
+        fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+        color: color,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+
+  double _textWidth(String value, {required double size, bool bold = false}) {
+    final painter = _layout(value, size: size, color: p.ink, bold: bold);
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
+
   /// 글자 한 줄. [y]는 SVG처럼 **글자 밑선**이다
   void text(
     Canvas canvas,
@@ -201,18 +257,7 @@ abstract class _MapPainter extends CustomPainter {
     bool bold = false,
     _Anchor anchor = _Anchor.middle,
   }) {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: value,
-        style: TextStyle(
-          fontFamily: p.font,
-          fontSize: size,
-          fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
-          color: color,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    final painter = _layout(value, size: size, color: color, bold: bold);
     final baseline = painter.computeDistanceToActualBaseline(
       TextBaseline.alphabetic,
     );
@@ -334,13 +379,18 @@ class _RouteMapPainter extends _MapPainter {
 class _ParkingMapPainter extends _MapPainter {
   _ParkingMapPainter(super.p);
 
-  // P3에서 내려오는 점선이 이름표 오른쪽 끝을 가로지르지 않게 왼쪽으로 민다
+  // 「드림센터 4층」을 한 줄로, 가락로 아래에 둔다 (PM 요청 2026-10-19).
+  // 길 위쪽은 P3에서 내려오는 점선이 지나고, 오른쪽 아래는 P2 점선이 비스듬히
+  // 올라오므로(x≈165~) 묶음을 그보다 왼쪽에 둔다
   @override
-  double get labelX => 104;
+  double get labelX => 98;
   @override
-  double get titleY => 214;
+  double get titleY => 296;
   @override
-  double get floorY => 292;
+  double get floorY => 296;
+
+  @override
+  bool get floorBesideTitle => true;
 
   @override
   void drawLayer(Canvas canvas) {
