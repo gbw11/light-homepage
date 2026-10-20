@@ -13,6 +13,7 @@ import '../core/push/devices_api.dart';
 import '../core/push/push_messaging.dart';
 import '../core/theme/app_theme.dart';
 import 'app_intro.dart';
+import 'push_snack_bar.dart';
 import 'push_service.dart';
 import 'router.dart';
 
@@ -68,21 +69,14 @@ class _LightAppState extends State<LightApp> {
 
   /// 앱을 보는 중에 온 알림 — 안드로이드는 알림창을 띄우지 않아 앱이 알린다
   void _showForeground(PushPayload payload, String? path) {
-    final text = [payload.title, payload.body].nonNulls.join(' · ');
-    if (text.isEmpty) return;
+    final snackBar = pushSnackBar(
+      payload,
+      onOpen: path == null ? null : () => _router.push(path),
+    );
+    if (snackBar == null) return;
     _messenger.currentState
       ?..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(text),
-          action: path == null
-              ? null
-              : SnackBarAction(
-                  label: '보기',
-                  onPressed: () => _router.push(path),
-                ),
-        ),
-      );
+      ..showSnackBar(snackBar);
   }
 
   @override
