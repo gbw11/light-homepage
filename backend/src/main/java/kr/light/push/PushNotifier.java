@@ -60,10 +60,10 @@ public class PushNotifier {
         Map<String, String> data = Map.of("type", "notice", "postId", String.valueOf(event.postId()));
         switch (event.category()) {
             case NOTICE_PUBLIC -> run(() -> sender.sendToTopic(PushTopics.PUBLIC,
-                    new PushMessage(tagged("공지", event.title()), "새 공지가 올라왔어요.", data)));
+                    new PushMessage(tagged("공지", event.title()), null, data)));
             // 회원 공지 제목은 회원에게만 — 주제로 보내면 비회원도 받는다
             case NOTICE_MEMBER -> run(() -> sendToRoles(EnumSet.allOf(Role.class),
-                    new PushMessage(tagged("회원 공지", event.title()), "새 회원 공지가 올라왔어요.", data)));
+                    new PushMessage(tagged("회원 공지", event.title()), null, data)));
             case MINUTES, BUDGET -> {
                 // 위 클래스 주석
             }
@@ -75,7 +75,7 @@ public class PushNotifier {
         String date = "%d월 %d일".formatted(
                 event.serviceDate().getMonthValue(), event.serviceDate().getDayOfMonth());
         run(() -> sender.sendToTopic(PushTopics.PUBLIC, new PushMessage(
-                tagged("주보", date + " 주보"), "새 주보가 올라왔어요.",
+                tagged("주보", date + " 주보"), null,
                 Map.of("type", "bulletin", "bulletinId", String.valueOf(event.bulletinId())))));
     }
 
@@ -94,7 +94,8 @@ public class PushNotifier {
      * <p>안드로이드 알림창은 제목과 내용을 같은 크기 · 같은 굵기로 두 줄에 그린다.
      * 「새 공지 / 가을 수련회 안내」로 보내면 어느 줄이 종류이고 어느 줄이 글
      * 제목인지 구분이 안 된다 (2026-10-20 실기 확인). 그래서 첫 줄에 종류를
-     * 대괄호로 붙여 글 제목과 함께 두고, 둘째 줄은 무슨 일인지 한 문장으로 쓴다
+     * 대괄호로 붙여 글 제목과 함께 두고, 공지 · 주보는 둘째 줄(내용)을 비운다 —
+     * 「새 공지가 올라왔어요.」는 첫 줄과 같은 말이라 뺐다 (사용자 결정 2026-10-20)
      */
     static String tagged(String kind, String title) {
         return "[" + kind + "] " + title;
