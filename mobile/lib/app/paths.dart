@@ -29,6 +29,9 @@ abstract final class AppPaths {
   /// 마이페이지 (웹과 같은 주소) — 탭 화면 상단 오른쪽 사람 버튼으로 연다
   static const my = '/my';
 
+  /// 알림함 — 홈 상단의 종으로 연다. 하단 탭을 덮는다
+  static const notifications = '/notifications';
+
   // 사이드바 — 교회 안내
   static const welcome = '/welcome';
   static const location = '/location';
