@@ -9,14 +9,21 @@ import '../content/location.dart';
 import '../core/api/api_client.dart';
 import '../core/auth/auth_state.dart';
 import '../core/platform/open_url.dart';
+import '../core/push/devices_api.dart';
+import '../core/push/push_messaging.dart';
 import '../core/theme/app_theme.dart';
 import 'app_intro.dart';
+import 'push_service.dart';
 import 'router.dart';
 
 class LightApp extends StatefulWidget {
-  const LightApp({super.key, required this.api});
+  const LightApp({super.key, required this.api, this.push});
 
   final ApiClient api;
+
+  /// 푸시 알림. Firebase를 켜지 못했거나(테스트 · 구글 플레이 서비스 없음) 없으면
+  /// 알림만 빠지고 앱은 그대로다
+  final PushMessaging? push;
 
   @override
   State<LightApp> createState() => _LightAppState();
@@ -36,6 +43,8 @@ class _LightAppState extends State<LightApp> {
     openExternal: _openExternal,
   );
 
+  PushService? _push;
+
   @override
   void initState() {
     super.initState();
@@ -44,10 +53,41 @@ class _LightAppState extends State<LightApp> {
     _sessionEnded = _auth.sessionEnded.listen(
       (_) => _toast('로그인이 만료됐어요. 다시 로그인해 주세요.'),
     );
+    if (widget.push case final messaging?) {
+      _push = PushService(
+        messaging: messaging,
+        devices: DevicesApi(widget.api),
+        auth: _auth,
+        onOpen: (path) => _router.push(path),
+        onForeground: _showForeground,
+      );
+      // 첫 화면이 그려진 뒤에 — 알림을 눌러 켠 경우 그 화면을 라우터로 열어야 한다
+      WidgetsBinding.instance.addPostFrameCallback((_) => _push?.start());
+    }
+  }
+
+  /// 앱을 보는 중에 온 알림 — 안드로이드는 알림창을 띄우지 않아 앱이 알린다
+  void _showForeground(PushPayload payload, String? path) {
+    final text = [payload.title, payload.body].nonNulls.join(' · ');
+    if (text.isEmpty) return;
+    _messenger.currentState
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(text),
+          action: path == null
+              ? null
+              : SnackBarAction(
+                  label: '보기',
+                  onPressed: () => _router.push(path),
+                ),
+        ),
+      );
   }
 
   @override
   void dispose() {
+    _push?.dispose();
     _sessionEnded.cancel();
     _router.dispose();
     _auth.dispose();
