@@ -60,10 +60,10 @@ public class PushNotifier {
         Map<String, String> data = Map.of("type", "notice", "postId", String.valueOf(event.postId()));
         switch (event.category()) {
             case NOTICE_PUBLIC -> run(() -> sender.sendToTopic(PushTopics.PUBLIC,
-                    new PushMessage("새 공지", event.title(), data)));
+                    new PushMessage(tagged("공지", event.title()), "새 공지가 올라왔어요.", data)));
             // 회원 공지 제목은 회원에게만 — 주제로 보내면 비회원도 받는다
             case NOTICE_MEMBER -> run(() -> sendToRoles(EnumSet.allOf(Role.class),
-                    new PushMessage("새 회원 공지", event.title(), data)));
+                    new PushMessage(tagged("회원 공지", event.title()), "새 회원 공지가 올라왔어요.", data)));
             case MINUTES, BUDGET -> {
                 // 위 클래스 주석
             }
@@ -75,7 +75,7 @@ public class PushNotifier {
         String date = "%d월 %d일".formatted(
                 event.serviceDate().getMonthValue(), event.serviceDate().getDayOfMonth());
         run(() -> sender.sendToTopic(PushTopics.PUBLIC, new PushMessage(
-                "주보", date + " 주보가 올라왔어요.",
+                tagged("주보", date + " 주보"), "새 주보가 올라왔어요.",
                 Map.of("type", "bulletin", "bulletinId", String.valueOf(event.bulletinId())))));
     }
 
@@ -84,8 +84,20 @@ public class PushNotifier {
         // 이름 · 연락처는 싣지 않는다 — 잠금 화면에 그대로 보인다. 누구인지는 앱의
         // 새가족 목록에서 본다 (§8.6)
         run(() -> sendToRoles(EnumSet.of(Role.LEADER, Role.PASTOR), new PushMessage(
-                "새가족 신청", "새가족 신청이 들어왔어요. 확인해 주세요.",
+                tagged("새가족", "새가족 신청"), "새가족 신청이 들어왔어요. 확인해 주세요.",
                 Map.of("type", "newcomer"))));
+    }
+
+    /**
+     * 알림 첫 줄 — 「[공지] 가을 수련회 안내」.
+     *
+     * <p>안드로이드 알림창은 제목과 내용을 같은 크기 · 같은 굵기로 두 줄에 그린다.
+     * 「새 공지 / 가을 수련회 안내」로 보내면 어느 줄이 종류이고 어느 줄이 글
+     * 제목인지 구분이 안 된다 (2026-10-20 실기 확인). 그래서 첫 줄에 종류를
+     * 대괄호로 붙여 글 제목과 함께 두고, 둘째 줄은 무슨 일인지 한 문장으로 쓴다
+     */
+    static String tagged(String kind, String title) {
+        return "[" + kind + "] " + title;
     }
 
     /** 이 역할들의 기기로 보내고, FCM이 「없는 기기」라고 답한 토큰은 지운다 */
