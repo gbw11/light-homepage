@@ -97,14 +97,14 @@ class PushNotificationApiTest {
     // ── 공지 ─────────────────────────────────────────────────
 
     @Test
-    @DisplayName("공개 공지를 게시하면 주제 public으로 「새 공지」 — 제목 · postId")
+    @DisplayName("공개 공지를 게시하면 주제 public으로 「[공지] 제목」 한 줄 · postId")
     void 공개_공지() throws Exception {
         String id = write("NOTICE_PUBLIC", "가을 수련회 안내", true);
 
         ArgumentCaptor<PushMessage> message = ArgumentCaptor.forClass(PushMessage.class);
         verify(sender).sendToTopic(eq(PushTopics.PUBLIC), message.capture());
-        assertThat(message.getValue().title()).isEqualTo("새 공지");
-        assertThat(message.getValue().body()).isEqualTo("가을 수련회 안내");
+        assertThat(message.getValue().title()).isEqualTo("[공지] 가을 수련회 안내");
+        assertThat(message.getValue().body()).isNull();
         assertThat(message.getValue().data()).containsEntry("type", "notice").containsEntry("postId", id);
         verify(sender, never()).sendToTokens(anyList(), any());
     }
@@ -118,7 +118,8 @@ class PushNotificationApiTest {
         ArgumentCaptor<PushMessage> message = ArgumentCaptor.forClass(PushMessage.class);
         verify(sender).sendToTokens(tokens.capture(), message.capture());
         assertThat(tokens.getValue()).containsExactlyInAnyOrder("token-member", "token-leader", "token-pastor");
-        assertThat(message.getValue().title()).isEqualTo("새 회원 공지");
+        assertThat(message.getValue().title()).isEqualTo("[회원 공지] 마을장 모임");
+        assertThat(message.getValue().body()).isNull();
         verify(sender, never()).sendToTopic(anyString(), any());
     }
 
@@ -147,7 +148,7 @@ class PushNotificationApiTest {
     // ── 주보 · 새가족 ────────────────────────────────────────
 
     @Test
-    @DisplayName("주보를 올리면 주제 public으로 「10월 19일 주보가 올라왔어요.」")
+    @DisplayName("주보를 올리면 주제 public으로 「[주보] 10월 19일 주보」 한 줄")
     void 주보() throws Exception {
         String body = mockMvc.perform(multipart("/api/bulletins")
                         .file(new MockMultipartFile("pages", "1.webp", "image/webp", "page".getBytes()))
@@ -159,7 +160,8 @@ class PushNotificationApiTest {
 
         ArgumentCaptor<PushMessage> message = ArgumentCaptor.forClass(PushMessage.class);
         verify(sender).sendToTopic(eq(PushTopics.PUBLIC), message.capture());
-        assertThat(message.getValue().body()).isEqualTo("10월 19일 주보가 올라왔어요.");
+        assertThat(message.getValue().title()).isEqualTo("[주보] 10월 19일 주보");
+        assertThat(message.getValue().body()).isNull();
         assertThat(message.getValue().data()).containsEntry("type", "bulletin").containsEntry("bulletinId", id);
     }
 
@@ -174,6 +176,7 @@ class PushNotificationApiTest {
         assertThat(tokens.getValue()).containsExactlyInAnyOrder("token-leader", "token-pastor");
         PushMessage sent = message.getValue();
         assertThat(sent.title() + sent.body() + sent.data()).doesNotContain("홍길동", "1111", "2222");
+        assertThat(sent.title()).isEqualTo("[새가족] 새가족 신청");
         assertThat(sent.data()).containsEntry("type", "newcomer");
     }
 
