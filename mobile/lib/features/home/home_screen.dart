@@ -4,6 +4,7 @@ import '../../core/auth/auth_state.dart';
 import '../../core/format/date_format.dart';
 import '../../core/ui/menu_button.dart';
 import '../../core/ui/profile_button.dart';
+import '../notifications/notification_bell.dart';
 import '../bulletins/bulletin.dart';
 import '../bulletins/bulletins_api.dart';
 import '../posts/post_card.dart';
@@ -24,6 +25,7 @@ class HomeActions {
     required this.onOpenSermon,
     required this.onSeeAllSermons,
     required this.onOpenBulletin,
+    required this.onOpenNotifications,
   });
 
   final VoidCallback onFirstVisit;
@@ -35,6 +37,9 @@ class HomeActions {
 
   /// 주보 id
   final void Function(String id) onOpenBulletin;
+
+  /// 상단 종 — 알림함
+  final VoidCallback onOpenNotifications;
 }
 
 /// 홈 (웹 `/home`을 앱에 맞게 줄인 것).
@@ -143,7 +148,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: const MenuButton(),
-        actions: const [ProfileButton()],
+        actions: [
+          NotificationBell(onPressed: actions.onOpenNotifications),
+          const ProfileButton(),
+        ],
         titleSpacing: 0,
         title: Row(
           mainAxisSize: MainAxisSize.min,

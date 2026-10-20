@@ -26,6 +26,8 @@ import '../features/meetings/meetings_api.dart';
 import '../features/meetings/meetings_screen.dart';
 import '../features/newcomers/newcomer_form_screen.dart';
 import '../features/newcomers/newcomers_api.dart';
+import '../features/notifications/inbox.dart';
+import '../features/notifications/notifications_screen.dart';
 import '../features/photos/album.dart';
 import '../features/photos/album_screen.dart';
 import '../features/photos/albums_screen.dart';
@@ -52,6 +54,7 @@ export 'paths.dart';
 GoRouter buildRouter({
   required ApiClient api,
   required AuthState auth,
+  required NotificationInbox inbox,
   required Future<void> Function(String url) openExternal,
 }) {
   final posts = PostsApi(api);
@@ -148,6 +151,8 @@ GoRouter buildRouter({
                     onDirections: () => context.push(AppPaths.location),
                     onOpenBulletin: (id) =>
                         context.push('${AppPaths.bulletin}/$id'),
+                    onOpenNotifications: () =>
+                        context.push(AppPaths.notifications),
                   ),
                 ),
                 routes: [noticeDetail('news/:id')],
@@ -290,6 +295,21 @@ GoRouter buildRouter({
                 PasswordChangeScreen(auth: auth, onDone: () => context.pop()),
           ),
         ],
+      ),
+
+      // ── 알림함 — 홈 상단의 종으로 연다. 하단 탭을 덮는다 ──
+      GoRoute(
+        path: AppPaths.notifications,
+        builder: (context, state) => NotificationsScreen(
+          inbox: inbox,
+          onOpen: (item) => context.push(switch (item.kind) {
+            InboxKind.notice ||
+            InboxKind.memberNotice => '${AppPaths.news}/${item.refId}',
+            InboxKind.bulletin => '${AppPaths.bulletin}/${item.refId}',
+            // 앱에는 새가족 목록이 없다 — 마이페이지의 「관리 화면(웹)」으로 간다
+            InboxKind.newcomer => AppPaths.my,
+          }),
+        ),
       ),
 
       // ── 자료 올리기 — 임원 이상. 하단 탭을 덮는다 ──

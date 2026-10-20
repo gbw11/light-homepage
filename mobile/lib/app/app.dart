@@ -12,15 +12,22 @@ import '../core/platform/open_url.dart';
 import '../core/push/devices_api.dart';
 import '../core/push/push_messaging.dart';
 import '../core/theme/app_theme.dart';
+import '../features/bulletins/bulletins_api.dart';
+import '../features/notifications/admin_notifications_api.dart';
+import '../features/notifications/inbox.dart';
+import '../features/posts/posts_api.dart';
 import 'app_intro.dart';
 import 'push_snack_bar.dart';
 import 'push_service.dart';
 import 'router.dart';
 
 class LightApp extends StatefulWidget {
-  const LightApp({super.key, required this.api, this.push});
+  const LightApp({super.key, required this.api, this.push, this.seenStore});
 
   final ApiClient api;
+
+  /// 알림함이 "본 알림"을 적어 두는 곳. 없으면 앱 저장소의 파일 (테스트는 메모리)
+  final SeenStore? seenStore;
 
   /// 푸시 알림. Firebase를 켜지 못했거나(테스트 · 구글 플레이 서비스 없음) 없으면
   /// 알림만 빠지고 앱은 그대로다
@@ -37,10 +44,23 @@ class _LightAppState extends State<LightApp> {
   late final AuthState _auth = AuthState(widget.api)..restore();
   late final StreamSubscription<void> _sessionEnded;
 
+  /// 홈 종 아이콘의 알림함. 로그인한 사람이 바뀌면 스스로 다시 센다
+  late final NotificationInbox _inbox = NotificationInbox(
+    posts: PostsApi(widget.api),
+    bulletins: BulletinsApi(widget.api),
+    admin: AdminNotificationsApi(widget.api),
+    auth: _auth,
+    store: widget.seenStore ?? FileSeenStore(),
+  )..refresh();
+
+  /// 앱으로 돌아올 때마다 알림함을 다시 센다 — 그사이 올라온 글이 있을 수 있다
+  late final AppLifecycleListener _lifecycle;
+
   // 라우터는 한 번만 만든다 — build에서 만들면 다시 그릴 때마다 탭 상태가 날아간다
   late final GoRouter _router = buildRouter(
     api: widget.api,
     auth: _auth,
+    inbox: _inbox,
     openExternal: _openExternal,
   );
 
@@ -54,6 +74,7 @@ class _LightAppState extends State<LightApp> {
     _sessionEnded = _auth.sessionEnded.listen(
       (_) => _toast('로그인이 만료됐어요. 다시 로그인해 주세요.'),
     );
+    _lifecycle = AppLifecycleListener(onResume: _inbox.refresh);
     if (widget.push case final messaging?) {
       _push = PushService(
         messaging: messaging,
@@ -69,6 +90,7 @@ class _LightAppState extends State<LightApp> {
 
   /// 앱을 보는 중에 온 알림 — 안드로이드는 알림창을 띄우지 않아 앱이 알린다
   void _showForeground(PushPayload payload, String? path) {
+    _inbox.refresh();
     final snackBar = pushSnackBar(
       payload,
       onOpen: path == null ? null : () => _router.push(path),
@@ -83,7 +105,9 @@ class _LightAppState extends State<LightApp> {
   void dispose() {
     _push?.dispose();
     _sessionEnded.cancel();
+    _lifecycle.dispose();
     _router.dispose();
+    _inbox.dispose();
     _auth.dispose();
     super.dispose();
   }
@@ -111,19 +135,22 @@ class _LightAppState extends State<LightApp> {
   Widget build(BuildContext context) {
     return AuthScope(
       auth: _auth,
-      child: MaterialApp.router(
-        title: 'LIGHT',
-        theme: buildAppTheme(),
-        scaffoldMessengerKey: _messenger,
-        routerConfig: _router,
-        // 달력 · 뒤로가기 툴팁 같은 기본 문구를 한국어로 (주보 날짜 고르기 등)
-        locale: const Locale('ko'),
-        supportedLocales: const [Locale('ko')],
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        // 앱을 켤 때 인트로를 앱 본체 위에 덮는다 (app_intro.dart). 라우터 밖에 두어
-        // 탭·화면 구성과 무관하게 한 번만 뜬다
-        builder: (context, child) =>
-            AppIntro(child: child ?? const SizedBox.shrink()),
+      child: InboxScope(
+        inbox: _inbox,
+        child: MaterialApp.router(
+          title: 'LIGHT',
+          theme: buildAppTheme(),
+          scaffoldMessengerKey: _messenger,
+          routerConfig: _router,
+          // 달력 · 뒤로가기 툴팁 같은 기본 문구를 한국어로 (주보 날짜 고르기 등)
+          locale: const Locale('ko'),
+          supportedLocales: const [Locale('ko')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          // 앱을 켤 때 인트로를 앱 본체 위에 덮는다 (app_intro.dart). 라우터 밖에 두어
+          // 탭·화면 구성과 무관하게 한 번만 뜬다
+          builder: (context, child) =>
+              AppIntro(child: child ?? const SizedBox.shrink()),
+        ),
       ),
     );
   }

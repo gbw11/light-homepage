@@ -98,6 +98,7 @@ class Recorder {
     onOpenSermon: (s) => calls.add('sermon:${s.id}'),
     onSeeAllSermons: () => calls.add('allSermons'),
     onOpenBulletin: (id) => calls.add('bulletin:$id'),
+    onOpenNotifications: () => calls.add('notifications'),
   );
 }
 
