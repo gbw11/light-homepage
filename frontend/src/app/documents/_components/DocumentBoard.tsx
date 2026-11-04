@@ -8,7 +8,9 @@ import { Section } from "@/components/ui/Section";
 import { LoadMoreButton } from "@/components/ui/LoadMoreButton";
 import { isLeaderOrAbove } from "@/components/auth/RequireLeader";
 import { useAuth } from "@/components/providers/AuthProvider";
-import type { PostCategory, PostSummary } from "@/types/api";
+import { formatDeadline } from "@/lib/viewWindow";
+import type { DocumentCategory } from "./documentTab";
+import type { PostSummary } from "@/types/api";
 
 /**
  * 이 화면이 다루는 분류. **열람 권한이 서로 다르다** (SPEC_API §3.1 v1.3):
@@ -20,26 +22,87 @@ const TABS = [
   { category: "MINUTES", label: "회의록", leaderOnly: false },
   { category: "BUDGET", label: "예산안", leaderOnly: true },
 ] as const satisfies readonly {
-  category: PostCategory;
+  category: DocumentCategory;
   label: string;
   leaderOnly: boolean;
 }[];
-
-export type DocumentCategory = (typeof TABS)[number]["category"];
-
-/**
- * `/documents?tab=budget` → 예산안 탭으로 연다 (관리 홈 "예산안" 링크).
- * 알 수 없는 값·없음은 기본 탭(회의록)이다.
- */
-export function parseDocumentTab(tab: string | string[] | undefined): DocumentCategory {
-  return tab === "budget" ? "BUDGET" : "MINUTES";
-}
 
 /** 임시저장(`publish: false`) 글은 `publishedAt`이 null이다 (SPEC_API §3.4) */
 function formatDate(iso: string | null): string {
   if (!iso) return "임시저장";
   const d = new Date(iso);
   return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
+}
+
+/**
+ * 열람 기간 한 줄 (SPEC_API §3.1 · §3.2, 2026-10-19). 공지면 null — 이 화면엔 안 오지만
+ * 서버가 `status: null`로 주는 글에 기간 문구를 지어내지 않는다.
+ *
+ * ⚠️ 표시일 뿐이다. 열 수 있는지는 서버가 준 `canView`만 따른다 — 여기서 날짜를
+ * 다시 계산해 잠그거나 풀지 않는다 (월례회 `meetingFormat.ts`와 같은 원칙).
+ */
+export function viewWindowText(item: PostSummary): string | null {
+  if (item.status === null) return null;
+  if (!item.viewableFrom || !item.viewableUntil) return "열람 기간 미정";
+  switch (item.status) {
+    case "SCHEDULED":
+      return `열람 기간: ${formatDeadline(item.viewableFrom)}부터`;
+    case "OPEN":
+      return `열람 기간: ${formatDeadline(item.viewableUntil)}까지`;
+    case "CLOSED":
+      return `열람 기간 종료 (${formatDeadline(item.viewableFrom)} ~ ${formatDeadline(item.viewableUntil)})`;
+  }
+}
+
+/**
+ * 문서 한 줄. **기간 밖 글도 목록에 남는다** — 존재는 알리고 내용은 막는다(§3.2).
+ * 월례회 목록과 같은 원칙이다: 줄을 지우면 회원이 "자료가 있었는지"조차 모른다.
+ *
+ * `canView: false`면 링크를 걸지 않는다 — 눌러봤자 403이다. 전도사·글쓴이는
+ * 기간 밖에도 `canView: true`로 오므로 그대로 열리고, 기간 문구로 상태만 알린다.
+ */
+function DocumentRow({ item }: { item: PostSummary }) {
+  const windowText = viewWindowText(item);
+  const content = (
+    <>
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className="flex items-center gap-2">
+          {!item.canView && <span aria-label="잠김">🔒</span>}
+          {item.pinned && <span aria-label="고정됨">📌</span>}
+          <span className={item.canView ? "font-bold" : "font-bold text-[var(--color-gray-400)]"}>
+            {item.title}
+          </span>
+          {item.attachmentCount > 0 && (
+            <span
+              className="text-sm text-[var(--color-gray-400)]"
+              aria-label={`첨부 ${item.attachmentCount}개`}
+            >
+              📎 {item.attachmentCount}
+            </span>
+          )}
+        </span>
+        {windowText && (
+          <span className="text-sm text-[var(--color-gray-400)]">{windowText}</span>
+        )}
+      </span>
+      <span className="shrink-0 text-sm text-[var(--color-gray-400)]">
+        {formatDate(item.publishedAt)}
+      </span>
+    </>
+  );
+
+  if (!item.canView) {
+    return (
+      <div className="flex items-center justify-between gap-4 py-4" aria-disabled="true">
+        {content}
+      </div>
+    );
+  }
+  return (
+    <Link href={`/documents/${item.slug}`} className="flex items-center justify-between gap-4 py-4">
+      {content}
+    </Link>
+  );
 }
 
 /**
@@ -153,26 +216,7 @@ function DocumentList({ category }: { category: DocumentCategory }) {
       <ul className="divide-y divide-[var(--color-navy-100)]">
         {items.map((item) => (
           <li key={item.id}>
-            <Link
-              href={`/documents/${item.slug}`}
-              className="flex items-center justify-between gap-4 py-4"
-            >
-              <span className="flex items-center gap-2">
-                {item.pinned && <span aria-label="고정됨">📌</span>}
-                <span className="font-bold">{item.title}</span>
-                {item.attachmentCount > 0 && (
-                  <span
-                    className="text-sm text-[var(--color-gray-400)]"
-                    aria-label={`첨부 ${item.attachmentCount}개`}
-                  >
-                    📎 {item.attachmentCount}
-                  </span>
-                )}
-              </span>
-              <span className="shrink-0 text-sm text-[var(--color-gray-400)]">
-                {formatDate(item.publishedAt)}
-              </span>
-            </Link>
+            <DocumentRow item={item} />
           </li>
         ))}
       </ul>

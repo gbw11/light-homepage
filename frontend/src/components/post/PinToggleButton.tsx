@@ -40,6 +40,9 @@ export function PinToggleButton({ post }: { post: PostDetail }) {
         pinned: next,
         attachmentIds: latest.attachments.map((a) => a.id),
         publish: latest.publishedAt !== null,
+        // 회의록·예산안은 게시 상태로 다시 저장할 때 기간이 필수다(§3.4) — 빼면 400
+        viewableFrom: latest.viewableFrom,
+        viewableUntil: latest.viewableUntil,
       });
     },
     onSuccess: async (_, next) => {

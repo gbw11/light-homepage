@@ -105,7 +105,20 @@ export function pageOf<T>(all: T[], page: number, size: number): Page<T> {
   };
 }
 
-const NOTICES: PostSummary[] = [
+/**
+ * mock이 들고 있는 글 — 서버의 행에 해당한다. `status`·`canView`는 **요청한 사람과 지금
+ * 시각**에 따라 달라지므로 저장하지 않고 응답할 때 계산한다(`toPostSummary`).
+ */
+type MockPostRow = Omit<PostSummary, "status" | "canView">;
+
+/** mock 기준 시각에서 며칠 떨어진 ISO — 열람 기간 예시가 언제 열어도 같은 상태가 되게 */
+function daysFromNow(days: number): string {
+  return new Date(Date.now() + days * 86_400_000).toISOString();
+}
+
+const NO_WINDOW = { viewableFrom: null, viewableUntil: null } as const;
+
+const NOTICES: MockPostRow[] = [
   {
     id: "18",
     category: "NOTICE_PUBLIC",
@@ -115,6 +128,7 @@ const NOTICES: PostSummary[] = [
     authorName: "박OO",
     publishedAt: "2026-08-24T01:00:00Z",
     attachmentCount: 1,
+    ...NO_WINDOW,
   },
   {
     id: "17",
@@ -125,6 +139,7 @@ const NOTICES: PostSummary[] = [
     authorName: "김OO",
     publishedAt: "2026-08-10T01:00:00Z",
     attachmentCount: 0,
+    ...NO_WINDOW,
   },
   {
     id: "16",
@@ -135,6 +150,7 @@ const NOTICES: PostSummary[] = [
     authorName: "이OO",
     publishedAt: "2026-08-05T01:00:00Z",
     attachmentCount: 0,
+    ...NO_WINDOW,
   },
   {
     id: "15",
@@ -145,6 +161,7 @@ const NOTICES: PostSummary[] = [
     authorName: "박OO",
     publishedAt: "2026-07-28T01:00:00Z",
     attachmentCount: 0,
+    ...NO_WINDOW,
   },
   {
     id: "21",
@@ -155,6 +172,7 @@ const NOTICES: PostSummary[] = [
     authorName: "김OO",
     publishedAt: "2026-08-22T01:00:00Z",
     attachmentCount: 0,
+    ...NO_WINDOW,
   },
   {
     id: "20",
@@ -165,6 +183,7 @@ const NOTICES: PostSummary[] = [
     authorName: "박OO",
     publishedAt: "2026-08-18T01:00:00Z",
     attachmentCount: 1,
+    ...NO_WINDOW,
   },
   {
     id: "19",
@@ -175,6 +194,7 @@ const NOTICES: PostSummary[] = [
     authorName: "이OO",
     publishedAt: "2026-08-12T01:00:00Z",
     attachmentCount: 0,
+    ...NO_WINDOW,
   },
   // ── 문서 게시판 (FR-DOC) — 임원(`L`) 이상만 열람 가능한 분류 ──
   {
@@ -186,6 +206,9 @@ const NOTICES: PostSummary[] = [
     authorName: "박OO",
     publishedAt: "2026-08-21T01:00:00Z",
     attachmentCount: 1,
+    // 열람 기간 안 — 회원·임원이 연다
+    viewableFrom: daysFromNow(-1),
+    viewableUntil: daysFromNow(6),
   },
   {
     id: "30",
@@ -196,6 +219,9 @@ const NOTICES: PostSummary[] = [
     authorName: "박OO",
     publishedAt: "2026-07-17T01:00:00Z",
     attachmentCount: 0,
+    // 열람 기간이 끝났다 — 목록에는 남고 잠긴다
+    viewableFrom: daysFromNow(-40),
+    viewableUntil: daysFromNow(-33),
   },
   {
     id: "33",
@@ -206,6 +232,8 @@ const NOTICES: PostSummary[] = [
     authorName: "최OO",
     publishedAt: "2026-08-19T01:00:00Z",
     attachmentCount: 1,
+    viewableFrom: daysFromNow(-2),
+    viewableUntil: daysFromNow(5),
   },
   {
     id: "32",
@@ -216,6 +244,9 @@ const NOTICES: PostSummary[] = [
     authorName: "최OO",
     publishedAt: "2026-07-10T01:00:00Z",
     attachmentCount: 0,
+    // 기간 없는 예전 글(V11 이전) — 전도사가 기간을 정하기 전까지 잠김
+    viewableFrom: null,
+    viewableUntil: null,
   },
   ...archivePosts("NOTICE_PUBLIC", "지난 공지", "archive-notice", 22),
   ...archivePosts("MINUTES", "임원회의록", "archive-minutes", 22),
@@ -230,7 +261,7 @@ function archivePosts(
   label: string,
   slugPrefix: string,
   count: number,
-): PostSummary[] {
+): MockPostRow[] {
   return Array.from({ length: count }, (_, i) => {
     const n = String(count - i).padStart(2, "0");
     return {
@@ -242,6 +273,8 @@ function archivePosts(
       authorName: "김OO",
       publishedAt: new Date(Date.UTC(2026, 5, 30 - i, 1, 0, 0)).toISOString(),
       attachmentCount: 0,
+      // 지난 회의록은 기간 없는 예전 글 — 서버 배포 직후처럼 잠겨 있다 (§3.1)
+      ...NO_WINDOW,
     };
   });
 }
@@ -1171,7 +1204,7 @@ function toLoginResult(user: AuthUser): LoginResult {
  *    (`PostBodyView`) — 저장 결과를 화면에서 확인할 수 있게.
  */
 type MockPost = {
-  summary: PostSummary;
+  summary: MockPostRow;
   detail: Pick<PostDetail, "body" | "updatedAt" | "attachments">;
 };
 const dynamicPosts: MockPost[] = [];
@@ -1193,7 +1226,7 @@ for (const detail of Object.values(NOTICE_DETAILS)) {
 }
 
 /** 정적 + 동적 mock 글을 하나로 합친다. 같은 id는 **동적 쪽이 이긴다**(수정 반영) */
-function mockPostSummaries(): PostSummary[] {
+function mockPostSummaries(): MockPostRow[] {
   const overridden = new Set(dynamicPosts.map((p) => p.summary.id));
   return [
     ...dynamicPosts.map((p) => p.summary),
@@ -1219,6 +1252,37 @@ function requireLeader(message: string): AuthUser {
   return user;
 }
 
+function hasViewWindow(category: PostSummary["category"]): boolean {
+  return category === "MINUTES" || category === "BUDGET";
+}
+
+/** 기간 상태 (§3.2) — 공지는 null, 기간 없는 예전 글은 CLOSED */
+function viewStatus(row: MockPostRow, now = Date.now()): PostSummary["status"] {
+  if (!hasViewWindow(row.category)) return null;
+  if (!row.viewableFrom || !row.viewableUntil) return "CLOSED";
+  if (now < new Date(row.viewableFrom).getTime()) return "SCHEDULED";
+  if (now >= new Date(row.viewableUntil).getTime()) return "CLOSED";
+  return "OPEN";
+}
+
+/**
+ * §3.1 2026-10-19 — 이 사람이 지금 내용을 열 수 있나. 분류 권한은 이미 통과했다고 본다.
+ * 회원·임원은 기간 안에만, **전도사·글쓴이는 언제나**. 임원도 기간을 따른다(월례회와 다름).
+ */
+function canViewPost(row: MockPostRow, user: AuthUser | null): boolean {
+  const status = viewStatus(row);
+  if (status === null || status === "OPEN") return true;
+  return user?.role === "PASTOR" || (user !== null && user.name === row.authorName);
+}
+
+function toPostSummary(row: MockPostRow): PostSummary {
+  return { ...row, status: viewStatus(row), canView: canViewPost(row, readSession()) };
+}
+
+function throwOutsideViewWindow(): never {
+  throw new ApiError({ code: "FORBIDDEN", message: "열람 기간이 아닙니다.", status: 403 });
+}
+
 function validatePostInput(input: PostInput) {
   if (!input.title.trim()) {
     throw new ApiError({
@@ -1235,6 +1299,36 @@ function validatePostInput(input: PostInput) {
       status: 400,
       field: "body",
     });
+  }
+  // §3.4 2026-10-19 — 회의록·예산안 게시는 기간 필수, 끝 > 시작. 임시저장은 둘 다 비울 수 있다
+  if (hasViewWindow(input.category)) {
+    const from = input.viewableFrom ?? null;
+    const until = input.viewableUntil ?? null;
+    const required = input.publish || from !== null || until !== null;
+    if (required && !from) {
+      throw new ApiError({
+        code: "VALIDATION_ERROR",
+        message: "열람 기간을 입력해주세요.",
+        status: 400,
+        field: "viewableFrom",
+      });
+    }
+    if (required && !until) {
+      throw new ApiError({
+        code: "VALIDATION_ERROR",
+        message: "열람 기간을 입력해주세요.",
+        status: 400,
+        field: "viewableUntil",
+      });
+    }
+    if (from && until && new Date(until).getTime() <= new Date(from).getTime()) {
+      throw new ApiError({
+        code: "VALIDATION_ERROR",
+        message: "열람 종료는 시작보다 뒤여야 합니다.",
+        status: 400,
+        field: "viewableUntil",
+      });
+    }
   }
   const unknownId = input.attachmentIds.find((id) => !uploadedAttachments.has(id));
   if (unknownId) {
@@ -1261,6 +1355,9 @@ function buildMockPost(id: string, input: PostInput, authorName: string): MockPo
       // 임시저장이면 null (SPEC_API §3.4)
       publishedAt: input.publish ? now : null,
       attachmentCount: input.attachmentIds.length,
+      // 공지는 서버가 기간을 무시한다 (§3.4)
+      viewableFrom: hasViewWindow(input.category) ? (input.viewableFrom ?? null) : null,
+      viewableUntil: hasViewWindow(input.category) ? (input.viewableUntil ?? null) : null,
     },
     detail: {
       body: input.body,
@@ -1458,7 +1555,9 @@ export const mockApi: Api = {
                 a.pinned !== b.pinned
                   ? Number(b.pinned) - Number(a.pinned)
                   : (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""),
-              );
+              )
+              // 기간 밖 글도 목록에 남는다 — 잠금은 `canView`로 알린다 (§3.2)
+              .map(toPostSummary);
 
       return pageOf(items, page, size);
     },
@@ -1505,6 +1604,8 @@ export const mockApi: Api = {
           status: 401,
         });
       }
+      // 분류 권한을 통과한 **다음** 단계 — 기간 밖이면 404가 아니라 403 (§3.1 · §3.3)
+      if (!canViewPost(summary, readSession())) throwOutsideViewWindow();
 
       return {
         id: summary.id,
@@ -1517,6 +1618,8 @@ export const mockApi: Api = {
         publishedAt: summary.publishedAt,
         updatedAt: detail.updatedAt,
         attachments: detail.attachments,
+        viewableFrom: summary.viewableFrom,
+        viewableUntil: summary.viewableUntil,
       };
     },
 
@@ -1526,7 +1629,12 @@ export const mockApi: Api = {
       throwIfScenario();
       requireLeader("권한이 없습니다.");
       // dynamicPosts는 새 글·수정한 글이 앞에 쌓이므로 그 순서가 곧 "최근 저장순"이다
-      const all = scenario() === "empty" ? [] : mockPostSummaries().filter((p) => p.publishedAt === null);
+      const all =
+        scenario() === "empty"
+          ? []
+          : mockPostSummaries()
+              .filter((p) => p.publishedAt === null)
+              .map(toPostSummary);
       return {
         items: all.slice(page * size, (page + 1) * size),
         page,
@@ -1547,6 +1655,8 @@ export const mockApi: Api = {
       if (!summary || !detail || removedPostIds.has(summary.id)) {
         throw new ApiError({ code: "NOT_FOUND", message: "글을 찾을 수 없습니다.", status: 404 });
       }
+      // §3.7 — 기간 밖 회의록·예산안은 전도사·글쓴이만 (다른 임원 403)
+      if (!canViewPost(summary, readSession())) throwOutsideViewWindow();
       return {
         id: summary.id,
         category: summary.category,
@@ -1558,6 +1668,8 @@ export const mockApi: Api = {
         publishedAt: summary.publishedAt,
         updatedAt: detail.updatedAt,
         attachments: detail.attachments,
+        viewableFrom: summary.viewableFrom,
+        viewableUntil: summary.viewableUntil,
       };
     },
 
@@ -1582,6 +1694,8 @@ export const mockApi: Api = {
       if (!existing) {
         throw new ApiError({ code: "NOT_FOUND", message: "글을 찾을 수 없습니다.", status: 404 });
       }
+      // §3.5 — 기간 검사는 **고치기 전의 글** 기준. 고치면서 분류·기간을 바꿔 비켜 갈 수 없다
+      if (!canViewPost(existing, user)) throwOutsideViewWindow();
 
       const next = buildMockPost(id, input, existing.authorName || user.name);
       // 정적 mock 글을 수정하면 동적 쪽에 덮어쓰기 항목이 생긴다 (mockPostSummaries가 우선)

@@ -34,6 +34,8 @@ function notice(overrides: Partial<PostDetail> = {}): PostDetail {
     attachments: [
       { id: "7", filename: "신청서.xlsx", contentType: "application/octet-stream", sizeBytes: 10 },
     ],
+    viewableFrom: null,
+    viewableUntil: null,
     ...overrides,
   };
 }
@@ -81,6 +83,8 @@ describe("PinToggleButton", () => {
       attachmentIds: ["7"],
       // 게시된 글은 게시 상태로 다시 저장한다 — false면 임시저장으로 내려간다
       publish: true,
+      viewableFrom: null,
+      viewableUntil: null,
     });
     expect(await screen.findByRole("button", { name: /상단 고정/ })).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("고정을 해제했습니다");
@@ -130,6 +134,27 @@ describe("PinToggleButton", () => {
       pinned: false,
       attachmentIds: ["9"],
       publish: true,
+      viewableFrom: null,
+      viewableUntil: null,
+    });
+  });
+
+  it("회의록은 열람 기간을 그대로 실어 보낸다 — 빼면 게시 상태 저장이 400이다 (§3.4)", async () => {
+    asUser("LEADER");
+    renderButton(
+      notice({
+        category: "MINUTES",
+        viewableFrom: "2026-10-19T00:00:00Z",
+        viewableUntil: "2026-10-26T14:59:00Z",
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /고정 해제/ }));
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalled());
+    expect(mockUpdate.mock.calls[0][1]).toMatchObject({
+      viewableFrom: "2026-10-19T00:00:00Z",
+      viewableUntil: "2026-10-26T14:59:00Z",
     });
   });
 
